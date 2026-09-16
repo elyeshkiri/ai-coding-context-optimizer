@@ -1,3 +1,24 @@
+# 0.7.0
+
+- Added task-aware context packing with `token-saver pack` and the standalone
+  `token-saver-pack` entry point.
+- Added dependency-free BM25-style source ranking with stronger path and symbol
+  weights, Git working-tree/staged-file boosts, and structural-priority fallback.
+- Context packs combine compact outlines with exact line-numbered source windows
+  around high-signal task matches instead of summarizing editable code.
+- Added hard estimated-token caps, file-count/window controls, Git-ignore support,
+  ranking explanations, and output-to-file support.
+- Added conservative compression of consecutive duplicate lines in successful
+  command output while keeping failures and diagnostics untouched.
+- Added CI on Python 3.10 and 3.12 and regression coverage for relevance ranking,
+  budget enforcement, exact source windows, dispatcher compatibility, JSON
+  compaction, and failure preservation.
+- Kept all 0.6 lifecycle, audit, recovery, source-read, and benchmark behavior;
+  the new top-level dispatcher isolates `pack` from the mature legacy CLI.
+
+Token Saver still does not claim a universal end-to-end savings percentage.
+Task success and paired-run measurements remain the standard for savings claims.
+
 # 0.6.0
 
 - Corrected Bash replacement to the documented structured `updatedToolOutput`
