@@ -19,7 +19,6 @@ _JEST = re.compile(r"\b(jest|vitest|npm\s+test|pnpm\s+test|yarn\s+test)\b", re.I
 _GIT_LOG = re.compile(r"\bgit\s+log\b", re.I)
 _NPM_INSTALL = re.compile(r"\b(npm|pnpm|yarn|bun)\s+(i|install|ci)\b", re.I)
 
-
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 _BLANK_RUN = re.compile(r"\n{3,}")
 _HEX_BLOB = re.compile(r"\b[0-9a-fA-F]{96,}\b")
@@ -31,25 +30,51 @@ def _ensure_nl(text: str) -> str:
     return text + "\n"
 
 
-def preprocess(text: str) -> str:
-    """Cheap lossless-enough passes that almost always shrink logs.
+def _collapse_repeated_lines(text: str, minimum: int = 3) -> str:
+    """Collapse consecutive duplicate log lines while preserving their count."""
+    lines = text.splitlines()
+    if len(lines) < minimum:
+        return text
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        j = i + 1
+        while j < len(lines) and lines[j] == line:
+            j += 1
+        count = j - i
+        if line.strip() and count >= minimum:
+            out.append(line)
+            out.append(f"[token-saver: previous line repeated {count - 1} more times]")
+        else:
+            out.extend(lines[i:j])
+        i = j
+    candidate = "\n".join(out) + ("\n" if text.endswith("\n") else "")
+    return candidate if len(candidate) < len(text) else text
 
-    Applied before line clipping. Never grows the input.
-    """
+
+def preprocess(text: str) -> str:
+    """Cheap conservative passes that shrink successful logs without hiding errors."""
     if not text:
         return text
     out = _ANSI.sub("", text)
     out = out.replace("\r\n", "\n").replace("\r", "\n")
     out = _BLANK_RUN.sub("\n\n", out)
     out = _HEX_BLOB.sub(lambda m: m.group(0)[:12] + f"…({len(m.group(0))} hex)", out)
+
+    # Valid JSON is information-dense when compacted and should not be modified
+    # by the line-deduper below.
     stripped = out.strip()
     if stripped[:1] in "{[" and stripped[-1:] in "}]":
         try:
             packed = json.dumps(json.loads(stripped), separators=(",", ":"), ensure_ascii=False)
             if len(packed) + 1 < len(out):
                 out = packed + "\n"
+                return out if len(out) <= len(text) else text
         except (ValueError, TypeError):
             pass
+
+    out = _collapse_repeated_lines(out)
     return out if len(out) <= len(text) else text
 
 
