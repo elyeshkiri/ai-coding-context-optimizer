@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "token-saver hook",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Read"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "token-saver hook",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Bash|Read"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "token-saver hook",
+            "timeout": 10
+          }
+        ],
+        "matcher": "startup|resume|clear|compact"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "token-saver hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
