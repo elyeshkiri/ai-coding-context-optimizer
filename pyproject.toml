@@ -14,7 +14,7 @@ dev = ["pytest>=7"]
 exact = ["anthropic>=0.40"]
 
 [project.scripts]
-token-saver = "token_saver.cli:main"
+token-saver = "token_saver.entry:main"
 token-saver-pack = "token_saver.pack_cli:main"
 
 [build-system]
