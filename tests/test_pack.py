@@ -1,0 +1,103 @@
+import textwrap
+
+from token_saver.estimate import estimate_tokens
+from token_saver.pack import build_context_pack, rank_files
+from token_saver.pack_cli import main as pack_main
+
+
+def _write_repo(root):
+    src = root / "src"
+    src.mkdir()
+    (src / "auth.py").write_text(textwrap.dedent("""
+        class SessionManager:
+            def refresh_session(self, refresh_token: str) -> str:
+                account = self.lookup_refresh_token(refresh_token)
+                return self.rotate_session(account)
+
+            def revoke_session(self, session_id: str) -> None:
+                self.store.delete(session_id)
+    """))
+    (src / "billing.py").write_text(textwrap.dedent("""
+        class InvoiceService:
+            def create_invoice(self, customer_id: str) -> bytes:
+                subtotal = self.calculate_subtotal(customer_id)
+                return self.render_pdf(subtotal)
+    """))
+    (src / "cache.py").write_text(textwrap.dedent("""
+        class Cache:
+            def get(self, key: str):
+                return self.redis.get(key)
+    """))
+    return root
+
+
+def test_rank_files_prefers_task_relevance(tmp_path):
+    root = _write_repo(tmp_path)
+    ranked = rank_files(root, "refresh authentication session token", changed_boost=False)
+    assert ranked[0].rel == "src/auth.py"
+    assert ranked[0].term_hits > ranked[-1].term_hits
+
+
+def test_context_pack_contains_exact_source_window(tmp_path):
+    root = _write_repo(tmp_path)
+    pack = build_context_pack(
+        root,
+        "rotate refresh session",
+        max_tokens=1200,
+        changed_boost=False,
+    )
+    assert "## src/auth.py" in pack.text
+    assert "### exact source windows" in pack.text
+    assert "return self.rotate_session(account)" in pack.text
+    assert "|" in pack.text, "source windows should carry exact line gutters"
+
+
+def test_context_pack_respects_hard_token_budget(tmp_path):
+    root = _write_repo(tmp_path)
+    for n in range(8):
+        (root / "src" / f"worker_{n}.py").write_text(
+            f"def process_refresh_session_{n}(payload):\n" +
+            "\n".join(f"    step_{i}(payload)" for i in range(120)) + "\n"
+        )
+    pack = build_context_pack(
+        root,
+        "refresh session worker",
+        max_tokens=240,
+        max_files=20,
+        changed_boost=False,
+    )
+    assert pack.estimated_tokens <= 240
+    assert estimate_tokens(pack.text) <= 240
+
+
+def test_changed_file_gets_bonus(tmp_path, monkeypatch):
+    root = _write_repo(tmp_path)
+    monkeypatch.setattr("token_saver.pack._changed_files", lambda _root: {"src/billing.py"})
+    ranked = rank_files(root, "invoice customer", changed_boost=True)
+    billing = next(item for item in ranked if item.rel == "src/billing.py")
+    assert billing.changed is True
+    assert "changed" in billing.reasons
+
+
+def test_empty_query_falls_back_to_structural_priority(tmp_path):
+    root = _write_repo(tmp_path)
+    pack = build_context_pack(root, "", max_tokens=800, changed_boost=False)
+    assert pack.selected_files
+    assert pack.estimated_tokens <= 800
+
+
+def test_pack_cli_outputs_pack_and_explanation(tmp_path, capsys):
+    root = _write_repo(tmp_path)
+    assert pack_main([
+        str(root), "--query", "refresh session", "--max-tokens", "700", "--explain"
+    ]) == 0
+    captured = capsys.readouterr()
+    assert "TOKEN-SAVER CONTEXT PACK" in captured.out
+    assert "src/auth.py" in captured.out
+    assert "TOKEN-SAVER RELEVANCE" in captured.err
+
+
+def test_pack_cli_rejects_nonpositive_budget(tmp_path, capsys):
+    _write_repo(tmp_path)
+    assert pack_main([str(tmp_path), "--max-tokens", "0"]) == 2
+    assert "max_tokens must be positive" in capsys.readouterr().err
