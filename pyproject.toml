@@ -1,8 +1,8 @@
 [project]
 name = "token-saver"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = ["tree-sitter>=0.25,<0.26", "tree-sitter-javascript>=0.25,<0.26", "tree-sitter-typescript>=0.23,<0.24"]
-description = "Reduce tokens used by AI coding agents (Claude-style) on real projects."
+description = "Reduce tokens used by AI coding agents with task-aware context packing, bounded reads, recoverable output compression, and measurement."
 requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
@@ -15,6 +15,7 @@ exact = ["anthropic>=0.40"]
 
 [project.scripts]
 token-saver = "token_saver.cli:main"
+token-saver-pack = "token_saver.pack_cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
