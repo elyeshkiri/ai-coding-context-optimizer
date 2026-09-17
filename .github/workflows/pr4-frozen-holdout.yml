@@ -21,11 +21,11 @@ jobs:
           git -C benchmarks/httpx checkout b5addb64f0161ff6bfe94c124ef76f6a1fba5254
           git clone https://github.com/colinhacks/zod.git benchmarks/zod
           git -C benchmarks/zod checkout 59bbc03e10c636b9eb3c393dfeb552819774ec21
-      - name: Diagnose remaining Zod ranking gap
+      - name: Diagnose remaining Zod allocation gap
         run: |
           python - <<'PY'
           from pathlib import Path
-          from token_saver.pack import rank_files
+          from token_saver.pack import build_context_pack, rank_files
           from token_saver.repo_index import build_index
 
           root = Path('benchmarks/zod')
@@ -40,19 +40,25 @@ jobs:
               seed_limit=6,
           )
           print('TOP RANKING')
-          for i, item in enumerate(ranked[:20], 1):
+          for i, item in enumerate(ranked[:12], 1):
               print(i, item.rel, round(item.score, 3), item.term_hits, item.reasons)
-          for rel in [
-              'packages/zod/src/v4/core/schemas.ts',
-              'packages/zod/src/v4/core/regexes.ts',
-          ]:
-              rec = index.records.get(rel)
-              print('\nRECORD', rel)
-              if rec is None:
-                  print('missing')
-                  continue
-              print('symbols containing email:', [s for s in rec.symbols if 'email' in s.lower()])
-              print('semantic refs containing email:', [r for r in rec.semantic_refs or [] if 'email' in str(r).lower()])
+
+          pack = build_context_pack(
+              root,
+              query,
+              max_tokens=6000,
+              changed_boost=False,
+              feedback_boost=False,
+              persist_index=False,
+              index=index,
+          )
+          print('PACK TOKENS', pack.estimated_tokens)
+          print('SELECTED FILES', pack.selected_files)
+          print('SELECTED SYMBOLS', pack.selected_symbols)
+          print('SECTION HEADERS')
+          for line in pack.text.splitlines():
+              if line.startswith('## '):
+                  print(line)
           PY
       - name: Run frozen external holdout
         run: token-saver evaluate benchmarks/holdout-external.json --path . --max-tokens 6000 --require-holdout
