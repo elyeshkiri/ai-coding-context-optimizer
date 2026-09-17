@@ -54,9 +54,26 @@
   `selected_symbols`, not byte coverage. This is a real, disclosed
   regression, not swept under the self-benchmark's unchanged numbers
   (which don't exercise the two-classes-share-one-target-method shape).
-  Deliberately left unfixed rather than patched against this same frozen
-  suite -- a fix needs its own held-out validation, per this project's
-  standing rule against tuning against the suite that found the gap.
+
+  **Fixed** -- not by re-tuning the parent-credit heuristic against this
+  frozen suite, but by fixing the actual underlying correctness gap it
+  exposed: a boosted parent's window already contains its credited
+  child's source (a class's line range always spans its own methods), so
+  the child that earned a parent its window slot is now also added to
+  `selected_symbols` as a label, without spending a second window slot on
+  source that's already rendered. `_symbol_windows()` no longer collapses
+  windows and labels into one 1:1 list; labels can now include a
+  window-less credited child. New regression test
+  (`test_symbol_window_credits_shared_method_name_when_two_classes_both_win_slots`)
+  reproduces the Client/AsyncClient shape synthetically and is verified,
+  via git stash, to fail without this fix. Verified: 326 tests passing
+  (was 325), self-benchmark still unchanged (92%/96%), and a second
+  one-time re-run of the frozen holdout now shows `httpx-redirects` back
+  at 1.0 with no new regressions -- **mean symbol recall 16.7% -> 66.7%**
+  across the two fixes, file recall and token reduction unchanged.
+  Remaining known gap on this frozen suite: `zod-flatten-error` and
+  `zod-email-regex` (the disclosed, still-unfixed file-level terse-file
+  ranking weakness), unrelated to symbol-window selection.
 
 - **Attempted and reverted: a "terse implementation" file-ranking signal**
   to address the external holdout benchmark's `zod-email-regex` finding

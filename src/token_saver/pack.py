@@ -349,18 +349,38 @@ def _symbol_windows(
         # ranking signal hit earlier.
         own_score = {symbol.name: score for score, symbol in matches}
         best_child_score: dict[str, float] = {}
+        best_child_symbol: dict[str, object] = {}
         for score, symbol in matches:
             if symbol.parent and symbol.parent in own_score:
-                best_child_score[symbol.parent] = max(best_child_score.get(symbol.parent, 0), score)
+                if score > best_child_score.get(symbol.parent, 0):
+                    best_child_score[symbol.parent] = score
+                    best_child_symbol[symbol.parent] = symbol
         boosted = {
             name: score + best_child_score.get(name, 0)
             for name, score in own_score.items()
         }
         matches = [(boosted.get(symbol.name, score), symbol) for score, symbol in matches]
+    else:
+        best_child_symbol = {}
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
     selected = [symbol for _, symbol in matches[:2]]
     windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in selected]
     labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in selected]
+    # A boosted parent's window already contains its credited child's source
+    # (a class's line range always spans its own methods) -- so once the
+    # parent wins a window slot, also credit the child that earned it with a
+    # label, even though it isn't given a separate window of its own. Without
+    # this, two classes that each independently out-compete a shared-name
+    # sibling method for the file's limited window slots (e.g. httpx's
+    # Client/AsyncClient both containing their own send_handling_redirects)
+    # can silently push that method's name out of the results entirely, even
+    # though its code is still right there in the rendered window.
+    for symbol in selected:
+        child = best_child_symbol.get(symbol.name)
+        if child is None or child in selected:
+            continue
+        if child.start_line >= symbol.start_line and child.end_line <= symbol.end_line:
+            labels.append(f"{item.rel}:{child.name}@{child.start_line}")
     return windows, labels
 
 

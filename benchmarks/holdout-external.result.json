@@ -14,7 +14,7 @@
       "repository": "httpx",
       "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
       "file_recall": 1.0,
-      "symbol_recall": 0.0,
+      "symbol_recall": 1.0,
       "tokens": 5991,
       "token_reduction": 0.9755932617684803
     },
@@ -59,7 +59,7 @@
     "httpx": {
       "task_count": 3,
       "mean_file_recall": 1.0,
-      "mean_symbol_recall": 0.6666666666666666,
+      "mean_symbol_recall": 1.0,
       "mean_token_reduction": 0.9755905458347761
     },
     "zod": {
@@ -72,7 +72,7 @@
   "summary": {
     "task_count": 6,
     "mean_file_recall": 0.8333333333333334,
-    "mean_symbol_recall": 0.5,
+    "mean_symbol_recall": 0.6666666666666666,
     "mean_token_reduction": 0.9848001027729323
   },
   "holdout_protocol_enforced": true,

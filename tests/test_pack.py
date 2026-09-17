@@ -190,6 +190,78 @@ def test_symbol_window_prefers_class_over_its_own_denser_matching_method(tmp_pat
     assert any(label.startswith("src/auth.py:DigestAuth@") for label in pack.selected_symbols)
 
 
+def test_symbol_window_credits_shared_method_name_when_two_classes_both_win_slots(tmp_path):
+    # Regression for a real bug the parent-credit fix above introduced,
+    # found by re-running the frozen external holdout after landing it
+    # (encode/httpx's Client/AsyncClient both contain their own
+    # send_handling_redirects and both independently out-score it for the
+    # file's two window slots, pushing that name out of selected_symbols
+    # even though the rendered windows still contain its source). Fixed by
+    # also crediting the child whose score earned a parent its slot, since
+    # the parent's window already contains that child's code.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "client.py").write_text(textwrap.dedent("""
+        class HttpRequest:
+            pass
+
+        class HttpResponse:
+            pass
+
+        class SyncClient:
+            def __init__(self, base_url: str):
+                self.base_url = base_url
+
+            def send_handling_redirects(self, request: HttpRequest, history: list) -> HttpResponse:
+                # Follow HTTP redirects: rebuild the outgoing request for the new
+                # location found in the response, tracking redirect history.
+                response = self._send_single_request(request)
+                while response.is_redirect:
+                    location = response.headers["location"]
+                    request = self._build_redirect_request(request, location)
+                    history.append(response)
+                    response = self._send_single_request(request)
+                return response
+
+            def _send_single_request(self, request: HttpRequest) -> HttpResponse:
+                return HttpResponse()
+
+            def _build_redirect_request(self, request: HttpRequest, location: str) -> HttpRequest:
+                return HttpRequest()
+
+
+        class AsyncClient:
+            def __init__(self, base_url: str):
+                self.base_url = base_url
+
+            async def send_handling_redirects(self, request: HttpRequest, history: list) -> HttpResponse:
+                # Follow HTTP redirects: rebuild the outgoing request for the new
+                # location found in the response, tracking redirect history.
+                response = await self._send_single_request(request)
+                while response.is_redirect:
+                    location = response.headers["location"]
+                    request = self._build_redirect_request(request, location)
+                    history.append(response)
+                    response = await self._send_single_request(request)
+                return response
+
+            async def _send_single_request(self, request: HttpRequest) -> HttpResponse:
+                return HttpResponse()
+
+            def _build_redirect_request(self, request: HttpRequest, location: str) -> HttpRequest:
+                return HttpRequest()
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "follow HTTP redirects and rebuild the request for the new location",
+        max_tokens=1400,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/client.py:send_handling_redirects@") for label in pack.selected_symbols)
+
+
 def test_semantic_graph_boost_recovers_terse_dependency_file(tmp_path):
     src = tmp_path / "src"
     src.mkdir()

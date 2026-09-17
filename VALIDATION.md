@@ -85,14 +85,19 @@ repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
   selection) and validated entirely against the self-benchmark, never
   against this frozen suite. A one-time, after-the-fact re-run of this
   same frozen suite (not a tuning loop) then measured the fix's real
-  effect: mean symbol recall rose to **50%**, file recall and token
-  reduction unchanged. It also surfaced one new, disclosed regression
+  effect: mean symbol recall rose to 50%, file recall and token reduction
+  unchanged. It also surfaced one new, disclosed regression
   (`httpx-redirects`, 1.0 -> 0.0) where two classes sharing one specific
   target method now both out-score it for the file's top-2 window slots.
-  See CHANGELOG.md for full detail on both the fix and the regression it
-  introduced; deliberately left unfixed pending its own separate
-  validation, per this project's rule against tuning against the same
-  frozen suite that found a gap.
+  That regression was itself fixed (crediting the child whose score
+  earned its parent a window slot, since the parent's window already
+  contains that child's source) and re-verified with a second one-time
+  holdout re-run: **mean symbol recall 66.7%**, file recall and token
+  reduction still unchanged, no new regressions. See CHANGELOG.md for
+  full detail on both fixes. Remaining known gap: `zod-flatten-error` and
+  `zod-email-regex` (the disclosed, still-unfixed file-level terse-file
+  ranking weakness) are unrelated to symbol-window selection and remain
+  deliberately unfixed pending their own separately-frozen holdout.
 - Regression coverage carried over from 1.0.0 still exercises bounded
   dependency closure, Tree-sitter-backed JS/TS/JSX/TSX symbol ranges,
   patch-aware context generation, public-signature/removed-symbol/
