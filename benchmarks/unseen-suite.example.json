@@ -1,0 +1,33 @@
+{
+  "suite_version": 1,
+  "frozen_at": "2026-09-17T00:00:00Z",
+  "ground_truth_sha256": "replace-with-token-saver-unseen-evaluate---print-ground-truth-hash",
+  "max_tokens": 6000,
+  "tasks": [
+    {
+      "id": "unseen-auth-bug",
+      "repo": "../path-to-repository-a",
+      "query": "fix refresh session after logout",
+      "files": [
+        "src/auth/session.ts",
+        "src/auth/store.ts"
+      ],
+      "symbols": [
+        "refreshSession"
+      ]
+    },
+    {
+      "id": "unseen-checkout-policy",
+      "repo": "../path-to-repository-b",
+      "query": "review checkout ranking policy regression",
+      "files": [
+        "src/checkout/policy.ts",
+        "tests/checkout/policy.test.ts"
+      ],
+      "symbols": [
+        "rankOffers"
+      ],
+      "max_tokens": 4000
+    }
+  ]
+}
