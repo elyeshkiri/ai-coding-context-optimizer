@@ -1,54 +1,38 @@
-"""Token counting.
+"""Provider-aware token counting.
 
-Two modes:
+Offline estimates are free and conservative. Provider-specific counters can be
+selected when exact/raw-tokenizer accounting matters:
 
-* **exact** - `POST /v1/messages/count_tokens` via the Anthropic SDK. Model-specific
-  and correct. Requires credentials and a network round trip.
-* **estimate** - an offline heuristic, per file type. Free and instant, but only
-  good to roughly ±20%. Use it for budgets, never for billing.
+* anthropic: Messages ``count_tokens`` API;
+* openai: exact raw-text tokenization with ``tiktoken`` for the requested model;
+* google: Gemini ``count_tokens`` API through ``google-genai``.
 
-The heuristic's chars-per-token ratios were measured over ~17 MB of real source
-with a BPE tokenizer, then corrected: Claude's tokenizer is not cl100k, and cl100k
-undercounts Claude by ~15-20% on prose and more on code. The ratios below fold in
-that correction, so they are deliberately conservative — they bias toward
-over-estimating, because a budget that is too tight is cheaper to discover than
-one that is silently blown. When a number actually matters, use exact mode.
+Raw-text tokenizer counts intentionally do not pretend to include provider
+request-envelope/tool-schema overhead. Billing validation should still use the
+provider's reported usage from the actual agent run.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
+Provider = Literal["anthropic", "openai", "google"]
 DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODELS: dict[str, str] = {
+    "anthropic": DEFAULT_MODEL,
+    "openai": "gpt-5.6",
+    "google": "gemini-2.5-pro",
+}
 
-# chars per Claude token, by file extension
+# chars per Claude-ish token, by file extension. These remain intentionally
+# conservative for provider-neutral hard-budget planning.
 _RATIOS = {
-    ".py": 3.1,
-    ".pyi": 3.1,
-    ".rb": 3.1,
-    ".go": 3.3,
-    ".rs": 3.3,
-    ".c": 3.3,
-    ".h": 3.3,
-    ".cpp": 3.3,
-    ".hpp": 3.3,
-    ".java": 3.6,
-    ".kt": 3.6,
-    ".cs": 3.6,
-    ".swift": 3.4,
-    ".php": 3.2,
-    ".js": 3.8,
-    ".jsx": 3.8,
-    ".mjs": 3.8,
-    ".cjs": 3.8,
-    ".ts": 3.8,
-    ".tsx": 3.8,
-    ".json": 2.4,
-    ".yaml": 2.9,
-    ".yml": 2.9,
-    ".toml": 2.9,
-    ".md": 3.5,
-    ".markdown": 3.5,
+    ".py": 3.1, ".pyi": 3.1, ".rb": 3.1, ".go": 3.3, ".rs": 3.3,
+    ".c": 3.3, ".h": 3.3, ".cpp": 3.3, ".hpp": 3.3, ".java": 3.6,
+    ".kt": 3.6, ".cs": 3.6, ".swift": 3.4, ".php": 3.2,
+    ".js": 3.8, ".jsx": 3.8, ".mjs": 3.8, ".cjs": 3.8,
+    ".ts": 3.8, ".tsx": 3.8, ".json": 2.4, ".yaml": 2.9,
+    ".yml": 2.9, ".toml": 2.9, ".md": 3.5, ".markdown": 3.5,
     ".txt": 3.0,
 }
 _CODE_DEFAULT = 3.3
@@ -60,7 +44,7 @@ def ratio_for(suffix: str) -> float:
 
 
 def estimate_tokens(text: str, suffix: str = "") -> int:
-    """Offline estimate. `suffix` selects the calibration; omit it for prose."""
+    """Offline estimate suitable for local hard-budget planning."""
     if not text:
         return 0
     ratio = _RATIOS.get(suffix.lower(), _PROSE_DEFAULT if not suffix else _CODE_DEFAULT)
@@ -74,36 +58,78 @@ def estimate_file(path: Path) -> int:
         return 0
 
 
-def count_tokens_exact(text: str, model: str = DEFAULT_MODEL) -> int:
-    """Exact count from the Messages API. Raises if the SDK or credentials are missing."""
+def _anthropic_count(text: str, model: str) -> int:
     try:
         import anthropic
-    except ImportError as exc:  # pragma: no cover - depends on the environment
-        raise RuntimeError(
-            "exact counting needs the Anthropic SDK: pip install 'token-saver[exact]'"
-        ) from exc
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError("Anthropic counting needs: pip install 'token-saver[anthropic]'") from exc
     client = anthropic.Anthropic()
-    resp = client.messages.count_tokens(
-        model=model,
-        messages=[{"role": "user", "content": text}],
-    )
-    return resp.input_tokens
+    response = client.messages.count_tokens(model=model, messages=[{"role": "user", "content": text}])
+    return int(response.input_tokens)
+
+
+def _openai_count(text: str, model: str) -> int:
+    try:
+        import tiktoken
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError("OpenAI tokenization needs: pip install 'token-saver[openai]'") from exc
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # New model aliases can arrive before tiktoken's model table. o200k_base
+        # is the conservative modern fallback; callers can still validate
+        # actual billed usage from provider telemetry.
+        encoding = tiktoken.get_encoding("o200k_base")
+    return len(encoding.encode(text))
+
+
+def _google_count(text: str, model: str) -> int:
+    try:
+        from google import genai
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError("Google counting needs: pip install 'token-saver[google]'") from exc
+    client = genai.Client()
+    response = client.models.count_tokens(model=model, contents=text)
+    return int(response.total_tokens or 0)
+
+
+def count_tokens_exact(
+    text: str,
+    model: str = DEFAULT_MODEL,
+    provider: Provider = "anthropic",
+) -> int:
+    """Count text with the selected provider/tokenizer."""
+    if provider == "anthropic":
+        return _anthropic_count(text, model)
+    if provider == "openai":
+        return _openai_count(text, model)
+    if provider == "google":
+        return _google_count(text, model)
+    raise ValueError(f"unsupported token provider: {provider}")
 
 
 class Counter:
-    """Counts tokens, exactly or by estimate, behind one interface."""
+    """Counts tokens exactly/provider-specifically or by offline estimate."""
 
-    def __init__(self, exact: bool = False, model: str = DEFAULT_MODEL) -> None:
+    def __init__(
+        self,
+        exact: bool = False,
+        model: str | None = None,
+        provider: Provider = "anthropic",
+    ) -> None:
+        if provider not in DEFAULT_MODELS:
+            raise ValueError(f"unsupported token provider: {provider}")
         self.exact = exact
-        self.model = model
+        self.provider = provider
+        self.model = model or DEFAULT_MODELS[provider]
 
     @property
     def label(self) -> str:
-        return "exact" if self.exact else "≈est"
+        return f"{self.provider}:exact" if self.exact else "≈est"
 
     def count(self, text: str, suffix: str = "") -> int:
         if self.exact:
-            return count_tokens_exact(text, self.model)
+            return count_tokens_exact(text, self.model, self.provider)
         return estimate_tokens(text, suffix)
 
 
