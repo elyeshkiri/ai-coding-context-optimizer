@@ -211,7 +211,11 @@ def _coverage(review: dict, index: RepositoryIndex, pack: "ContextPack") -> dict
 # one category crowding out the others that the cap exists to prevent).
 _RESERVABLE_CATEGORIES = {"database", "config", "ci", "tests"}
 _CATEGORY_RESERVE_TOTAL_FRACTION = 0.35
-_CATEGORY_RESERVE_CAP = 600
+# The fair-share recompute below already stops one category from consuming
+# the whole reservation when others still need a turn; this is just a
+# backstop so a single category (e.g. many small migrations) can't eat
+# significantly more than the total reservation on its own.
+_CATEGORY_RESERVE_CAP = 1200
 _CATEGORY_RESERVE_FLOOR = 150
 
 
@@ -258,11 +262,22 @@ def build_diff_context(
     reserve_used = 0
     if underrepresented:
         total_cap = int(max_tokens * _CATEGORY_RESERVE_TOTAL_FRACTION)
-        per_category = min(max(total_cap // len(underrepresented), _CATEGORY_RESERVE_FLOOR), _CATEGORY_RESERVE_CAP)
-        for category, files in sorted(underrepresented.items()):
-            budget = min(per_category, total_cap - reserve_used)
+        # Fair-share what's *left*, recomputed after each category, the same
+        # pattern used for priority-file selection in pack.py: a fixed equal
+        # split gives a 1-file category (e.g. one new CI workflow) the same
+        # budget as a 7-file one (e.g. a batch of migrations), so the small
+        # category wastes its share while the large one starves regardless.
+        # Processing fewer-file categories first lets them spend only what
+        # they need and hand the remainder on, instead of everyone getting
+        # an equal slice up front whether they can use it or not.
+        ordered = sorted(underrepresented.items(), key=lambda kv: (len(kv[1]), kv[0]))
+        categories_left = len(ordered)
+        for category, files in ordered:
+            fair_share = max((total_cap - reserve_used) // categories_left, _CATEGORY_RESERVE_FLOOR)
+            budget = min(fair_share, _CATEGORY_RESERVE_CAP, total_cap - reserve_used)
+            categories_left -= 1
             if budget < _CATEGORY_RESERVE_FLOOR:
-                break
+                continue
             sub_pack = build_context_pack(
                 root, f"{category} evidence " + " ".join(sorted(files)),
                 max_tokens=budget, changed_boost=True,
