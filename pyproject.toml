@@ -10,8 +10,8 @@ license-files = ["LICENSE"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "build>=1"]
-# exact token counts from the Messages API instead of offline estimates
-exact = ["anthropic>=0.40"]
+# provider-aware exact token counting: Anthropic API + OpenAI local tokenizer
+exact = ["anthropic>=0.40", "tiktoken>=0.7,<1"]
 embeddings = ["sentence-transformers>=3,<6"]
 
 [project.scripts]
