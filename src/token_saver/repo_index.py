@@ -1,11 +1,10 @@
-"""Incremental repository index and lightweight code relationship graph.
+"""Incremental repository index and code relationship graph.
 
-The index is deliberately dependency-free.  It extracts imports, declarations,
-and call-like identifiers, persists records by content digest, and only reparses
-files whose bytes changed.  Language-aware parsers can replace individual
-extractors later without changing the on-disk format.
+Besides symbols/imports/calls, each record persists the structural outline and
+weighted lexical term frequencies used by the task ranker. Queries can therefore
+score the repository without rereading/re-tokenizing every source file; actual
+source bytes are loaded only for the final selected evidence.
 """
-
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -17,11 +16,12 @@ import re
 import tempfile
 from pathlib import Path
 
-from .skeleton import walk_repo
+from .lexical import document_terms
 from .security import ENV_TEMPLATE_NAMES, inspect_path
+from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, symbols as syntax_symbols
 
-INDEX_VERSION = 3
+INDEX_VERSION = 4
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -64,6 +64,9 @@ class FileRecord:
     calls: list[str]
     tokens: list[str]
     definitions: list[SymbolRecord] | None = None
+    outline: str = ""
+    term_counts: dict[str, int] | None = None
+    semantic_refs: list[str] | None = None
 
 
 @dataclass
@@ -73,17 +76,11 @@ class RepositoryIndex:
     reparsed: int = 0
     reused: int = 0
     excluded: dict[str, str] | None = None
-    # Lazily built, cached on first use. Each build_index() call constructs a
-    # fresh RepositoryIndex, so caching on the instance is safe: `records`
-    # never changes after construction, and nothing else can observe staleness.
-    _caller_index: dict[str, list[tuple[str, SymbolRecord]]] | None = field(
-        default=None, repr=False, compare=False
-    )
-    _test_file_signatures: list[tuple[str, str, set[str]]] | None = field(
-        default=None, repr=False, compare=False
-    )
+    semantic_enabled: bool = False
+    _caller_index: dict[str, list[tuple[str, SymbolRecord]]] | None = field(default=None, repr=False, compare=False)
+    _test_file_signatures: list[tuple[str, str, set[str]]] | None = field(default=None, repr=False, compare=False)
     _neighbor_indexes: tuple[
-        dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]
+        dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]
     ] | None = field(default=None, repr=False, compare=False)
 
     def find_symbols(self, name: str) -> list[tuple[str, SymbolRecord]]:
@@ -110,16 +107,9 @@ class RepositoryIndex:
         return self._caller_index
 
     def symbol_callers(self, name: str) -> list[tuple[str, SymbolRecord]]:
-        out = self._callers_by_name().get(name.lower(), [])
-        return sorted(out, key=lambda item: (item[0], item[1].start_line))
+        return sorted(self._callers_by_name().get(name.lower(), []), key=lambda item: (item[0], item[1].start_line))
 
     def test_file_signatures(self) -> list[tuple[str, str, set[str]]]:
-        """(path, lowercased path, token set) for test/spec files, cached once.
-
-        `record.tokens` is already lowercased by `_extract`, so the token set
-        is reused as-is rather than rebuilt (with a redundant `.lower()` on
-        every token) on each caller-impact lookup.
-        """
         if self._test_file_signatures is None:
             self._test_file_signatures = [
                 (rel, rel.lower(), set(record.tokens))
@@ -128,18 +118,14 @@ class RepositoryIndex:
             ]
         return self._test_file_signatures
 
-    def _build_neighbor_indexes(
-        self,
-    ) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
-        # Reverse indexes so neighbors() can look candidates up instead of
-        # scanning every other file. Each mirrors one branch of the original
-        # per-pair comparison exactly (including its "check the split key
-        # against the already-transformed set" quirk), so results are
-        # unchanged -- only how candidates are found.
+    def _build_neighbor_indexes(self) -> tuple[
+        dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]
+    ]:
         imported_by_index: dict[str, set[str]] = {}
         stem_index: dict[str, set[str]] = {}
         call_symbol_index: dict[str, set[str]] = {}
         symbol_def_index: dict[str, set[str]] = {}
+        semantic_reverse: dict[str, set[str]] = {}
         for other_rel, other in self.records.items():
             stem_index.setdefault(Path(other_rel).stem.lower(), set()).add(other_rel)
             import_keys = {Path(value).name.lower() for value in other.imports}
@@ -147,9 +133,12 @@ class RepositoryIndex:
                 imported_by_index.setdefault(key, set()).add(other_rel)
             for key in {call.split(".")[-1].lower() for call in other.calls}:
                 call_symbol_index.setdefault(key, set()).add(other_rel)
-            for key in {s.lower() for s in other.symbols}:
+            for key in {symbol.lower() for symbol in other.symbols}:
                 symbol_def_index.setdefault(key, set()).add(other_rel)
-        return imported_by_index, stem_index, call_symbol_index, symbol_def_index
+            for target in other.semantic_refs or []:
+                if target in self.records and target != other_rel:
+                    semantic_reverse.setdefault(target, set()).add(other_rel)
+        return imported_by_index, stem_index, call_symbol_index, symbol_def_index, semantic_reverse
 
     def neighbors(self, rel: str) -> list[tuple[str, str]]:
         """Return related files and the edge that connected them."""
@@ -158,10 +147,10 @@ class RepositoryIndex:
             return []
         if self._neighbor_indexes is None:
             self._neighbor_indexes = self._build_neighbor_indexes()
-        imported_by_index, stem_index, call_symbol_index, symbol_def_index = self._neighbor_indexes
+        imported_by_index, stem_index, call_symbol_index, symbol_def_index, semantic_reverse = self._neighbor_indexes
 
         source_stem = Path(rel).stem.lower()
-        source_symbols = {s.lower() for s in source.symbols}
+        source_symbols = {symbol.lower() for symbol in source.symbols}
         reverse_imports = {Path(value).name.lower() for value in source.imports}
         source_calls = {call.split(".")[-1].lower() for call in source.calls}
 
@@ -178,9 +167,18 @@ class RepositoryIndex:
         for call in source_calls:
             calls_candidates |= symbol_def_index.get(call, set())
         calls_candidates -= {rel}
+        semantic_out = {target for target in source.semantic_refs or [] if target in self.records and target != rel}
+        semantic_in = semantic_reverse.get(rel, set()) - {rel}
 
         out: dict[str, str] = {}
+        # Compiler-resolved edges intentionally win over heuristic edges.
+        for other_rel in semantic_out:
+            out[other_rel] = "semantic"
+        for other_rel in semantic_in:
+            out.setdefault(other_rel, "semantic-reverse")
         for other_rel in imported_by | imports_candidates | calls_symbol_candidates | calls_candidates:
+            if other_rel in out:
+                continue
             if other_rel in imported_by:
                 out[other_rel] = "imported-by"
             elif other_rel in imports_candidates:
@@ -272,7 +270,6 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
 
 
 def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
-    """Return Tree-sitter-backed JS/TS ranges, with a conservative fallback."""
     try:
         parsed = syntax_symbols(text, suffix)
     except (ImportError, ValueError, OSError):
@@ -283,17 +280,11 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
         body = "\n".join(lines[max(0, symbol.start - 1):symbol.end])
         calls = sorted({match.group(1).split(".")[-1] for match in _CALL.finditer(body)} - _CALL_STOP)
         parent = symbol.qualified.rsplit(".", 1)[0] if "." in symbol.qualified else None
-        out.append(SymbolRecord(
-            symbol.name, "symbol", symbol.start, symbol.end,
-            symbol.signature[:500], parent, calls,
-        ))
+        out.append(SymbolRecord(symbol.name, "symbol", symbol.start, symbol.end, symbol.signature[:500], parent, calls))
     return out
 
 
 def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
-    """Table names as symbols, FK REFERENCES targets as calls -- lets the
-    existing call-graph machinery link a migration to the tables it touches
-    and to callers/schema definitions of those same table names."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     lines = text.splitlines()
@@ -302,18 +293,12 @@ def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
         symbols.add(name)
         start = text.count("\n", 0, match.start()) + 1
         signature = lines[start - 1].strip()[:300] if start <= len(lines) else name
-        referenced = sorted({ref for ref in _SQL_REFERENCES.findall(
-            text[match.end():match.end() + 4000]
-        ) if ref.lower() != name.lower()})
+        referenced = sorted({ref for ref in _SQL_REFERENCES.findall(text[match.end():match.end() + 4000]) if ref.lower() != name.lower()})
         definitions.append(SymbolRecord(name, "table", start, start, signature, calls=referenced))
-    calls = {ref for ref in _SQL_REFERENCES.findall(text)}
-    return symbols, calls, definitions
+    return symbols, set(_SQL_REFERENCES.findall(text)), definitions
 
 
 def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
-    """npm script names as symbols (signature = the command), dependency
-    names as imports -- so a changed script/dependency shows up like any
-    other changed definition instead of the whole file being opaque JSON."""
     symbols: set[str] = set()
     imports: set[str] = set()
     definitions: list[SymbolRecord] = []
@@ -341,78 +326,70 @@ def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRec
 
 
 def _extract_yaml_ci_jobs(text: str) -> tuple[set[str], list[SymbolRecord]]:
-    """Job ids under a top-level `jobs:` key, via indentation -- a light
-    heuristic (no YAML parser dependency) that covers standard-formatted
-    GitHub Actions workflows."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
-    lines = text.splitlines()
     in_jobs = False
-    for i, line in enumerate(lines, start=1):
+    for number, line in enumerate(text.splitlines(), start=1):
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         if _YAML_TOP_KEY.match(line):
             in_jobs = line.split(":", 1)[0].strip() == "jobs"
             continue
-        if in_jobs:
-            match = _YAML_JOB_KEY.match(line)
-            if match:
-                name = match.group(1)
-                symbols.add(name)
-                definitions.append(SymbolRecord(name, "ci-job", i, i, line.strip()[:300]))
+        if in_jobs and (match := _YAML_JOB_KEY.match(line)):
+            name = match.group(1)
+            symbols.add(name)
+            definitions.append(SymbolRecord(name, "ci-job", number, number, line.strip()[:300]))
     return symbols, definitions
 
 
 def _extract_env_vars(text: str) -> tuple[set[str], list[SymbolRecord]]:
-    """KEY= lines in an env template as symbols, so a source file's
-    `process.env.KEY` reference can be linked to where it's documented."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
-    for i, line in enumerate(text.splitlines(), start=1):
+    for number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        match = _ENV_LINE.match(line)
-        if match:
+        if match := _ENV_LINE.match(line):
             name = match.group(1)
             symbols.add(name)
-            definitions.append(SymbolRecord(name, "env-var", i, i, stripped[:300]))
+            definitions.append(SymbolRecord(name, "env-var", number, number, stripped[:300]))
     return symbols, definitions
 
 
-def _extract(
-    text: str, suffix: str, rel: str = "",
-) -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
+def _extract(text: str, suffix: str, rel: str = "") -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
     name = Path(rel).name if rel else ""
     if suffix.lower() in {".py", ".pyi"}:
         symbols, imports, calls, definitions = _extract_python(text)
     elif suffix.lower() == ".sql":
-        symbols, calls, definitions = _extract_sql(text)
-        imports = set()
+        symbols, calls, definitions = _extract_sql(text); imports = set()
     elif name == "package.json":
-        symbols, imports, definitions = _extract_package_json(text)
-        calls = set()
+        symbols, imports, definitions = _extract_package_json(text); calls = set()
     elif suffix.lower() in {".yaml", ".yml"} and ".github/workflows/" in rel.replace("\\", "/"):
-        symbols, definitions = _extract_yaml_ci_jobs(text)
-        imports, calls = set(), set()
+        symbols, definitions = _extract_yaml_ci_jobs(text); imports, calls = set(), set()
     elif name in ENV_TEMPLATE_NAMES:
-        symbols, definitions = _extract_env_vars(text)
-        imports, calls = set(), set()
+        symbols, definitions = _extract_env_vars(text); imports, calls = set(), set()
     elif suffix.lower() in {".json", ".yaml", ".yml"}:
-        # Generic config: still indexed and BM25-searchable as plain text,
-        # just without dedicated symbol extraction (arbitrary JSON/YAML
-        # doesn't have a generalizable notion of "definition").
         symbols, imports, calls, definitions = set(), set(), set(), []
     else:
         symbols = {a or b for a, b in _DECL.findall(text)}
         imports = {next(value for value in groups if value) for groups in _IMPORT.findall(text)}
         calls = {match.group(1).split(".")[-1] for match in _CALL.finditer(text)} - _CALL_STOP
-        definitions = (
-            _extract_javascript_definitions(text, suffix.lower())
-            if suffix.lower() in JS_TS else _extract_generic_definitions(text)
-        )
+        definitions = _extract_javascript_definitions(text, suffix.lower()) if suffix.lower() in JS_TS else _extract_generic_definitions(text)
     tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
+
+
+def _make_record(rel: str, text: str, suffix: str) -> FileRecord:
+    symbols, imports, calls, tokens, definitions = _extract(text, suffix, rel)
+    try:
+        outline = skeletonize(text, suffix, line_numbers=True)
+    except (SyntaxError, ValueError, TypeError):
+        outline = ""
+    counts = dict(document_terms(text, outline, rel))
+    return FileRecord(
+        rel, _digest(text), len(text.encode()), symbols, imports, calls, tokens,
+        definitions, outline, counts, [],
+    )
 
 
 def _default_cache(root: Path) -> Path:
@@ -430,7 +407,7 @@ def _load(path: Path) -> dict[str, FileRecord]:
         raw_records = payload.get("records", {})
         if not isinstance(raw_records, dict):
             return {}
-        records = {}
+        records: dict[str, FileRecord] = {}
         for key, value in raw_records.items():
             if not isinstance(key, str) or not isinstance(value, dict):
                 continue
@@ -455,8 +432,7 @@ def _save(path: Path, records: dict[str, FileRecord]) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, separators=(",", ":"), sort_keys=True)
-            handle.flush()
-            os.fsync(handle.fileno())
+            handle.flush(); os.fsync(handle.fileno())
         os.replace(tmp_name, path)
         try:
             path.chmod(0o600)
@@ -469,9 +445,20 @@ def _save(path: Path, records: dict[str, FileRecord]) -> None:
             pass
 
 
+def _semantic_requested(value: bool | None) -> bool:
+    if value is not None:
+        return value
+    return os.environ.get("TOKEN_SAVER_TS_SEMANTIC", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def build_index(
-    root: Path, *, use_gitignore: bool = True, cache_path: Path | None = None,
+    root: Path,
+    *,
+    use_gitignore: bool = True,
+    cache_path: Path | None = None,
     persist: bool = True,
+    typescript_semantic: bool | None = None,
+    strict_semantic: bool = False,
 ) -> RepositoryIndex:
     root = root.resolve()
     target = cache_path or _default_cache(root)
@@ -481,10 +468,6 @@ def build_index(
     excluded: dict[str, str] = {}
     reparsed = reused = 0
     for path in walk_repo(root, use_gitignore=use_gitignore):
-        # If the cache file itself lives inside the indexed tree (e.g. a
-        # state dir under the repo root) it must never be ingested as
-        # source -- now that .json is an indexable suffix, it otherwise
-        # gets "reparsed" every run since its own content always changes.
         if resolved_target is not None and path.resolve() == resolved_target:
             continue
         decision = inspect_path(root, path)
@@ -504,22 +487,26 @@ def build_index(
             records[rel] = old[rel]
             reused += 1
             continue
-        symbols, imports, calls, tokens, definitions = _extract(text, path.suffix, rel)
-        records[rel] = FileRecord(
-            rel, digest, len(text.encode()), symbols, imports, calls, tokens, definitions
-        )
+        records[rel] = _make_record(rel, text, path.suffix)
         reparsed += 1
+
+    semantic_enabled = _semantic_requested(typescript_semantic)
+    if semantic_enabled:
+        from .semantic_ts import resolve_typescript_edges
+        semantic = resolve_typescript_edges(root, strict=strict_semantic)
+        for rel, record in records.items():
+            record.semantic_refs = [target for target in semantic.get(rel, []) if target in records and target != rel]
+    else:
+        for record in records.values():
+            record.semantic_refs = []
+
     if persist:
         _save(target, records)
-    return RepositoryIndex(root, records, reparsed, reused, excluded)
+    return RepositoryIndex(root, records, reparsed, reused, excluded, semantic_enabled)
 
 
 def record_for_text(rel: str, text: str) -> FileRecord:
-    """Analyze one in-memory source using the same versioned index extractors."""
-    symbols, imports, calls, tokens, definitions = _extract(text, Path(rel).suffix, rel)
-    return FileRecord(
-        rel, _digest(text), len(text.encode()), symbols, imports, calls, tokens, definitions
-    )
+    return _make_record(rel, text, Path(rel).suffix)
 
 
 def similarity(left: FileRecord, right: FileRecord) -> float:
