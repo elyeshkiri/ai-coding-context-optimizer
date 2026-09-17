@@ -11,8 +11,8 @@ import sys
 from .cli import main as legacy_main
 from .pack_cli import main as pack_main
 from .commands import (
-    agent_evaluate_main, evaluate_main, feedback_main, host_check_main, impact_main,
-    pack_diff_main, review_main, serve_main, unseen_evaluate_main,
+    agent_evaluate_main, estimate_main, evaluate_main, feedback_main, host_check_main,
+    impact_main, pack_diff_main, review_main, serve_main, unseen_evaluate_main,
 )
 
 
@@ -20,6 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if args and args[0] == "pack":
         return pack_main(args[1:])
+    if args and args[0] == "estimate":
+        return estimate_main(args[1:])
     if args and args[0] == "impact":
         return impact_main(args[1:])
     if args and args[0] == "feedback":
