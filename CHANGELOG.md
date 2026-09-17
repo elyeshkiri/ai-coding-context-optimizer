@@ -1,5 +1,40 @@
 # Unreleased
 
+- **Attempted and reverted: a "terse implementation" file-ranking signal**
+  to address the external holdout benchmark's `zod-email-regex` finding
+  (a file of bare regex constants losing the file-ranking competition to a
+  larger, prose-richer file merely discussing the same topic). Two
+  designs were tried, each validated against this repository's own
+  25-task self-benchmark (per the explicit instruction not to tune
+  against the external holdout that found the weakness):
+  1. A flat bonus for any query term exactly matching a defined symbol
+     name. Regressed 2 self-benchmark tasks: common English words used as
+     ordinary parameter/fixture names (`input`, `baseline`, `enabled`)
+     got the same bonus as a genuinely rare, specific name, and
+     verbosely-named test functions (whose names decompose into many
+     individual word-tokens) racked up several such "matches" at once.
+  2. A version requiring most of a *whole, short* (<=3-token) symbol
+     name to be covered by the query, with an IDF-style discount for
+     names that recur across many files. This fixed design 1's failures,
+     but introduced 2 new ones: in a codebase whose actual subject matter
+     is symbol/outline extraction (this one), short words like `extract`,
+     `outline`, and `symbol` aren't rare identifiers -- they're the
+     domain's own vocabulary, appearing as short-name components across
+     many genuinely-different files, so the IDF discount wasn't steep
+     enough to suppress them.
+
+  Reverted rather than ship either regression. Root cause understood
+  well enough to say why it's hard, not just that it failed: a
+  file-ranking signal based on symbol-name matching alone can't
+  distinguish "this name is specific to the one right answer" from "this
+  name is common domain vocabulary that recurs everywhere on-topic,"
+  without something like caller/import-graph or compiler-resolved
+  reference signals -- which is exactly what the original diagnosis
+  (CHANGELOG's frozen external holdout entry) proposed as fix #1, not
+  fix #2. Left for a future attempt with that additional signal, or with
+  a more conservative version of the IDF discount tuned against a fresh,
+  never-seen suite rather than iterated against this one.
+
 Note: PR #1 (`feat/index-backed-retrieval`) and PR #2
 (`feat/semantic-retrieval-v2`) merged directly to `main` after 1.1.0 was cut,
 adding index-backed retrieval performance, stronger JS/TS module semantics,
