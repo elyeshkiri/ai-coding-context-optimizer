@@ -57,6 +57,8 @@ def test_provider_is_inferred_from_model_family():
     assert provider_for_model("claude-sonnet-4-5") == "anthropic"
     assert provider_for_model("gpt-4o") == "openai"
     assert provider_for_model("o3-mini") == "openai"
+    assert provider_for_model("gemini-2.5-pro") == "google"
+    assert provider_for_model("models/gemini-2.5-pro") == "google"
     assert provider_for_model("custom-model") is None
 
 
@@ -94,6 +96,19 @@ def test_openai_unknown_tokenizer_is_not_silently_approximated(monkeypatch):
     monkeypatch.setitem(sys.modules, "tiktoken", SimpleNamespace(encoding_for_model=missing))
     with pytest.raises(RuntimeError, match="does not have an exact tokenizer mapping"):
         count_tokens_exact("hi", model="gpt-future-unknown", provider="openai")
+
+
+def test_google_exact_mode_routes_to_gemini_counter(monkeypatch):
+    monkeypatch.setattr(
+        "token_saver.estimate._count_google",
+        lambda text, model: 17 if text == "hello" and model == "gemini-2.5-pro" else 0,
+    )
+    assert count_tokens_exact(
+        "hello", model="gemini-2.5-pro", provider="google"
+    ) == 17
+    assert Counter(
+        exact=True, model="gemini-2.5-pro"
+    ).provider_label == "google"
 
 
 def test_unknown_provider_requires_explicit_choice():
