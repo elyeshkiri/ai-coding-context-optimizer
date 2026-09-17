@@ -1,4 +1,4 @@
-from token_saver.lexical import terms
+from token_saver.lexical import symbol_terms, terms
 
 
 def test_acronym_prefixed_identifiers_split_at_every_word_boundary():
@@ -32,3 +32,18 @@ def test_single_leading_capital_is_not_treated_as_a_one_letter_acronym():
     assert terms("ETag") == ["etag"]
     assert terms("etag") == ["etag"]
     assert terms("IPage") == ["ipage"]
+
+
+def test_symbol_terms_add_conservative_inflection_equivalents():
+    assert "connect" in symbol_terms("connection timeout")
+    assert "equal" in symbol_terms("deep equality")
+    assert "complete" in symbol_terms("shell completion")
+    assert "validate" in symbol_terms("schema validation")
+    assert "persist" in symbol_terms("cookie persistence")
+
+
+def test_symbol_terms_add_small_code_oriented_synonym_set_only():
+    assert "start" in symbol_terms("first day of week")
+    # Repository-wide terms remain unchanged; the richer equivalence is
+    # deliberately confined to within-file symbol ranking.
+    assert "start" not in terms("first day of week")
