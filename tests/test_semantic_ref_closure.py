@@ -5,6 +5,18 @@ import textwrap
 from token_saver.closure import dependency_closure
 from token_saver.pack import build_context_pack, rank_files
 from token_saver.repo_index import build_index
+from token_saver.syntax import symbols
+
+
+def test_exported_data_constant_is_indexed_without_value_in_signature():
+    found = {symbol.name: symbol for symbol in symbols(
+        "const local = /local/;\nexport const email: RegExp = /@example\\.com$/;\n",
+        ".ts",
+    )}
+
+    assert "local" not in found
+    assert "email" in found
+    assert "@example" not in found["email"].signature
 
 
 def test_semantic_ref_promotes_terse_provider_without_global_size_penalty(tmp_path):
@@ -132,6 +144,14 @@ def test_context_pack_reserves_budget_for_exact_provider_behind_large_consumer(t
         + "\n",
         encoding="utf-8",
     )
+    # Keep the tiny provider outside the adaptive budget's lexical seed set,
+    # so it has to be recovered via the validator's exact semantic reference.
+    for n in range(5):
+        (src / f"validate_slug_schema_request_{n}.ts").write_text(
+            "// validate slug string schema request format address\n"
+            f"export function validateSlugSchemaRequest{n}(value: string) {{ return value.length > 0; }}\n",
+            encoding="utf-8",
+        )
 
     pack = build_context_pack(
         tmp_path,
