@@ -1,13 +1,16 @@
-# Validation for 0.7.0
+# Validation for 0.8.0
 
-Executed in GitHub Actions on Ubuntu 24.04 with Python 3.10 and Python 3.12:
+Release validation executed locally on Ubuntu 24.04 with Python 3.12. The
+repository CI matrix also targets Python 3.10 and Python 3.12:
 
-- Full test suite: **243 passed** on both Python versions.
-- Editable package installation succeeded from `pyproject.toml` as token-saver 0.7.0.
-- Regression coverage includes task-aware relevance ranking, hard context-pack token
-  caps, exact line-numbered source windows, changed-file boosts, top-level command
-  dispatch, repetitive successful-log compression, JSON compaction, and failure
-  preservation.
+- Full test suite: **250 passed** on Python 3.12 in the release environment.
+- Package build and isolated installation succeeded from `pyproject.toml` as token-saver 0.8.0.
+- Regression coverage includes incremental index reuse, dependency/symbol graph
+  expansion, near-duplicate suppression, task-session continuity, optional
+  embedding failure behavior, task-aware relevance ranking, hard context-pack
+  token caps, exact line-numbered source windows, changed-file boosts, top-level
+  command dispatch, repetitive successful-log compression, JSON compaction, and
+  failure preservation.
 - Existing coverage still exercises documented structured Bash output, subprocess
   hook transport, saved-output recovery and permissions, fail-open disk errors,
   diagnostic preservation, cache/compaction accounting, session isolation,
@@ -15,7 +18,8 @@ Executed in GitHub Actions on Ubuntu 24.04 with Python 3.10 and Python 3.12:
   syntax and ambiguity, model/TTL pricing, and paired benchmark quality/cost
   evaluation.
 
-The Python 3.12 CI run completed **243 passed in 3.64s**.
+The local Python 3.12 release run completed **250 passed in 2.99s**. GitHub CI
+continues to run the suite on Python 3.10 and 3.12 for the pushed commit.
 
 Observed dependency versions in that run:
 

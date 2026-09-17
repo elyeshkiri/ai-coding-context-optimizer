@@ -17,7 +17,9 @@ import subprocess
 from pathlib import Path
 
 from .estimate import estimate_tokens
+from .repo_index import RepositoryIndex, build_index, similarity
 from .skeleton import file_priority, skeletonize, walk_repo
+from .working_set import load_working_set, save_working_set
 
 _WORD = re.compile(r"[A-Za-z0-9_$]+")
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
@@ -109,11 +111,20 @@ def rank_files(
     *,
     use_gitignore: bool = True,
     changed_boost: bool = True,
+    index: RepositoryIndex | None = None,
+    graph_hops: int = 1,
+    session: str | None = None,
+    embeddings: bool = False,
 ) -> list[RankedFile]:
     """Rank repository source files for `query` using BM25 + code-aware boosts."""
     root = root.resolve()
+    if graph_hops < 0:
+        raise ValueError("graph_hops must be nonnegative")
+    index = index or build_index(root, use_gitignore=use_gitignore)
     q_terms = list(dict.fromkeys(_terms(query)))
     changed = _changed_files(root) if changed_boost else set()
+    remembered_files, remembered_terms = load_working_set(root, session) if session else (set(), set())
+    query_continues = bool(set(q_terms) & remembered_terms)
     docs: list[tuple[Path, str, str, str, Counter[str]]] = []
     for path in walk_repo(root, use_gitignore=use_gitignore):
         text = _read_source(path)
@@ -167,6 +178,9 @@ def rank_files(
         if rel in changed:
             score += 4.0
             reasons.append("changed")
+        if query_continues and rel in remembered_files:
+            score += 2.0
+            reasons.append("working-set")
         if matched:
             reasons.insert(0, f"term-hits:{matched}")
 
@@ -182,6 +196,48 @@ def rank_files(
                 changed=rel in changed,
             )
         )
+
+    # Graph seeds must be the strongest lexical/changed candidates, independent
+    # of filesystem traversal order.
+    ranked.sort(key=lambda item: (-item.score, file_priority(item.rel), item.rel))
+    by_rel = {item.rel: item for item in ranked}
+    frontier = [item.rel for item in ranked if item.term_hits or item.changed][:6]
+    visited = set(frontier)
+    for hop in range(graph_hops):
+        next_frontier: list[str] = []
+        for rel in frontier:
+            for neighbor, edge in index.neighbors(rel):
+                item = by_rel.get(neighbor)
+                if item is None:
+                    continue
+                bonus = 2.25 / (hop + 1)
+                item.score += bonus
+                item.reasons.append(f"graph:{edge}@{hop + 1}")
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    next_frontier.append(neighbor)
+        frontier = next_frontier
+
+    if embeddings:
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as exc:
+            raise RuntimeError(
+                "embedding reranking requires: pip install 'token-saver[embeddings]'"
+            ) from exc
+        try:
+            model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+        except OSError as exc:
+            raise RuntimeError(
+                "local embedding model all-MiniLM-L6-v2 is not downloaded"
+            ) from exc
+        descriptions = [f"{item.rel} {' '.join(index.records[item.rel].symbols)} {item.outline}" for item in ranked]
+        vectors = model.encode([query] + descriptions, normalize_embeddings=True)
+        query_vector = vectors[0]
+        for item, vector in zip(ranked, vectors[1:]):
+            semantic = float(query_vector @ vector)
+            item.score += max(0.0, semantic) * 3.0
+            item.reasons.append(f"embedding:{semantic:.2f}")
 
     ranked.sort(key=lambda item: (-item.score, file_priority(item.rel), item.rel))
     return ranked
@@ -276,14 +332,25 @@ def build_context_pack(
     context_lines: int = _DEFAULT_CONTEXT_LINES,
     use_gitignore: bool = True,
     changed_boost: bool = True,
+    graph_hops: int = 1,
+    duplicate_threshold: float = 0.92,
+    session: str | None = None,
+    embeddings: bool = False,
+    persist_index: bool = True,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
     if max_files <= 0:
         raise ValueError("max_files must be positive")
+    if not 0.0 <= duplicate_threshold <= 1.0:
+        raise ValueError("duplicate_threshold must be between 0 and 1")
     root = root.resolve()
-    ranked = rank_files(root, query, use_gitignore=use_gitignore, changed_boost=changed_boost)
+    index = build_index(root, use_gitignore=use_gitignore, persist=persist_index)
+    ranked = rank_files(
+        root, query, use_gitignore=use_gitignore, changed_boost=changed_boost,
+        index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
+    )
     q_terms = set(_terms(query))
     header = (
         f"# TOKEN-SAVER CONTEXT PACK: {root.name}\n"
@@ -298,6 +365,7 @@ def build_context_pack(
     blocks = [header]
     selected: list[str] = []
     seen: set[str] = set()
+    selected_records = []
     used = estimate_tokens(header)
 
     # Concrete matches first. For an empty/vague query all files still have a
@@ -313,22 +381,33 @@ def build_context_pack(
         fingerprint = _fingerprint(section)
         if fingerprint in seen:
             continue
+        record = index.records.get(item.rel)
+        if record is not None and any(
+            similarity(record, prior) >= duplicate_threshold for prior in selected_records
+        ):
+            item.reasons.append("near-duplicate-skipped")
+            continue
         fitted = _fit_section(section, remaining)
         if not fitted:
             continue
         blocks.append(fitted)
         selected.append(item.rel)
         seen.add(fingerprint)
+        if record is not None:
+            selected_records.append(record)
         used += estimate_tokens(fitted)
 
     text = "\n".join(block.rstrip() for block in blocks if block).rstrip() + "\n"
     # Defensive final cap in case heuristic token counting changed between calls.
     if estimate_tokens(text) > max_tokens:
         text = _fit_section(text, max_tokens)
-    return ContextPack(
+    result = ContextPack(
         text=text,
         estimated_tokens=estimate_tokens(text),
         scanned_files=len(ranked),
         selected_files=selected,
         ranked=ranked,
     )
+    if session:
+        save_working_set(root, session, query, selected)
+    return result

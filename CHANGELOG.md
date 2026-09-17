@@ -1,3 +1,18 @@
+# 0.8.0
+
+- Added an incremental, content-addressed repository index. It extracts symbols,
+  imports, calls, and normalized identifiers and reuses unchanged records.
+- Added dependency and symbol-call graph expansion with configurable hop depth
+  and distance-decayed ranking boosts.
+- Added identifier-based near-duplicate suppression before context allocation.
+- Added opt-in session working-set memory. Previous files are boosted only for
+  follow-up queries sharing task terms, reducing stale-context carryover.
+- Added optional local sentence-transformer reranking through the `embeddings`
+  extra. Default behavior remains deterministic and dependency-free.
+- Added atomic persistence for indexes and working sets, CLI controls, ranking
+  explanations, and regression tests for every new subsystem.
+- Full suite: 250 tests pass on Python 3.12 in the release environment.
+
 # 0.7.0
 
 - Added task-aware context packing with `token-saver pack` and the standalone

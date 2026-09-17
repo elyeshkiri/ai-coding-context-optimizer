@@ -21,6 +21,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--context-lines", type=int, default=6)
     parser.add_argument("--no-gitignore", action="store_true")
     parser.add_argument("--no-changed-boost", action="store_true")
+    parser.add_argument("--graph-hops", type=int, default=1,
+                        help="dependency/call graph expansion depth (default: 1)")
+    parser.add_argument("--duplicate-threshold", type=float, default=0.92,
+                        help="identifier similarity at which a file is skipped")
+    parser.add_argument("--session", help="remember the selected working set for related tasks")
+    parser.add_argument("--embeddings", action="store_true",
+                        help="rerank with an already-downloaded local sentence-transformer")
+    parser.add_argument("--no-index-cache", action="store_true")
     parser.add_argument("--explain", action="store_true",
                         help="print the top relevance scores on stderr")
     parser.add_argument("-o", "--out", help="write pack to a file instead of stdout")
@@ -42,8 +50,13 @@ def main(argv: list[str] | None = None) -> int:
             context_lines=args.context_lines,
             use_gitignore=not args.no_gitignore,
             changed_boost=not args.no_changed_boost,
+            graph_hops=args.graph_hops,
+            duplicate_threshold=args.duplicate_threshold,
+            session=args.session,
+            embeddings=args.embeddings,
+            persist_index=not args.no_index_cache,
         )
-    except ValueError as exc:
+    except (ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 

@@ -1,10 +1,51 @@
-# Token Saver 0.7.0
+# Token Saver 0.8.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
-## What is new in 0.7
+## What is new in 0.8
+
+### Incremental context compiler
+
+The packer now maintains a content-addressed repository index and expands the
+lexical result through import and symbol-call relationships. Unchanged files are
+reused on the next run; edits invalidate only their own records.
+
+```bash
+token-saver pack . \
+  -q "fix session refresh after logout" \
+  --graph-hops 1 \
+  --session auth-issue-42 \
+  --max-tokens 6000 \
+  --explain
+```
+
+v0.8 adds:
+
+- incremental SHA-256-indexed symbol, import, call, and identifier extraction;
+- dependency/call-graph expansion with distance-decayed ranking boosts;
+- identifier-based near-duplicate suppression before spending context tokens;
+- opt-in task/session working-set memory for related follow-up prompts;
+- optional local embedding reranking with deterministic ranking as the default;
+- atomic local state writes and explicit controls for cache, graph depth, and
+  duplicate thresholds.
+
+Session memory is enabled only with `--session`. A prior working set receives a
+boost only when the next query overlaps the prior task terms. Repository index
+and session state live under `TOKEN_SAVER_STATE_DIR` (or the existing default
+state directory); neither source nor queries leave the machine.
+
+Embedding reranking is optional and requires an already-downloaded local model:
+
+```bash
+pip install 'token-saver[embeddings]'
+token-saver pack . -q "retry failed downloads" --embeddings
+```
+
+Token Saver requests the local `all-MiniLM-L6-v2` model with offline loading.
+If it is unavailable, the command fails with an actionable message instead of
+silently accessing a network or changing ranking behavior.
 
 ### Task-aware context packing
 
@@ -48,7 +89,9 @@ token-saver pack . -q "authentication refresh token" --explain
 token-saver-pack . -q "authentication refresh token" --max-tokens 3000
 ```
 
-`--max-files`, `--context-lines`, `--no-gitignore`, and `--no-changed-boost` provide tighter control.
+`--max-files`, `--context-lines`, `--graph-hops`, `--duplicate-threshold`,
+`--session`, `--no-index-cache`, `--no-gitignore`, and `--no-changed-boost`
+provide tighter control.
 
 ## Automatic protections
 
