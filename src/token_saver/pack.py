@@ -328,6 +328,35 @@ def _symbol_windows(
             score = 20 * len(query_terms & name_terms) + len(query_terms & body_terms)
         if score:
             matches.append((score, symbol))
+    if not wanted:
+        # A method's own strong match is real evidence its containing class
+        # is relevant too -- a class-level symbol's line range always
+        # contains every one of its methods', so a lone helper method (whose
+        # signature/body naturally accumulate more distinct term-overlap
+        # than the class's own thin __init__/dispatch code) can otherwise
+        # outrank and displace the class entirely, even though the class's
+        # window would show that same helper's code anyway. Credit a
+        # matching parent with its matching children's scores so it can
+        # compete fairly; children keep their own original score and stay
+        # in the running rather than being displaced outright (a specific
+        # method can still be exactly the right, narrower answer -- e.g.
+        # when nothing else in its class is independently relevant). Credit
+        # only the single best-matching child, not the sum of all of them:
+        # summing lets a large class with many mediocre-but-nonzero-scoring
+        # methods (a lot of weak, diffuse relevance) out-accumulate a small
+        # class -- or an unrelated standalone function -- with one truly
+        # precise match, the same failure shape a purely lexical file-level
+        # ranking signal hit earlier.
+        own_score = {symbol.name: score for score, symbol in matches}
+        best_child_score: dict[str, float] = {}
+        for score, symbol in matches:
+            if symbol.parent and symbol.parent in own_score:
+                best_child_score[symbol.parent] = max(best_child_score.get(symbol.parent, 0), score)
+        boosted = {
+            name: score + best_child_score.get(name, 0)
+            for name, score in own_score.items()
+        }
+        matches = [(boosted.get(symbol.name, score), symbol) for score, symbol in matches]
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
     selected = [symbol for _, symbol in matches[:2]]
     windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in selected]

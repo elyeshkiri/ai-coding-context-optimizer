@@ -1,5 +1,37 @@
 # Unreleased
 
+- **Fixed the DigestAuth per-file symbol-selection bug** the external
+  holdout benchmark found (`httpx-digest-auth`: found the right file,
+  `_auth.py`, but selected helper methods `_parse_challenge`/
+  `_build_auth_header` over the actually-relevant class `DigestAuth`).
+  Distinct from PR #3's graph-aware ranking (which fixes a *different*
+  failure shape -- a top-level distractor function reached via
+  caller-graph evidence): here the outranking symbols are the class's own
+  nested methods, so no caller-graph signal applies. Root cause: a
+  class-level symbol's extracted body always includes its own methods, but
+  a lone method's *signature* (with type-annotated parameters) can rack up
+  more name-term matches than the class's own bare `class Foo:` line, and
+  a class's `__init__`/dispatch code doesn't carry its methods' body-match
+  credit at all -- so a helper can outscore and displace the class it
+  belongs to, even though the class's window would show that same
+  helper's code anyway.
+
+  Fixed by crediting a matching parent symbol with its single
+  best-matching child's score (not the sum of all matching children --
+  tried that first, and it let a class with many mediocre-but-nonzero
+  matching methods out-accumulate a more precisely-matching standalone
+  function, regressing 2 self-benchmark tasks; reverted and used max
+  instead of sum). Children are not excluded from the running -- a
+  specific method can still legitimately win when nothing else in its
+  class is independently relevant (verified against an existing test
+  expecting exactly a method name, not its class, in the result).
+
+  Verified: 325 tests passing (was 324), self-benchmark unchanged at the
+  PR #3 baseline (92% file recall / 96% symbol recall, only the
+  pre-existing `snippet`/`pack-cli` self-referential-corpus drift), and
+  the original motivating case now selects `DigestAuth` directly (checked
+  against the real httpx source, not the frozen holdout as a tuning loop).
+
 - **Attempted and reverted: a "terse implementation" file-ranking signal**
   to address the external holdout benchmark's `zod-email-regex` finding
   (a file of bare regex constants losing the file-ranking competition to a

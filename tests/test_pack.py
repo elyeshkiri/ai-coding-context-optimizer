@@ -136,6 +136,60 @@ def test_symbol_ranking_prefers_query_relevant_caller_graph_over_dense_helper(tm
     assert any(label.startswith("src/auth.py:DigestAuth@") for label in pack.selected_symbols)
 
 
+def test_symbol_window_prefers_class_over_its_own_denser_matching_method(tmp_path):
+    # Distinct from test_symbol_ranking_prefers_query_relevant_caller_graph_over_dense_helper
+    # above: that test's distractor is a *top-level* function reached via
+    # caller-graph evidence. This is the real-world shape that exposed the
+    # bug (encode/httpx's DigestAuth): the outranking symbol is DigestAuth's
+    # *own nested method* -- no caller-graph signal applies since nothing
+    # calls it from another file -- so the fix has to come from within-file
+    # symbol-window selection crediting a matching parent with its matching
+    # children, not from cross-file ranking.
+    src = tmp_path / "src"
+    src.mkdir()
+    # Type-annotated params (as the real httpx signatures have) are what
+    # actually give the methods their extra name-term matches over the bare
+    # `class DigestAuth:` signature -- a body-length argument alone doesn't
+    # reproduce the real failure; this fixture is tuned to the same score
+    # proportions observed against the real file (roughly 23 vs 42-43).
+    (src / "auth.py").write_text(textwrap.dedent("""
+        class HttpRequest:
+            pass
+
+        class HttpResponse:
+            pass
+
+        class DigestAuth:
+            def __init__(self, username, password):
+                self.username = username
+                self.password = password
+
+            def auth_flow(self, request: HttpRequest):
+                yield request
+
+            def parse_challenge(self, request: HttpRequest, response: HttpResponse, header: str) -> dict:
+                # Dense body mirroring digest auth challenge parsing: digest realm
+                # nonce opaque qop algorithm header field value scheme fields digest
+                # request response header dict try except keyerror malformed raise
+                scheme, _, fields = header.partition(" ")
+                assert scheme.lower() == "digest"
+                header_dict = {}
+                for field in fields.split(","):
+                    key, value = field.strip().split("=", 1)
+                    header_dict[key] = value
+                return {"request": request, "response": response, "digest": header_dict}
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "implement digest authentication for outgoing http requests",
+        max_tokens=1400,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/auth.py:DigestAuth@") for label in pack.selected_symbols)
+
+
 def test_semantic_graph_boost_recovers_terse_dependency_file(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
