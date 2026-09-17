@@ -190,6 +190,6 @@ def test_stdio_mcp_handshake_and_symbol_call(tmp_path):
         capture_output=True, text=True, env=env, timeout=10, check=True,
     )
     responses = [json.loads(line) for line in proc.stdout.splitlines()]
-    assert responses[0]["result"]["serverInfo"]["version"] == "0.9.1"
+    assert responses[0]["result"]["serverInfo"]["version"] == "1.0.0"
     assert any(tool["name"] == "build_context" for tool in responses[1]["result"]["tools"])
     assert "refresh_session" in responses[2]["result"]["content"][0]["text"]

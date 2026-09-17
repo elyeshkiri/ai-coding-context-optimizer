@@ -1,8 +1,8 @@
 [project]
 name = "token-saver"
-version = "0.9.1"
+version = "1.0.0"
 dependencies = ["tree-sitter>=0.25,<0.26", "tree-sitter-javascript>=0.25,<0.26", "tree-sitter-typescript>=0.23,<0.24"]
-description = "An evaluation-driven context compiler for AI coding agents with symbol packs, impact analysis, hard budgets, and local MCP integration."
+description = "Compile coding tasks and patches into minimal evidence-complete context for AI agents."
 requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
@@ -24,6 +24,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+"share/token-saver/benchmarks" = ["benchmarks/*.json"]
+"share/token-saver/integrations" = ["integrations/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

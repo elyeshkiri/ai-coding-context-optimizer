@@ -1,0 +1,3 @@
+include BENCHMARKING.md CHANGELOG.md INTEGRATIONS.md VALIDATION.md
+recursive-include benchmarks *.json
+recursive-include integrations *

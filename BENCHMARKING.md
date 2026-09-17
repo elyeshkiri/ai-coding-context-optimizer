@@ -13,6 +13,20 @@ token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 Add project-specific tasks using `query`, `files`, and `symbols`. Keep the
 manifest under version control so ranking changes can be compared reproducibly.
 
+## Paired agent outcomes
+
+Record independently validated baseline and Token Saver runs using the schema in
+`benchmarks/agent-runs.example.json`, then run:
+
+```bash
+token-saver agent-evaluate benchmarks/agent-runs.json
+```
+
+The evaluator requires exactly one run per condition and task. It reports input
+and output tokens, retries, elapsed time, context failures, success rate, and
+tokens per success. It suppresses the reduction headline whenever Token Saver's
+success rate is below baseline.
+
 ## Live host validation (not yet executed for this release)
 
 1. Record `claude --version`, model ID, configuration, and Token Saver version.

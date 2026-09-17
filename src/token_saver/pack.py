@@ -17,6 +17,7 @@ import subprocess
 from pathlib import Path
 
 from .estimate import estimate_tokens
+from .closure import dependency_closure
 from .feedback import load_feedback
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import inspect_path, redact_secrets
@@ -34,6 +35,10 @@ _STOP = {
 _MAX_FILE_BYTES = 2_000_000
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
+_TERM_ALIASES = {
+    "outline": "skeleton",
+    "structural": "skeleton",
+}
 
 
 @dataclass
@@ -57,6 +62,7 @@ class ContextPack:
     ranked: list[RankedFile]
     selected_symbols: list[str] = field(default_factory=list)
     redactions: list[str] = field(default_factory=list)
+    closure_files: list[str] = field(default_factory=list)
 
 
 def _terms(text: str) -> list[str]:
@@ -68,6 +74,25 @@ def _terms(text: str) -> list[str]:
         if len(term) < 2 or term in _STOP:
             continue
         out.append(term)
+        alias = _TERM_ALIASES.get(term)
+        if alias:
+            out.append(alias)
+        if term.endswith("ize") and len(term) > 6:
+            out.append(term[:-3])
+        elif term.endswith("ing") and len(term) > 6:
+            stem = term[:-3]
+            if len(stem) > 2 and stem[-1] == stem[-2]:
+                stem = stem[:-1]
+            if stem.endswith("c"):
+                stem += "e"
+            out.append(stem)
+        elif term.endswith("ed") and len(term) > 5:
+            stem = term[:-2]
+            if stem.endswith(("s", "g", "c", "v")):
+                stem += "e"
+            out.append(stem)
+        elif term.endswith("s") and len(term) > 4:
+            out.append(term[:-1])
     return out
 
 
@@ -120,6 +145,7 @@ def rank_files(
     session: str | None = None,
     embeddings: bool = False,
     feedback_boost: bool = True,
+    closure_max_items: int = 20,
 ) -> list[RankedFile]:
     """Rank repository source files for `query` using BM25 + code-aware boosts."""
     root = root.resolve()
@@ -213,22 +239,18 @@ def rank_files(
     # of filesystem traversal order.
     ranked.sort(key=lambda item: (-item.score, file_priority(item.rel), item.rel))
     by_rel = {item.rel: item for item in ranked}
-    frontier = [item.rel for item in ranked if item.term_hits or item.changed][:6]
-    visited = set(frontier)
-    for hop in range(graph_hops):
-        next_frontier: list[str] = []
-        for rel in frontier:
-            for neighbor, edge in index.neighbors(rel):
-                item = by_rel.get(neighbor)
-                if item is None:
-                    continue
-                bonus = 2.25 / (hop + 1)
-                item.score += bonus
-                item.reasons.append(f"graph:{edge}@{hop + 1}")
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    next_frontier.append(neighbor)
-        frontier = next_frontier
+    seeds = [item.rel for item in ranked if item.term_hits or item.changed][:6]
+    for related in dependency_closure(
+        index, seeds, max_hops=graph_hops, max_items=closure_max_items,
+    ):
+        item = by_rel.get(related.path)
+        if item is None:
+            continue
+        item.score += 2.5 * related.confidence
+        item.reasons.append(f"graph:{related.reason}@{related.distance}")
+        item.reasons.append(
+            f"closure:{related.source}@{related.distance}:{related.confidence:.2f}"
+        )
 
     if embeddings:
         try:
@@ -317,7 +339,7 @@ def _symbol_windows(
         if score:
             matches.append((score, symbol))
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
-    selected = [symbol for _, symbol in matches[:1]]
+    selected = [symbol for _, symbol in matches[:2]]
     windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in selected]
     labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in selected]
     return windows, labels
@@ -394,6 +416,8 @@ def build_context_pack(
     persist_index: bool = True,
     target_symbol: str | None = None,
     feedback_boost: bool = True,
+    closure_max_items: int = 20,
+    index: RepositoryIndex | None = None,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
@@ -403,12 +427,13 @@ def build_context_pack(
     if not 0.0 <= duplicate_threshold <= 1.0:
         raise ValueError("duplicate_threshold must be between 0 and 1")
     root = root.resolve()
-    index = build_index(root, use_gitignore=use_gitignore, persist=persist_index)
+    index = index or build_index(root, use_gitignore=use_gitignore, persist=persist_index)
     effective_query = f"{query} {target_symbol or ''}".strip()
     ranked = rank_files(
         root, effective_query, use_gitignore=use_gitignore, changed_boost=changed_boost,
         index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
         feedback_boost=feedback_boost,
+        closure_max_items=closure_max_items,
     )
     q_terms = set(_terms(effective_query))
     header = (
@@ -474,6 +499,10 @@ def build_context_pack(
         ranked=ranked,
         selected_symbols=selected_symbols,
         redactions=sorted(redactions),
+        closure_files=[
+            item.rel for item in ranked
+            if any(reason.startswith("closure:") for reason in item.reasons)
+        ],
     )
     if session:
         save_working_set(root, session, query, selected)

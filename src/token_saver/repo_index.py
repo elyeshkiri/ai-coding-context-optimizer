@@ -19,8 +19,9 @@ from pathlib import Path
 
 from .skeleton import walk_repo
 from .security import inspect_path
+from .syntax import JS_TS, symbols as syntax_symbols
 
-INDEX_VERSION = 2
+INDEX_VERSION = 3
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -191,6 +192,25 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
     return found
 
 
+def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
+    """Return Tree-sitter-backed JS/TS ranges, with a conservative fallback."""
+    try:
+        parsed = syntax_symbols(text, suffix)
+    except (ImportError, ValueError, OSError):
+        return _extract_generic_definitions(text)
+    lines = text.splitlines()
+    out = []
+    for symbol in parsed:
+        body = "\n".join(lines[max(0, symbol.start - 1):symbol.end])
+        calls = sorted({match.group(1).split(".")[-1] for match in _CALL.finditer(body)} - _CALL_STOP)
+        parent = symbol.qualified.rsplit(".", 1)[0] if "." in symbol.qualified else None
+        out.append(SymbolRecord(
+            symbol.name, "symbol", symbol.start, symbol.end,
+            symbol.signature[:500], parent, calls,
+        ))
+    return out
+
+
 def _extract(text: str, suffix: str) -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
     if suffix.lower() in {".py", ".pyi"}:
         symbols, imports, calls, definitions = _extract_python(text)
@@ -198,7 +218,10 @@ def _extract(text: str, suffix: str) -> tuple[list[str], list[str], list[str], l
         symbols = {a or b for a, b in _DECL.findall(text)}
         imports = {next(value for value in groups if value) for groups in _IMPORT.findall(text)}
         calls = {match.group(1).split(".")[-1] for match in _CALL.finditer(text)} - _CALL_STOP
-        definitions = _extract_generic_definitions(text)
+        definitions = (
+            _extract_javascript_definitions(text, suffix.lower())
+            if suffix.lower() in JS_TS else _extract_generic_definitions(text)
+        )
     tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
 
@@ -293,6 +316,14 @@ def build_index(
     if persist:
         _save(target, records)
     return RepositoryIndex(root, records, reparsed, reused, excluded)
+
+
+def record_for_text(rel: str, text: str) -> FileRecord:
+    """Analyze one in-memory source using the same versioned index extractors."""
+    symbols, imports, calls, tokens, definitions = _extract(text, Path(rel).suffix)
+    return FileRecord(
+        rel, _digest(text), len(text.encode()), symbols, imports, calls, tokens, definitions
+    )
 
 
 def similarity(left: FileRecord, right: FileRecord) -> float:

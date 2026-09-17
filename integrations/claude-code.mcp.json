@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "token-saver": {
+      "command": "token-saver",
+      "args": ["serve", "."]
+    }
+  }
+}

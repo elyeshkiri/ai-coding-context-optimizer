@@ -1,3 +1,20 @@
+# 1.0.0
+
+- Added bounded, confidence-decayed dependency closure with explicit provenance.
+- Replaced regex-only JS/TS definition ranges with Tree-sitter-backed exact
+  function, class, method, interface, type, enum, and arrow-function spans.
+- Added `pack-diff` and `review` commands for changed-symbol context, dependency
+  impact, public-signature changes, removed symbols, and missing-test signals.
+- Added a persistent MCP index service with `index_status`, `refresh_index`,
+  `build_diff_context`, and `review_diff` alongside the v0.9 tools.
+- Added paired agent-outcome evaluation. Savings claims are suppressed when the
+  enabled condition does not preserve baseline task success.
+- Added Codex, Claude Code, Cursor, and GitHub Actions integration artifacts.
+- Added lexical normalization for common code-task inflections and structural
+  terminology while retaining deterministic, inspectable scoring.
+- Included benchmark: 96% file recall, 100% symbol recall, 92.94% estimated
+  context reduction across 25 repository tasks at a 6,000-token cap.
+
 # 0.9.1
 
 - Fixed symbol selection when task vocabulary appears in a definition body but

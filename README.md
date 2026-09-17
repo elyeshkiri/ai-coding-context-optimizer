@@ -1,10 +1,50 @@
-# Token Saver 0.9.1
+# Token Saver 1.0.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
-## What is new in 0.9
+## What is new in 1.0
+
+Token Saver now compiles both tasks and patches into bounded, explainable context:
+
+```bash
+# Task-aware context with exact symbol bodies and dependency closure
+token-saver pack . -q "fix session refresh" --closure-items 20 --max-tokens 6000
+
+# Context surrounding the current patch
+token-saver pack-diff . --base HEAD --max-tokens 6000
+
+# Changed symbols, callers, API changes, test signals, and affected files
+token-saver review . --base HEAD --json
+```
+
+v1.0 adds:
+
+- bounded dependency closure with source edge, distance, and confidence;
+- Tree-sitter-backed exact symbol ranges for JavaScript, TypeScript, JSX, and TSX;
+- patch-aware context generation and deterministic review signals;
+- public-signature change, removed-symbol, and missing-test detection;
+- a persistent MCP index service with status and incremental refresh tools;
+- MCP tools for task context, diff context, symbol search, impact, review, and feedback;
+- paired agent-outcome evaluation that suppresses savings claims when quality falls;
+- ready-to-copy Codex, Claude Code, Cursor, and GitHub Actions integrations.
+
+The included deterministic benchmark currently measures **96% relevant-file
+recall, 100% relevant-symbol recall, and 92.94% mean estimated context
+reduction** at a 6,000-token cap. These are retrieval measurements, not an
+end-to-end claim about agent success.
+
+For paired real-agent outcomes:
+
+```bash
+token-saver agent-evaluate benchmarks/agent-runs.example.json
+```
+
+The evaluator reports a token-per-success reduction only when the Token Saver
+condition preserves baseline success rate.
+
+## What was new in 0.9
 
 ### Evaluation-driven symbol context
 
@@ -287,4 +327,5 @@ python -m pytest -q
 
 CI runs the full suite on Python 3.10, 3.12, and 3.13.
 
-See [CHANGELOG.md](CHANGELOG.md) for release history and [VALIDATION.md](VALIDATION.md) for validation limits.
+See [INTEGRATIONS.md](INTEGRATIONS.md) for agent setup, [CHANGELOG.md](CHANGELOG.md)
+for release history, and [VALIDATION.md](VALIDATION.md) for validation limits.

@@ -1,7 +1,7 @@
 {"tasks":[
 {"id":"pack-budget","query":"enforce hard token budget context pack","files":["src/token_saver/pack.py"],"symbols":["build_context_pack"]},
 {"id":"rank-files","query":"BM25 rank repository files by task relevance","files":["src/token_saver/pack.py"],"symbols":["rank_files"]},
-{"id":"symbol-index","query":"extract symbol definitions signatures line ranges","files":["src/token_saver/repo_index.py"],"symbols":["SymbolRecord"]},
+{"id":"symbol-index","query":"extract symbol definitions signatures line ranges","files":["src/token_saver/repo_index.py"],"symbols":["_extract_javascript_definitions"]},
 {"id":"incremental-index","query":"reuse unchanged repository index records","files":["src/token_saver/repo_index.py"],"symbols":["build_index"]},
 {"id":"graph-neighbors","query":"find import call graph neighbors","files":["src/token_saver/repo_index.py"],"symbols":["neighbors"]},
 {"id":"impact","query":"analyze change impact callers dependents tests","files":["src/token_saver/impact.py"],"symbols":["analyze_impact"]},

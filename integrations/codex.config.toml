@@ -1,0 +1,3 @@
+[mcp_servers.token-saver]
+command = "token-saver"
+args = ["serve", "."]

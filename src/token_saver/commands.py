@@ -8,8 +8,10 @@ import sys
 from pathlib import Path
 
 from .evaluate import evaluate_manifest
+from .agent_eval import evaluate_agent_runs
 from .feedback import record_feedback
 from .impact import analyze_impact
+from .patch_context import build_diff_context, review_patch
 from .serve import serve
 
 
@@ -67,8 +69,66 @@ def evaluate_main(argv: list[str]) -> int:
     return 0
 
 
+def agent_evaluate_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver agent-evaluate")
+    parser.add_argument("manifest")
+    args = parser.parse_args(argv)
+    try:
+        result = evaluate_agent_runs(Path(args.manifest))
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def serve_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="token-saver serve")
     parser.add_argument("path", nargs="?", default=".")
     args = parser.parse_args(argv)
     return serve(Path(args.path).resolve())
+
+
+def _patch_args(prog: str, argv: list[str]):
+    parser = argparse.ArgumentParser(prog=prog)
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--base", default="HEAD")
+    parser.add_argument("--staged", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--max-tokens", type=int, default=6000)
+    return parser.parse_args(argv)
+
+
+def pack_diff_main(argv: list[str]) -> int:
+    args = _patch_args("token-saver pack-diff", argv)
+    try:
+        result = build_diff_context(
+            Path(args.path).resolve(), base=args.base, staged=args.staged,
+            max_tokens=args.max_tokens,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        sys.stdout.write(result["context"])
+    return 0
+
+
+def review_main(argv: list[str]) -> int:
+    args = _patch_args("token-saver review", argv)
+    try:
+        result = review_patch(Path(args.path).resolve(), base=args.base, staged=args.staged)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"PATCH REVIEW ({len(result['files'])} files)")
+        for item in result["files"]:
+            print(f"{item['status']:>2} {item['path']} symbols={','.join(item['symbols']) or '-'}")
+        for warning in result["warnings"]:
+            print(f"! {warning['code']}: {warning.get('path') or warning.get('detail', '')}")
+    return 0

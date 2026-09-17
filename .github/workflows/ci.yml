@@ -19,3 +19,4 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev]'
       - run: python -m pytest -q
+      - run: token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000

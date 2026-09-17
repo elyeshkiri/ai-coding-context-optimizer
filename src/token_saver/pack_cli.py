@@ -23,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-changed-boost", action="store_true")
     parser.add_argument("--graph-hops", type=int, default=1,
                         help="dependency/call graph expansion depth (default: 1)")
+    parser.add_argument("--closure-items", type=int, default=20,
+                        help="maximum related files considered during dependency closure")
     parser.add_argument("--duplicate-threshold", type=float, default=0.92,
                         help="identifier similarity at which a file is skipped")
     parser.add_argument("--session", help="remember the selected working set for related tasks")
@@ -58,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
             embeddings=args.embeddings,
             persist_index=not args.no_index_cache,
             target_symbol=args.target_symbol,
+            closure_max_items=args.closure_items,
         )
     except (ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
@@ -72,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
             "selected_files": pack.selected_files,
             "selected_symbols": pack.selected_symbols,
             "redactions": pack.redactions,
+            "closure_files": pack.closure_files,
         }
         rendered = json.dumps(payload, indent=2)
         if args.out:
