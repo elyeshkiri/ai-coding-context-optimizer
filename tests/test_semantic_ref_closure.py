@@ -3,7 +3,7 @@ from __future__ import annotations
 import textwrap
 
 from token_saver.closure import dependency_closure
-from token_saver.pack import rank_files
+from token_saver.pack import build_context_pack, rank_files
 from token_saver.repo_index import build_index
 
 
@@ -105,3 +105,43 @@ def test_exact_value_ref_is_not_hidden_by_an_unrelated_call_to_same_provider(tmp
 
     assert by_path["provider.ts"].reason == "semantic-ref"
     assert by_path["provider.ts"].confidence == 3.5
+
+
+def test_context_pack_reserves_budget_for_exact_provider_behind_large_consumer(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "patterns.ts").write_text(
+        "export const slug = /^[a-z0-9-]+$/;\n",
+        encoding="utf-8",
+    )
+    helpers = "\n".join(
+        f"export function validateSlugSchemaHelper{n}(value: string) {{ return value.length > {n}; }}"
+        for n in range(100)
+    )
+    (src / "validator.ts").write_text(
+        textwrap.dedent(
+            """
+            import * as patterns from "./patterns.js";
+            export function validateSlug(value: string) {
+              const activePattern = patterns.slug;
+              return activePattern.test(value);
+            }
+            """
+        )
+        + helpers
+        + "\n",
+        encoding="utf-8",
+    )
+
+    pack = build_context_pack(
+        tmp_path,
+        "validate slug string schema request",
+        max_tokens=1200,
+        changed_boost=False,
+        persist_index=False,
+    )
+
+    assert "src/validator.ts" in pack.selected_files
+    assert "src/patterns.ts" in pack.selected_files
+    provider = next(item for item in pack.ranked if item.rel == "src/patterns.ts")
+    assert any(reason.startswith("graph:semantic-ref@1") for reason in provider.reasons)
