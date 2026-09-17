@@ -614,3 +614,36 @@ def test_tight_budget_keeps_exact_symbol_source_before_large_outline(tmp_path):
         label.startswith("src/large_service.py:target_refresh_session@")
         for label in pack.selected_symbols
     )
+
+
+def test_tight_budget_preserves_symbol_score_order_not_source_line_order(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "timeouts.py").write_text(textwrap.dedent("""
+        def timeout_helper(value):
+            # Generic timeout handling.
+            return value
+
+        def unrelated_middle_1(value):
+            return value
+
+        def unrelated_middle_2(value):
+            return value
+
+        def connect_request_timeout(request):
+            # Handle a connection attempt timing out for this request.
+            return request
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "connection attempt timeout request",
+        max_tokens=170,
+        changed_boost=False,
+    )
+
+    assert "def connect_request_timeout(request):" in pack.text
+    assert any(
+        label.startswith("src/timeouts.py:connect_request_timeout@")
+        for label in pack.selected_symbols
+    )
