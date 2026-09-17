@@ -81,6 +81,42 @@ def test_type_alias_signature_is_truncated_like_a_function_body(tmp_path):
     assert "fieldErrors" not in alias.signature
 
 
+def test_member_assignment_function_is_indexed_with_prototype_owner_as_parent(tmp_path):
+    # `res.cookie = function (...) {}` / `View.prototype.lookup = function
+    # lookup(...) {}` -- the common CommonJS/prototype-assignment pattern
+    # for defining a method or export, distinct from `const x =
+    # function(){}` (a variable_declarator). tree-sitter gives this its own
+    # "assignment_expression" node type with "left"/"right" fields, not
+    # "name"/"value", so it was previously invisible to symbol extraction
+    # entirely -- found via the second frozen external holdout
+    # (expressjs/express, whose entire response.js/request.js public API is
+    # written this way). The `.prototype.` form specifically must also
+    # record the owning constructor function as `parent`, the same
+    # relationship a real class has to its methods, or the constructor's
+    # own thin body can be outranked and displaced by one of its own
+    # prototype methods in symbol-window selection.
+    source = tmp_path / "view.js"
+    source.write_text(textwrap.dedent("""
+        function View(name, options) {
+          this.name = name;
+        }
+
+        View.prototype.lookup = function lookup(name) {
+          return name;
+        }
+
+        exports.etag = function etag(body) {
+          return body.length;
+        }
+    """))
+    index = build_index(tmp_path, persist=False)
+    definitions = index.records["view.js"].definitions
+    lookup = next(symbol for symbol in definitions if symbol.name == "lookup")
+    etag = next(symbol for symbol in definitions if symbol.name == "etag")
+    assert lookup.parent == "View"
+    assert etag.parent is None
+
+
 def test_dependency_closure_is_bounded_explained_and_ordered(tmp_path):
     index = build_index(_graph_repo(tmp_path), persist=False)
     closure = dependency_closure(index, ["src/repository.py"], max_hops=2, max_items=2)

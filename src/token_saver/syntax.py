@@ -54,6 +54,44 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
             if key: name = source[key.start_byte:key.end_byte].decode().strip("\"'")
             is_function = value is not None and value.type in {"arrow_function", "function_expression"}
             is_object = value is not None and value.type == "object"
+        # `res.cookie = function (...) {...}` / `exports.foo = () => {...}`:
+        # the common CommonJS/prototype-assignment pattern for defining a
+        # method or export, distinct from `const x = function(){}` (a
+        # variable_declarator) -- tree-sitter gives this its own node type
+        # with "left"/"right" fields, not "name"/"value", so it was
+        # previously invisible to symbol extraction entirely. Left
+        # unhandled, an entire public API surface written this way (as
+        # express's response.js/request.js are, near-universally) never
+        # appears in the index at all.
+        prototype_owner = None
+        if node.type == "assignment_expression":
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            if left is not None and left.type == "member_expression":
+                prop = left.child_by_field_name("property")
+                if prop is not None:
+                    name = source[prop.start_byte:prop.end_byte].decode()
+                # `View.prototype.lookup = function () {...}`: the classic
+                # pre-ES6 constructor-function pattern, where `View` and its
+                # prototype methods are siblings in the AST rather than
+                # lexically nested the way an ES6 class's methods are --
+                # without this, `View` (a real, separately-extracted
+                # function_declaration) never gets to know these are its
+                # own members, and its thin constructor body can be
+                # outranked and displaced by one of them the same way a
+                # dense method can outrank its containing class.
+                obj = left.child_by_field_name("object")
+                if obj is not None and obj.type == "member_expression":
+                    obj_prop = obj.child_by_field_name("property")
+                    obj_base = obj.child_by_field_name("object")
+                    if (
+                        obj_prop is not None and obj_base is not None
+                        and obj_base.type == "identifier"
+                        and source[obj_prop.start_byte:obj_prop.end_byte].decode() == "prototype"
+                    ):
+                        prototype_owner = source[obj_base.start_byte:obj_base.end_byte].decode()
+            value = right
+            is_function = right is not None and right.type in {"arrow_function", "function_expression", "generator_function"}
         # Exported constants are public API symbols too, even when their value
         # is data (regex/schema/config) rather than a function. Local variables
         # remain excluded so implementation temporaries do not flood the index.
@@ -82,9 +120,21 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
             signature = " ".join(source[extent.start_byte:head_end].decode().split())
             if body: signature += " { … }" if body.type in {"statement_block", "class_body", "interface_body", "object_type", "mapped_type"} else " …"
             end_line = extent.end_point.row + (1 if extent.end_point.column else 0)
-            found.append(Symbol(name, ".".join((*parents, name)), extent.start_point.row + 1,
+            qualifier = (*parents, prototype_owner, name) if prototype_owner else (*parents, name)
+            found.append(Symbol(name, ".".join(qualifier), extent.start_point.row + 1,
                                 max(extent.start_point.row + 1, end_line), extent.start_byte, extent.end_byte, signature))
-            next_parents = (*parents, name)
+            # Only a genuine container (class/interface/enum) prefixes its
+            # descendants' qualified names -- an ordinary function or method
+            # does not, even though it may itself contain a nested helper
+            # function. A class groups multiple members that can each
+            # independently be the right, narrower answer to a query; a
+            # function's nested helper is just an implementation detail of
+            # that one function, not a sibling candidate answer. Without
+            # this distinction, pack.py's parent-credit symbol-window boost
+            # (which trusts a "parent" link as evidence of that grouping
+            # relationship) would apply to both alike.
+            if node.type in containers:
+                next_parents = (*parents, name)
         elif is_object and name:
             next_parents = (*parents, name)
         for child in node.named_children:

@@ -337,6 +337,49 @@ def test_symbol_window_credits_shared_method_name_when_two_classes_both_win_slot
     assert any(label.startswith("src/client.py:send_handling_redirects@") for label in pack.selected_symbols)
 
 
+def test_symbol_window_boosts_prototype_constructor_over_its_own_methods(tmp_path):
+    # Generalizes the parent-credit boost above from Python's kind=="class"
+    # (ast.ClassDef) to any symbol with recorded children, so a pre-ES6
+    # constructor-function/prototype-method "class" -- the shape
+    # expressjs/express's entire response.js/request.js is written in --
+    # gets the same fair treatment a real class does. Found as a
+    # regression while fixing the assignment-expression extraction gap
+    # (see test_member_assignment_function_is_indexed_with_prototype_owner_as_parent
+    # in test_v1.py): once View.prototype.lookup/render became visible to
+    # extraction at all, they immediately began outscoring and displacing
+    # View itself, the same failure shape DigestAuth hit, just newly
+    # exposed for JS/TS's prototype pattern rather than fixed for it.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "view.js").write_text(textwrap.dedent("""
+        function View(name, options) {
+            this.name = name;
+            this.root = options.root;
+        }
+
+        View.prototype.lookup = function lookup(name) {
+            // Look up a view template file by name and resolve the file path.
+            return this.root + '/' + name;
+        }
+
+        View.prototype.render = function render(options, callback) {
+            // Render a view template using the configured template engine and
+            // resolve the view lookup path before invoking the engine.
+            var engine = this.engine;
+            engine.render(this.path, options, callback);
+        }
+    """), encoding="utf-8")
+
+    pack = build_context_pack(
+        tmp_path,
+        "how does the view resolve a template lookup path and render it",
+        max_tokens=1400,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/view.js:View@") for label in pack.selected_symbols)
+
+
 def test_symbol_window_does_not_boost_function_nested_in_another_function(tmp_path):
     # The parent-credit boost above is deliberately restricted to class
     # parents (SymbolRecord.kind == "class"): a class groups multiple

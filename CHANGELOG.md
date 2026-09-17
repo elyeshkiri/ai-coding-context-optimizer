@@ -1,5 +1,64 @@
 # Unreleased
 
+- **Fixed a JS/TS symbol-extraction gap and generalized the parent-credit
+  symbol-window boost past Python.** Two changes shipped together because
+  the second was found as a direct regression from the first.
+
+  1. **`obj.prop = function () {...}` was invisible to symbol
+     extraction.** tree-sitter gives this common CommonJS/prototype-
+     assignment pattern its own `assignment_expression` node type with
+     "left"/"right" fields, not the "name"/"value" fields the extractor
+     already handled for `const x = function(){}` (`variable_declarator`)
+     and object-literal methods (`pair`). Left unhandled, an entire public
+     API surface written this way -- as expressjs/express's
+     response.js/request.js near-universally are -- never appeared in the
+     index at all (`res.cookie`, `req.accepts`, and similar were
+     completely missing). Fixed in `syntax.py` by handling
+     `assignment_expression` the same way.
+  2. **Regression:** once `View.prototype.lookup`/`render` became visible,
+     they immediately began outscoring and displacing `View` itself --
+     the same DigestAuth-shaped failure, just newly exposed for JS/TS's
+     pre-ES6 constructor-function/prototype-method pattern rather than
+     fixed for it, since the earlier DigestAuth fix's parent-credit boost
+     is gated on `kind == "class"`, which JS/TS symbols never carry
+     (tree-sitter extraction tags all of them `"symbol"` regardless of
+     shape). Fixed by generalizing the boost's eligibility check from
+     `kind == "class"` to "has at least one other symbol recording it as
+     `parent`" -- a structural definition that already exactly matches
+     Python's `kind == "class"` in practice (parent is only ever set for
+     class-contained methods there) but also now correctly covers real JS/
+     TS `class` bodies and the new `X.prototype.method` pattern. This
+     required also fixing *what* records a `parent` link in the first
+     place: previously *any* accepted symbol (including an ordinary
+     function) prefixed its descendants' qualified names, so an ordinary
+     function containing a nested helper function would have newly
+     qualified as a "container" too under the broadened check -- reintroducing
+     the exact over-boosting bug fixed earlier for `zod-error-tree`/
+     `zod-flatten-error`. Restricted qualified-name prefixing in
+     `syntax.py` to genuine containers (`class_declaration`,
+     `interface_declaration`, `enum_declaration`) plus the new
+     `X.prototype.method` link, so ordinary function nesting creates no
+     parent link in either language, same as Python already didn't.
+
+  New tests:
+  `test_member_assignment_function_is_indexed_with_prototype_owner_as_parent`
+  (`tests/test_v1.py`, direct extraction/parent-linking check) and
+  `test_symbol_window_boosts_prototype_constructor_over_its_own_methods`
+  (`tests/test_pack.py`, end-to-end); the existing
+  `test_symbol_window_does_not_boost_function_nested_in_another_function`
+  regression test continues to pass, confirming the nested-function fix
+  wasn't undone.
+
+  Verified: 340 tests passing (was 338), self-benchmark file recall shows
+  a one-task self-referential-corpus dip (96% -> 92%: this commit's own
+  new comment in `syntax.py`, which mentions "symbol extraction",
+  coincidentally overlaps the self-benchmark's `snippet` task query more
+  than before -- not a logic regression, the same category of noise
+  `snippet`/`pack-cli` have shown before), and a one-time re-run of both
+  frozen external holdouts (not a tuning loop): the second, larger suite's
+  mean symbol recall rose from 56.1% to **58.5%** with zero regressions
+  across all 41 tasks, the first httpx/zod suite remains a clean 100%/100%.
+
 - **Fixed an acronym-prefixed identifier tokenization bug.** `terms()`'s
   camelCase splitter only recognized a lowercase/digit-to-uppercase
   transition, not an uppercase-run-to-title-case one, so an identifier

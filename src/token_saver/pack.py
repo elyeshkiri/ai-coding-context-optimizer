@@ -363,12 +363,20 @@ def _symbol_windows(
             matches.append((score, symbol))
 
     if not wanted:
-        class_names = {symbol.name for _, symbol in matches if symbol.kind == "class"}
+        # A container is any symbol that structurally has at least one
+        # other symbol recorded as its child in this file -- not just
+        # kind == "class" (Python's ast.ClassDef), which excludes every
+        # JS/TS container (tree-sitter extraction tags all JS/TS symbols
+        # "symbol" regardless of shape) even though a JS/TS class or a
+        # pre-ES6 `X.prototype.method = ...` constructor-function has the
+        # exact same "one member outscoring its own container" failure
+        # shape as a Python class does.
+        container_names = {symbol.parent for symbol in definitions if symbol.parent}
         own_score = {symbol.name: score for score, symbol in matches}
         best_child_score: dict[str, float] = {}
         best_child_symbol: dict[str, object] = {}
         for score, symbol in matches:
-            if symbol.parent and symbol.parent in own_score and symbol.parent in class_names:
+            if symbol.parent and symbol.parent in own_score and symbol.parent in container_names:
                 if score > best_child_score.get(symbol.parent, 0):
                     best_child_score[symbol.parent] = score
                     best_child_symbol[symbol.parent] = symbol
