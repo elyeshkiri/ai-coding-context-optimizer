@@ -25,6 +25,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="dependency/call graph expansion depth (default: 1)")
     parser.add_argument("--closure-items", type=int, default=20,
                         help="maximum related files considered during dependency closure")
+    parser.add_argument("--adaptive-budget", action="store_true",
+                        help="adapt seed breadth/closure and per-file shares to ranking confidence")
+    parser.add_argument("--typescript-semantic", action="store_true",
+                        help="resolve TS/JS imports/calls with the repository's local TypeScript compiler")
+    parser.add_argument("--strict-semantic", action="store_true",
+                        help="fail instead of falling back when TypeScript semantic resolution is unavailable")
     parser.add_argument("--duplicate-threshold", type=float, default=0.92,
                         help="identifier similarity at which a file is skipped")
     parser.add_argument("--session", help="remember the selected working set for related tasks")
@@ -61,6 +67,9 @@ def main(argv: list[str] | None = None) -> int:
             persist_index=not args.no_index_cache,
             target_symbol=args.target_symbol,
             closure_max_items=args.closure_items,
+            adaptive_budget=args.adaptive_budget,
+            typescript_semantic=args.typescript_semantic,
+            strict_semantic=args.strict_semantic,
         )
     except (ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
