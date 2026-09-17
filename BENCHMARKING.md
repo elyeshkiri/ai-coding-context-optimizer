@@ -22,13 +22,17 @@ tool and point one manifest at repositories that were excluded from ranking
 work/tuning. `benchmarks/holdout.example.json` contains the full schema.
 
 Repository paths are resolved relative to the manifest. Pin exact Git commits so
-the corpus cannot move between runs:
+the corpus cannot move between runs. A publishable holdout also records a freeze
+timestamp and a SHA-256 of the task/repository ground-truth definition:
 
 ```json
 {
+  "suite_version": 1,
   "protocol": {
     "ground_truth_frozen": true,
-    "development_excluded": true
+    "development_excluded": true,
+    "frozen_at": "2026-09-17T12:00:00Z",
+    "ground_truth_sha256": "HASH_FROM_COMMAND_BELOW"
   },
   "repositories": {
     "app-a": {"path": "../app-a", "revision": "ACTUAL_COMMIT_SHA"},
@@ -46,17 +50,29 @@ the corpus cannot move between runs:
 }
 ```
 
-Run it with enforcement enabled:
+After the tasks, expected evidence, and revision pins are final, calculate the
+freeze hash without running retrieval:
+
+```bash
+token-saver evaluate benchmarks/holdout.json --print-ground-truth-hash
+```
+
+Put that value in `protocol.ground_truth_sha256`, commit the manifest, then run:
 
 ```bash
 token-saver evaluate benchmarks/holdout.json --require-holdout --max-tokens 6000
 ```
 
-`--require-holdout` rejects a manifest unless both protocol flags are true and
-rejects a repository whose current `HEAD` differs from its declared revision.
-The output includes both aggregate metrics and per-repository summaries. This
-does not prove the labels were honestly created before tuning; preserve the
-manifest history and task-definition process as audit evidence.
+`--require-holdout` rejects a manifest unless both protocol flags are true,
+`frozen_at` is present, the SHA-256 still matches the frozen task definition,
+and every pinned repository `HEAD` matches its declared revision. Filesystem
+paths are excluded from the freeze hash so the same manifest can be replicated
+on another machine without changing the benchmark identity. The output includes
+aggregate metrics, per-repository summaries, and the verified hash.
+
+A valid hash proves the evaluated definition did not change after it was frozen;
+it does not by itself prove the labels were independently authored before tuning.
+Preserve manifest history and the task-definition process as audit evidence.
 
 ## Paired agent outcomes
 
@@ -73,6 +89,31 @@ tokens per success. It suppresses the reduction headline whenever Token Saver's
 success rate is below baseline.
 
 ## Live host validation (not yet executed for this release)
+
+Token Saver can verify installation and its local hook/recovery transport before
+a live host trial:
+
+```bash
+token-saver host-check . --require-ready
+```
+
+This checks project/user hook configuration, probes the host executable version,
+runs a synthetic 500-line Bash response through the real PostToolUse hook, and
+retrieves an omitted middle line from Token Saver's saved original output. That
+is a local transport test; it does **not** prove the host actually feeds
+`hookSpecificOutput.updatedToolOutput` back to the model.
+
+For that final gate, capture a real host debug transcript and supply it explicitly:
+
+```bash
+token-saver host-check . \
+  --live-evidence /path/to/claude-debug.log \
+  --require-live
+```
+
+`live_verified=true` is reported only when the supplied evidence contains both
+the host replacement field and Token Saver's filtered-output recovery marker.
+The manual validation protocol remains:
 
 1. Record `claude --version`, model ID, configuration, and Token Saver version.
 2. Use a disposable project. Install the package and its project hooks. Check
