@@ -88,6 +88,37 @@ def test_impact_reports_callers_dependencies_and_tests(tmp_path):
     assert any(path == "tests/test_service.py" for path, _ in reasons)
 
 
+def test_impact_handles_ambiguous_symbol_name_shared_across_files(tmp_path):
+    # A generic name (e.g. a route's GET/POST export) can be defined in many
+    # files; analyze_impact dedupes the shared caller lookup across matches
+    # instead of rescanning once per match, so verify it still finds callers
+    # of every definition.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.py").write_text("def handler(payload):\n    return payload\n")
+    (src / "b.py").write_text("def handler(payload):\n    return payload\n")
+    (src / "caller.py").write_text("from src.a import handler\ndef run():\n    return handler({})\n")
+    report = analyze_impact(tmp_path, "handler")
+    assert len(report.matched) == 2
+    callers = {item.path for item in report.affected if item.reason == "calls-symbol"}
+    assert "src/caller.py" in callers
+
+
+def test_impact_excludes_symbol_calling_itself(tmp_path):
+    (tmp_path / "recurse.py").write_text(textwrap.dedent("""
+        def countdown(n):
+            if n <= 0:
+                return 0
+            return countdown(n - 1)
+    """))
+    report = analyze_impact(tmp_path, "countdown")
+    self_calls = [
+        item for item in report.affected
+        if item.path == "recurse.py" and item.symbol == "countdown"
+    ]
+    assert self_calls == []
+
+
 def test_feedback_is_bounded_and_changes_ranking(tmp_path, monkeypatch):
     monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
     root = _project(tmp_path / "repo")

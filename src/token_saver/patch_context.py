@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 import re
 import subprocess
+import time
 
 from .impact import analyze_impact
 from .pack import build_context_pack
@@ -13,6 +14,15 @@ from .repo_index import RepositoryIndex, build_index, record_for_text
 from .security import inspect_path
 
 _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+
+# Each analyze_impact() call scans the whole repository index, and cost is
+# not uniform: a common name (e.g. a Next.js route's "GET"/"POST" export)
+# can fan out to thousands of unrelated matches and take tens of seconds,
+# while most calls take well under a second. A raw call-count cap doesn't
+# bound wall time under that variance, so bound elapsed time directly. A
+# diff touching hundreds of files (e.g. a merge commit) degrades to partial
+# impact data instead of taking minutes.
+_MAX_IMPACT_SECONDS = 10.0
 
 
 @dataclass(frozen=True)
@@ -98,6 +108,8 @@ def review_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> dic
     warnings = []
     source_changed = False
     tests_changed = False
+    impact_deadline = time.monotonic() + _MAX_IMPACT_SECONDS
+    impact_budget_exceeded = False
     for change in changes:
         symbols = changed_symbols(index, change)
         path_lower = change.path.lower()
@@ -122,6 +134,9 @@ def review_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> dic
         targets = symbols or ([change.path] if change.path in index.records else [])
         impacts = []
         for target in targets[:10]:
+            if time.monotonic() >= impact_deadline:
+                impact_budget_exceeded = True
+                break
             try:
                 report = analyze_impact(root, target, index=index)
             except ValueError:
@@ -131,6 +146,11 @@ def review_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> dic
         files.append({**asdict(change), "symbols": symbols, "signature_changes": signature_changes, "removed_symbols": removed})
     if source_changed and not tests_changed:
         warnings.append({"code": "tests-not-changed", "detail": "source changed without a test-file change"})
+    if impact_budget_exceeded:
+        warnings.append({
+            "code": "impact-analysis-truncated",
+            "detail": f"diff is large; impact analysis stopped after {_MAX_IMPACT_SECONDS:g}s budget",
+        })
     return {"base": base, "staged": staged, "files": files, "impacts": all_impacts, "warnings": warnings}
 
 
@@ -139,10 +159,14 @@ def build_diff_context(
     max_tokens: int = 6000,
 ) -> dict:
     review = review_patch(root, base=base, staged=staged)
-    parts = []
+    parts: list[str] = []
     for item in review["files"]:
         parts.extend([item["path"], *item["symbols"]])
-    query = "review changed behavior and regressions " + " ".join(parts)
+    # Bound the query for large diffs: ranking only needs enough terms to
+    # steer relevance, and an unbounded query would blow past max_tokens on
+    # its own (see the header-fit fallback in pack.build_context_pack).
+    deduped = list(dict.fromkeys(parts))[:60]
+    query = "review changed behavior and regressions " + " ".join(deduped)
     pack = build_context_pack(root, query, max_tokens=max_tokens, changed_boost=True)
     return {
         "review": review,

@@ -95,6 +95,22 @@ def test_diff_context_respects_budget_and_contains_changed_file(tmp_path):
     assert "src/service.py" in result["review"]["impacts"]
 
 
+def test_diff_context_with_many_changed_files_still_returns_context(tmp_path):
+    # A diff touching hundreds of files/symbols (e.g. a merge commit) used to
+    # embed the whole unbounded file/symbol list into the pack header, which
+    # by itself exceeded max_tokens and made _fit_section give up and return
+    # an empty pack. Guard against that regressing.
+    root = _git_repo(tmp_path)
+    src = root / "src"
+    for i in range(150):
+        name = f"generated_module_{i}_with_a_very_long_descriptive_symbol_name_for_query_inflation"
+        (src / f"mod_{i}.py").write_text(f"def {name}():\n    return {i}\n")
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    result = build_diff_context(root, staged=True, max_tokens=500)
+    assert result["context"].strip()
+    assert result["estimated_tokens"] <= 500
+
+
 def test_persistent_index_service_reuses_then_refreshes_changed_file(tmp_path):
     root = _graph_repo(tmp_path)
     service = IndexService(root)

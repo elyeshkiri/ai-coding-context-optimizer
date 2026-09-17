@@ -34,11 +34,8 @@ class ImpactReport:
 def _tests_for(index: RepositoryIndex, rel: str, symbols: set[str]) -> list[ImpactItem]:
     stem = Path(rel).stem.lower()
     out = []
-    for path, record in index.records.items():
-        lower = path.lower()
-        if "test" not in lower and "spec" not in lower:
-            continue
-        if stem in lower or symbols & {token.lower() for token in record.tokens}:
+    for path, lower, tokens in index.test_file_signatures():
+        if stem in lower or symbols & tokens:
             out.append(ImpactItem(path, "related-test", 0.85))
     return out
 
@@ -56,8 +53,27 @@ def analyze_impact(
     if not matched:
         raise ValueError(f"no indexed file or symbol matches: {target}")
 
+    # A generic symbol name (e.g. a Next.js route's GET/POST export) can
+    # appear in many matches. All matches sharing a name have an identical
+    # caller list, so scanning it once per match is pure repeated work.
+    # Self-exclusion (skip a symbol calling itself) only has to be checked
+    # when exactly one match owns that name: with two or more matches for
+    # the same name, any caller excluded for one match's own file is still
+    # included via the other matches, so the excluded entry always survives
+    # in the final (deduplicated-by-key) impacts dict either way.
+    sole_owner_by_name: dict[str, tuple[str, str] | None] = {}
+    for rel, symbol in matched:
+        if symbol is None:
+            continue
+        key = symbol.name.lower()
+        if key in sole_owner_by_name:
+            sole_owner_by_name[key] = None
+        else:
+            sole_owner_by_name[key] = (rel, symbol.name)
+
     impacts: dict[tuple[str, str, str | None], ImpactItem] = {}
     matched_json = []
+    processed_names: set[str] = set()
     for rel, symbol in matched:
         record = index.records[rel]
         symbols = {symbol.name.lower()} if symbol else {name.lower() for name in record.symbols}
@@ -75,8 +91,12 @@ def analyze_impact(
             item = ImpactItem(neighbor, edge, confidence)
             impacts[(neighbor, edge, None)] = item
         for name in symbols:
+            if name in processed_names:
+                continue
+            processed_names.add(name)
+            exclude = sole_owner_by_name.get(name)
             for caller_path, caller in index.symbol_callers(name):
-                if caller_path == rel and symbol and caller.name == symbol.name:
+                if exclude is not None and (caller_path, caller.name) == exclude:
                     continue
                 item = ImpactItem(
                     caller_path, "calls-symbol", 0.95, caller.name, caller.start_line
@@ -86,5 +106,8 @@ def analyze_impact(
                     impacts[(test.path, test.reason, None)] = test
         for item in _tests_for(index, rel, symbols):
             impacts[(item.path, item.reason, None)] = item
-    affected = sorted(impacts.values(), key=lambda item: (-item.confidence, item.path, item.reason))
+    affected = sorted(
+        impacts.values(),
+        key=lambda item: (-item.confidence, item.path, item.reason, item.symbol or "", item.start_line or 0),
+    )
     return ImpactReport(target, matched_json, affected)

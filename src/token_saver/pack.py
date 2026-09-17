@@ -436,9 +436,12 @@ def build_context_pack(
         closure_max_items=closure_max_items,
     )
     q_terms = set(_terms(effective_query))
+    task_display = query.strip() or "(no query; structural priority mode)"
+    if len(task_display) > 300:
+        task_display = task_display[:300] + f"… (+{len(task_display) - 300} chars)"
     header = (
         f"# TOKEN-SAVER CONTEXT PACK: {root.name}\n"
-        f"# task: {query.strip() or '(no query; structural priority mode)'}\n"
+        f"# task: {task_display}\n"
         f"# budget: {max_tokens} tokens; exact source windows preserve editable bytes\n"
         f"# scanned: {len(ranked)} source files\n\n"
     )

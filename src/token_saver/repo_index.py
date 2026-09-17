@@ -8,7 +8,7 @@ extractors later without changing the on-disk format.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import ast
 import hashlib
 import json
@@ -65,6 +65,18 @@ class RepositoryIndex:
     reparsed: int = 0
     reused: int = 0
     excluded: dict[str, str] | None = None
+    # Lazily built, cached on first use. Each build_index() call constructs a
+    # fresh RepositoryIndex, so caching on the instance is safe: `records`
+    # never changes after construction, and nothing else can observe staleness.
+    _caller_index: dict[str, list[tuple[str, SymbolRecord]]] | None = field(
+        default=None, repr=False, compare=False
+    )
+    _test_file_signatures: list[tuple[str, str, set[str]]] | None = field(
+        default=None, repr=False, compare=False
+    )
+    _neighbor_indexes: tuple[
+        dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]
+    ] | None = field(default=None, repr=False, compare=False)
 
     def find_symbols(self, name: str) -> list[tuple[str, SymbolRecord]]:
         needle = name.lower()
@@ -79,36 +91,95 @@ class RepositoryIndex:
                     partial.append((rel, symbol))
         return sorted(exact or partial, key=lambda item: (item[0], item[1].start_line))
 
+    def _callers_by_name(self) -> dict[str, list[tuple[str, SymbolRecord]]]:
+        if self._caller_index is None:
+            built: dict[str, list[tuple[str, SymbolRecord]]] = {}
+            for rel, record in self.records.items():
+                for symbol in record.definitions or []:
+                    for call in {call.lower() for call in symbol.calls or []}:
+                        built.setdefault(call, []).append((rel, symbol))
+            self._caller_index = built
+        return self._caller_index
+
     def symbol_callers(self, name: str) -> list[tuple[str, SymbolRecord]]:
-        needle = name.lower()
-        out = []
-        for rel, record in self.records.items():
-            for symbol in record.definitions or []:
-                if needle in {call.lower() for call in symbol.calls or []}:
-                    out.append((rel, symbol))
+        out = self._callers_by_name().get(name.lower(), [])
         return sorted(out, key=lambda item: (item[0], item[1].start_line))
+
+    def test_file_signatures(self) -> list[tuple[str, str, set[str]]]:
+        """(path, lowercased path, token set) for test/spec files, cached once.
+
+        `record.tokens` is already lowercased by `_extract`, so the token set
+        is reused as-is rather than rebuilt (with a redundant `.lower()` on
+        every token) on each caller-impact lookup.
+        """
+        if self._test_file_signatures is None:
+            self._test_file_signatures = [
+                (rel, rel.lower(), set(record.tokens))
+                for rel, record in self.records.items()
+                if "test" in rel.lower() or "spec" in rel.lower()
+            ]
+        return self._test_file_signatures
+
+    def _build_neighbor_indexes(
+        self,
+    ) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
+        # Reverse indexes so neighbors() can look candidates up instead of
+        # scanning every other file. Each mirrors one branch of the original
+        # per-pair comparison exactly (including its "check the split key
+        # against the already-transformed set" quirk), so results are
+        # unchanged -- only how candidates are found.
+        imported_by_index: dict[str, set[str]] = {}
+        stem_index: dict[str, set[str]] = {}
+        call_symbol_index: dict[str, set[str]] = {}
+        symbol_def_index: dict[str, set[str]] = {}
+        for other_rel, other in self.records.items():
+            stem_index.setdefault(Path(other_rel).stem.lower(), set()).add(other_rel)
+            import_keys = {Path(value).name.lower() for value in other.imports}
+            for key in import_keys | {key.split(".")[-1] for key in import_keys}:
+                imported_by_index.setdefault(key, set()).add(other_rel)
+            for key in {call.split(".")[-1].lower() for call in other.calls}:
+                call_symbol_index.setdefault(key, set()).add(other_rel)
+            for key in {s.lower() for s in other.symbols}:
+                symbol_def_index.setdefault(key, set()).add(other_rel)
+        return imported_by_index, stem_index, call_symbol_index, symbol_def_index
 
     def neighbors(self, rel: str) -> list[tuple[str, str]]:
         """Return related files and the edge that connected them."""
         source = self.records.get(rel)
         if source is None:
             return []
+        if self._neighbor_indexes is None:
+            self._neighbor_indexes = self._build_neighbor_indexes()
+        imported_by_index, stem_index, call_symbol_index, symbol_def_index = self._neighbor_indexes
+
         source_stem = Path(rel).stem.lower()
         source_symbols = {s.lower() for s in source.symbols}
+        reverse_imports = {Path(value).name.lower() for value in source.imports}
+        source_calls = {call.split(".")[-1].lower() for call in source.calls}
+
+        imported_by = imported_by_index.get(source_stem, set()) - {rel}
+        imports_candidates: set[str] = set()
+        for key in reverse_imports | {key.split(".")[-1] for key in reverse_imports}:
+            imports_candidates |= stem_index.get(key, set())
+        imports_candidates -= {rel}
+        calls_symbol_candidates: set[str] = set()
+        for symbol in source_symbols:
+            calls_symbol_candidates |= call_symbol_index.get(symbol, set())
+        calls_symbol_candidates -= {rel}
+        calls_candidates: set[str] = set()
+        for call in source_calls:
+            calls_candidates |= symbol_def_index.get(call, set())
+        calls_candidates -= {rel}
+
         out: dict[str, str] = {}
-        for other_rel, other in self.records.items():
-            if other_rel == rel:
-                continue
-            other_stem = Path(other_rel).stem.lower()
-            imports = {Path(value).name.lower() for value in other.imports}
-            reverse_imports = {Path(value).name.lower() for value in source.imports}
-            if source_stem in imports or any(source_stem == value.split(".")[-1] for value in imports):
+        for other_rel in imported_by | imports_candidates | calls_symbol_candidates | calls_candidates:
+            if other_rel in imported_by:
                 out[other_rel] = "imported-by"
-            elif other_stem in reverse_imports or any(other_stem == value.split(".")[-1] for value in reverse_imports):
+            elif other_rel in imports_candidates:
                 out[other_rel] = "imports"
-            elif source_symbols & {call.split(".")[-1].lower() for call in other.calls}:
+            elif other_rel in calls_symbol_candidates:
                 out[other_rel] = "calls-symbol"
-            elif {s.lower() for s in other.symbols} & {call.split(".")[-1].lower() for call in source.calls}:
+            elif other_rel in calls_candidates:
                 out[other_rel] = "calls"
         return sorted(out.items())
 
