@@ -17,10 +17,11 @@ from pathlib import Path
 
 from .lexical import document_counts
 from .security import ENV_TEMPLATE_NAMES, inspect_path
+from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, symbols as syntax_symbols
 
-INDEX_VERSION = 4
+INDEX_VERSION = 5
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -66,6 +67,7 @@ class FileRecord:
     mtime_ns: int = 0
     outline: str = ""
     term_counts: dict[str, int] | None = None
+    semantic_refs: list[dict[str, str]] | None = None
 
     @property
     def document_length(self) -> int:
@@ -88,6 +90,9 @@ class RepositoryIndex:
     _neighbor_indexes: tuple[
         dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]
     ] | None = field(default=None, repr=False, compare=False)
+    _semantic_neighbors: dict[str, list[tuple[str, str]]] | None = field(
+        default=None, repr=False, compare=False
+    )
 
     def find_symbols(self, name: str) -> list[tuple[str, SymbolRecord]]:
         needle = name.lower()
@@ -143,6 +148,25 @@ class RepositoryIndex:
                 symbol_def_index.setdefault(key, set()).add(other_rel)
         return imported_by_index, stem_index, call_symbol_index, symbol_def_index
 
+    def _build_semantic_neighbors(self) -> dict[str, list[tuple[str, str]]]:
+        known = self.records.keys()
+        out: dict[str, list[tuple[str, str]]] = {}
+        for rel, record in self.records.items():
+            targets: dict[str, str] = {}
+            for ref in record.semantic_refs or []:
+                module = ref.get("module", "")
+                target = resolve_module_path(rel, module, known)
+                if target is None or target == rel:
+                    continue
+                kind = ref.get("kind", "semantic-call")
+                # A concrete alias-resolved call carries more information than
+                # a broad re-export relation when both point at the same file.
+                if target not in targets or kind == "semantic-call":
+                    targets[target] = kind
+            if targets:
+                out[rel] = sorted(targets.items())
+        return out
+
     def neighbors(self, rel: str) -> list[tuple[str, str]]:
         source = self.records.get(rel)
         if source is None:
@@ -180,6 +204,11 @@ class RepositoryIndex:
                 out[other_rel] = "calls-symbol"
             elif other_rel in calls_candidates:
                 out[other_rel] = "calls"
+
+        if self._semantic_neighbors is None:
+            self._semantic_neighbors = self._build_semantic_neighbors()
+        for target, edge in self._semantic_neighbors.get(rel, []):
+            out[target] = edge
         return sorted(out.items())
 
 
@@ -428,6 +457,9 @@ def _load(path: Path) -> dict[str, FileRecord]:
             raw_counts = value.get("term_counts")
             if raw_counts is not None and not isinstance(raw_counts, dict):
                 value["term_counts"] = None
+            raw_refs = value.get("semantic_refs")
+            if raw_refs is not None and not isinstance(raw_refs, list):
+                value["semantic_refs"] = None
             records[key] = FileRecord(**value)
         return records
     except (OSError, ValueError, TypeError, KeyError):
@@ -462,6 +494,7 @@ def _record(rel: str, text: str, suffix: str, *, size: int, mtime_ns: int) -> Fi
         rel, _digest(text), size, symbols, imports, calls, tokens, definitions,
         mtime_ns=mtime_ns, outline=outline,
         term_counts=document_counts(text, outline, rel),
+        semantic_refs=extract_module_refs(text) if suffix.lower() in JS_TS else [],
     )
 
 
