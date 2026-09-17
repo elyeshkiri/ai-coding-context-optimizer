@@ -97,11 +97,14 @@ def extract_module_refs(text: str) -> list[dict[str, str]]:
         }
         for member in members:
             full = f"{local}.{member}"
+            receiver_called = any(
+                call == full or call.startswith(full + ".") for call in calls
+            )
             refs.append({
                 "module": module,
                 "symbol": member,
                 "local": full,
-                "kind": "semantic-call" if full in calls else "semantic-ref",
+                "kind": "semantic-call" if receiver_called else "semantic-ref",
             })
 
     for match in _REQUIRE_DESTRUCTURE.finditer(text):
