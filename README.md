@@ -1,10 +1,61 @@
-# Token Saver 1.1.0
+# Token Saver 1.2.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
-## What is new in 1.1
+## What is new in 1.2
+
+Retrieval ranking got a full correctness pass, driven by a frozen,
+independently-authored external holdout benchmark
+([encode/httpx](https://github.com/encode/httpx),
+[colinhacks/zod](https://github.com/colinhacks/zod)) rather than this
+repository's own self-referential test corpus -- the kind of generalization
+check that catches bugs a self-benchmark structurally can't see. Symbol
+recall on that frozen suite went from 16.7% to 83.3% this release, with
+every fix validated against the self-benchmark first and the frozen suite
+checked only once, after the fact, per task -- never as a tuning loop.
+
+Fixed:
+
+- a per-file symbol window preferring a densely-worded helper method over
+  the semantically-correct class/function the query was actually about
+  (`DigestAuth`-shaped: right file, wrong symbol);
+- a TypeScript type alias's inline right-hand side going uncapped into its
+  ranking signature (missing the same body/signature truncation every
+  other symbol kind gets), letting a type describing a function's return
+  shape outscore the function itself;
+- the resulting parent-credit fix over-applying to a function containing a
+  nested helper function, not just class/method containment;
+- `dependency_closure`'s graph-hop seeding missing a relevant-but-low-raw-
+  score file's exact semantic reference to a small provider file, fixed
+  with a separate, cheap, non-transitive one-hop scan.
+
+Still open and disclosed rather than silently left broken: a terse,
+precisely-correct file (e.g. one of bare regex constants) can still lose
+the file-ranking competition to a larger file that merely discusses the
+same topic in prose. Two fix attempts were tried and reverted after each
+broke a different, previously-passing case; see CHANGELOG.md for the full
+account of both, including the one that looked clean on the self-benchmark
+and only failed on the frozen holdout.
+
+Also merged this cycle: index-backed retrieval performance, stronger JS/TS
+module semantics (including NodeNext-style `.js`-specifier resolution to
+`.ts` source), adaptive retrieval budgeting, a TypeScript-compiler semantic
+overlay, and `token-saver host-check` for validating hook acceptance
+against a real, separate Claude Code host process rather than a simulated
+payload. See CHANGELOG.md and VALIDATION.md for full detail on all of the
+above.
+
+The included deterministic benchmark now measures **92% relevant-file
+recall, 96% relevant-symbol recall, and ~95.3% mean estimated context
+reduction** at a 6,000-token cap on this repository (88%/92%/93.83% at
+1.1). These are retrieval measurements, not an end-to-end claim about
+agent success, and move slightly release to release as the tool's own
+source -- part of the benchmark corpus -- changes; re-run
+`token-saver evaluate` for the exact figure on your checkout.
+
+## What was new in 1.1
 
 `pack-diff`/`review` used to see only source files. The index now also
 covers SQL migrations, `package.json`, CI workflows

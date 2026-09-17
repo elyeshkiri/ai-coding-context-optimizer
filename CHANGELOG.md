@@ -1,4 +1,21 @@
-# Unreleased
+# 1.2.0
+
+Note: PR #3 (`fix/graph-aware-symbol-ranking`) and PR #4
+(`fix/authoritative-file-ranking`) merged directly to `main` without their
+own version bump or CHANGELOG entry; summarized here rather than
+re-documented in detail (see the PR descriptions for full rationale).
+PR #3 added caller-graph-aware symbol ranking and exact incoming
+semantic-reference evidence to `_symbol_windows()`, targeting the same
+generalization gap the first frozen holdout found, without tuning against
+that frozen suite. PR #4 gave exact `semantic-ref` edges a strong,
+deliberately non-transitive one-hop ranking weight, aimed at the
+`zod-email-regex`-shaped gap (a terse provider file supplying an exact
+value a query-relevant consumer file describes in prose) -- it merged with
+its own CI check failing (see the fix below) and, per a fresh one-time
+holdout check after that fix, does not actually resolve `zod-email-regex`
+itself: `regexes.ts` has no direct incoming `semantic-ref` from a file
+that independently outranks `schemas.ts`, so the underlying outline-size
+bias documented below is still the live, unfixed root cause.
 
 - **Fixed CI on `main`**, broken by PR #4 (`fix/authoritative-file-ranking`,
   merged despite its own `CI` check failing on every push -- only its
