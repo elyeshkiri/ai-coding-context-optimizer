@@ -17,12 +17,14 @@ class ClosureItem:
 
 
 # This value is consumed both as closure ordering strength and as the packer's
-# graph boost. A concrete alias/member-resolved call carries substantially more
-# evidence than a lexical import/call-name coincidence, so its structural
-# strength intentionally exceeds 1.0. ``semantic-ref`` remains non-transitive.
+# graph boost. Concrete alias/member-resolved relationships carry substantially
+# more evidence than lexical import/call-name coincidences. ``semantic-ref`` is
+# deliberately just below a concrete call and is strictly one-hop: assigning or
+# otherwise using an imported value is strong evidence for its provider, but not
+# permission to recursively pull in that provider's own dependencies.
 EDGE_CONFIDENCE = {
     "semantic-call": 3.0,
-    "semantic-ref": 0.0,
+    "semantic-ref": 2.9,
     "reexport": 0.93,
     "imports": 0.95,
     "imported-by": 0.9,
@@ -41,10 +43,12 @@ def dependency_closure(
 ) -> list[ClosureItem]:
     """Expand relationships breadth-first with confidence decay and hard limits.
 
-    ``semantic-ref`` is intentionally non-transitive: it is evidence that a
-    source mentions an exact imported symbol, not proof that the target file
-    belongs in every dependency closure. Concrete ``semantic-call`` edges are
-    stronger because they resolve an actual use of an imported API.
+    ``semantic-ref`` is intentionally non-transitive. It is strong evidence
+    that a query-selected source depends on an exact imported value, so the
+    provider deserves a one-hop ranking boost. The provider is not added to the
+    next frontier, preventing a value reference from turning into broad closure
+    over unrelated downstream dependencies. Concrete ``semantic-call`` edges
+    remain transitive because they resolve an actual API invocation.
     """
     if max_hops < 0 or max_items < 0:
         raise ValueError("closure limits must be nonnegative")
@@ -67,7 +71,8 @@ def dependency_closure(
                 continue
             visited.add(item.path)
             out.append(item)
-            next_frontier.append(item.path)
+            if item.reason != "semantic-ref":
+                next_frontier.append(item.path)
             if len(out) >= max_items:
                 return out
         frontier = next_frontier
