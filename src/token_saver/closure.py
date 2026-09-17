@@ -17,6 +17,8 @@ class ClosureItem:
 
 
 EDGE_CONFIDENCE = {
+    "semantic-call": 0.99,
+    "reexport": 0.93,
     "imports": 0.95,
     "imported-by": 0.9,
     "calls": 0.85,
@@ -61,4 +63,3 @@ def dependency_closure(
         if not frontier:
             break
     return out
-
