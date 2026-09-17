@@ -61,6 +61,26 @@ repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
   path and environment-probe details, distinct from and in addition to
   Token Saver's own recovery marker, and is host session debug output, not
   Token Saver's own artifact).
+- **First frozen external holdout benchmark**, executed for real against
+  independently-authored public repositories rather than this repository's
+  own self-benchmark: a 6-task suite against
+  [encode/httpx](https://github.com/encode/httpx) `b5addb6` and
+  [colinhacks/zod](https://github.com/colinhacks/zod) `59bbc03`, with
+  target files/symbols for each natural-language query written from reading
+  the actual source before running the tool, frozen via
+  `--print-ground-truth-hash`, and evaluated with `--require-holdout`
+  (`benchmarks/holdout-external.json` / `.result.json`). Result: **83.3%
+  mean file recall, 16.7% mean symbol recall**, ~98.5% mean estimated
+  token reduction. Symbol recall is materially worse than this
+  repository's own self-benchmark (88-92%) -- the honest, frozen number,
+  not a cherry-picked one, and exactly the kind of generalization gap this
+  methodology exists to surface. Two disclosed, deliberately unfixed root
+  causes (patching them against this same frozen suite would defeat the
+  point of freezing it): per-file symbol sub-ranking can prefer a
+  densely-worded helper method over the semantically-correct class the
+  query was about, and file-level BM25 ranking can prefer a prose-rich file
+  discussing a topic over a terser file that is actually the correct
+  answer (e.g. a file of bare regex constants). See CHANGELOG.md.
 - Regression coverage carried over from 1.0.0 still exercises bounded
   dependency closure, Tree-sitter-backed JS/TS/JSX/TSX symbol ranges,
   patch-aware context generation, public-signature/removed-symbol/
@@ -85,12 +105,14 @@ Not executed:
 - A production benchmark proving that task-aware packs reduce total task cost
   for a representative workload; the pack tests prove ranking/budget
   invariants, not end-to-end model quality.
-- Replication of the real-world validation result on tasks the tool's own
-  development never saw (fresh diffs/repositories with ground truth written
-  in advance). This is the explicitly planned next validation step, not
-  something this release claims.
+- A fix for the symbol-selection weaknesses the external holdout benchmark
+  found. Deliberately left unfixed pending a *new*, separately-frozen
+  holdout suite to validate any fix against -- re-running a change against
+  the same frozen tasks that found the weakness would not demonstrate
+  generalization.
 
-No real-world token savings percentage is claimed beyond the single, hedged
-diff described above. Synthetic and unit tests exercise mechanics and
-validation, not general product efficacy. See BENCHMARKING.md for live
-integration and paired-task measurement procedures.
+No real-world token savings percentage is claimed beyond the pikivo diff and
+the external holdout benchmark described above, both explicitly hedged
+(single diff; six tasks across two repositories). Synthetic and unit tests
+exercise mechanics and validation, not general product efficacy. See
+BENCHMARKING.md for live integration and paired-task measurement procedures.

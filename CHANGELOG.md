@@ -1,3 +1,57 @@
+# Unreleased
+
+Note: PR #1 (`feat/index-backed-retrieval`) and PR #2
+(`feat/semantic-retrieval-v2`) merged directly to `main` after 1.1.0 was cut,
+adding index-backed retrieval performance, stronger JS/TS module semantics,
+adaptive retrieval budgeting, provider-aware exact token counting,
+multi-repository/frozen-holdout evaluation, a TypeScript-compiler semantic
+overlay, and `token-saver host-check` -- without their own version bump or
+CHANGELOG entry. Not re-documented here in detail; see the PR descriptions.
+This entry covers only the validation work below, done against that merged
+state.
+
+- **First frozen external holdout benchmark actually executed.** The
+  multi-repository/frozen-holdout infrastructure existed but had never been
+  run against real, independently-authored repositories. Built a 6-task
+  suite against two well-known public repos at pinned revisions --
+  [encode/httpx](https://github.com/encode/httpx) `b5addb6` and
+  [colinhacks/zod](https://github.com/colinhacks/zod) `59bbc03` -- with
+  ground truth (target files/symbols for a natural-language query) written
+  from reading the actual source before ever running the tool, then frozen
+  via `--print-ground-truth-hash` and `--require-holdout`.
+
+  Result: **83.3% mean file recall, 16.7% mean symbol recall**, ~98.5%
+  estimated token reduction (`benchmarks/holdout-external.json` /
+  `.result.json`). This is the honest number, not a cherry-picked one -- and
+  it is materially worse on symbol recall than the tool's own repository
+  self-benchmark (88-92%), which is exactly the generalization-gap risk
+  freezing ground truth in advance exists to catch.
+
+  Two disclosed, unfixed root causes (deliberately not patched against this
+  frozen suite -- doing so would defeat holdout evaluation's purpose):
+  1. Per-file symbol sub-ranking can pick densely-worded helper methods
+     over the semantically-correct but sparser class/function the query
+     was actually about (`httpx-digest-auth`: found `_auth.py` but
+     selected `_parse_challenge`/`_build_auth_header` over `DigestAuth`).
+  2. BM25 file ranking favors prose-rich files over terse-but-correct ones
+     (`zod-email-regex`: `regexes.ts`, mostly bare regex constants, lost to
+     `schemas.ts`, which merely discusses email validation in fuller
+     sentences).
+- **Fixed a real bug found while validating `host-check` against an actual
+  live host** (not a simulated payload): spawned a genuinely separate
+  `claude -p --debug-file` session (2.1.274) against a scratch project with
+  Token Saver's hooks installed, and inspected its real debug log. It
+  proved genuine acceptance (`Hook PostToolUse (token-saver hook) replaced
+  tool output`), but `_host_evidence()`'s exact-string check
+  (`"token-saver: filtered output"`) still reported no acceptance, because
+  the host's own debug-log redaction independently rewrote "filtered" to
+  "[REDACTED]" inside the marker text (confirmed unrelated to Token Saver:
+  invoking the hook directly produces the unmangled note). Fixed by
+  checking for the recovery command's generated hex id instead of exact
+  prose, since nothing but Token Saver produces
+  `token-saver output <32-hex-chars>` and generic redaction of the
+  surrounding sentence doesn't remove it.
+
 # 1.1.0
 
 - Fixed `pack-diff`/`review` silently returning an empty pack (exit 0, no

@@ -1,0 +1,63 @@
+{
+  "suite_version": 1,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-17T13:30:00Z",
+    "ground_truth_sha256": "634e639b26d9137cbb9f24086ed08bad2b2ace0de576cce60db4b56cb4f946dd"
+  },
+  "repositories": {
+    "httpx": {
+      "path": "httpx",
+      "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254"
+    },
+    "zod": {
+      "path": "zod",
+      "revision": "59bbc03e10c636b9eb3c393dfeb552819774ec21"
+    }
+  },
+  "tasks": [
+    {
+      "id": "httpx-digest-auth",
+      "repository": "httpx",
+      "query": "implement HTTP digest authentication for outgoing requests",
+      "files": ["httpx/_auth.py"],
+      "symbols": ["DigestAuth"]
+    },
+    {
+      "id": "httpx-redirects",
+      "repository": "httpx",
+      "query": "follow HTTP redirects and rebuild the request for the new location",
+      "files": ["httpx/_client.py"],
+      "symbols": ["_send_handling_redirects"]
+    },
+    {
+      "id": "httpx-multipart",
+      "repository": "httpx",
+      "query": "encode multipart form data for uploading files in a request body",
+      "files": ["httpx/_multipart.py"],
+      "symbols": ["MultipartStream"]
+    },
+    {
+      "id": "zod-error-tree",
+      "repository": "zod",
+      "query": "convert a validation error into a nested tree of field level messages",
+      "files": ["packages/zod/src/v4/core/errors.ts"],
+      "symbols": ["treeifyError"]
+    },
+    {
+      "id": "zod-flatten-error",
+      "repository": "zod",
+      "query": "flatten a validation error into form errors and field errors",
+      "files": ["packages/zod/src/v4/core/errors.ts"],
+      "symbols": ["flattenError"]
+    },
+    {
+      "id": "zod-email-regex",
+      "repository": "zod",
+      "query": "validate that a string is a well formed email address",
+      "files": ["packages/zod/src/v4/core/regexes.ts"],
+      "symbols": ["email"]
+    }
+  ]
+}
