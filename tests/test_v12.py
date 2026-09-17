@@ -57,15 +57,51 @@ def test_rank_files_is_index_only_after_index_build(tmp_path, monkeypatch):
     def forbidden(_path):
         raise AssertionError("ranking should not open source bodies")
 
-    monkeypatch.setattr("token_saver.indexed_pack._read_source", forbidden)
+    monkeypatch.setattr("token_saver.indexed_pack_core._read_source", forbidden)
     ranked = rank_files(root, "refresh session", index=index, changed_boost=False)
     assert ranked[0].rel == "src/auth.py"
+
+
+def test_warm_rank_reuses_index_without_reopening_source(tmp_path, monkeypatch):
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = _repo(tmp_path / "repo")
+    # First query intentionally performs the conservative digest-backed build
+    # and writes the stat sidecar.
+    first = rank_files(root, "refresh session", changed_boost=False)
+    assert first[0].rel == "src/auth.py"
+
+    def forbidden(_path):
+        raise AssertionError("warm rank reopened unchanged source")
+
+    monkeypatch.setattr("token_saver.fast_index._read_text", forbidden)
+    second = rank_files(root, "refresh session", changed_boost=False)
+    assert second[0].rel == "src/auth.py"
+
+
+def test_warm_rank_reopens_only_changed_source(tmp_path, monkeypatch):
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = _repo(tmp_path / "repo")
+    rank_files(root, "refresh session", changed_boost=False)
+    auth = root / "src" / "auth.py"
+    auth.write_text(auth.read_text(encoding="utf-8") + "\n# changed\n", encoding="utf-8")
+
+    import token_saver.fast_index as fast_index
+    original = fast_index._read_text
+    opened = []
+
+    def tracked(path):
+        opened.append(path.relative_to(root).as_posix())
+        return original(path)
+
+    monkeypatch.setattr(fast_index, "_read_text", tracked)
+    rank_files(root, "refresh session", changed_boost=False)
+    assert opened == ["src/auth.py"]
 
 
 def test_context_pack_lazily_hydrates_selected_evidence(tmp_path, monkeypatch):
     root = _repo(tmp_path)
     index = build_index(root, persist=False)
-    import token_saver.indexed_pack as indexed_pack
+    import token_saver.indexed_pack_core as indexed_pack
 
     original = indexed_pack._read_source
     opened = []
