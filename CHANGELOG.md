@@ -1,5 +1,75 @@
 # Unreleased
 
+- **Investigated the second holdout suite's remaining 19 misses in
+  detail; fixed one more real bug, attempted and reverted one extraction
+  extension, and disclosed the rest as genuinely hard rather than forcing
+  a fix.**
+
+  Fixed: the acronym-boundary regex added for `HTTPBasicAuth` was itself
+  slightly too eager -- `(?<=[A-Z])(?=[A-Z][a-z])` fires on a *single*
+  leading capital too, so `ETag` split into `E`+`Tag` and never matched
+  the plain `etag` property name used for the same concept elsewhere in
+  the same codebase (expressjs/express). Tightened the lookbehind to
+  require *two* preceding uppercase letters (`(?<=[A-Z][A-Z])`), so
+  genuine acronym prefixes (`HTTP`, `XML`, `IO`) still split but a single
+  leading capital (`ETag`, `IPage` -- almost always just an ordinarily-
+  capitalized word) does not. New test
+  `test_single_leading_capital_is_not_treated_as_a_one_letter_acronym`
+  (`tests/test_lexical.py`).
+
+  Attempted and reverted: extending `assignment_expression` extraction to
+  cover `exports.etag = createETagGenerator({...})` (a CommonJS export
+  whose value is a call result, not a function literal) by treating any
+  `exports.X = <anything>` as an exported data symbol, mirroring the
+  existing treatment of `export const X = <data>`. This swept up trivial
+  one-line re-export aliases too (`exports.request = req`,
+  `exports.response = res`, in express's own `lib/express.js`), and one
+  of those aliases' name happened to coincidentally match a different
+  task's query vocabulary strongly enough to displace the genuinely
+  correct symbol (`createApplication`) -- a real, measured regression
+  (`express-create-application`, 1.0 -> 0.0 symbol recall), not a
+  measurement artifact this time. Reverted; `exports.etag` itself remains
+  unextracted (a real, disclosed extraction gap), though the query terms
+  now at least match its plain `etag` symbol thanks to the acronym fix
+  above -- it competes closely (a 1-point score gap against two sibling
+  helpers) rather than being invisible.
+
+  Investigated but deliberately left unfixed, each for a distinct,
+  disclosed reason rather than silently dropped:
+  - `pydantic/errors.py`, `pydantic/root_model.py`: buried at file rank
+    49 and 19 respectively behind pydantic's few large, genuinely
+    heavily-cross-referenced "hub" files (`core_schema.py`,
+    `_generate_schema.py`, `json_schema.py`) that legitimately discuss
+    schema/model/validation extensively for nearly every query in this
+    domain. This is the same large-file-dominance shape that broke
+    `httpx-redirects` when a blanket size-based dampening was tried
+    earlier this release (and reverted) -- not attempted again without a
+    fundamentally different, more targeted signal than file size.
+  - `requests/exceptions.py` (`ConnectTimeout`): loses to its own parent
+    classes (`ConnectionError`, `Timeout`) partly because "connect" and
+    "connection" are different word forms the tokenizer doesn't stem
+    together -- a general English-morphology gap (also behind
+    `lodash-deep-equal`'s `equality`/`equal` mismatch and
+    `date-fns-start-of-week`'s `start`/`first` synonym gap), not a
+    single targeted bug; a real stemmer or synonym table is a much larger
+    change than this pass's scope.
+  - `axios-cancel-request-timeout`, `date-fns-start-of-week`: many
+    structurally-similar sibling files (date-fns's `getWeek`/
+    `getWeekOfMonth`/`getWeekYear`/...) all receive the identical
+    `graph:semantic-ref@1` boost via their own `fp/` re-export, so the
+    signal doesn't discriminate the correct sibling from the others here.
+  - `express-negotiate-accept-header` (`accepts` vs `header`): a genuine
+    near-tie (22 vs 21 raw score), not a clear miss.
+
+  Verified: 342 tests passing (was 341), self-benchmark unchanged at a
+  clean 100%/100%, and the second frozen holdout ends this investigation
+  net neutral on its own numbers (87.8%/62.2%, matching the pre-
+  investigation state) but with one additional real bug fixed and
+  disclosed rather than a regression shipped -- the reverted attempt was
+  caught before being kept specifically because of the discipline of
+  re-checking both frozen holdouts, not the self-benchmark alone, before
+  trusting a change.
+
 - **Strengthened test/doc-file deprioritization for "how does X work"
   queries** -- the largest remaining root cause behind the second frozen
   external holdout's misses (8 of the original 19), and the same class of

@@ -159,8 +159,8 @@
       "revision": "50113da16fec53b66b80d75e80a89296de4fa5a5",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 6000,
-      "token_reduction": 0.9985657941914665
+      "tokens": 5982,
+      "token_reduction": 0.9985700968088921
     },
     {
       "id": "fastapi-background-tasks",
@@ -312,8 +312,8 @@
       "revision": "9a34acf03cb818ff3f8bc40e44176e277a25cbb9",
       "file_recall": 1.0,
       "symbol_recall": 0.0,
-      "tokens": 5989,
-      "token_reduction": 0.9660816328842222
+      "tokens": 5985,
+      "token_reduction": 0.96610428666089
     },
     {
       "id": "express-create-application",
@@ -393,13 +393,13 @@
       "task_count": 6,
       "mean_file_recall": 1.0,
       "mean_symbol_recall": 0.5833333333333334,
-      "mean_token_reduction": 0.9660580352001933
+      "mean_token_reduction": 0.9660618108296379
     },
     "fastapi": {
       "task_count": 5,
       "mean_file_recall": 1.0,
       "mean_symbol_recall": 0.9,
-      "mean_token_reduction": 0.9985671327835544
+      "mean_token_reduction": 0.9985679933070395
     },
     "lodash": {
       "task_count": 5,
@@ -424,7 +424,7 @@
     "task_count": 41,
     "mean_file_recall": 0.8780487804878049,
     "mean_symbol_recall": 0.6219512195121951,
-    "mean_token_reduction": 0.9835673554209188
+    "mean_token_reduction": 0.9835680128939455
   },
   "holdout_protocol_enforced": true,
   "ground_truth_sha256": "4225e526ca234a33ddf188ce26c51e350d7fe04c168101ff23edc9ef8a2172f8"

@@ -6,13 +6,18 @@ import re
 
 _WORD = re.compile(r"[A-Za-z0-9_$]+")
 # A lower/digit-to-upper transition splits ordinary camelCase (fetchUser ->
-# fetch, User); an upper-to-(upper,lower) transition splits an acronym
-# prefix from the title-case word after it (HTTPBasicAuth -> HTTP, Basic,
-# Auth), which the first pattern alone can't see since "P" to "B" is an
-# upper-to-upper transition. Without the second pattern, identifiers like
-# HTTPBasicAuth/HTTPDigestAuth/URLPattern collapse into one fused token
-# ("httpbasic") that never matches a query's separate "http"/"basic" terms.
-_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+# fetch, User); a run of two-or-more uppercase letters followed by a
+# title-case word splits an acronym prefix from the word after it
+# (HTTPBasicAuth -> HTTP, Basic, Auth), which the first pattern alone can't
+# see since "P" to "B" is an upper-to-upper transition. Without the second
+# pattern, identifiers like HTTPBasicAuth/URLPattern collapse into one
+# fused token ("httpbasic") that never matches a query's separate
+# "http"/"basic" terms. The lookbehind requires *two* preceding uppercase
+# letters, not one, so a single leading capital (ETag, IPage) -- most
+# often just an ordinary capitalized word, not an acronym -- is left
+# whole, matching how the same word appears all-lowercase elsewhere
+# (an "etag" property vs. an "ETag" HTTP header in prose).
+_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z][A-Z])(?=[A-Z][a-z])")
 _STOP = {
     "a", "an", "and", "are", "as", "at", "be", "by", "can", "code", "do",
     "for", "from", "how", "i", "if", "in", "into", "is", "it", "me", "of",

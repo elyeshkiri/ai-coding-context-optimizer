@@ -19,3 +19,16 @@ def test_plain_acronym_and_ordinary_camel_case_still_tokenize_correctly():
     assert terms("ID") == ["id"]
     assert terms("fetchUserId") == ["fetch", "user", "id"]
     assert terms("DigestAuth") == ["digest", "auth"]
+
+
+def test_single_leading_capital_is_not_treated_as_a_one_letter_acronym():
+    # Found via the second frozen external holdout (expressjs/express): a
+    # naive "two consecutive uppercase letters" rule would have split
+    # "ETag" into "E" + "Tag", never matching the plain "etag" property
+    # name used elsewhere in the same codebase for the same concept.
+    # Requiring *two* preceding uppercase letters (not one) keeps a single
+    # leading capital -- almost always an ordinary capitalized word, not an
+    # acronym -- as one token.
+    assert terms("ETag") == ["etag"]
+    assert terms("etag") == ["etag"]
+    assert terms("IPage") == ["ipage"]
