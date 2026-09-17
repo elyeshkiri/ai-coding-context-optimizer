@@ -446,6 +446,23 @@ def _fingerprint(section: str) -> str:
     return hashlib.sha256(normal).hexdigest()
 
 
+def _visible_symbol_labels(section: str, labels: list[str]) -> list[str]:
+    """Keep only labels whose exact source line survived section fitting."""
+    marker = "### exact source windows"
+    if marker not in section:
+        return []
+    source = section.split(marker, 1)[1]
+    visible: list[str] = []
+    for label in labels:
+        try:
+            line = int(label.rsplit("@", 1)[1])
+        except (ValueError, IndexError):
+            continue
+        if re.search(rf"^\s*{line}\|", source, re.MULTILINE):
+            visible.append(label)
+    return visible
+
+
 def _fit_section(section: str, budget: int) -> str:
     """Fit on line boundaries. Never return text estimated above ``budget``."""
     if budget <= 0:
@@ -658,7 +675,7 @@ def build_context_pack(
             continue
         blocks.append(fitted)
         selected.append(item.rel)
-        selected_symbols.extend(symbols)
+        selected_symbols.extend(_visible_symbol_labels(fitted, symbols))
         redactions.update(section_redactions)
         seen.add(fingerprint)
         if record is not None:
