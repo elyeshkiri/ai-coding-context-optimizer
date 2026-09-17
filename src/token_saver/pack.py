@@ -119,6 +119,7 @@ def rank_files(
     graph_hops: int = 1,
     session: str | None = None,
     embeddings: bool = False,
+    feedback_boost: bool = True,
 ) -> list[RankedFile]:
     """Rank repository source files for `query` using BM25 + code-aware boosts."""
     root = root.resolve()
@@ -128,7 +129,7 @@ def rank_files(
     q_terms = list(dict.fromkeys(_terms(query)))
     changed = _changed_files(root) if changed_boost else set()
     remembered_files, remembered_terms = load_working_set(root, session) if session else (set(), set())
-    feedback = load_feedback(root)
+    feedback = load_feedback(root) if feedback_boost else {}
     query_continues = bool(set(q_terms) & remembered_terms)
     docs: list[tuple[Path, str, str, str, Counter[str]]] = []
     for path in walk_repo(root, use_gitignore=use_gitignore):
@@ -169,10 +170,10 @@ def rank_files(
         path_hits = sum(1 for term in q_terms if term in rel_terms)
         symbol_hits = sum(1 for term in q_terms if term in outline_terms)
         if path_hits:
-            score += 2.5 * path_hits
+            score += 8.0 * path_hits
             reasons.append(f"path:{path_hits}")
         if symbol_hits:
-            score += 1.25 * symbol_hits
+            score += 5.0 * symbol_hits
             reasons.append(f"symbols:{symbol_hits}")
         if query_lower and len(query_lower) >= 4 and query_lower in text.lower():
             score += 5.0
@@ -302,14 +303,23 @@ def _symbol_windows(
     if record is None:
         return [], []
     wanted = (target_symbol or "").lower()
-    matches = []
+    matches: list[tuple[int, object]] = []
+    source_lines = item.text.splitlines()
     for symbol in record.definitions or []:
         name_terms = set(_terms(symbol.name + " " + symbol.signature))
-        if (wanted and wanted in symbol.name.lower()) or (not wanted and query_terms & name_terms):
-            matches.append(symbol)
-    matches.sort(key=lambda symbol: (0 if wanted and symbol.name.lower() == wanted else 1, symbol.start_line))
-    windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in matches[:4]]
-    labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in matches[:4]]
+        body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
+        body_terms = set(_terms(body))
+        exact = bool(wanted and symbol.name.lower() == wanted)
+        partial = bool(wanted and wanted in symbol.name.lower())
+        score = (100 if exact else 50 if partial else 0)
+        if not wanted:
+            score = 20 * len(query_terms & name_terms) + len(query_terms & body_terms)
+        if score:
+            matches.append((score, symbol))
+    matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
+    selected = [symbol for _, symbol in matches[:1]]
+    windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in selected]
+    labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in selected]
     return windows, labels
 
 
@@ -383,6 +393,7 @@ def build_context_pack(
     embeddings: bool = False,
     persist_index: bool = True,
     target_symbol: str | None = None,
+    feedback_boost: bool = True,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
@@ -397,6 +408,7 @@ def build_context_pack(
     ranked = rank_files(
         root, effective_query, use_gitignore=use_gitignore, changed_boost=changed_boost,
         index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
+        feedback_boost=feedback_boost,
     )
     q_terms = set(_terms(effective_query))
     header = (

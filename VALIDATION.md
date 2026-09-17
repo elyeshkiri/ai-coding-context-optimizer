@@ -1,16 +1,16 @@
-# Validation for 0.9.0
+# Validation for 0.9.1
 
 Release validation executed locally on Ubuntu 24.04 with Python 3.12. The
 repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
 
-- Full test suite: **259 passed** on Python 3.12 in the release environment.
-- Package build and isolated installation succeeded from `pyproject.toml` as token-saver 0.9.0.
+- Full test suite: **263 passed** on Python 3.12 in the release environment.
+- Package build and isolated installation succeeded from `pyproject.toml` as token-saver 0.9.1.
 - v0.9 coverage includes symbol locations/signatures/calls, targeted symbol
   windows, impact traversal, feedback bounds, selector evaluation, sensitive
   paths, secret redaction, symlink containment, and MCP tool dispatch.
-- The included 25-task deterministic selector benchmark at a 6,000-token cap
-  measured 100% mean relevant-file recall, 88% mean relevant-symbol recall, and
-  92.17% mean estimated context reduction. These are repository-specific
+- The expanded 25-task deterministic selector benchmark at a 6,000-token cap
+  measured 92% mean relevant-file recall, 88% mean relevant-symbol recall, and
+  92.30% mean estimated context reduction. These are repository-specific
   selection metrics, not proof of end-to-end agent task success.
 - Regression coverage includes incremental index reuse, dependency/symbol graph
   expansion, near-duplicate suppression, task-session continuity, optional
@@ -25,7 +25,7 @@ repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
   syntax and ambiguity, model/TTL pricing, and paired benchmark quality/cost
   evaluation.
 
-The local Python 3.12 release run completed **259 passed in 3.21s**. GitHub CI
+The local Python 3.12 release run completed **263 passed**. GitHub CI
 continues to run the suite on Python 3.10, 3.12, and 3.13 for the pushed commit.
 
 Observed dependency versions in that run:

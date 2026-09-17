@@ -90,7 +90,7 @@ def handle_message(root: Path, message: dict) -> dict | None:
         result = {
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "token-saver", "version": "0.9.0"},
+            "serverInfo": {"name": "token-saver", "version": "0.9.1"},
         }
     elif method == "tools/list":
         result = {"tools": TOOLS}
@@ -117,4 +117,3 @@ def serve(root: Path) -> int:
                 "code": -32700, "message": str(exc),
             }}), flush=True)
     return 0
-

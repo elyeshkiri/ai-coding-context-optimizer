@@ -1,4 +1,4 @@
-# Token Saver 0.9.0
+# Token Saver 0.9.1
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 

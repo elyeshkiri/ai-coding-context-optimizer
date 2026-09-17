@@ -1,3 +1,13 @@
+# 0.9.1
+
+- Fixed symbol selection when task vocabulary appears in a definition body but
+  not its name or signature, including ambiguous CLI `main` functions.
+- Hardened corrupted-cache handling, atomic index durability, and private cache
+  permissions without changing the v0.9 on-disk schema.
+- Made selector evaluation reproducible by excluding dirty-worktree and learned
+  feedback boosts. On the expanded v0.9.1 corpus the included benchmark reports
+  92% relevant-file recall and 88% relevant-symbol recall; no 100% claim is made.
+
 # 0.9.0
 
 - Upgraded the content-addressed index to store symbol ranges, signatures,

@@ -25,7 +25,10 @@ def evaluate_manifest(root: Path, manifest: Path, max_tokens: int = 6000) -> dic
         query = str(task.get("query", ""))
         expected_files = set(task.get("files", []))
         expected_symbols = set(task.get("symbols", []))
-        pack = build_context_pack(root, query, max_tokens=max_tokens)
+        pack = build_context_pack(
+            root, query, max_tokens=max_tokens, changed_boost=False,
+            feedback_boost=False,
+        )
         actual_symbols = {value.split(":", 1)[1].split("@", 1)[0] for value in pack.selected_symbols}
         results.append({
             "id": task.get("id", position),
@@ -43,4 +46,3 @@ def evaluate_manifest(root: Path, manifest: Path, max_tokens: int = 6000) -> dic
             "mean_token_reduction": sum(item["token_reduction"] for item in results) / len(results),
         },
     }
-

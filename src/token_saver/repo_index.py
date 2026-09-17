@@ -213,29 +213,43 @@ def _default_cache(root: Path) -> Path:
 def _load(path: Path) -> dict[str, FileRecord]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        if payload.get("version") != INDEX_VERSION:
+        if not isinstance(payload, dict) or payload.get("version") != INDEX_VERSION:
+            return {}
+        raw_records = payload.get("records", {})
+        if not isinstance(raw_records, dict):
             return {}
         records = {}
-        for key, value in payload.get("records", {}).items():
+        for key, value in raw_records.items():
+            if not isinstance(key, str) or not isinstance(value, dict):
+                continue
+            value = dict(value)
             raw_definitions = value.get("definitions") or []
+            if not isinstance(raw_definitions, list):
+                continue
             value["definitions"] = [
                 item if isinstance(item, SymbolRecord) else SymbolRecord(**item)
-                for item in raw_definitions
+                for item in raw_definitions if isinstance(item, (dict, SymbolRecord))
             ]
             records[key] = FileRecord(**value)
         return records
-    except (OSError, ValueError, TypeError):
+    except (OSError, ValueError, TypeError, KeyError):
         return {}
 
 
 def _save(path: Path, records: dict[str, FileRecord]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     payload = {"version": INDEX_VERSION, "records": {key: asdict(value) for key, value in records.items()}}
     fd, tmp_name = tempfile.mkstemp(prefix=path.name, dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, separators=(",", ":"), sort_keys=True)
+            handle.flush()
+            os.fsync(handle.fileno())
         os.replace(tmp_name, path)
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
     finally:
         try:
             Path(tmp_name).unlink()
