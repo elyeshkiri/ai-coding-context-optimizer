@@ -32,6 +32,32 @@
   the original motivating case now selects `DigestAuth` directly (checked
   against the real httpx source, not the frozen holdout as a tuning loop).
 
+  **Re-ran the frozen external holdout suite once, after the fact, as a
+  one-time measurement** (not a tuning loop -- the fix above was designed
+  and validated entirely against the self-benchmark, per this project's
+  own discipline; this run only *observes* its effect on the suite that
+  originally found the bug). Result: mean symbol recall rose from 16.7%
+  to **50%** (`benchmarks/holdout-external.result.json`), file recall and
+  token reduction unchanged. Three tasks flipped to full symbol recall
+  (`httpx-digest-auth`, `httpx-multipart`, `zod-error-tree`), consistent
+  with the parent-credit mechanism fixing genuinely the same shape of bug
+  in each. But **one task regressed**: `httpx-redirects` went from 1.0 to
+  0.0 symbol recall. Root cause, confirmed by direct inspection: the
+  query's actual answer is a single specific method,
+  `_send_handling_redirects`, and *both* of the classes containing it
+  (`Client` and `AsyncClient`, httpx's sync/async twins) now score high
+  enough via the parent-credit boost to take both of the file's top-2
+  window slots themselves, pushing the method that was the genuinely
+  correct, narrower answer out of `selected_symbols` entirely -- even
+  though its source bytes are still present inside the classes' windows,
+  since symbol recall here is measured by name match against
+  `selected_symbols`, not byte coverage. This is a real, disclosed
+  regression, not swept under the self-benchmark's unchanged numbers
+  (which don't exercise the two-classes-share-one-target-method shape).
+  Deliberately left unfixed rather than patched against this same frozen
+  suite -- a fix needs its own held-out validation, per this project's
+  standing rule against tuning against the suite that found the gap.
+
 - **Attempted and reverted: a "terse implementation" file-ranking signal**
   to address the external holdout benchmark's `zod-email-regex` finding
   (a file of bare regex constants losing the file-ranking competition to a
