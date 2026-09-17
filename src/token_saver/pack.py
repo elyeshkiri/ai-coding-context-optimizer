@@ -18,7 +18,7 @@ from .budget import RetrievalPlan, plan_retrieval
 from .closure import authoritative_providers, dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
-from .lexical import document_counts, terms
+from .lexical import document_counts, symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
 from .skeleton import file_priority
@@ -344,29 +344,34 @@ def _symbol_windows(
     wanted = (target_symbol or "").lower()
     definitions = record.definitions or []
     source_lines = item.text.splitlines()
+    # File retrieval stays on the conservative global tokenizer. Once a file
+    # has already won retrieval, symbol selection can safely normalize nearby
+    # inflections (connection/connect, equality/equal, completion/complete)
+    # without perturbing repository-wide ranking.
+    symbol_query_terms = set(symbol_terms(" ".join(sorted(query_terms))))
 
     term_weight: dict[str, float] = {}
     if not wanted and definitions:
         doc_freq: Counter[str] = Counter()
         for symbol in definitions:
-            name_terms = set(terms(symbol.name + " " + symbol.signature))
+            name_terms = set(symbol_terms(symbol.name + " " + symbol.signature))
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-            for term in name_terms | set(terms(body)):
+            for term in name_terms | set(symbol_terms(body)):
                 doc_freq[term] += 1
         n = len(definitions)
         term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
 
     matches: list[tuple[float, object]] = []
     for symbol in definitions:
-        name_terms = set(terms(symbol.name + " " + symbol.signature))
+        name_terms = set(symbol_terms(symbol.name + " " + symbol.signature))
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-        body_terms = set(terms(body))
+        body_terms = set(symbol_terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
         if not wanted:
-            name_hits = query_terms & name_terms
-            body_hits = query_terms & body_terms
+            name_hits = symbol_query_terms & name_terms
+            body_hits = symbol_query_terms & body_terms
             score = (
                 20 * sum(term_weight.get(t, 1.0) for t in name_hits)
                 + sum(term_weight.get(t, 1.0) for t in body_hits)
