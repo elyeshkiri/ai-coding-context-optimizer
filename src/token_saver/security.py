@@ -10,6 +10,12 @@ SENSITIVE_NAMES = {
     ".env", ".env.local", ".env.production", "id_rsa", "id_ed25519",
     "credentials.json", "service-account.json", ".npmrc", ".pypirc",
 }
+# Committed-by-convention templates that document variable names, not real
+# values -- real secrets are still caught by the ".env" prefix check below
+# and by redact_secrets() as a backstop if one slips into a template anyway.
+ENV_TEMPLATE_NAMES = {
+    ".env.example", ".env.sample", ".env.template", ".env.dist",
+}
 SENSITIVE_SUFFIXES = {".pem", ".key", ".p12", ".pfx", ".keystore"}
 GENERATED_PARTS = {
     "node_modules", "vendor", "dist", "build", "coverage", ".next",
@@ -49,6 +55,8 @@ def inspect_path(root: Path, path: Path) -> PathDecision:
     name = path.name.lower()
     if parts & GENERATED_PARTS:
         return PathDecision(False, "generated-or-vendor")
+    if name in ENV_TEMPLATE_NAMES:
+        return PathDecision(True)
     if name.startswith(".env") or name in SENSITIVE_NAMES or path.suffix.lower() in SENSITIVE_SUFFIXES:
         return PathDecision(False, "sensitive-path")
     return PathDecision(True)

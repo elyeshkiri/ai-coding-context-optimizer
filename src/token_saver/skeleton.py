@@ -91,6 +91,16 @@ CODE_SUFFIXES = {
     ".cpp",
     ".hpp",
     ".md",
+    ".sql",
+    ".json",
+    ".yaml",
+    ".yml",
+}
+
+# Dotfile "extensions" like .env.example never carry an actual code suffix,
+# so a dedicated evidence set catches them independently of CODE_SUFFIXES.
+_ENV_TEMPLATE_NAMES = {
+    ".env.example", ".env.sample", ".env.template", ".env.dist",
 }
 
 MAX_VALUE_CHARS = 60
@@ -98,7 +108,7 @@ MAX_SIG_CONTINUATION = 20
 # `… (1 line omitted)` costs more tokens than the line it replaces
 MIN_OMIT_LINES = 2
 
-_EXTRA_FILENAMES = {"Makefile", "Dockerfile", "CLAUDE.md"}
+_EXTRA_FILENAMES = {"Makefile", "Dockerfile", "CLAUDE.md"} | _ENV_TEMPLATE_NAMES
 
 
 def _omitted(n: int, indent: int = 4) -> str:

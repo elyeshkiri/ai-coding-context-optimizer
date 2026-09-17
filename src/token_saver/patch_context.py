@@ -154,6 +154,51 @@ def review_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> dic
     return {"base": base, "staged": staged, "files": files, "impacts": all_impacts, "warnings": warnings}
 
 
+def _evidence_category(path: str) -> str:
+    lower = path.lower()
+    if lower.endswith(".sql") or "migrations/" in lower or "/drizzle/" in lower or lower.startswith("drizzle/"):
+        return "database"
+    if ".github/workflows/" in lower:
+        return "ci"
+    if "test" in lower or "spec" in lower:
+        return "tests"
+    if lower.endswith((".json", ".yaml", ".yml", ".toml")) or lower.endswith((".env.example", ".env.sample")):
+        return "config"
+    return "source"
+
+
+def _coverage(review: dict, index: RepositoryIndex, pack: "ContextPack") -> dict:
+    """What fraction of the diff's own files actually reached the model,
+    broken out by why not, so a caller can tell 'nothing relevant here' from
+    'this pack has a real blind spot' instead of assuming completeness."""
+    from collections import Counter
+    changed = [item["path"] for item in review["files"]]
+    selected = set(pack.selected_files)
+    closure = set(pack.closure_files)
+    excluded_reasons = {
+        path: reason for path, reason in (index.excluded or {}).items() if path in changed
+    }
+    not_represented = [
+        path for path in changed
+        if path not in selected and path not in closure and path not in excluded_reasons
+    ]
+    by_category: dict[str, dict[str, int]] = {}
+    for path in changed:
+        category = _evidence_category(path)
+        bucket = by_category.setdefault(category, {"total": 0, "selected": 0})
+        bucket["total"] += 1
+        if path in selected:
+            bucket["selected"] += 1
+    return {
+        "changed_files": len(changed),
+        "selected": sorted(selected & set(changed)),
+        "closure_only": sorted(closure - selected),
+        "excluded_by_policy": excluded_reasons,
+        "not_represented": sorted(not_represented),
+        "by_category": by_category,
+    }
+
+
 def build_diff_context(
     root: Path, *, base: str = "HEAD", staged: bool = False,
     max_tokens: int = 6000,
@@ -181,6 +226,7 @@ def build_diff_context(
         root, query, max_tokens=max_tokens, changed_boost=True,
         changed_files=changed_paths, priority_files=modified_paths,
     )
+    index = build_index(root)
     return {
         "review": review,
         "context": pack.text,
@@ -188,4 +234,5 @@ def build_diff_context(
         "selected_files": pack.selected_files,
         "selected_symbols": pack.selected_symbols,
         "closure_files": pack.closure_files,
+        "coverage": _coverage(review, index, pack),
     }

@@ -18,7 +18,7 @@ import tempfile
 from pathlib import Path
 
 from .skeleton import walk_repo
-from .security import inspect_path
+from .security import ENV_TEMPLATE_NAMES, inspect_path
 from .syntax import JS_TS, symbols as syntax_symbols
 
 INDEX_VERSION = 3
@@ -33,6 +33,14 @@ _IMPORT = re.compile(
     r"(?:import|from|use)\s+([\w./@-]+))"
 )
 _CALL_STOP = {"if", "for", "while", "switch", "catch", "return", "function", "def", "class"}
+_SQL_TABLE = re.compile(
+    r"\b(?:CREATE|ALTER|DROP)\s+TABLE\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?"
+    r"[\"'`]?([A-Za-z_][\w]*)[\"'`]?", re.I,
+)
+_SQL_REFERENCES = re.compile(r"\bREFERENCES\s+[\"'`]?([A-Za-z_][\w]*)[\"'`]?", re.I)
+_ENV_LINE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=")
+_YAML_TOP_KEY = re.compile(r"^(\w[\w.-]*)\s*:")
+_YAML_JOB_KEY = re.compile(r"^  ([\w.-]+)\s*:")
 
 
 @dataclass
@@ -282,9 +290,119 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
     return out
 
 
-def _extract(text: str, suffix: str) -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
+def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
+    """Table names as symbols, FK REFERENCES targets as calls -- lets the
+    existing call-graph machinery link a migration to the tables it touches
+    and to callers/schema definitions of those same table names."""
+    symbols: set[str] = set()
+    definitions: list[SymbolRecord] = []
+    lines = text.splitlines()
+    for match in _SQL_TABLE.finditer(text):
+        name = match.group(1)
+        symbols.add(name)
+        start = text.count("\n", 0, match.start()) + 1
+        signature = lines[start - 1].strip()[:300] if start <= len(lines) else name
+        referenced = sorted({ref for ref in _SQL_REFERENCES.findall(
+            text[match.end():match.end() + 4000]
+        ) if ref.lower() != name.lower()})
+        definitions.append(SymbolRecord(name, "table", start, start, signature, calls=referenced))
+    calls = {ref for ref in _SQL_REFERENCES.findall(text)}
+    return symbols, calls, definitions
+
+
+def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
+    """npm script names as symbols (signature = the command), dependency
+    names as imports -- so a changed script/dependency shows up like any
+    other changed definition instead of the whole file being opaque JSON."""
+    symbols: set[str] = set()
+    imports: set[str] = set()
+    definitions: list[SymbolRecord] = []
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return symbols, imports, definitions
+    if not isinstance(payload, dict):
+        return symbols, imports, definitions
+    scripts = payload.get("scripts")
+    if isinstance(scripts, dict):
+        for name, command in scripts.items():
+            if not isinstance(name, str) or not isinstance(command, str):
+                continue
+            symbols.add(name)
+            needle = f'"{name}"'
+            idx = text.find(needle)
+            start = text.count("\n", 0, idx) + 1 if idx >= 0 else 1
+            definitions.append(SymbolRecord(name, "script", start, start, command[:300]))
+    for key in ("dependencies", "devDependencies", "peerDependencies"):
+        deps = payload.get(key)
+        if isinstance(deps, dict):
+            imports.update(name for name in deps if isinstance(name, str))
+    return symbols, imports, definitions
+
+
+def _extract_yaml_ci_jobs(text: str) -> tuple[set[str], list[SymbolRecord]]:
+    """Job ids under a top-level `jobs:` key, via indentation -- a light
+    heuristic (no YAML parser dependency) that covers standard-formatted
+    GitHub Actions workflows."""
+    symbols: set[str] = set()
+    definitions: list[SymbolRecord] = []
+    lines = text.splitlines()
+    in_jobs = False
+    for i, line in enumerate(lines, start=1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if _YAML_TOP_KEY.match(line):
+            in_jobs = line.split(":", 1)[0].strip() == "jobs"
+            continue
+        if in_jobs:
+            match = _YAML_JOB_KEY.match(line)
+            if match:
+                name = match.group(1)
+                symbols.add(name)
+                definitions.append(SymbolRecord(name, "ci-job", i, i, line.strip()[:300]))
+    return symbols, definitions
+
+
+def _extract_env_vars(text: str) -> tuple[set[str], list[SymbolRecord]]:
+    """KEY= lines in an env template as symbols, so a source file's
+    `process.env.KEY` reference can be linked to where it's documented."""
+    symbols: set[str] = set()
+    definitions: list[SymbolRecord] = []
+    for i, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = _ENV_LINE.match(line)
+        if match:
+            name = match.group(1)
+            symbols.add(name)
+            definitions.append(SymbolRecord(name, "env-var", i, i, stripped[:300]))
+    return symbols, definitions
+
+
+def _extract(
+    text: str, suffix: str, rel: str = "",
+) -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
+    name = Path(rel).name if rel else ""
     if suffix.lower() in {".py", ".pyi"}:
         symbols, imports, calls, definitions = _extract_python(text)
+    elif suffix.lower() == ".sql":
+        symbols, calls, definitions = _extract_sql(text)
+        imports = set()
+    elif name == "package.json":
+        symbols, imports, definitions = _extract_package_json(text)
+        calls = set()
+    elif suffix.lower() in {".yaml", ".yml"} and ".github/workflows/" in rel.replace("\\", "/"):
+        symbols, definitions = _extract_yaml_ci_jobs(text)
+        imports, calls = set(), set()
+    elif name in ENV_TEMPLATE_NAMES:
+        symbols, definitions = _extract_env_vars(text)
+        imports, calls = set(), set()
+    elif suffix.lower() in {".json", ".yaml", ".yml"}:
+        # Generic config: still indexed and BM25-searchable as plain text,
+        # just without dedicated symbol extraction (arbitrary JSON/YAML
+        # doesn't have a generalizable notion of "definition").
+        symbols, imports, calls, definitions = set(), set(), set(), []
     else:
         symbols = {a or b for a, b in _DECL.findall(text)}
         imports = {next(value for value in groups if value) for groups in _IMPORT.findall(text)}
@@ -357,11 +475,18 @@ def build_index(
 ) -> RepositoryIndex:
     root = root.resolve()
     target = cache_path or _default_cache(root)
+    resolved_target = target.resolve() if target.exists() else None
     old = _load(target) if persist else {}
     records: dict[str, FileRecord] = {}
     excluded: dict[str, str] = {}
     reparsed = reused = 0
     for path in walk_repo(root, use_gitignore=use_gitignore):
+        # If the cache file itself lives inside the indexed tree (e.g. a
+        # state dir under the repo root) it must never be ingested as
+        # source -- now that .json is an indexable suffix, it otherwise
+        # gets "reparsed" every run since its own content always changes.
+        if resolved_target is not None and path.resolve() == resolved_target:
+            continue
         decision = inspect_path(root, path)
         if not decision.allowed:
             try:
@@ -379,7 +504,7 @@ def build_index(
             records[rel] = old[rel]
             reused += 1
             continue
-        symbols, imports, calls, tokens, definitions = _extract(text, path.suffix)
+        symbols, imports, calls, tokens, definitions = _extract(text, path.suffix, rel)
         records[rel] = FileRecord(
             rel, digest, len(text.encode()), symbols, imports, calls, tokens, definitions
         )
@@ -391,7 +516,7 @@ def build_index(
 
 def record_for_text(rel: str, text: str) -> FileRecord:
     """Analyze one in-memory source using the same versioned index extractors."""
-    symbols, imports, calls, tokens, definitions = _extract(text, Path(rel).suffix)
+    symbols, imports, calls, tokens, definitions = _extract(text, Path(rel).suffix, rel)
     return FileRecord(
         rel, _digest(text), len(text.encode()), symbols, imports, calls, tokens, definitions
     )

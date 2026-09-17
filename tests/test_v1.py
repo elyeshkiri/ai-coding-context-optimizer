@@ -95,6 +95,26 @@ def test_diff_context_respects_budget_and_contains_changed_file(tmp_path):
     assert "src/service.py" in result["review"]["impacts"]
 
 
+def test_diff_context_coverage_reports_selected_and_missing_changed_files(tmp_path):
+    root = _git_repo(tmp_path)
+    (root / "src" / "service.py").write_text(
+        "from src.repository import load_user\ndef refresh_session(user_id, force=False):\n    return {**load_user(user_id), 'force': force}\n"
+    )
+    big = "\n".join(f"def widget_handler_{i}(payload_{i}):\n    return payload_{i}\n" for i in range(200))
+    (root / "src" / "big_new_widgets.py").write_text(big)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+
+    result = build_diff_context(root, staged=True, max_tokens=600)
+    coverage = result["coverage"]
+    assert coverage["changed_files"] == 2
+    assert "src/service.py" in coverage["selected"]
+    # Small budget: the big new file is very likely squeezed out, and the
+    # manifest must say so explicitly rather than silently drop it.
+    if "src/big_new_widgets.py" not in coverage["selected"]:
+        assert "src/big_new_widgets.py" in coverage["not_represented"]
+    assert coverage["by_category"]["source"]["total"] == 2
+
+
 def test_diff_context_with_many_changed_files_still_returns_context(tmp_path):
     # A diff touching hundreds of files/symbols (e.g. a merge commit) used to
     # embed the whole unbounded file/symbol list into the pack header, which

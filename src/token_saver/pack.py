@@ -485,12 +485,23 @@ def build_context_pack(
     candidates = [item for item in ranked if item.term_hits or item.changed] or ranked
     if priority_files:
         candidates = sorted(candidates, key=lambda item: item.rel not in priority_files)
+    priority_total = sum(1 for item in candidates if priority_files and item.rel in priority_files)
+    priority_seen = 0
     for item in candidates:
         if len(selected) >= max_files:
             break
         remaining = max_tokens - used
         if remaining <= 20:
             break
+        if priority_files and item.rel in priority_files:
+            priority_seen += 1
+            slots_left = priority_total - priority_seen + 1
+            if slots_left > 1:
+                # A fair-share cap: without it, one large modified file (e.g.
+                # a config file with many appended lines) can consume the
+                # whole budget and starve the other modified files -- which
+                # are equally or more likely to carry regression risk.
+                remaining = min(remaining, max(remaining // slots_left, 200))
         section, symbols, section_redactions = _file_section(
             item, q_terms, context_lines, index, target_symbol
         )

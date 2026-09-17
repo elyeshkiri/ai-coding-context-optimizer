@@ -113,6 +113,15 @@ def pack_diff_main(argv: list[str]) -> int:
         print(json.dumps(result, indent=2))
     else:
         sys.stdout.write(result["context"])
+        coverage = result["coverage"]
+        print(
+            f"\n# coverage: {len(coverage['selected'])}/{coverage['changed_files']} changed files "
+            f"represented ({len(coverage['not_represented'])} not selected, "
+            f"{len(coverage['excluded_by_policy'])} excluded by policy)"
+        )
+        if coverage["not_represented"]:
+            print(f"# not represented: {', '.join(coverage['not_represented'][:10])}"
+                  + (" …" if len(coverage["not_represented"]) > 10 else ""))
     return 0
 
 
