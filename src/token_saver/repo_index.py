@@ -1,14 +1,12 @@
 """Incremental repository index and lightweight code relationship graph.
 
-The index is deliberately dependency-free.  It extracts imports, declarations,
-and call-like identifiers, persists records by content digest, and only reparses
-files whose bytes changed.  Language-aware parsers can replace individual
-extractors later without changing the on-disk format.
+The index persists both structural relationships and retrieval-ready lexical
+statistics. Warm refreshes reuse records by file metadata, so unchanged source
+files are not reopened merely to answer another agent query.
 """
-
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 import ast
 import hashlib
 import json
@@ -17,11 +15,12 @@ import re
 import tempfile
 from pathlib import Path
 
-from .skeleton import walk_repo
+from .lexical import document_counts
 from .security import ENV_TEMPLATE_NAMES, inspect_path
+from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, symbols as syntax_symbols
 
-INDEX_VERSION = 3
+INDEX_VERSION = 4
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -64,6 +63,13 @@ class FileRecord:
     calls: list[str]
     tokens: list[str]
     definitions: list[SymbolRecord] | None = None
+    mtime_ns: int = 0
+    outline: str = ""
+    term_counts: dict[str, int] | None = None
+
+    @property
+    def document_length(self) -> int:
+        return sum((self.term_counts or {}).values())
 
 
 @dataclass
@@ -73,9 +79,6 @@ class RepositoryIndex:
     reparsed: int = 0
     reused: int = 0
     excluded: dict[str, str] | None = None
-    # Lazily built, cached on first use. Each build_index() call constructs a
-    # fresh RepositoryIndex, so caching on the instance is safe: `records`
-    # never changes after construction, and nothing else can observe staleness.
     _caller_index: dict[str, list[tuple[str, SymbolRecord]]] | None = field(
         default=None, repr=False, compare=False
     )
@@ -114,12 +117,6 @@ class RepositoryIndex:
         return sorted(out, key=lambda item: (item[0], item[1].start_line))
 
     def test_file_signatures(self) -> list[tuple[str, str, set[str]]]:
-        """(path, lowercased path, token set) for test/spec files, cached once.
-
-        `record.tokens` is already lowercased by `_extract`, so the token set
-        is reused as-is rather than rebuilt (with a redundant `.lower()` on
-        every token) on each caller-impact lookup.
-        """
         if self._test_file_signatures is None:
             self._test_file_signatures = [
                 (rel, rel.lower(), set(record.tokens))
@@ -131,11 +128,6 @@ class RepositoryIndex:
     def _build_neighbor_indexes(
         self,
     ) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
-        # Reverse indexes so neighbors() can look candidates up instead of
-        # scanning every other file. Each mirrors one branch of the original
-        # per-pair comparison exactly (including its "check the split key
-        # against the already-transformed set" quirk), so results are
-        # unchanged -- only how candidates are found.
         imported_by_index: dict[str, set[str]] = {}
         stem_index: dict[str, set[str]] = {}
         call_symbol_index: dict[str, set[str]] = {}
@@ -152,7 +144,6 @@ class RepositoryIndex:
         return imported_by_index, stem_index, call_symbol_index, symbol_def_index
 
     def neighbors(self, rel: str) -> list[tuple[str, str]]:
-        """Return related files and the edge that connected them."""
         source = self.records.get(rel)
         if source is None:
             return []
@@ -272,7 +263,6 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
 
 
 def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
-    """Return Tree-sitter-backed JS/TS ranges, with a conservative fallback."""
     try:
         parsed = syntax_symbols(text, suffix)
     except (ImportError, ValueError, OSError):
@@ -291,9 +281,6 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
 
 
 def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
-    """Table names as symbols, FK REFERENCES targets as calls -- lets the
-    existing call-graph machinery link a migration to the tables it touches
-    and to callers/schema definitions of those same table names."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     lines = text.splitlines()
@@ -306,14 +293,11 @@ def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
             text[match.end():match.end() + 4000]
         ) if ref.lower() != name.lower()})
         definitions.append(SymbolRecord(name, "table", start, start, signature, calls=referenced))
-    calls = {ref for ref in _SQL_REFERENCES.findall(text)}
+    calls = set(_SQL_REFERENCES.findall(text))
     return symbols, calls, definitions
 
 
 def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
-    """npm script names as symbols (signature = the command), dependency
-    names as imports -- so a changed script/dependency shows up like any
-    other changed definition instead of the whole file being opaque JSON."""
     symbols: set[str] = set()
     imports: set[str] = set()
     definitions: list[SymbolRecord] = []
@@ -341,9 +325,6 @@ def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRec
 
 
 def _extract_yaml_ci_jobs(text: str) -> tuple[set[str], list[SymbolRecord]]:
-    """Job ids under a top-level `jobs:` key, via indentation -- a light
-    heuristic (no YAML parser dependency) that covers standard-formatted
-    GitHub Actions workflows."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     lines = text.splitlines()
@@ -364,8 +345,6 @@ def _extract_yaml_ci_jobs(text: str) -> tuple[set[str], list[SymbolRecord]]:
 
 
 def _extract_env_vars(text: str) -> tuple[set[str], list[SymbolRecord]]:
-    """KEY= lines in an env template as symbols, so a source file's
-    `process.env.KEY` reference can be linked to where it's documented."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     for i, line in enumerate(text.splitlines(), start=1):
@@ -399,9 +378,6 @@ def _extract(
         symbols, definitions = _extract_env_vars(text)
         imports, calls = set(), set()
     elif suffix.lower() in {".json", ".yaml", ".yml"}:
-        # Generic config: still indexed and BM25-searchable as plain text,
-        # just without dedicated symbol extraction (arbitrary JSON/YAML
-        # doesn't have a generalizable notion of "definition").
         symbols, imports, calls, definitions = set(), set(), set(), []
     else:
         symbols = {a or b for a, b in _DECL.findall(text)}
@@ -413,6 +389,13 @@ def _extract(
         )
     tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
+
+
+def _outline(text: str, suffix: str) -> str:
+    try:
+        return skeletonize(text, suffix, line_numbers=True)
+    except (SyntaxError, ValueError):
+        return ""
 
 
 def _default_cache(root: Path) -> Path:
@@ -430,7 +413,7 @@ def _load(path: Path) -> dict[str, FileRecord]:
         raw_records = payload.get("records", {})
         if not isinstance(raw_records, dict):
             return {}
-        records = {}
+        records: dict[str, FileRecord] = {}
         for key, value in raw_records.items():
             if not isinstance(key, str) or not isinstance(value, dict):
                 continue
@@ -442,6 +425,9 @@ def _load(path: Path) -> dict[str, FileRecord]:
                 item if isinstance(item, SymbolRecord) else SymbolRecord(**item)
                 for item in raw_definitions if isinstance(item, (dict, SymbolRecord))
             ]
+            raw_counts = value.get("term_counts")
+            if raw_counts is not None and not isinstance(raw_counts, dict):
+                value["term_counts"] = None
             records[key] = FileRecord(**value)
         return records
     except (OSError, ValueError, TypeError, KeyError):
@@ -469,23 +455,30 @@ def _save(path: Path, records: dict[str, FileRecord]) -> None:
             pass
 
 
+def _record(rel: str, text: str, suffix: str, *, size: int, mtime_ns: int) -> FileRecord:
+    symbols, imports, calls, tokens, definitions = _extract(text, suffix, rel)
+    outline = _outline(text, suffix)
+    return FileRecord(
+        rel, _digest(text), size, symbols, imports, calls, tokens, definitions,
+        mtime_ns=mtime_ns, outline=outline,
+        term_counts=document_counts(text, outline, rel),
+    )
+
+
 def build_index(
     root: Path, *, use_gitignore: bool = True, cache_path: Path | None = None,
     persist: bool = True,
 ) -> RepositoryIndex:
     root = root.resolve()
     target = cache_path or _default_cache(root)
-    resolved_target = target.resolve() if target.exists() else None
+    resolved_target = target.resolve()
     old = _load(target) if persist else {}
     records: dict[str, FileRecord] = {}
     excluded: dict[str, str] = {}
     reparsed = reused = 0
+
     for path in walk_repo(root, use_gitignore=use_gitignore):
-        # If the cache file itself lives inside the indexed tree (e.g. a
-        # state dir under the repo root) it must never be ingested as
-        # source -- now that .json is an indexable suffix, it otherwise
-        # gets "reparsed" every run since its own content always changes.
-        if resolved_target is not None and path.resolve() == resolved_target:
+        if path.resolve() == resolved_target:
             continue
         decision = inspect_path(root, path)
         if not decision.allowed:
@@ -495,20 +488,37 @@ def build_index(
                 excluded[str(path)] = decision.reason
             continue
         try:
+            rel = path.relative_to(root).as_posix()
+            stat = path.stat()
+        except OSError:
+            continue
+
+        previous = old.get(rel)
+        if (
+            previous is not None
+            and previous.size == stat.st_size
+            and previous.mtime_ns == stat.st_mtime_ns
+            and previous.term_counts is not None
+        ):
+            records[rel] = previous
+            reused += 1
+            continue
+
+        try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        rel = path.relative_to(root).as_posix()
         digest = _digest(text)
-        if rel in old and old[rel].digest == digest:
-            records[rel] = old[rel]
+        if previous is not None and previous.digest == digest and previous.term_counts is not None:
+            records[rel] = replace(previous, size=stat.st_size, mtime_ns=stat.st_mtime_ns)
             reused += 1
             continue
-        symbols, imports, calls, tokens, definitions = _extract(text, path.suffix, rel)
-        records[rel] = FileRecord(
-            rel, digest, len(text.encode()), symbols, imports, calls, tokens, definitions
+
+        records[rel] = _record(
+            rel, text, path.suffix, size=stat.st_size, mtime_ns=stat.st_mtime_ns
         )
         reparsed += 1
+
     if persist:
         _save(target, records)
     return RepositoryIndex(root, records, reparsed, reused, excluded)
@@ -516,10 +526,7 @@ def build_index(
 
 def record_for_text(rel: str, text: str) -> FileRecord:
     """Analyze one in-memory source using the same versioned index extractors."""
-    symbols, imports, calls, tokens, definitions = _extract(text, Path(rel).suffix, rel)
-    return FileRecord(
-        rel, _digest(text), len(text.encode()), symbols, imports, calls, tokens, definitions
-    )
+    return _record(rel, text, Path(rel).suffix, size=len(text.encode()), mtime_ns=0)
 
 
 def similarity(left: FileRecord, right: FileRecord) -> float:
