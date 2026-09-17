@@ -16,8 +16,12 @@ class ClosureItem:
     confidence: float
 
 
+# This value is consumed both as closure ordering strength and as the packer's
+# graph boost. A concrete alias/member-resolved call carries substantially more
+# evidence than a lexical import/call-name coincidence, so its structural
+# strength intentionally exceeds 1.0. ``semantic-ref`` remains non-transitive.
 EDGE_CONFIDENCE = {
-    "semantic-call": 0.99,
+    "semantic-call": 3.0,
     "semantic-ref": 0.0,
     "reexport": 0.93,
     "imports": 0.95,
@@ -39,8 +43,8 @@ def dependency_closure(
 
     ``semantic-ref`` is intentionally non-transitive: it is evidence that a
     source mentions an exact imported symbol, not proof that the target file
-    belongs in every dependency closure. Query-aware ranking may still consume
-    that evidence directly without perturbing unrelated packs.
+    belongs in every dependency closure. Concrete ``semantic-call`` edges are
+    stronger because they resolve an actual use of an imported API.
     """
     if max_hops < 0 or max_items < 0:
         raise ValueError("closure limits must be nonnegative")
