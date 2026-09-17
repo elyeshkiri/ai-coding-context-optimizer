@@ -51,6 +51,42 @@ state.
   prose, since nothing but Token Saver produces
   `token-saver output <32-hex-chars>` and generic redaction of the
   surrounding sentence doesn't remove it.
+- **Paired coding-agent trials against real bug-fix tasks**, same model/
+  prompt/revision, full-context baseline vs. Token Saver's hooks installed,
+  independently verified by running the target tests directly (not by
+  trusting either agent's self-report). Two trials against
+  [encode/httpx](https://github.com/encode/httpx):
+  1. A small, targeted fix (NO_PROXY handling in a ~500-line file).
+  2. A fix requiring locating a bug in a 2019-line file
+     (`httpx/_client.py`), specifically to exercise the read guard.
+
+  **Both trials: both conditions produced the byte-for-byte identical,
+  correct fix**, verified by independently running the target tests
+  (`tests/test_utils.py`'s `test_get_environment_proxies`, 12/12;
+  `tests/client/test_redirects.py`, 31/31) -- Token Saver's hooks do not
+  change *what* gets fixed. On cost: trial 1 showed Token Saver 27% more
+  expensive; trial 2 showed it 56% cheaper. Inspecting the actual hook
+  debug logs (not inferring from cost alone) shows why neither number
+  should be trusted as a real effect: **Token Saver's filtering/guard
+  mechanism never actually activated in either trial** -- `hook.py`'s
+  `main()` only writes output when there is something to filter, and in
+  both trials every Read/Bash call stayed under the size thresholds that
+  would trigger it. In trial 2 specifically, the agent used `Grep` to
+  locate the bug directly rather than reading the whole 2019-line file,
+  avoiding the expensive read the guard exists to prevent, in both
+  conditions identically. The observed cost differences are inter-run
+  variance in how much each independent agent run explored/re-verified
+  after the fix, not a demonstrated effect of the tool.
+
+  This is a genuine, disciplined finding, not a null result to paper over:
+  across the validation done this session, Token Saver's clearest,
+  best-evidenced value is in the pre-compiled context path (`pack`/
+  `pack-diff` curating context up front, as in the external holdout
+  benchmark and the earlier pikivo review validation) rather than the
+  reactive hook-based guard/filter layer, at least for a capable agent
+  doing normal file-editing work that already tends to avoid expensive
+  full reads on its own. A task genuinely forcing an expensive full read or
+  very verbose command output (neither of these two did) remains untested.
 
 # 1.1.0
 

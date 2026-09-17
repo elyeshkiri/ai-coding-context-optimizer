@@ -98,9 +98,24 @@ Observed dependency versions in the release environment:
 - tree-sitter-javascript 0.25.0
 - tree-sitter-typescript 0.23.2
 
+- Paired coding-agent trials executed with real, paid API usage: two
+  full-context-baseline-vs-Token-Saver-hooks trials against real bug-fix
+  tasks in [encode/httpx](https://github.com/encode/httpx), same model/
+  prompt/revision, outcomes independently verified by running the target
+  tests directly rather than trusting either agent's self-report. Both
+  conditions produced the byte-for-byte identical correct fix in both
+  trials. No reliable cost effect was demonstrated either way: direct
+  inspection of the hook debug logs showed Token Saver's filtering/guard
+  mechanism never actually activated in either trial (both file reads and
+  command output stayed under its size thresholds, and in the second trial
+  the agent used `Grep` to avoid a full 2019-line read in both conditions
+  identically) -- the observed cost swing (+27% in trial 1, -56% in trial
+  2) is inter-run variance in post-fix verification thoroughness, not a
+  demonstrated tool effect. See CHANGELOG.md. A task genuinely forcing an
+  expensive read or highly verbose command output remains untested.
+
 Not executed:
 
-- Real paired coding tasks with paid API usage and independently checked outcomes.
 - Windows execution of the locking branch.
 - A production benchmark proving that task-aware packs reduce total task cost
   for a representative workload; the pack tests prove ranking/budget
@@ -113,6 +128,8 @@ Not executed:
 
 No real-world token savings percentage is claimed beyond the pikivo diff and
 the external holdout benchmark described above, both explicitly hedged
-(single diff; six tasks across two repositories). Synthetic and unit tests
-exercise mechanics and validation, not general product efficacy. See
-BENCHMARKING.md for live integration and paired-task measurement procedures.
+(single diff; six tasks across two repositories), and the paired
+coding-agent trials explicitly demonstrated no reliable cost effect either
+way rather than a savings claim. Synthetic and unit tests exercise
+mechanics and validation, not general product efficacy. See BENCHMARKING.md
+for live integration and paired-task measurement procedures.
