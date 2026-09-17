@@ -432,14 +432,12 @@ def _file_section(
     # navigation outline so a tight per-file budget clips optional structure
     # rather than silently dropping the symbol source that caused the file to
     # be selected in the first place.
-    pieces = [
-        f"## {item.rel}",
-        f"# relevance={item.score:.2f} ({', '.join(item.reasons)})",
-    ]
+    pieces = [f"## {item.rel}"]
     if windows:
         pieces.append("### exact source windows")
         pieces.extend(_source_window(item.text, start, end).rstrip() for start, end in windows)
     pieces.extend([
+        f"# relevance={item.score:.2f} ({', '.join(item.reasons)})",
         "### outline",
         item.outline.rstrip(),
     ])
