@@ -1,0 +1,39 @@
+name: PR6 Symbol Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  external-symbol-diagnostic:
+    if: github.event.pull_request.head.ref == 'fix/symbol-recall-v3'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/symbol-recall-v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Clone frozen diagnostic repositories
+        run: |
+          git clone https://github.com/pallets/click.git benchmarks/click
+          git -C benchmarks/click checkout 6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1
+          git clone https://github.com/pydantic/pydantic.git benchmarks/pydantic
+          git -C benchmarks/pydantic checkout c124df7fb7348a3d6779c41fb5f4e5a73531e678
+          git clone https://github.com/psf/requests.git benchmarks/requests
+          git -C benchmarks/requests checkout dae7ef63b4df6eded86637f251fc4e3a06c3b479
+          git clone https://github.com/tiangolo/fastapi.git benchmarks/fastapi
+          git -C benchmarks/fastapi checkout 50113da16fec53b66b80d75e80a89296de4fa5a5
+          git clone https://github.com/axios/axios.git benchmarks/axios
+          git -C benchmarks/axios checkout 56a5f1acdc41965f464eb59bec6cc828113ba546
+          git clone https://github.com/date-fns/date-fns.git benchmarks/date-fns
+          git -C benchmarks/date-fns checkout 18cbd436f1428d0f45f89f710df65f62546c42f0
+          git clone https://github.com/expressjs/express.git benchmarks/express
+          git -C benchmarks/express checkout 9a34acf03cb818ff3f8bc40e44176e277a25cbb9
+          git clone https://github.com/lodash/lodash.git benchmarks/lodash
+          git -C benchmarks/lodash checkout 2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8
+      - name: Run burned holdout as diagnostic only
+        run: token-saver evaluate benchmarks/holdout-external-2.json --path . --max-tokens 6000 --require-holdout
