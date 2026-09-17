@@ -12,6 +12,7 @@ from .feedback import record_feedback
 from .impact import analyze_impact
 from .pack import build_context_pack
 from .patch_context import build_diff_context, review_patch
+from .output_saver import build_output_policy, compact_output
 from .repo_index import RepositoryIndex, build_index
 
 PROTOCOL_VERSION = "2025-06-18"
@@ -69,6 +70,24 @@ TOOLS = [
         "description": "Report changed symbols, impact, API changes, and test coverage signals.",
         "inputSchema": {"type": "object", "properties": {
             "base": {"type": "string"}, "staged": {"type": "boolean"},
+        }},
+    },
+    {
+        "name": "output_policy",
+        "description": "Return a generation-time response policy for reducing output tokens.",
+        "inputSchema": {"type": "object", "properties": {
+            "mode": {"type": "string", "enum": ["terse", "normal", "detailed"]},
+            "max_tokens": {"type": "integer", "minimum": 1},
+        }},
+    },
+    {
+        "name": "compact_output",
+        "description": "Safely compact generated prose while preserving fenced code/diffs exactly.",
+        "inputSchema": {"type": "object", "required": ["text"], "properties": {
+            "text": {"type": "string"},
+            "mode": {"type": "string", "enum": ["terse", "normal", "detailed"]},
+            "max_tokens": {"type": "integer", "minimum": 1},
+            "enforce_budget": {"type": "boolean"},
         }},
     },
 ]
@@ -152,6 +171,20 @@ def call_tool(
             root, base=str(arguments.get("base", "HEAD")),
             staged=bool(arguments.get("staged", False)),
         ))
+    if name == "output_policy":
+        policy = build_output_policy(
+            str(arguments.get("mode", "normal")),
+            int(arguments["max_tokens"]) if "max_tokens" in arguments else None,
+        )
+        return _result(policy.to_dict())
+    if name == "compact_output":
+        result = compact_output(
+            str(arguments.get("text", "")),
+            mode=str(arguments.get("mode", "normal")),
+            max_tokens=int(arguments["max_tokens"]) if "max_tokens" in arguments else None,
+            enforce_budget=bool(arguments.get("enforce_budget", False)),
+        )
+        return _result(result.to_dict())
     raise ValueError(f"unknown tool: {name}")
 
 
