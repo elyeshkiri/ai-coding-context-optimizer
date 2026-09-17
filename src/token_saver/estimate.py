@@ -153,10 +153,13 @@ class Counter:
 
     @property
     def label(self) -> str:
-        if not self.exact:
-            return "≈est"
-        provider = self.provider or provider_for_model(self.model)
-        return f"exact:{provider}" if provider else "exact"
+        # Keep the established public label stable. Provider detail is exposed
+        # separately so CLI/report formatting does not change unexpectedly.
+        return "exact" if self.exact else "≈est"
+
+    @property
+    def provider_label(self) -> str | None:
+        return self.provider or provider_for_model(self.model)
 
     def count(self, text: str, suffix: str = "") -> int:
         if self.exact:
