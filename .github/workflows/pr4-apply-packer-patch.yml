@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   patch:
-    if: github.event.pull_request.head.ref == 'fix/authoritative-file-ranking' && github.event.pull_request.head.sha == 'a9ce856c7f7f219ae0122ce02bd1d15f9de2717d'
+    if: github.event.pull_request.head.ref == 'fix/authoritative-file-ranking'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,10 @@ jobs:
 
           path = Path('src/token_saver/pack.py')
           text = path.read_text(encoding='utf-8')
+          marker = 'authoritative_reserve = ('
+          if marker in text:
+              print('allocator patch already applied')
+              raise SystemExit(0)
           old = '''    priority_seen = 0
 
     for item in candidates:
@@ -87,8 +91,12 @@ jobs:
           text = text.replace(old_fit, new_fit, 1)
           path.write_text(text, encoding='utf-8')
           PY
-      - name: Commit patch
+      - name: Commit patch if changed
         run: |
+          if git diff --quiet -- src/token_saver/pack.py; then
+            echo 'No allocator patch to commit'
+            exit 0
+          fi
           git config user.name 'Elyes Hkiri'
           git config user.email '55228083+elyeshkiri@users.noreply.github.com'
           git add src/token_saver/pack.py
