@@ -354,18 +354,18 @@ def _symbol_windows(
     if not wanted and definitions:
         doc_freq: Counter[str] = Counter()
         for symbol in definitions:
-            name_terms = set(symbol_terms(symbol.name + " " + symbol.signature))
+            name_terms = set(terms(symbol.name + " " + symbol.signature))
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-            for term in name_terms | set(symbol_terms(body)):
+            for term in name_terms | set(terms(body)):
                 doc_freq[term] += 1
         n = len(definitions)
         term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
 
     matches: list[tuple[float, object]] = []
     for symbol in definitions:
-        name_terms = set(symbol_terms(symbol.name + " " + symbol.signature))
+        name_terms = set(terms(symbol.name + " " + symbol.signature))
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-        body_terms = set(symbol_terms(body))
+        body_terms = set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
