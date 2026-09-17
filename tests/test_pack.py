@@ -70,6 +70,40 @@ def test_context_pack_respects_hard_token_budget(tmp_path):
     assert estimate_tokens(pack.text) <= 240
 
 
+def test_context_pack_does_not_let_one_large_file_monopolize_the_budget(tmp_path):
+    # Found via the second, larger frozen external holdout (click/pydantic/
+    # requests/...): a single large, top-ranked file (typically a sprawling
+    # test file matching the query's vocabulary broadly) could consume
+    # nearly the entire budget by itself, leaving a smaller but genuinely
+    # relevant file -- sometimes the *actual* correct answer -- with zero
+    # room, even though it ranked a clear, un-ambiguous #2. Real numbers:
+    # tests/test_validators.py alone used 5993 of pydantic's 6000-token
+    # budget, starving out functional_validators.py entirely.
+    src = tmp_path / "src"
+    src.mkdir()
+    lines = []
+    for n in range(400):
+        lines.append(f"def validate_schema_configuration_settings_request_{n}(value):")
+        lines.append(f"    # validate schema configuration settings request number {n}")
+        lines.append(f"    return value + {n}")
+        lines.append("")
+    (src / "big_consumer.py").write_text("\n".join(lines))
+    (src / "target_provider.py").write_text(textwrap.dedent("""
+        def process_configuration_settings(request):
+            # validate schema for the configuration settings request
+            return request.settings
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "validate schema for configuration settings request",
+        max_tokens=1500,
+        changed_boost=False,
+    )
+
+    assert "src/target_provider.py" in pack.selected_files
+
+
 def test_changed_file_gets_bonus(tmp_path, monkeypatch):
     root = _write_repo(tmp_path)
     monkeypatch.setattr("token_saver.pack._changed_files", lambda _root: {"src/billing.py"})

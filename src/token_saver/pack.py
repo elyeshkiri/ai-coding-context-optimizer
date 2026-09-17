@@ -576,7 +576,7 @@ def build_context_pack(
         min(900, max(240, max_tokens // 8)) if authoritative_rel else 0
     )
 
-    for item in candidates:
+    for idx, item in enumerate(candidates):
         if len(selected) >= max_files:
             break
         remaining = max_tokens - used
@@ -587,6 +587,17 @@ def build_context_pack(
             slots_left = priority_total - priority_seen + 1
             if slots_left > 1:
                 remaining = min(remaining, max(remaining // slots_left, 200))
+        elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
+            # Cap an ordinary candidate's share of what's left so one large,
+            # top-ranked file can't silently consume the whole budget before
+            # any other candidate is even considered -- found via the second
+            # frozen external holdout: a single oversized test file used
+            # 5993 of a 6000-token budget by itself, leaving the correctly
+            # ranked #4 implementation file with literally nothing. Only
+            # kicks in while more candidates and slots remain to benefit
+            # from the reserved room; the true last usable candidate still
+            # gets whatever's left rather than wasting it unused.
+            remaining = min(remaining, max(remaining * 3 // 5, 300))
 
         section_budget = remaining
         if (

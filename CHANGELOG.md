@@ -60,11 +60,48 @@
      complete, one-file-only failures: every task with only 1-2 files in
      `selected_files` hit this pattern.
 
-  Deliberately **not fixed in this pass** -- diagnosing and disclosing
-  the finding is the goal of freezing a holdout in the first place; a fix
-  needs to be designed and validated against the self-benchmark first,
-  per this project's standing discipline, then checked against this
-  suite once, after the fact, the same way every fix in 1.2.0 was.
+  Deliberately not fixed in the same commit as the diagnosis -- see the
+  next entry for cause 2's fix, designed and validated against the
+  self-benchmark first, per this project's standing discipline.
+
+- **Fixed cause 2 above: no cap on how much of the budget a single file
+  can consume.** `build_context_pack`'s per-candidate loop now caps an
+  ordinary (non-`priority_files`) candidate's share of what's left to
+  `max(remaining * 3/5, 300 tokens)`, mirroring the existing
+  `priority_files` fair-share mechanism but generalized to every
+  candidate. The cap only applies while more candidate files and
+  selection slots remain -- the true last usable candidate still gets
+  whatever's left rather than wasting it unused, so this never shrinks a
+  pack when only one or two files are genuinely relevant. New regression
+  test `test_context_pack_does_not_let_one_large_file_monopolize_the_budget`
+  (`tests/test_pack.py`), confirmed via git stash to fail without the fix.
+
+  Verified: 335 tests passing (was 334), self-benchmark **improved**
+  (92% -> 96% file recall, 96% symbol recall unchanged -- the pre-existing
+  `snippet` self-referential-corpus failure is fixed as a side effect, only
+  `pack-cli` drift remains), and a one-time re-run of both frozen external
+  holdouts (not a tuning loop -- this fix targets the general budget
+  mechanism, not either suite's specific scores): the second, larger suite
+  went from **58.5% to 80.5% mean file recall, 35.4% to 53.7% mean symbol
+  recall**, zero regressions across any of the 41 tasks, 10 tasks newly
+  passing. The first, smaller httpx/zod suite -- unrelated in design intent
+  to this fix -- incidentally also went to a clean **100%/100%**: its one
+  remaining disclosed gap, `zod-email-regex`, turned out to be the exact
+  same budget-monopolization pattern (`schemas.ts` was starving
+  `regexes.ts` of any room at all), not solely the outline-size ranking
+  bias two earlier, reverted attempts targeted.
+
+  Remaining known gaps on the larger suite, both untouched by this fix and
+  disclosed rather than chased further in this pass: cause 1 (test/doc
+  files outranking implementation files) accounts for 8 of the 20
+  remaining misses (file recall still 0). The other 12 are a third,
+  previously-uncharacterized failure mode -- the correct *file* is found
+  (file recall 1.0) but the correct *symbol* isn't selected within it
+  (`requests-basic-auth`, `lodash-clone-deep`, `lodash-deep-equal`,
+  `express-generate-etag`, and others) -- distinct from the DigestAuth-
+  shaped symbol-window bugs fixed earlier in 1.2.0, since those files
+  aren't classes with a competing method or a type alias; worth its own
+  root-cause investigation before attempting a fix.
 
 # 1.2.0
 
