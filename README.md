@@ -4,6 +4,49 @@ Token Saver is a local context-optimization layer for AI coding agents. It reduc
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
+## Output Saver: reduce generated tokens too
+
+Token Saver can now control the other side of the bill: model output. The output
+layer is deliberately split into **generation-time policy** and **safe
+post-generation compaction**.
+
+Generate a compact response policy for an agent:
+
+```bash
+token-saver output-policy --mode terse
+token-saver output-policy --mode normal --max-tokens 700 --json
+```
+
+The policy tells the agent to avoid task restatement, tool narration, repeated
+logs/context, unchanged full-file reproduction, verbose test output, and
+post-success filler. Default targets are 300 tokens for `terse`, 800 for
+`normal`, and 2,000 for `detailed`.
+
+Compact an already-generated response:
+
+```bash
+cat response.md | token-saver output-save --mode terse
+token-saver output-save response.md --max-tokens 500 --enforce-budget --json
+```
+
+Safe compaction removes exact repeated prose/status echoes and trivial filler.
+Fenced code and diffs are preserved byte-for-byte. `--enforce-budget` may trim
+prose, but **never truncates a fenced code/diff block**; if preserved code alone
+cannot fit, the result reports `budget_exceeded: true` instead of corrupting
+the answer.
+
+For agent-to-agent state, compact JSON avoids prose and pretty-print overhead:
+
+```bash
+cat result.json | token-saver output-save --structured --mode terse
+```
+
+The same capabilities are exposed through MCP as `output_policy` and
+`compact_output`. This lets an orchestrator inject the response policy before
+the model generates tokens, which is the primary savings path; post-processing
+cannot refund tokens that were already generated.
+
+
 ## What is new in 1.2
 
 Retrieval ranking got a full correctness pass, driven by a frozen,

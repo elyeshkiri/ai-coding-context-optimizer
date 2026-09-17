@@ -12,7 +12,7 @@ from .cli import main as legacy_main
 from .pack_cli import main as pack_main
 from .commands import (
     agent_evaluate_main, evaluate_main, feedback_main, host_check_main, impact_main,
-    pack_diff_main, review_main, serve_main,
+    output_policy_main, output_save_main, pack_diff_main, review_main, serve_main,
 )
 
 
@@ -30,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
         return agent_evaluate_main(args[1:])
     if args and args[0] == "host-check":
         return host_check_main(args[1:])
+    if args and args[0] == "output-policy":
+        return output_policy_main(args[1:])
+    if args and args[0] == "output-save":
+        return output_save_main(args[1:])
     if args and args[0] == "serve":
         return serve_main(args[1:])
     if args and args[0] == "pack-diff":

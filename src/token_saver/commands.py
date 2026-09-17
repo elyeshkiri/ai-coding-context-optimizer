@@ -13,6 +13,7 @@ from .feedback import record_feedback
 from .host_validate import validate_host
 from .impact import analyze_impact
 from .patch_context import build_diff_context, review_patch
+from .output_saver import build_output_policy, compact_output, compact_structured_result
 from .serve import serve
 
 
@@ -193,4 +194,59 @@ def review_main(argv: list[str]) -> int:
             print(f"{item['status']:>2} {item['path']} symbols={','.join(item['symbols']) or '-'}")
         for warning in result["warnings"]:
             print(f"! {warning['code']}: {warning.get('path') or warning.get('detail', '')}")
+    return 0
+
+
+def output_policy_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver output-policy")
+    parser.add_argument("--mode", choices=("terse", "normal", "detailed"), default="normal")
+    parser.add_argument("--max-tokens", type=int)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        policy = build_output_policy(args.mode, args.max_tokens)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(policy.to_dict(), indent=2))
+    else:
+        print(policy.instructions)
+    return 0
+
+
+def output_save_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver output-save")
+    parser.add_argument("input", nargs="?", default="-", help="response file or - for stdin")
+    parser.add_argument("--mode", choices=("terse", "normal", "detailed"), default="normal")
+    parser.add_argument("--max-tokens", type=int)
+    parser.add_argument(
+        "--enforce-budget", action="store_true",
+        help="trim prose to the budget; fenced code/diffs are always preserved",
+    )
+    parser.add_argument(
+        "--structured", action="store_true",
+        help="parse JSON input and emit compact machine-to-machine JSON",
+    )
+    parser.add_argument("--json", action="store_true", help="emit result metadata as JSON")
+    args = parser.parse_args(argv)
+    try:
+        text = sys.stdin.read() if args.input == "-" else Path(args.input).read_text(encoding="utf-8")
+        if args.structured:
+            text = compact_structured_result(json.loads(text))
+        result = compact_output(
+            text,
+            mode=args.mode,
+            max_tokens=args.max_tokens,
+            enforce_budget=args.enforce_budget,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2))
+    else:
+        sys.stdout.write(result.text)
+        if result.text and not result.text.endswith("\n"):
+            sys.stdout.write("\n")
     return 0
