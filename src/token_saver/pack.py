@@ -14,6 +14,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from .budget import RetrievalPlan, plan_retrieval
 from .closure import dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
@@ -50,6 +51,7 @@ class ContextPack:
     selected_symbols: list[str] = field(default_factory=list)
     redactions: list[str] = field(default_factory=list)
     closure_files: list[str] = field(default_factory=list)
+    retrieval_plan: dict[str, int] = field(default_factory=dict)
 
 
 # Kept as private compatibility aliases for callers/tests that imported these
@@ -108,6 +110,7 @@ def rank_files(
     priority_files: set[str] | None = None,
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
+    seed_limit: int = 6,
 ) -> list[RankedFile]:
     """Rank indexed files for ``query`` using BM25 + code-aware boosts.
 
@@ -118,6 +121,8 @@ def rank_files(
     root = root.resolve()
     if graph_hops < 0:
         raise ValueError("graph_hops must be nonnegative")
+    if seed_limit <= 0:
+        raise ValueError("seed_limit must be positive")
     index = index or build_index(root, use_gitignore=use_gitignore)
     q_terms = list(dict.fromkeys(terms(query)))
 
@@ -143,9 +148,8 @@ def rank_files(
         if record.size > _MAX_FILE_BYTES:
             continue
         counts = Counter(record.term_counts or {})
-        # A v4 record always has term_counts. Keeping this fallback makes an
-        # explicitly-constructed RepositoryIndex degrade safely instead of
-        # silently disappearing from ranking.
+        # A current index record always has term_counts. Keeping this fallback
+        # makes an explicitly-constructed RepositoryIndex degrade safely.
         if not counts:
             counts.update(terms(" ".join(record.tokens)))
             counts.update(terms(record.outline))
@@ -222,7 +226,7 @@ def rank_files(
     seed_pool = [item.rel for item in ranked if item.term_hits or item.changed]
     if priority_files:
         seed_pool.sort(key=lambda rel: rel not in priority_files)
-    seeds = seed_pool[:6]
+    seeds = seed_pool[:seed_limit]
     for related in dependency_closure(
         index, seeds, max_hops=graph_hops, max_items=closure_max_items,
     ):
@@ -385,6 +389,17 @@ def _fit_section(section: str, budget: int) -> str:
     return out
 
 
+def _static_plan(
+    graph_hops: int, closure_max_items: int, context_lines: int,
+) -> RetrievalPlan:
+    return RetrievalPlan(
+        seed_limit=6,
+        graph_hops=graph_hops,
+        closure_items=closure_max_items,
+        context_lines=context_lines,
+    )
+
+
 def build_context_pack(
     root: Path,
     query: str,
@@ -407,6 +422,7 @@ def build_context_pack(
     priority_files: set[str] | None = None,
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
+    adaptive_budget: bool = True,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
@@ -419,14 +435,35 @@ def build_context_pack(
     root = root.resolve()
     index = index or build_index(root, use_gitignore=use_gitignore, persist=persist_index)
     effective_query = f"{query} {target_symbol or ''}".strip()
+    q_terms = set(terms(effective_query))
+
+    resolved_changed = changed_files
+    if changed_boost and resolved_changed is None:
+        resolved_changed = _changed_files(root)
+    if not changed_boost:
+        resolved_changed = set()
+
+    plan = (
+        plan_retrieval(
+            max_tokens=max_tokens,
+            query_terms=len(q_terms),
+            changed_count=len(resolved_changed or ()),
+            graph_hops=graph_hops,
+            closure_items=closure_max_items,
+            context_lines=context_lines,
+        )
+        if adaptive_budget
+        else _static_plan(graph_hops, closure_max_items, context_lines)
+    )
+
     ranked = rank_files(
         root, effective_query, use_gitignore=use_gitignore, changed_boost=changed_boost,
-        index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
-        feedback_boost=feedback_boost, closure_max_items=closure_max_items,
-        changed_files=changed_files, priority_files=priority_files,
+        index=index, graph_hops=plan.graph_hops, session=session, embeddings=embeddings,
+        feedback_boost=feedback_boost, closure_max_items=plan.closure_items,
+        changed_files=resolved_changed, priority_files=priority_files,
         exclude_files=exclude_files, restrict_files=restrict_files,
+        seed_limit=plan.seed_limit,
     )
-    q_terms = set(terms(effective_query))
     task_display = query.strip() or "(no query; structural priority mode)"
     if len(task_display) > 300:
         task_display = task_display[:300] + f"… (+{len(task_display) - 300} chars)"
@@ -438,7 +475,10 @@ def build_context_pack(
     )
     if estimate_tokens(header) >= max_tokens:
         fitted = _fit_section(header, max_tokens)
-        return ContextPack(fitted, estimate_tokens(fitted), len(ranked), [], ranked)
+        return ContextPack(
+            fitted, estimate_tokens(fitted), len(ranked), [], ranked,
+            retrieval_plan=plan.to_dict(),
+        )
 
     blocks = [header]
     selected: list[str] = []
@@ -468,8 +508,6 @@ def build_context_pack(
             if slots_left > 1:
                 remaining = min(remaining, max(remaining // slots_left, 200))
 
-        # Hydration happens only now, after index ranking/closure/dedup order has
-        # narrowed the repository to actual context candidates.
         if not item.text:
             item.text = _read_source(item.path) or ""
         if not item.text:
@@ -484,7 +522,7 @@ def build_context_pack(
             continue
 
         section, symbols, section_redactions = _file_section(
-            item, q_terms, context_lines, index, target_symbol
+            item, q_terms, plan.context_lines, index, target_symbol
         )
         fingerprint = _fingerprint(section)
         if fingerprint in seen:
@@ -516,6 +554,7 @@ def build_context_pack(
             item.rel for item in ranked
             if any(reason.startswith("closure:") for reason in item.reasons)
         ],
+        retrieval_plan=plan.to_dict(),
     )
     if session:
         save_working_set(root, session, query, selected)
