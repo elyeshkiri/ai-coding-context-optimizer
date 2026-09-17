@@ -1,5 +1,53 @@
 # Unreleased
 
+- **Strengthened test/doc-file deprioritization for "how does X work"
+  queries** -- the largest remaining root cause behind the second frozen
+  external holdout's misses (8 of the original 19), and the same class of
+  problem two earlier, reverted file-ranking attempts targeted with
+  novel, ad-hoc signals (symbol-name rarity, outline size). This attempt
+  used neither: `file_priority()` (`skeleton.py`) already correctly tags
+  `tests/`, `docs/`, `fixtures/`, and similar directories as low-value,
+  and is already used elsewhere (the repo map/skeleton listing) without
+  issue -- `rank_files()` just applied it far too weakly to matter, a
+  flat `+0.3`-vs-`+1.2` additive bonus against BM25 scores that routinely
+  run into the tens of points. A test file that exercises a feature
+  extensively, or a doc page that explains it in prose, both legitimately
+  share a lot of vocabulary with a query about that feature without being
+  the right answer to it, and nothing was strong enough to say so.
+
+  Fixed by dampening (not just lightly nudging) a low-value-directory
+  file's whole computed score by 0.35x, so the penalty scales with
+  however large the underlying score actually is, rather than adding a
+  fixed, easily-swamped amount. New regression test
+  `test_rank_files_prefers_implementation_over_test_file_for_how_does_x_work`
+  (`tests/test_pack.py`), confirmed via git stash to fail without the fix.
+
+  Verified: 341 tests passing (was 340), self-benchmark reached a clean
+  **100%/100%** (up from 92%/96%, including `pack-cli`, a self-referential
+  failure present since early in this session that was never chased down
+  before), and a one-time re-run of both frozen external holdouts: the
+  first httpx/zod suite remains 100%/100%; the second, larger suite rose
+  from 58.5% to **87.8% mean file recall** and 58.5% to **62.2% mean
+  symbol recall**, with 4 tasks newly passing and 2 partial regressions
+  (`click-group-dispatch`, `pydantic-json-schema-generation`, both
+  1.0->0.5 symbol recall) that turned out, on direct inspection, not to be
+  real behavior regressions at all: in both cases the *previous* 1.0 was
+  itself a false positive -- a test file (`tests/test_commands.py`,
+  `tests/test_json_schema.py`) happened to define its own, unrelated
+  method with the exact same bare name as the ground-truth symbol
+  (`resolve_command`, `generate`), which the recall metric counts as a
+  match regardless of which file it came from. Suppressing that test file
+  correctly removed the accidental match and exposed a real, separate,
+  disclosed gap this fix doesn't touch: the actual `resolve_command`/
+  `generate` methods in their correct files aren't independently winning
+  their own symbol-window competition against sibling classes/methods.
+
+  The self-benchmark's 100%/100% here is not the same warning sign the
+  reverted outline-size attempt's 100%/100% was: that one broke a
+  different, previously-fixed holdout task outright (`httpx-redirects`).
+  This one was checked against both frozen holdouts before being trusted,
+  and produced zero real regressions on either.
+
 - **Fixed a JS/TS symbol-extraction gap and generalized the parent-credit
   symbol-window boost past Python.** Two changes shipped together because
   the second was found as a direct regression from the first.

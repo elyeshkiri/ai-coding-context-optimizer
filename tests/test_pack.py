@@ -145,6 +145,39 @@ def test_symbol_window_matches_acronym_prefixed_class_name(tmp_path):
     assert any(label.startswith("src/auth.py:HTTPBasicAuth@") for label in pack.selected_symbols)
 
 
+def test_rank_files_prefers_implementation_over_test_file_for_how_does_x_work(tmp_path):
+    # Found via the second frozen external holdout (pallets/click): a test
+    # file that exercises a feature extensively legitimately shares a lot
+    # of vocabulary with a query about that feature, and its sheer term
+    # volume can outscore the terser implementation even though
+    # file_priority() already correctly tags test/doc/fixture directories
+    # as low-value -- that signal was only a flat +0.3-vs-+1.2 additive
+    # bonus, dwarfed by BM25 scores routinely in the tens of points.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "parser.py").write_text(textwrap.dedent("""
+        class OptionParser:
+            def parse_args(self, args):
+                # Parse raw command line arguments into option and positional values.
+                return args
+    """))
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    lines = ["import pytest", "", "def test_parse_args_option_and_positional_values():"]
+    for n in range(60):
+        lines.append(f"    # parse raw command line arguments into option and positional values case {n}")
+        lines.append(f'    assert parse_args(["--opt{n}", "pos{n}"]) == ["opt{n}", "pos{n}"]')
+    (tests_dir / "test_parser.py").write_text("\n".join(lines))
+
+    ranked = rank_files(
+        tmp_path,
+        "how does the parser parse raw command line arguments into option and positional values",
+        changed_boost=False,
+    )
+
+    assert ranked[0].rel == "src/parser.py"
+
+
 def test_changed_file_gets_bonus(tmp_path, monkeypatch):
     root = _write_repo(tmp_path)
     monkeypatch.setattr("token_saver.pack._changed_files", lambda _root: {"src/billing.py"})

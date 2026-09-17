@@ -195,6 +195,18 @@ def rank_files(
 
         priority = file_priority(rel)
         score += max(0.0, 1.2 - 0.3 * priority)
+        if priority == 3:
+            # file_priority's flat additive bonus above (max spread 0.9) is
+            # dwarfed by BM25 term-overlap scores that routinely run into
+            # the tens of points, so it can't meaningfully counteract a
+            # test/doc/fixture file that happens to share heavy vocabulary
+            # with an implementation query -- a test exercising a feature
+            # extensively, or a doc page explaining it in prose, both
+            # legitimately overlap a lot without being themselves the right
+            # answer to "how does X work." Dampen the whole score instead
+            # of adding a fixed amount, so it scales with however large the
+            # underlying (possibly very large) score actually is.
+            score *= 0.35
         if rel in changed:
             score += 4.0
             reasons.append("changed")
