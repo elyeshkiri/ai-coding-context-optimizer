@@ -189,7 +189,7 @@ def review_main(argv: list[str]) -> int:
         print(json.dumps(result, indent=2))
     else:
         print(f"PATCH REVIEW ({len(result['files'])} files)")
-        for item in payload if False else result["files"]:
+        for item in result["files"]:
             print(f"{item['status']:>2} {item['path']} symbols={','.join(item['symbols']) or '-'}")
         for warning in result["warnings"]:
             print(f"! {warning['code']}: {warning.get('path') or warning.get('detail', '')}")
