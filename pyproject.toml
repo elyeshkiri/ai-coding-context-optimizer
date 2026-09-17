@@ -10,8 +10,12 @@ license-files = ["LICENSE"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "build>=1"]
-# exact token counts from the Messages API instead of offline estimates
+# Backward-compatible aggregate extra for Anthropic API counting.
 exact = ["anthropic>=0.40"]
+anthropic = ["anthropic>=0.40"]
+openai = ["tiktoken>=0.9"]
+google = ["google-genai>=1"]
+providers = ["anthropic>=0.40", "tiktoken>=0.9", "google-genai>=1"]
 embeddings = ["sentence-transformers>=3,<6"]
 
 [project.scripts]
