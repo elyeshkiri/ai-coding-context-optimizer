@@ -81,3 +81,27 @@ def test_emitted_js_specifier_prefers_real_js_file_when_it_exists(tmp_path):
 
     assert by_path["provider.js"].reason == "semantic-ref"
     assert "provider.ts" not in by_path
+
+
+def test_exact_value_ref_is_not_hidden_by_an_unrelated_call_to_same_provider(tmp_path):
+    (tmp_path / "consumer.ts").write_text(
+        textwrap.dedent(
+            """
+            import * as provider from "./provider.js";
+            export const currentPattern = provider.email;
+            export function run() { return provider.helper(); }
+            """
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "provider.ts").write_text(
+        "export const email = /@/;\nexport function helper() { return true; }\n",
+        encoding="utf-8",
+    )
+
+    index = build_index(tmp_path, persist=False)
+    closure = dependency_closure(index, ["consumer.ts"], max_hops=1, max_items=20)
+    by_path = {item.path: item for item in closure}
+
+    assert by_path["provider.ts"].reason == "semantic-ref"
+    assert by_path["provider.ts"].confidence == 3.5
