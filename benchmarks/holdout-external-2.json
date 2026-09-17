@@ -1,0 +1,510 @@
+{
+  "suite_version": 1,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-17T21:25:08Z",
+    "ground_truth_sha256": "4225e526ca234a33ddf188ce26c51e350d7fe04c168101ff23edc9ef8a2172f8"
+  },
+  "repositories": {
+    "click": {
+      "path": "click",
+      "revision": "6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1"
+    },
+    "pydantic": {
+      "path": "pydantic",
+      "revision": "c124df7fb7348a3d6779c41fb5f4e5a73531e678"
+    },
+    "requests": {
+      "path": "requests",
+      "revision": "dae7ef63b4df6eded86637f251fc4e3a06c3b479"
+    },
+    "fastapi": {
+      "path": "fastapi",
+      "revision": "50113da16fec53b66b80d75e80a89296de4fa5a5"
+    },
+    "axios": {
+      "path": "axios",
+      "revision": "56a5f1acdc41965f464eb59bec6cc828113ba546"
+    },
+    "date-fns": {
+      "path": "date-fns",
+      "revision": "18cbd436f1428d0f45f89f710df65f62546c42f0"
+    },
+    "express": {
+      "path": "express",
+      "revision": "9a34acf03cb818ff3f8bc40e44176e277a25cbb9"
+    },
+    "lodash": {
+      "path": "lodash",
+      "revision": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8"
+    }
+  },
+  "tasks": [
+    {
+      "id": "click-add-option-default",
+      "repository": "click",
+      "query": "how do I add a new command line option with a default value to a command",
+      "files": [
+        "src/click/decorators.py"
+      ],
+      "symbols": [
+        "option"
+      ]
+    },
+    {
+      "id": "click-shell-completion",
+      "repository": "click",
+      "query": "where is shell tab-completion implemented for bash zsh and fish",
+      "files": [
+        "src/click/shell_completion.py"
+      ],
+      "symbols": [
+        "ShellComplete",
+        "shell_complete"
+      ]
+    },
+    {
+      "id": "click-parse-args",
+      "repository": "click",
+      "query": "how does click parse raw command line arguments into option and positional values",
+      "files": [
+        "src/click/parser.py"
+      ],
+      "symbols": [
+        "_OptionParser"
+      ]
+    },
+    {
+      "id": "click-group-dispatch",
+      "repository": "click",
+      "query": "how does a command group resolve and dispatch to the right subcommand",
+      "files": [
+        "src/click/core.py"
+      ],
+      "symbols": [
+        "Group",
+        "resolve_command"
+      ]
+    },
+    {
+      "id": "click-bad-option-exception",
+      "repository": "click",
+      "query": "what exception class does click raise for a bad command line option value",
+      "files": [
+        "src/click/exceptions.py"
+      ],
+      "symbols": [
+        "BadOptionUsage"
+      ]
+    },
+    {
+      "id": "pydantic-custom-field-validator",
+      "repository": "pydantic",
+      "query": "how do I add a custom field validator that runs before or after pydantic's own validation",
+      "files": [
+        "pydantic/functional_validators.py"
+      ],
+      "symbols": [
+        "field_validator",
+        "AfterValidator"
+      ]
+    },
+    {
+      "id": "pydantic-schema-generation-error",
+      "repository": "pydantic",
+      "query": "what error type does pydantic raise when it fails to generate a core schema for a model",
+      "files": [
+        "pydantic/errors.py"
+      ],
+      "symbols": [
+        "PydanticSchemaGenerationError",
+        "PydanticUserError"
+      ]
+    },
+    {
+      "id": "pydantic-json-schema-generation",
+      "repository": "pydantic",
+      "query": "how does pydantic generate a JSON schema for a model",
+      "files": [
+        "pydantic/json_schema.py"
+      ],
+      "symbols": [
+        "GenerateJsonSchema",
+        "generate"
+      ]
+    },
+    {
+      "id": "pydantic-email-validation",
+      "repository": "pydantic",
+      "query": "how do I validate that a string is a properly formatted email address",
+      "files": [
+        "pydantic/networks.py"
+      ],
+      "symbols": [
+        "validate_email"
+      ]
+    },
+    {
+      "id": "pydantic-root-model",
+      "repository": "pydantic",
+      "query": "how do I wrap a single value in a model instead of a dict of named fields",
+      "files": [
+        "pydantic/root_model.py"
+      ],
+      "symbols": [
+        "RootModel"
+      ]
+    },
+    {
+      "id": "requests-redirects",
+      "repository": "requests",
+      "query": "how does requests follow HTTP redirects and rebuild the request for each hop",
+      "files": [
+        "src/requests/sessions.py"
+      ],
+      "symbols": [
+        "resolve_redirects"
+      ]
+    },
+    {
+      "id": "requests-basic-auth",
+      "repository": "requests",
+      "query": "where is HTTP basic authentication implemented",
+      "files": [
+        "src/requests/auth.py"
+      ],
+      "symbols": [
+        "HTTPBasicAuth"
+      ]
+    },
+    {
+      "id": "requests-cookie-persistence",
+      "repository": "requests",
+      "query": "how are cookies extracted from a response and persisted on the session",
+      "files": [
+        "src/requests/cookies.py"
+      ],
+      "symbols": [
+        "extract_cookies_to_jar",
+        "RequestsCookieJar"
+      ]
+    },
+    {
+      "id": "requests-connect-timeout",
+      "repository": "requests",
+      "query": "what exception does requests raise when a connection attempt times out",
+      "files": [
+        "src/requests/exceptions.py"
+      ],
+      "symbols": [
+        "ConnectTimeout"
+      ]
+    },
+    {
+      "id": "requests-hooks",
+      "repository": "requests",
+      "query": "how does requests dispatch the response hook callbacks registered via the hooks parameter",
+      "files": [
+        "src/requests/hooks.py"
+      ],
+      "symbols": [
+        "dispatch_hook"
+      ]
+    },
+    {
+      "id": "fastapi-dependency-injection",
+      "repository": "fastapi",
+      "query": "how does dependency injection resolve a Depends() parameter",
+      "files": [
+        "fastapi/dependencies/utils.py"
+      ],
+      "symbols": [
+        "solve_dependencies",
+        "get_dependant"
+      ]
+    },
+    {
+      "id": "fastapi-route-decorators",
+      "repository": "fastapi",
+      "query": "where are path operation route decorators like @app.get defined",
+      "files": [
+        "fastapi/routing.py"
+      ],
+      "symbols": [
+        "APIRouter"
+      ]
+    },
+    {
+      "id": "fastapi-oauth2-password-bearer",
+      "repository": "fastapi",
+      "query": "how does fastapi handle OAuth2 password bearer authentication",
+      "files": [
+        "fastapi/security/oauth2.py"
+      ],
+      "symbols": [
+        "OAuth2PasswordBearer"
+      ]
+    },
+    {
+      "id": "fastapi-background-tasks",
+      "repository": "fastapi",
+      "query": "how are background tasks scheduled to run after a response is sent",
+      "files": [
+        "fastapi/background.py"
+      ],
+      "symbols": [
+        "BackgroundTasks",
+        "add_task"
+      ]
+    },
+    {
+      "id": "fastapi-validation-error-response",
+      "repository": "fastapi",
+      "query": "how are request validation errors turned into an HTTP error response",
+      "files": [
+        "fastapi/exception_handlers.py"
+      ],
+      "symbols": [
+        "request_validation_exception_handler"
+      ]
+    },
+    {
+      "id": "axios-follow-redirects",
+      "repository": "axios",
+      "query": "how does axios follow HTTP redirects for a request",
+      "files": [
+        "lib/adapters/http.js"
+      ],
+      "symbols": [
+        "httpAdapter"
+      ]
+    },
+    {
+      "id": "axios-request-interceptors",
+      "repository": "axios",
+      "query": "where are request interceptors run before a request is dispatched",
+      "files": [
+        "lib/core/Axios.js"
+      ],
+      "symbols": [
+        "_request"
+      ]
+    },
+    {
+      "id": "axios-cancel-request-timeout",
+      "repository": "axios",
+      "query": "how does axios cancel an in-flight request when a timeout or AbortController fires",
+      "files": [
+        "lib/helpers/composeSignals.js"
+      ],
+      "symbols": [
+        "composeSignals"
+      ]
+    },
+    {
+      "id": "axios-detect-absolute-url",
+      "repository": "axios",
+      "query": "how does axios determine whether a request URL is already absolute instead of relative",
+      "files": [
+        "lib/helpers/isAbsoluteURL.js"
+      ],
+      "symbols": [
+        "isAbsoluteURL"
+      ]
+    },
+    {
+      "id": "axios-custom-error-class",
+      "repository": "axios",
+      "query": "how does axios build its own error class with a code and redacted config",
+      "files": [
+        "lib/core/AxiosError.js"
+      ],
+      "symbols": [
+        "AxiosError"
+      ]
+    },
+    {
+      "id": "date-fns-add-business-days",
+      "repository": "date-fns",
+      "query": "how do I add N business days to a date, skipping weekends",
+      "files": [
+        "pkgs/core/src/addBusinessDays/index.ts"
+      ],
+      "symbols": [
+        "addBusinessDays"
+      ]
+    },
+    {
+      "id": "date-fns-diff-calendar-days",
+      "repository": "date-fns",
+      "query": "how does date-fns compute the difference in calendar days between two dates",
+      "files": [
+        "pkgs/core/src/differenceInCalendarDays/index.ts"
+      ],
+      "symbols": [
+        "differenceInCalendarDays"
+      ]
+    },
+    {
+      "id": "date-fns-within-interval",
+      "repository": "date-fns",
+      "query": "how do I check if a date falls within a given start/end interval",
+      "files": [
+        "pkgs/core/src/isWithinInterval/index.ts"
+      ],
+      "symbols": [
+        "isWithinInterval"
+      ]
+    },
+    {
+      "id": "date-fns-format-tokens",
+      "repository": "date-fns",
+      "query": "how does the format function parse custom format token strings like yyyy-MM-dd",
+      "files": [
+        "pkgs/core/src/format/index.ts"
+      ],
+      "symbols": [
+        "format"
+      ]
+    },
+    {
+      "id": "date-fns-start-of-week",
+      "repository": "date-fns",
+      "query": "how do I get the first day of the week for a given date",
+      "files": [
+        "pkgs/core/src/startOfWeek/index.ts"
+      ],
+      "symbols": [
+        "startOfWeek"
+      ]
+    },
+    {
+      "id": "express-set-response-cookie",
+      "repository": "express",
+      "query": "how do I set a response cookie with options like maxAge or httpOnly",
+      "files": [
+        "lib/response.js"
+      ],
+      "symbols": [
+        "cookie"
+      ]
+    },
+    {
+      "id": "express-redirect-response",
+      "repository": "express",
+      "query": "how does express handle res.redirect and resolve relative redirect URLs",
+      "files": [
+        "lib/response.js"
+      ],
+      "symbols": [
+        "redirect",
+        "location"
+      ]
+    },
+    {
+      "id": "express-render-view-template",
+      "repository": "express",
+      "query": "how does the app render a view template and resolve the template engine and view lookup path",
+      "files": [
+        "lib/application.js",
+        "lib/view.js"
+      ],
+      "symbols": [
+        "render",
+        "View"
+      ]
+    },
+    {
+      "id": "express-negotiate-accept-header",
+      "repository": "express",
+      "query": "how does an incoming request negotiate the best matching content type from its Accept header",
+      "files": [
+        "lib/request.js"
+      ],
+      "symbols": [
+        "accepts"
+      ]
+    },
+    {
+      "id": "express-generate-etag",
+      "repository": "express",
+      "query": "where is the ETag header value generated for a response body",
+      "files": [
+        "lib/utils.js"
+      ],
+      "symbols": [
+        "etag"
+      ]
+    },
+    {
+      "id": "express-create-application",
+      "repository": "express",
+      "query": "how does calling express() construct the app instance and wire up the request/response prototypes",
+      "files": [
+        "lib/express.js"
+      ],
+      "symbols": [
+        "createApplication"
+      ]
+    },
+    {
+      "id": "lodash-debounce",
+      "repository": "lodash",
+      "query": "how does lodash debounce a function call so it only fires after a wait period of inactivity",
+      "files": [
+        "lodash.js"
+      ],
+      "symbols": [
+        "debounce"
+      ]
+    },
+    {
+      "id": "lodash-throttle",
+      "repository": "lodash",
+      "query": "how does lodash throttle a function to run at most once per wait interval",
+      "files": [
+        "lodash.js"
+      ],
+      "symbols": [
+        "throttle"
+      ]
+    },
+    {
+      "id": "lodash-clone-deep",
+      "repository": "lodash",
+      "query": "how does lodash deep-clone an object, including nested arrays and objects",
+      "files": [
+        "lodash.js"
+      ],
+      "symbols": [
+        "cloneDeep",
+        "baseClone"
+      ]
+    },
+    {
+      "id": "lodash-deep-equal",
+      "repository": "lodash",
+      "query": "how does lodash perform a deep equality comparison between two values",
+      "files": [
+        "lodash.js"
+      ],
+      "symbols": [
+        "isEqual",
+        "baseIsEqual"
+      ]
+    },
+    {
+      "id": "lodash-get-path",
+      "repository": "lodash",
+      "query": "how does lodash's get() resolve a dotted path like 'a.b.c' on an object",
+      "files": [
+        "lodash.js"
+      ],
+      "symbols": [
+        "get",
+        "baseGet"
+      ]
+    }
+  ]
+}

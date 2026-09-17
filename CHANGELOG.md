@@ -1,3 +1,71 @@
+# Unreleased
+
+- **Built and ran a second, larger, genuinely fresh frozen external
+  holdout suite** (`benchmarks/holdout-external-2.json` /
+  `.result.json`): 41 tasks across 8 independently-authored public
+  repositories never used in any prior validation --
+  [pallets/click](https://github.com/pallets/click),
+  [pydantic/pydantic](https://github.com/pydantic/pydantic),
+  [psf/requests](https://github.com/psf/requests),
+  [tiangolo/fastapi](https://github.com/tiangolo/fastapi),
+  [axios/axios](https://github.com/axios/axios),
+  [date-fns/date-fns](https://github.com/date-fns/date-fns),
+  [expressjs/express](https://github.com/expressjs/express), and
+  [lodash/lodash](https://github.com/lodash/lodash). Ground truth for
+  each repository was authored independently (by isolated agents with no
+  access to token-saver's own source or the tool's known weaknesses'
+  specifics beyond "include some large-file-correct and some
+  terse-file-correct cases if the repo naturally supports them"), from
+  reading the actual source, before token-saver was ever run against it,
+  then frozen via `--print-ground-truth-hash` exactly as the first
+  holdout suite was. This suite exists specifically because the first
+  6-task httpx/zod suite was explicitly disclosed as "burned" for further
+  `zod-email-regex`-style diagnosis after two failed fix attempts against
+  it -- validating a future fix needs ground truth that was never used to
+  find or chase that fix.
+
+  **Result: 58.5% mean file recall, 35.4% mean symbol recall**, ~98.4%
+  mean estimated token reduction -- the honest, frozen, first-ever number
+  on this suite, and materially worse than both this repository's own
+  self-benchmark (92%/96%) and the now-much-improved first external
+  holdout (83.3%/83.3%). This is a significant, previously-invisible
+  generalization gap that neither of the smaller/narrower benchmarks used
+  so far happened to surface.
+
+  Root-caused by inspecting every one of the 16 missed tasks directly
+  (not by guessing from the aggregate number): two distinct, compounding
+  causes, not one.
+  1. **Test and documentation files systematically outrank
+     implementation files for "how does X work" queries.** 10 of 16
+     misses had a test file (`tests/test_validators.py`,
+     `tests/test_requests.py`, ...) or a docs page ranked #1, ahead of
+     the actual implementation. This isn't an unreasonable BM25 outcome
+     in isolation -- a test file that exercises a feature extensively
+     genuinely does share a lot of vocabulary with a query about that
+     feature -- but nothing in the ranking signal set distinguishes "a
+     file that exercises/discusses the concept" from "the file that
+     implements it," which is what most of these queries were actually
+     asking for.
+  2. **No cap on how much of the total budget a single file can consume.**
+     `build_context_pack`'s per-candidate budget loop has no general
+     fair-share limit (the existing `slots_left` fair-share logic only
+     applies to explicitly-passed `priority_files`, and the
+     `authoritative_reserve` mechanism only protects one specific
+     semantic-ref provider). When the #1-ranked file is both large and
+     the (arguably mis-ranked) top scorer, it can consume the entire
+     budget in one shot, e.g. `tests/test_validators.py` alone used 5993
+     of pydantic's 6000-token budget, leaving literally nothing for
+     `pydantic/functional_validators.py` -- the actual, correctly-ranked
+     #4 candidate -- to ever be considered. This compounds cause 1 into
+     complete, one-file-only failures: every task with only 1-2 files in
+     `selected_files` hit this pattern.
+
+  Deliberately **not fixed in this pass** -- diagnosing and disclosing
+  the finding is the goal of freezing a holdout in the first place; a fix
+  needs to be designed and validated against the self-benchmark first,
+  per this project's standing discipline, then checked against this
+  suite once, after the fact, the same way every fix in 1.2.0 was.
+
 # 1.2.0
 
 Note: PR #3 (`fix/graph-aware-symbol-ranking`) and PR #4
