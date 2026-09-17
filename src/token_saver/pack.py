@@ -21,7 +21,6 @@ from .feedback import load_feedback
 from .lexical import document_counts, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
-from .semantic_ts import resolve_module_path
 from .skeleton import file_priority
 from .working_set import load_working_set, save_working_set
 
@@ -93,31 +92,6 @@ def _read_source(path: Path) -> str | None:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-
-
-def _semantic_query_edge_hits(
-    index: RepositoryIndex,
-    source_rel: str,
-    target_rel: str,
-    query_terms: set[str],
-) -> int:
-    """Count query terms that name symbols explicitly referenced across an edge."""
-    source = index.records.get(source_rel)
-    if source is None or not query_terms:
-        return 0
-    known = index.records.keys()
-    best = 0
-    for ref in source.semantic_refs or []:
-        if not isinstance(ref, dict):
-            continue
-        symbol = str(ref.get("symbol", "")).strip()
-        module = str(ref.get("module", ""))
-        if not symbol or symbol == "*" or not module:
-            continue
-        if resolve_module_path(source_rel, module, known) != target_rel:
-            continue
-        best = max(best, len(query_terms & set(terms(symbol))))
-    return best
 
 
 def rank_files(
@@ -253,21 +227,13 @@ def rank_files(
     if priority_files:
         seed_pool.sort(key=lambda rel: rel not in priority_files)
     seeds = seed_pool[:seed_limit]
-    q_term_set = set(q_terms)
     for related in dependency_closure(
         index, seeds, max_hops=graph_hops, max_items=closure_max_items,
     ):
         item = by_rel.get(related.path)
         if item is None:
             continue
-        graph_boost = 2.5 * related.confidence
-        symbol_hits = _semantic_query_edge_hits(
-            index, related.source, related.path, q_term_set
-        )
-        if symbol_hits:
-            graph_boost += min(6.0, 3.0 * symbol_hits)
-            item.reasons.append(f"graph-symbol:{symbol_hits}")
-        item.score += graph_boost
+        item.score += 2.5 * related.confidence
         item.reasons.append(f"graph:{related.reason}@{related.distance}")
         item.reasons.append(
             f"closure:{related.source}@{related.distance}:{related.confidence:.2f}"
@@ -342,57 +308,6 @@ def _source_window(text: str, start: int, end: int) -> str:
     return f"#### lines {start}-{end}\n```\n" + "\n".join(body) + "\n```\n"
 
 
-def _semantic_symbol_ref_index(
-    index: RepositoryIndex,
-) -> dict[tuple[str, str], list[tuple[str, str]]]:
-    cached = getattr(index, "_token_saver_symbol_referrers", None)
-    if cached is not None:
-        return cached
-    known = index.records.keys()
-    built: dict[tuple[str, str], list[tuple[str, str]]] = {}
-    for source_rel, record in index.records.items():
-        for ref in record.semantic_refs or []:
-            if not isinstance(ref, dict):
-                continue
-            symbol = str(ref.get("symbol", "")).strip().lower()
-            module = str(ref.get("module", ""))
-            if not symbol or symbol == "*" or not module:
-                continue
-            target = resolve_module_path(source_rel, module, known)
-            if target is None or target == source_rel:
-                continue
-            kind = str(ref.get("kind", "semantic-call"))
-            built.setdefault((target, symbol), []).append((source_rel, kind))
-    for key, values in built.items():
-        built[key] = sorted(set(values))
-    setattr(index, "_token_saver_symbol_referrers", built)
-    return built
-
-
-def _symbol_graph_score(
-    index: RepositoryIndex, target_rel: str, symbol: object, query_terms: set[str],
-) -> float:
-    """Return a conservative exact-reference bonus for a query-named symbol."""
-    name = str(getattr(symbol, "name", ""))
-    name_hits = len(query_terms & set(terms(name)))
-    if not name or not name_hits:
-        return 0.0
-
-    referrers = _semantic_symbol_ref_index(index).get((target_rel, name.lower()), [])
-    if not referrers:
-        return 0.0
-
-    # Exact imported-symbol identity is structural evidence. Keep this bounded
-    # and independent of caller prose/body density so unrelated packs retain
-    # their historical selection and size characteristics.
-    kind_strength = max(
-        30.0 if kind == "semantic-call" else 22.0 if kind == "reexport" else 18.0
-        for _, kind in referrers
-    )
-    diversity = min(8.0, 2.0 * (len({source for source, _ in referrers}) - 1))
-    return kind_strength + 4.0 * name_hits + diversity
-
-
 def _symbol_windows(
     item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
 ) -> tuple[list[tuple[int, int]], list[str]]:
@@ -400,7 +315,7 @@ def _symbol_windows(
     if record is None:
         return [], []
     wanted = (target_symbol or "").lower()
-    matches: list[tuple[float, object]] = []
+    matches: list[tuple[int, object]] = []
     source_lines = item.text.splitlines()
     for symbol in record.definitions or []:
         name_terms = set(terms(symbol.name + " " + symbol.signature))
@@ -408,16 +323,9 @@ def _symbol_windows(
         body_terms = set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
-        score = 1000.0 if exact else 500.0 if partial else 0.0
+        score = 100 if exact else 50 if partial else 0
         if not wanted:
-            # Preserve the pre-fix lexical ranking exactly, then add only the
-            # narrow exact-reference bonus above. This avoids changing pack
-            # size/ordering for unrelated Python and generic-source tasks.
-            score = (
-                20.0 * len(query_terms & name_terms)
-                + float(len(query_terms & body_terms))
-                + _symbol_graph_score(index, item.rel, symbol, query_terms)
-            )
+            score = 20 * len(query_terms & name_terms) + len(query_terms & body_terms)
         if score:
             matches.append((score, symbol))
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
