@@ -101,3 +101,66 @@ def test_pack_cli_rejects_nonpositive_budget(tmp_path, capsys):
     _write_repo(tmp_path)
     assert pack_main([str(tmp_path), "--max-tokens", "0"]) == 2
     assert "max_tokens must be positive" in capsys.readouterr().err
+
+
+def test_symbol_ranking_prefers_query_relevant_caller_graph_over_dense_helper(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "auth.py").write_text(textwrap.dedent("""
+        class DigestAuth:
+            def build(self, request):
+                return request
+
+        def parse_challenge(challenge):
+            # Dense lexical distractor: digest authentication outgoing request
+            # challenge header request authentication digest outgoing request.
+            authentication = challenge
+            outgoing_request = authentication
+            digest_header = outgoing_request
+            return digest_header
+    """))
+    (src / "client.py").write_text(textwrap.dedent("""
+        from auth import DigestAuth
+
+        def send_digest_request(request):
+            return DigestAuth().build(request)
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "digest authentication for outgoing requests",
+        max_tokens=1400,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/auth.py:DigestAuth@") for label in pack.selected_symbols)
+
+
+def test_semantic_graph_boost_recovers_terse_dependency_file(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "regexes.ts").write_text(
+        "export const email = /^[^@]+@[^@]+$/;\n",
+        encoding="utf-8",
+    )
+    (src / "schemas.ts").write_text(textwrap.dedent("""
+        import * as regexes from "./regexes";
+        export function validateEmail(value: string) {
+            return regexes.email.test(value);
+        }
+    """), encoding="utf-8")
+    for n in range(8):
+        (src / f"email_docs_{n}.ts").write_text(
+            "// validate email string schema request address\n"
+            f"export function describeEmail{n}() {{ return 'email validation schema'; }}\n",
+            encoding="utf-8",
+        )
+
+    ranked = rank_files(
+        tmp_path,
+        "validate email string schema request",
+        changed_boost=False,
+        seed_limit=6,
+    )
+
+    assert "src/regexes.ts" in {item.rel for item in ranked[:3]}
