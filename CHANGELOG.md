@@ -1,5 +1,19 @@
 # Unreleased
 
+- **Added Output Saver, a deterministic output-token layer for coding agents.**
+  Generation-time `output-policy` produces terse/normal/detailed response
+  contracts with explicit token targets, no task restatement/tool narration,
+  diff/reference-first code guidance, compact validation reporting, structured
+  agent-to-agent state, and stop-on-success behavior. `output-save` safely
+  compacts already-generated responses by removing trivial filler, exact
+  repeated prose/status echoes, and pretty-print JSON overhead; optional
+  `--enforce-budget` trims prose only. Fenced code and diffs are never
+  truncated: if preserved code cannot fit, the result explicitly reports
+  `budget_exceeded` rather than corrupting source. Both capabilities are also
+  available as MCP tools (`output_policy`, `compact_output`) and report
+  estimated before/after token counts so output savings can be measured
+  separately from input-context savings.
+
 - **Investigated the second holdout suite's remaining 19 misses in
   detail; fixed one more real bug, attempted and reverted one extraction
   extension, and disclosed the rest as genuinely hard rather than forcing
