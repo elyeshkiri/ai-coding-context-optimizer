@@ -19,14 +19,12 @@ class ClosureItem:
 
 
 # This value is consumed both as closure ordering strength and as the packer's
-# graph boost. Concrete alias/member-resolved relationships carry substantially
-# more evidence than lexical import/call-name coincidences. ``semantic-ref`` is
-# deliberately just below a concrete call and is strictly one-hop: assigning or
-# otherwise using an imported value is strong evidence for its provider, but not
-# permission to recursively pull in that provider's own dependencies.
+# graph boost. Exact value references are authoritative provider evidence: they
+# identify the module that supplies a concrete imported value and stay one-hop
+# only. Calls remain strong and transitive because they resolve API invocation.
 EDGE_CONFIDENCE = {
+    "semantic-ref": 3.5,
     "semantic-call": 3.0,
-    "semantic-ref": 2.9,
     "reexport": 0.93,
     "imports": 0.95,
     "imported-by": 0.9,
@@ -66,6 +64,15 @@ def _semantic_target(index: RepositoryIndex, source: str, module: str) -> str | 
     return None
 
 
+def _stronger_edge(current: str | None, candidate: str) -> str:
+    """Keep the structurally strongest evidence kind for one provider file."""
+    if current is None:
+        return candidate
+    current_strength = EDGE_CONFIDENCE.get(current, 0.6)
+    candidate_strength = EDGE_CONFIDENCE.get(candidate, 0.6)
+    return candidate if candidate_strength > current_strength else current
+
+
 def _neighbors(index: RepositoryIndex, source: str) -> list[tuple[str, str]]:
     """Return normal graph neighbors plus semantic refs missed by path syntax."""
     out: dict[str, str] = dict(index.neighbors(source))
@@ -85,10 +92,7 @@ def _neighbors(index: RepositoryIndex, source: str) -> list[tuple[str, str]]:
         kind = ref.get("kind", "semantic-call")
         if not isinstance(kind, str):
             kind = "semantic-call"
-        # A concrete call remains stronger than a passive reference when both
-        # happen to point at the same provider.
-        if target not in out or kind == "semantic-call":
-            out[target] = kind
+        out[target] = _stronger_edge(out.get(target), kind)
     return sorted(out.items())
 
 
