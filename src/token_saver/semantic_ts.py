@@ -37,6 +37,7 @@ _REQUIRE_DESTRUCTURE = re.compile(
     re.S,
 )
 _CALL = re.compile(r"\b([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(")
+_MEMBER = re.compile(r"\b([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\b")
 _JS_TS_EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 
 
@@ -58,8 +59,13 @@ def _named_items(raw: str, *, export: bool = False) -> list[tuple[str, str]]:
     return out
 
 
+def _identifier_used(text: str, identifier: str) -> bool:
+    """Return whether an imported binding occurs outside its declaration."""
+    return len(re.findall(rf"\b{re.escape(identifier)}\b", text)) > 1
+
+
 def extract_module_refs(text: str) -> list[dict[str, str]]:
-    """Extract called imported bindings and re-exports from JS/TS source."""
+    """Extract imported symbol uses and re-exports from JS/TS source."""
     calls = {match.group(1) for match in _CALL.finditer(text)}
     bare_calls = {value.split(".")[-1] for value in calls}
     refs: list[dict[str, str]] = []
@@ -67,39 +73,48 @@ def extract_module_refs(text: str) -> list[dict[str, str]]:
     for match in _NAMED_IMPORT.finditer(text):
         module = match.group("module")
         for remote, local in _named_items(match.group("items")):
-            if local in bare_calls:
+            called = local in bare_calls
+            if called or _identifier_used(text, local):
                 refs.append({
                     "module": module, "symbol": remote, "local": local,
-                    "kind": "semantic-call",
+                    "kind": "semantic-call" if called else "semantic-ref",
                 })
 
     for match in _DEFAULT_IMPORT.finditer(text):
         local = match.group("local")
-        if local in bare_calls:
+        called = local in bare_calls
+        if called or _identifier_used(text, local):
             refs.append({
                 "module": match.group("module"), "symbol": "default", "local": local,
-                "kind": "semantic-call",
+                "kind": "semantic-call" if called else "semantic-ref",
             })
 
     for match in _NAMESPACE_IMPORT.finditer(text):
         local = match.group("local")
-        prefix = local + "."
-        for call in calls:
-            if call.startswith(prefix):
-                refs.append({
-                    "module": match.group("module"),
-                    "symbol": call[len(prefix):].split(".")[-1],
-                    "local": call,
-                    "kind": "semantic-call",
-                })
+        module = match.group("module")
+        members = {
+            member for owner, member in _MEMBER.findall(text) if owner == local
+        }
+        for member in members:
+            full = f"{local}.{member}"
+            receiver_called = any(
+                call == full or call.startswith(full + ".") for call in calls
+            )
+            refs.append({
+                "module": module,
+                "symbol": member,
+                "local": full,
+                "kind": "semantic-call" if receiver_called else "semantic-ref",
+            })
 
     for match in _REQUIRE_DESTRUCTURE.finditer(text):
         module = match.group("module")
         for remote, local in _named_items(match.group("items")):
-            if local in bare_calls:
+            called = local in bare_calls
+            if called or _identifier_used(text, local):
                 refs.append({
                     "module": module, "symbol": remote, "local": local,
-                    "kind": "semantic-call",
+                    "kind": "semantic-call" if called else "semantic-ref",
                 })
 
     for match in _NAMED_EXPORT.finditer(text):
