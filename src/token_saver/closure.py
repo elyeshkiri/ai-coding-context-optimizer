@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from .repo_index import RepositoryIndex
+from .semantic_ts import resolve_module_path
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,63 @@ EDGE_CONFIDENCE = {
     "calls-symbol": 0.9,
 }
 
+_EMITTED_JS_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs"}
+_TS_SOURCE_SUFFIXES = (".ts", ".tsx")
+
+
+def _semantic_target(index: RepositoryIndex, source: str, module: str) -> str | None:
+    """Resolve semantic refs, including TS source imported through emitted JS names.
+
+    NodeNext/ESM TypeScript commonly writes source imports such as
+    ``./regexes.js`` even though the repository contains ``regexes.ts`` and the
+    compiler emits the ``.js`` file later. The lightweight resolver must mirror
+    that convention or exact symbol references disappear from the graph.
+
+    Prefer an exact indexed path first so mixed JS/TS repositories keep their
+    real JavaScript target when one exists. Only fall back to ``.ts``/``.tsx``
+    when an emitted-JS specifier has no exact match.
+    """
+    known = index.records.keys()
+    target = resolve_module_path(source, module, known)
+    if target is not None:
+        return target
+
+    suffix = Path(module).suffix.lower()
+    if suffix not in _EMITTED_JS_SUFFIXES:
+        return None
+    stem = module[: -len(suffix)]
+    for source_suffix in _TS_SOURCE_SUFFIXES:
+        target = resolve_module_path(source, stem + source_suffix, known)
+        if target is not None:
+            return target
+    return None
+
+
+def _neighbors(index: RepositoryIndex, source: str) -> list[tuple[str, str]]:
+    """Return normal graph neighbors plus semantic refs missed by path syntax."""
+    out: dict[str, str] = dict(index.neighbors(source))
+    record = index.records.get(source)
+    if record is None:
+        return sorted(out.items())
+
+    for ref in record.semantic_refs or []:
+        if not isinstance(ref, dict):
+            continue
+        module = ref.get("module", "")
+        if not isinstance(module, str) or not module:
+            continue
+        target = _semantic_target(index, source, module)
+        if target is None or target == source:
+            continue
+        kind = ref.get("kind", "semantic-call")
+        if not isinstance(kind, str):
+            kind = "semantic-call"
+        # A concrete call remains stronger than a passive reference when both
+        # happen to point at the same provider.
+        if target not in out or kind == "semantic-call":
+            out[target] = kind
+    return sorted(out.items())
+
 
 def dependency_closure(
     index: RepositoryIndex,
@@ -58,7 +117,7 @@ def dependency_closure(
     for distance in range(1, max_hops + 1):
         candidates: list[ClosureItem] = []
         for source in frontier:
-            for path, edge in index.neighbors(source):
+            for path, edge in _neighbors(index, source):
                 if path in visited:
                     continue
                 confidence = EDGE_CONFIDENCE.get(edge, 0.6) * (0.75 ** (distance - 1))
