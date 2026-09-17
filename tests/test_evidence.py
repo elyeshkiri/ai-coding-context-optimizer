@@ -11,6 +11,7 @@ import subprocess
 import textwrap
 
 from token_saver.pack import build_context_pack
+from token_saver.patch_context import build_diff_context
 from token_saver.repo_index import _extract, build_index
 from token_saver.security import inspect_path
 from token_saver.skeleton import walk_repo
@@ -144,3 +145,66 @@ def test_github_workflows_are_walked_despite_dot_directory_skip(tmp_path):
     found = {p.relative_to(tmp_path).as_posix() for p in walk_repo(tmp_path, use_gitignore=False)}
     assert ".github/workflows/ci.yml" in found
     assert ".git/config" not in found
+
+
+def test_mixed_diff_represents_every_evidence_category_within_budget(tmp_path):
+    """Regression fixture for a real-world validation run: a diff shaped like
+    a large new subsystem landing alongside a few surgical edits to existing
+    code (the shape that originally exposed the empty-pack, starvation, and
+    missing-evidence-class bugs fixed this session). Locks in that outcome
+    without depending on the private repository the original diff came from.
+    """
+    root = tmp_path
+    src = root / "src"
+    src.mkdir()
+    (src / "critical.py").write_text(
+        "def refresh_session(user_id):\n    return {'id': user_id}\n"
+    )
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-qm", "initial"], cwd=root, check=True)
+
+    # Everything below is the diff under review: one genuine edit to an
+    # existing file, plus a large batch of brand-new files across every
+    # reservable evidence category -- the shape that originally exposed the
+    # empty-pack, starvation, and missing-evidence-class bugs this session.
+    (src / "critical.py").write_text(
+        "def refresh_session(user_id, force=False):\n    return {'id': user_id, 'force': force}\n"
+    )
+    (root / "drizzle").mkdir()
+    (root / "drizzle" / "0001_experiments.sql").write_text(
+        'CREATE TABLE "experiments" (id uuid primary key);\n'
+    )
+    workflows = root / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+    )
+    tests_dir = root / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_new_feature.py").write_text(
+        "def test_new_feature():\n    assert True\n"
+    )
+    # A large batch of brand-new source files -- the "new subsystem" that
+    # would otherwise dominate every other changed file's BM25 score.
+    for i in range(30):
+        big = "\n".join(
+            f"def widget_handler_{i}_{j}(payload):\n    return payload\n" for j in range(20)
+        )
+        (src / f"new_module_{i}.py").write_text(big)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+
+    result = build_diff_context(root, staged=True, max_tokens=2500)
+    coverage = result["coverage"]
+
+    assert "src/critical.py" in result["selected_files"]
+    assert "force=False" in result["context"]
+    assert coverage["by_category"]["database"]["selected"] >= 1
+    assert coverage["by_category"]["ci"]["selected"] >= 1
+    assert coverage["by_category"]["tests"]["selected"] >= 1
+    assert result["estimated_tokens"] <= 2500
+    # 30 new modules is deliberately more than can fit -- the pack must say
+    # so explicitly rather than silently implying it saw everything.
+    assert coverage["not_represented"]

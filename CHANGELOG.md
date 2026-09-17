@@ -1,3 +1,67 @@
+# Unreleased
+
+- Fixed `pack-diff`/`review` silently returning an empty pack (exit 0, no
+  output) on large diffs: the ranking query embedded every changed
+  file/symbol name uncapped, which could itself exceed `max_tokens` before
+  any file content was even considered.
+- Fixed a 20-30x performance cliff in impact analysis on large diffs:
+  `RepositoryIndex` now caches reverse caller/neighbor/test-file indexes
+  once per build instead of rescanning every record on every
+  `symbol_callers()`/`neighbors()` call -- verified byte-for-byte identical
+  output via differential testing against the old per-call scan.
+- Fixed `pack-diff`'s changed-file boost being a no-op for a historical
+  `--base` range: it only ever checked live working-tree git status, so a
+  diff review never got the boost or closure-seeding it was meant to give.
+- Fixed small, genuinely-modified files losing selection to large newly-added
+  files at tight budgets: `build_context_pack()` now takes `priority_files`,
+  which orders selection ahead of raw BM25 score (with a fair-share cap so
+  one large priority file can't consume the whole budget either).
+- Widened indexing beyond source code to `.sql`, `.json`, `.yaml`/`.yml`, and
+  safe `.env.example`-style templates (real secret files stay blocked;
+  `redact_secrets()` remains a backstop). Added dedicated extractors so
+  these are real evidence with meaningful symbols -- SQL tables, npm
+  scripts, CI job ids, env vars -- reusing the existing symbol/call-graph
+  machinery rather than a parallel relationship-graph subsystem.
+- Added budgeted evidence allocation: database/config/CI/test evidence that
+  is entirely newly-added (so the priority-file mechanism can't reach it)
+  gets a small, fair-share-capped budget reservation instead of competing
+  purely on BM25 score against large new source files.
+- Added a coverage manifest (`build_diff_context`'s `coverage` key, and a
+  `# coverage: N/M changed files represented (...)` footer in `pack-diff`'s
+  text output) that distinguishes selected, closure-only, policy-excluded,
+  and simply-didn't-fit evidence -- so a caller can tell "nothing relevant
+  here" from "this pack has a real, disclosed blind spot."
+- Fixed `should_skip_dir()` excluding `.github/workflows` (and
+  `.gitlab`/`.circleci`) under a blanket "starts with dot" rule -- these are
+  committed, human-authored CI config, not VCS/tooling internals like `.git`
+  or `.venv`.
+
+Validated end-to-end against a real 129-file diff from a separate production
+application (a private third-party codebase, not included in this
+repository): reviewed independently by an isolated model instance with no
+access to the source repository, at a fixed 4,000-token `pack-diff` budget,
+against a full-repository-access baseline and an independently-built 15-item
+ground-truth list, before any of this session's fixes existed and again
+after each stage:
+
+```
+before these fixes:  pack-diff returned an empty pack (the query-size bug)
+after the bug fixes:            4/15 ground-truth items, 37,306 tokens
+after evidence widening:       11/15 ground-truth items, 38,186 tokens
+after fair-share allocation:   12/15 ground-truth items, 37,036 tokens,
+                                plus 2 findings a 100,416-token,
+                                full-repository-access baseline missed
+```
+
+This is a single diff and a single reviewing model, not a statistically
+validated benchmark -- no claim here generalizes beyond it. A synthetic
+regression fixture reproducing the diff's key structural properties (a
+genuinely modified file carrying real risk, mixed with a large batch of
+newly-added source, SQL, CI, config, and test files) is checked in at
+`tests/test_evidence.py::test_mixed_diff_represents_every_evidence_category_within_budget`
+so these results are guarded going forward without depending on the private
+repository the original diff came from.
+
 # 1.0.0
 
 - Added bounded, confidence-decayed dependency closure with explicit provenance.
