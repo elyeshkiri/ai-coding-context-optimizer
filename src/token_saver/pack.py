@@ -148,8 +148,6 @@ def rank_files(
         if record.size > _MAX_FILE_BYTES:
             continue
         counts = Counter(record.term_counts or {})
-        # A current index record always has term_counts. Keeping this fallback
-        # makes an explicitly-constructed RepositoryIndex degrade safely.
         if not counts:
             counts.update(terms(" ".join(record.tokens)))
             counts.update(terms(record.outline))
@@ -320,14 +318,6 @@ def _symbol_windows(
 
     term_weight: dict[str, float] = {}
     if not wanted and definitions:
-        # Weight a query-term match by how distinctive it is *within this
-        # file's own symbols*, not just whether it occurs at all. Sibling
-        # symbols doing similar things (e.g. a family of error-transform
-        # functions that all mention "error"/"validation") share most of
-        # their vocabulary; a flat, unweighted overlap count then ties them
-        # together on the words every one of them shares and can't tell them
-        # apart on the few words that actually single out which one the
-        # query is about.
         doc_freq: Counter[str] = Counter()
         for symbol in definitions:
             name_terms = set(terms(symbol.name + " " + symbol.signature))
@@ -354,34 +344,8 @@ def _symbol_windows(
             )
         if score:
             matches.append((score, symbol))
+
     if not wanted:
-        # A method's own strong match is real evidence its containing class
-        # is relevant too -- a class-level symbol's line range always
-        # contains every one of its methods', so a lone helper method (whose
-        # signature/body naturally accumulate more distinct term-overlap
-        # than the class's own thin __init__/dispatch code) can otherwise
-        # outrank and displace the class entirely, even though the class's
-        # window would show that same helper's code anyway. Credit a
-        # matching parent with its matching children's scores so it can
-        # compete fairly; children keep their own original score and stay
-        # in the running rather than being displaced outright (a specific
-        # method can still be exactly the right, narrower answer -- e.g.
-        # when nothing else in its class is independently relevant). Credit
-        # only the single best-matching child, not the sum of all of them:
-        # summing lets a large class with many mediocre-but-nonzero-scoring
-        # methods (a lot of weak, diffuse relevance) out-accumulate a small
-        # class -- or an unrelated standalone function -- with one truly
-        # precise match, the same failure shape a purely lexical file-level
-        # ranking signal hit earlier.
-        # Only credit class parents, not arbitrary containment (e.g. a
-        # function nested inside another function): a class groups multiple
-        # members that can each be independently the right, narrower answer,
-        # so its own thin body being outscored by one of them is a ranking
-        # artifact worth correcting. A function containing a nested helper is
-        # a single implementation detail, not a set of candidate answers --
-        # crediting it the same way let an unrelated top-level function's
-        # incidentally query-matching nested helper outscore the actually
-        # correct standalone function elsewhere in the file.
         class_names = {symbol.name for _, symbol in matches if symbol.kind == "class"}
         own_score = {symbol.name: score for score, symbol in matches}
         best_child_score: dict[str, float] = {}
@@ -398,19 +362,11 @@ def _symbol_windows(
         matches = [(boosted.get(symbol.name, score), symbol) for score, symbol in matches]
     else:
         best_child_symbol = {}
+
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
     selected = [symbol for _, symbol in matches[:2]]
     windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in selected]
     labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in selected]
-    # A boosted parent's window already contains its credited child's source
-    # (a class's line range always spans its own methods) -- so once the
-    # parent wins a window slot, also credit the child that earned it with a
-    # label, even though it isn't given a separate window of its own. Without
-    # this, two classes that each independently out-compete a shared-name
-    # sibling method for the file's limited window slots (e.g. httpx's
-    # Client/AsyncClient both containing their own send_handling_redirects)
-    # can silently push that method's name out of the results entirely, even
-    # though its code is still right there in the rendered window.
     for symbol in selected:
         child = best_child_symbol.get(symbol.name)
         if child is None or child in selected:
@@ -581,6 +537,22 @@ def build_context_pack(
     )
     priority_seen = 0
 
+    # Reserve a bounded slot for the highest-ranked exact one-hop value
+    # provider among the leading candidates. This prevents a huge consumer
+    # outline from monopolizing the whole context budget before its provider
+    # is considered, without imposing global fair-sharing on ordinary files.
+    authoritative_rel = next(
+        (
+            item.rel
+            for item in candidates[: max(4, plan.seed_limit + 2)]
+            if any(reason.startswith("graph:semantic-ref@1") for reason in item.reasons)
+        ),
+        None,
+    )
+    authoritative_reserve = (
+        min(900, max(240, max_tokens // 8)) if authoritative_rel else 0
+    )
+
     for item in candidates:
         if len(selected) >= max_files:
             break
@@ -592,6 +564,16 @@ def build_context_pack(
             slots_left = priority_total - priority_seen + 1
             if slots_left > 1:
                 remaining = min(remaining, max(remaining // slots_left, 200))
+
+        section_budget = remaining
+        if (
+            authoritative_rel
+            and authoritative_rel not in selected
+            and item.rel != authoritative_rel
+        ):
+            section_budget = max(0, remaining - authoritative_reserve)
+            if section_budget <= 20:
+                continue
 
         if not item.text:
             item.text = _read_source(item.path) or ""
@@ -612,7 +594,7 @@ def build_context_pack(
         fingerprint = _fingerprint(section)
         if fingerprint in seen:
             continue
-        fitted = _fit_section(section, remaining)
+        fitted = _fit_section(section, section_budget)
         if not fitted:
             continue
         blocks.append(fitted)
