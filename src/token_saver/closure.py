@@ -18,6 +18,7 @@ class ClosureItem:
 
 EDGE_CONFIDENCE = {
     "semantic-call": 0.99,
+    "semantic-ref": 0.0,
     "reexport": 0.93,
     "imports": 0.95,
     "imported-by": 0.9,
@@ -34,7 +35,13 @@ def dependency_closure(
     max_items: int = 20,
     min_confidence: float = 0.5,
 ) -> list[ClosureItem]:
-    """Expand relationships breadth-first with confidence decay and hard limits."""
+    """Expand relationships breadth-first with confidence decay and hard limits.
+
+    ``semantic-ref`` is intentionally non-transitive: it is evidence that a
+    source mentions an exact imported symbol, not proof that the target file
+    belongs in every dependency closure. Query-aware ranking may still consume
+    that evidence directly without perturbing unrelated packs.
+    """
     if max_hops < 0 or max_items < 0:
         raise ValueError("closure limits must be nonnegative")
     visited = set(seeds)
