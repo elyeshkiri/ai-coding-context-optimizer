@@ -1,3 +1,4 @@
+import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -5,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from token_saver.adaptive_budget import plan_retrieval
+from token_saver.entry import main as entry_main
 from token_saver.estimate import Counter
 from token_saver.host_validate import _transport_roundtrip
 from token_saver.pack import build_context_pack, rank_files
@@ -143,6 +145,14 @@ def test_unseen_suite_requires_frozen_ground_truth(tmp_path):
 def test_provider_counter_rejects_unknown_provider():
     with pytest.raises(ValueError, match="unsupported token provider"):
         Counter(provider="unknown")  # type: ignore[arg-type]
+
+
+def test_provider_aware_estimate_command_routes_without_network(monkeypatch, capsys):
+    monkeypatch.setattr("sys.stdin", io.StringIO("hello provider-aware tokens"))
+    assert entry_main(["estimate", "--provider", "openai"]) == 0
+    output = capsys.readouterr().out
+    assert "provider=openai" in output
+    assert "≈est" in output
 
 
 def test_hook_transport_roundtrip_recovers_omitted_middle(tmp_path, monkeypatch):
