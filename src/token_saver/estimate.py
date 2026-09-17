@@ -24,8 +24,6 @@ DEFAULT_MODELS: dict[str, str] = {
     "google": "gemini-2.5-pro",
 }
 
-# chars per Claude-ish token, by file extension. These remain intentionally
-# conservative for provider-neutral hard-budget planning.
 _RATIOS = {
     ".py": 3.1, ".pyi": 3.1, ".rb": 3.1, ".go": 3.3, ".rs": 3.3,
     ".c": 3.3, ".h": 3.3, ".cpp": 3.3, ".hpp": 3.3, ".java": 3.6,
@@ -62,7 +60,10 @@ def _anthropic_count(text: str, model: str) -> int:
     try:
         import anthropic
     except ImportError as exc:  # pragma: no cover - optional dependency
-        raise RuntimeError("Anthropic counting needs: pip install 'token-saver[anthropic]'") from exc
+        raise RuntimeError(
+            "Anthropic counting needs: pip install 'token-saver[exact]' "
+            "(alias: 'token-saver[anthropic]')"
+        ) from exc
     client = anthropic.Anthropic()
     response = client.messages.count_tokens(model=model, messages=[{"role": "user", "content": text}])
     return int(response.input_tokens)
@@ -76,9 +77,6 @@ def _openai_count(text: str, model: str) -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
-        # New model aliases can arrive before tiktoken's model table. o200k_base
-        # is the conservative modern fallback; callers can still validate
-        # actual billed usage from provider telemetry.
         encoding = tiktoken.get_encoding("o200k_base")
     return len(encoding.encode(text))
 
@@ -125,7 +123,9 @@ class Counter:
 
     @property
     def label(self) -> str:
-        return f"{self.provider}:exact" if self.exact else "≈est"
+        if not self.exact:
+            return "≈est"
+        return "exact" if self.provider == "anthropic" else f"{self.provider}:exact"
 
     def count(self, text: str, suffix: str = "") -> int:
         if self.exact:
