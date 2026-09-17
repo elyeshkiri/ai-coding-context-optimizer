@@ -111,6 +111,27 @@ def test_diff_context_with_many_changed_files_still_returns_context(tmp_path):
     assert result["estimated_tokens"] <= 500
 
 
+def test_diff_context_prioritizes_edited_file_over_larger_new_file(tmp_path):
+    # A diff mixing a large new file with a small edit to an existing file
+    # must not let the new file's BM25 term-overlap (which scales with its
+    # size) starve the edit out of the budget -- the edit is where
+    # regression risk actually lives.
+    root = _git_repo(tmp_path)
+    src = root / "src"
+    # service.py is already committed by _git_repo; editing it (not adding a
+    # new file) is what gives it git status "M".
+    (src / "service.py").write_text(
+        "from src.repository import load_user\ndef refresh_session(user_id, force=False):\n    return {**load_user(user_id), 'force': force}\n"
+    )
+    big = "\n".join(f"def widget_handler_{i}(payload_{i}):\n    return payload_{i}\n" for i in range(200))
+    (src / "big_new_widgets.py").write_text(big)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+
+    result = build_diff_context(root, staged=True, max_tokens=600)
+    assert "src/service.py" in result["selected_files"]
+    assert "force=False" in result["context"]
+
+
 def test_persistent_index_service_reuses_then_refreshes_changed_file(tmp_path):
     root = _graph_repo(tmp_path)
     service = IndexService(root)

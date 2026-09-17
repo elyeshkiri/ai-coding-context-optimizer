@@ -167,7 +167,20 @@ def build_diff_context(
     # its own (see the header-fit fallback in pack.build_context_pack).
     deduped = list(dict.fromkeys(parts))[:60]
     query = "review changed behavior and regressions " + " ".join(deduped)
-    pack = build_context_pack(root, query, max_tokens=max_tokens, changed_boost=True)
+    changed_paths = {item["path"] for item in review["files"]}
+    # Edits to files that already existed carry the regression risk in a diff
+    # that mixes a large new addition with a few surgical changes to existing
+    # code -- a brand-new file's sheer size/term-overlap can otherwise starve
+    # them out of the budget entirely. "not added" is the available signal
+    # (git status "A"); a status our own default ("M") or anything else is
+    # treated as an edit to something that already existed.
+    modified_paths = {
+        item["path"] for item in review["files"] if not item["status"].startswith("A")
+    }
+    pack = build_context_pack(
+        root, query, max_tokens=max_tokens, changed_boost=True,
+        changed_files=changed_paths, priority_files=modified_paths,
+    )
     return {
         "review": review,
         "context": pack.text,

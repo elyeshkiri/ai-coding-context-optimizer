@@ -146,14 +146,27 @@ def rank_files(
     embeddings: bool = False,
     feedback_boost: bool = True,
     closure_max_items: int = 20,
+    changed_files: set[str] | None = None,
+    priority_files: set[str] | None = None,
 ) -> list[RankedFile]:
-    """Rank repository source files for `query` using BM25 + code-aware boosts."""
+    """Rank repository source files for `query` using BM25 + code-aware boosts.
+
+    `changed_files` overrides live git status (needed for a historical
+    revision range, not the working tree). `priority_files` orders closure
+    seeding ahead of score alone, so a large file's term-overlap can't starve
+    out a small critical edit.
+    """
     root = root.resolve()
     if graph_hops < 0:
         raise ValueError("graph_hops must be nonnegative")
     index = index or build_index(root, use_gitignore=use_gitignore)
     q_terms = list(dict.fromkeys(_terms(query)))
-    changed = _changed_files(root) if changed_boost else set()
+    if not changed_boost:
+        changed = set()
+    elif changed_files is not None:
+        changed = changed_files
+    else:
+        changed = _changed_files(root)
     remembered_files, remembered_terms = load_working_set(root, session) if session else (set(), set())
     feedback = load_feedback(root) if feedback_boost else {}
     query_continues = bool(set(q_terms) & remembered_terms)
@@ -239,7 +252,10 @@ def rank_files(
     # of filesystem traversal order.
     ranked.sort(key=lambda item: (-item.score, file_priority(item.rel), item.rel))
     by_rel = {item.rel: item for item in ranked}
-    seeds = [item.rel for item in ranked if item.term_hits or item.changed][:6]
+    seed_pool = [item.rel for item in ranked if item.term_hits or item.changed]
+    if priority_files:
+        seed_pool.sort(key=lambda rel: rel not in priority_files)
+    seeds = seed_pool[:6]
     for related in dependency_closure(
         index, seeds, max_hops=graph_hops, max_items=closure_max_items,
     ):
@@ -418,8 +434,13 @@ def build_context_pack(
     feedback_boost: bool = True,
     closure_max_items: int = 20,
     index: RepositoryIndex | None = None,
+    changed_files: set[str] | None = None,
+    priority_files: set[str] | None = None,
 ) -> ContextPack:
-    """Create a relevance-ranked, deduplicated context pack under a hard cap."""
+    """Create a relevance-ranked, deduplicated context pack under a hard cap.
+
+    `priority_files` orders inclusion ahead of score alone; see `rank_files`.
+    """
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
     if max_files <= 0:
@@ -434,6 +455,8 @@ def build_context_pack(
         index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
         feedback_boost=feedback_boost,
         closure_max_items=closure_max_items,
+        changed_files=changed_files,
+        priority_files=priority_files,
     )
     q_terms = set(_terms(effective_query))
     task_display = query.strip() or "(no query; structural priority mode)"
@@ -460,6 +483,8 @@ def build_context_pack(
     # Concrete matches first. For an empty/vague query all files still have a
     # small structural score and fall back to source priority.
     candidates = [item for item in ranked if item.term_hits or item.changed] or ranked
+    if priority_files:
+        candidates = sorted(candidates, key=lambda item: item.rel not in priority_files)
     for item in candidates:
         if len(selected) >= max_files:
             break
