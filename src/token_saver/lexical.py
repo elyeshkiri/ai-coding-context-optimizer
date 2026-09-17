@@ -29,6 +29,15 @@ _TERM_ALIASES = {
     "structural": "skeleton",
 }
 
+# Symbol matching can safely use a slightly richer equivalence set than file
+# retrieval: it only reranks definitions inside a file that has already been
+# selected. Keep these aliases deliberately small and code-oriented so we do
+# not perturb repository-wide BM25 ranking.
+_SYMBOL_ALIASES = {
+    "first": "start",
+    "begin": "start",
+}
+
 
 def terms(text: str) -> list[str]:
     """Tokenise prose, paths and identifiers into stable search terms."""
@@ -58,6 +67,47 @@ def terms(text: str) -> list[str]:
             out.append(stem)
         elif term.endswith("s") and len(term) > 4:
             out.append(term[:-1])
+    return out
+
+
+def symbol_terms(text: str) -> list[str]:
+    """Tokenise for within-file symbol matching with conservative inflections.
+
+    This intentionally does *not* feed repository-wide BM25. Natural-language
+    task wording often names a code identifier through a nearby inflection
+    (connection -> connect, equality -> equal, completion -> complete). At the
+    file level those expansions are too broad; once the correct file is already
+    selected they are useful evidence for choosing the exact definition.
+    """
+    out = list(terms(text))
+    seen = set(out)
+
+    def add(value: str) -> None:
+        if len(value) >= 3 and value not in seen and value not in _STOP:
+            seen.add(value)
+            out.append(value)
+
+    for term in tuple(out):
+        alias = _SYMBOL_ALIASES.get(term)
+        if alias:
+            add(alias)
+
+        # connection -> connect; validation -> validat + validate;
+        # completion -> complet + complete; extraction -> extract.
+        if term.endswith("tion") and len(term) > 6:
+            stem = term[:-3]
+            add(stem)
+            if stem.endswith(("at", "et")):
+                add(stem + "e")
+
+        # equality -> equal; similarity -> similar.
+        if term.endswith("ity") and len(term) > 6:
+            add(term[:-3])
+
+        # persistence -> persist; dependence -> depend.
+        if term.endswith(("ance", "ence")) and len(term) > 7:
+            add(term[:-4])
+
     return out
 
 
