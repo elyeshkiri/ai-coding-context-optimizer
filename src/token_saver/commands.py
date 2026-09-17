@@ -7,14 +7,44 @@ import json
 import sys
 from pathlib import Path
 
-from .evaluate import evaluate_manifest
 from .agent_eval import evaluate_agent_runs
+from .estimate import Counter
+from .evaluate import evaluate_manifest
 from .feedback import record_feedback
 from .host_validate import validate_host
 from .impact import analyze_impact
 from .patch_context import build_diff_context, review_patch
 from .serve import serve
 from .unseen_eval import evaluate_unseen_suite, ground_truth_hash
+
+
+def estimate_main(argv: list[str]) -> int:
+    """Provider-aware replacement for the legacy `estimate` command."""
+    parser = argparse.ArgumentParser(prog="token-saver estimate")
+    parser.add_argument("-f", "--file")
+    parser.add_argument("--exact", action="store_true",
+                        help="use the selected provider/tokenizer instead of the offline estimate")
+    parser.add_argument("--provider", choices=["anthropic", "openai", "google"], default="anthropic")
+    parser.add_argument("--model", default=None,
+                        help="provider model; when omitted Token Saver uses the provider default")
+    args = parser.parse_args(argv)
+    if args.file:
+        path = Path(args.file)
+        if not path.is_file():
+            print(f"not found: {args.file}", file=sys.stderr)
+            return 1
+        text = path.read_text(encoding="utf-8", errors="replace")
+        suffix = path.suffix
+    else:
+        text, suffix = sys.stdin.read(), ""
+    try:
+        counter = Counter(exact=args.exact, provider=args.provider, model=args.model)
+        count = counter.count(text, suffix)
+    except (RuntimeError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"{count} tokens ({counter.label}) chars={len(text)} provider={args.provider}")
+    return 0
 
 
 def impact_main(argv: list[str]) -> int:
