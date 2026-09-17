@@ -95,6 +95,31 @@ def _read_source(path: Path) -> str | None:
         return None
 
 
+def _semantic_query_edge_hits(
+    index: RepositoryIndex,
+    source_rel: str,
+    target_rel: str,
+    query_terms: set[str],
+) -> int:
+    """Count query terms that name symbols explicitly referenced across an edge."""
+    source = index.records.get(source_rel)
+    if source is None or not query_terms:
+        return 0
+    known = index.records.keys()
+    best = 0
+    for ref in source.semantic_refs or []:
+        if not isinstance(ref, dict):
+            continue
+        symbol = str(ref.get("symbol", "")).strip()
+        module = str(ref.get("module", ""))
+        if not symbol or symbol == "*" or not module:
+            continue
+        if resolve_module_path(source_rel, module, known) != target_rel:
+            continue
+        best = max(best, len(query_terms & set(terms(symbol))))
+    return best
+
+
 def rank_files(
     root: Path,
     query: str,
@@ -236,13 +261,12 @@ def rank_files(
         if item is None:
             continue
         graph_boost = 2.5 * related.confidence
-        target_record = index.records.get(related.path)
-        if target_record is not None and related.reason in {"semantic-call", "reexport"}:
-            target_terms = set((target_record.term_counts or {}).keys())
-            graph_query_hits = len(q_term_set & target_terms)
-            if graph_query_hits:
-                graph_boost += min(4.5, 1.5 * graph_query_hits)
-                item.reasons.append(f"graph-query:{graph_query_hits}")
+        symbol_hits = _semantic_query_edge_hits(
+            index, related.source, related.path, q_term_set
+        )
+        if symbol_hits:
+            graph_boost += min(6.0, 3.0 * symbol_hits)
+            item.reasons.append(f"graph-symbol:{symbol_hits}")
         item.score += graph_boost
         item.reasons.append(f"graph:{related.reason}@{related.distance}")
         item.reasons.append(
