@@ -105,7 +105,6 @@ def _count_openai(text: str, model: str) -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError as exc:
-        # Do not silently call a fallback tokenizer and label the result exact.
         raise RuntimeError(
             f"tiktoken does not have an exact tokenizer mapping for model {model!r}; "
             "upgrade tiktoken or use offline estimate mode"
@@ -132,7 +131,7 @@ def count_tokens_exact(
         return _count_anthropic(text, model)
     if chosen == "openai":
         return _count_openai(text, model)
-    raise ValueError(
+    raise RuntimeError(
         f"unsupported token-counting provider for model {model!r}; "
         "pass provider='anthropic' or provider='openai'"
     )
@@ -153,8 +152,6 @@ class Counter:
 
     @property
     def label(self) -> str:
-        # Keep the established public label stable. Provider detail is exposed
-        # separately so CLI/report formatting does not change unexpectedly.
         return "exact" if self.exact else "≈est"
 
     @property
