@@ -1,4 +1,4 @@
-"""v0.9 command-line surfaces kept separate from the legacy CLI."""
+"""High-value command-line surfaces kept separate from the legacy CLI."""
 
 from __future__ import annotations
 
@@ -10,9 +10,11 @@ from pathlib import Path
 from .evaluate import evaluate_manifest
 from .agent_eval import evaluate_agent_runs
 from .feedback import record_feedback
+from .host_validate import validate_host
 from .impact import analyze_impact
 from .patch_context import build_diff_context, review_patch
 from .serve import serve
+from .unseen_eval import evaluate_unseen_suite, ground_truth_hash
 
 
 def impact_main(argv: list[str]) -> int:
@@ -69,6 +71,37 @@ def evaluate_main(argv: list[str]) -> int:
     return 0
 
 
+def unseen_evaluate_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver unseen-evaluate")
+    parser.add_argument("manifest")
+    parser.add_argument("--allow-unfrozen", action="store_true",
+                        help="run exploratory evaluation without requiring a frozen ground-truth hash")
+    parser.add_argument("--no-adaptive-budget", action="store_true")
+    parser.add_argument("--typescript-semantic", action="store_true")
+    parser.add_argument("--print-ground-truth-hash", action="store_true",
+                        help="print the hash to freeze into the manifest, without running tasks")
+    args = parser.parse_args(argv)
+    manifest = Path(args.manifest)
+    try:
+        if args.print_ground_truth_hash:
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("unseen manifest must be a JSON object")
+            print(ground_truth_hash(payload))
+            return 0
+        result = evaluate_unseen_suite(
+            manifest,
+            require_frozen=not args.allow_unfrozen,
+            adaptive_budget=not args.no_adaptive_budget,
+            typescript_semantic=args.typescript_semantic,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def agent_evaluate_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="token-saver agent-evaluate")
     parser.add_argument("manifest")
@@ -79,6 +112,32 @@ def agent_evaluate_main(argv: list[str]) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def host_check_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver host-check")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--host", default="claude", help="host executable to inspect (default: claude)")
+    parser.add_argument("--live-evidence", help="host debug transcript proving updatedToolOutput acceptance")
+    parser.add_argument("--require-ready", action="store_true",
+                        help="return nonzero unless hooks are configured and transport recovery passes")
+    parser.add_argument("--require-live", action="store_true",
+                        help="return nonzero unless supplied host debug evidence verifies replacement acceptance")
+    args = parser.parse_args(argv)
+    try:
+        result = validate_host(
+            Path(args.path), executable=args.host,
+            live_evidence=Path(args.live_evidence) if args.live_evidence else None,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    if args.require_live and not result["live_verified"]:
+        return 1
+    if args.require_ready and not result["ready"]:
+        return 1
     return 0
 
 
