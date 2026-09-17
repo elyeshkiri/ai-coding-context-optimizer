@@ -152,6 +152,28 @@ def test_diff_context_prioritizes_edited_file_over_larger_new_file(tmp_path):
     assert "force=False" in result["context"]
 
 
+def test_diff_context_reserves_budget_for_new_database_evidence(tmp_path):
+    # A brand-new SQL migration is git status "A" -- the modified-file
+    # priority mechanism gives it no help at all, so without a guaranteed
+    # per-category reservation it competes on raw BM25 term-overlap against
+    # a large new source file and loses outright (this reproduces the real
+    # gap found reviewing a production diff: the migration was indexed and
+    # searchable but never won the budget competition).
+    root = _git_repo(tmp_path)
+    (root / "drizzle").mkdir()
+    (root / "drizzle" / "0001_experiments.sql").write_text(
+        'CREATE TABLE "experiments" (id uuid primary key, variant text);\n'
+    )
+    big = "\n".join(f"def widget_handler_{i}(payload_{i}):\n    return payload_{i}\n" for i in range(300))
+    (root / "src" / "big_new_widgets.py").write_text(big)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+
+    result = build_diff_context(root, staged=True, max_tokens=800)
+    assert "drizzle/0001_experiments.sql" in result["selected_files"]
+    coverage = result["coverage"]
+    assert coverage["by_category"]["database"]["selected"] == 1
+
+
 def test_persistent_index_service_reuses_then_refreshes_changed_file(tmp_path):
     root = _graph_repo(tmp_path)
     service = IndexService(root)

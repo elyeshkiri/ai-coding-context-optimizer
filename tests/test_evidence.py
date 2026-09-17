@@ -13,6 +13,7 @@ import textwrap
 from token_saver.pack import build_context_pack
 from token_saver.repo_index import _extract, build_index
 from token_saver.security import inspect_path
+from token_saver.skeleton import walk_repo
 
 
 def test_sql_migration_extracts_table_and_references_as_calls():
@@ -128,3 +129,18 @@ def test_pack_diff_style_query_can_select_migration_and_package_json(tmp_path):
     )
     assert "drizzle/0001_experiments.sql" in pack.selected_files
     assert "package.json" in pack.selected_files
+
+
+def test_github_workflows_are_walked_despite_dot_directory_skip(tmp_path):
+    # .git/.venv/.cache are VCS/tooling internals and correctly skipped as a
+    # blanket "starts with dot" rule; .github is conventionally committed CI
+    # config and must not fall under that same rule.
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text("name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("[core]\n")
+
+    found = {p.relative_to(tmp_path).as_posix() for p in walk_repo(tmp_path, use_gitignore=False)}
+    assert ".github/workflows/ci.yml" in found
+    assert ".git/config" not in found

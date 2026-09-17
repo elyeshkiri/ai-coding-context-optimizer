@@ -148,13 +148,21 @@ def rank_files(
     closure_max_items: int = 20,
     changed_files: set[str] | None = None,
     priority_files: set[str] | None = None,
+    exclude_files: set[str] | None = None,
+    restrict_files: set[str] | None = None,
 ) -> list[RankedFile]:
     """Rank repository source files for `query` using BM25 + code-aware boosts.
 
     `changed_files` overrides live git status (needed for a historical
     revision range, not the working tree). `priority_files` orders closure
     seeding ahead of score alone, so a large file's term-overlap can't starve
-    out a small critical edit.
+    out a small critical edit. `exclude_files` drops paths from candidacy
+    entirely -- for a caller that already claimed them in a separate,
+    budget-capped pass (see build_diff_context's category reservation) and
+    doesn't want them selected again here. `restrict_files`, when given, is
+    the *only* set of paths eligible -- the complement of `exclude_files`,
+    used to scope a reservation pass to one evidence category's own files
+    without unrelated repo content winning the slot instead.
     """
     root = root.resolve()
     if graph_hops < 0:
@@ -174,10 +182,14 @@ def rank_files(
     for path in walk_repo(root, use_gitignore=use_gitignore):
         if not inspect_path(root, path).allowed:
             continue
+        rel = path.relative_to(root).as_posix()
+        if exclude_files and rel in exclude_files:
+            continue
+        if restrict_files is not None and rel not in restrict_files:
+            continue
         text = _read_source(path)
         if text is None:
             continue
-        rel = path.relative_to(root).as_posix()
         outline = skeletonize(text, path.suffix, line_numbers=True)
         docs.append((path, rel, text, outline, _document_terms(text, outline, rel)))
 
@@ -436,10 +448,13 @@ def build_context_pack(
     index: RepositoryIndex | None = None,
     changed_files: set[str] | None = None,
     priority_files: set[str] | None = None,
+    exclude_files: set[str] | None = None,
+    restrict_files: set[str] | None = None,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap.
 
     `priority_files` orders inclusion ahead of score alone; see `rank_files`.
+    `exclude_files`/`restrict_files` narrow candidacy; see `rank_files`.
     """
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
@@ -457,6 +472,8 @@ def build_context_pack(
         closure_max_items=closure_max_items,
         changed_files=changed_files,
         priority_files=priority_files,
+        exclude_files=exclude_files,
+        restrict_files=restrict_files,
     )
     q_terms = set(_terms(effective_query))
     task_display = query.strip() or "(no query; structural priority mode)"

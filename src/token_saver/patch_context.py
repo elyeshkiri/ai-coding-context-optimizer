@@ -199,6 +199,27 @@ def _coverage(review: dict, index: RepositoryIndex, pack: "ContextPack") -> dict
     }
 
 
+# Categories where, if every one of a diff's changed files in that category
+# is newly added (never "modified"), the modified-file priority mechanism
+# gives them no help at all -- they'd compete purely on BM25 term-overlap
+# against everything else in the diff, including large new source files.
+# A migration or CI workflow is inherently review-relevant regardless of
+# add/modify status, unlike arbitrary new application code, so these get a
+# small guaranteed-but-capped reservation instead (never "source": that
+# category is what the existing priority/relevance mechanism already
+# handles, and giving it a reservation too would just re-add the risk of
+# one category crowding out the others that the cap exists to prevent).
+_RESERVABLE_CATEGORIES = {"database", "config", "ci", "tests"}
+_CATEGORY_RESERVE_TOTAL_FRACTION = 0.35
+_CATEGORY_RESERVE_CAP = 600
+_CATEGORY_RESERVE_FLOOR = 150
+
+
+def _strip_pack_header(text: str) -> str:
+    idx = text.find("\n## ")
+    return text[idx + 1:] if idx != -1 else text
+
+
 def build_diff_context(
     root: Path, *, base: str = "HEAD", staged: bool = False,
     max_tokens: int = 6000,
@@ -222,17 +243,67 @@ def build_diff_context(
     modified_paths = {
         item["path"] for item in review["files"] if not item["status"].startswith("A")
     }
+
+    underrepresented: dict[str, set[str]] = {}
+    for path in changed_paths:
+        category = _evidence_category(path)
+        if category in _RESERVABLE_CATEGORIES and path not in modified_paths:
+            underrepresented.setdefault(category, set()).add(path)
+
+    reserved_texts: list[str] = []
+    reserved_selected: list[str] = []
+    reserved_symbols: list[str] = []
+    reserved_closure: list[str] = []
+    claimed_files: set[str] = set()
+    reserve_used = 0
+    if underrepresented:
+        total_cap = int(max_tokens * _CATEGORY_RESERVE_TOTAL_FRACTION)
+        per_category = min(max(total_cap // len(underrepresented), _CATEGORY_RESERVE_FLOOR), _CATEGORY_RESERVE_CAP)
+        for category, files in sorted(underrepresented.items()):
+            budget = min(per_category, total_cap - reserve_used)
+            if budget < _CATEGORY_RESERVE_FLOOR:
+                break
+            sub_pack = build_context_pack(
+                root, f"{category} evidence " + " ".join(sorted(files)),
+                max_tokens=budget, changed_boost=True,
+                changed_files=files, priority_files=files, restrict_files=files,
+            )
+            if not sub_pack.selected_files:
+                continue
+            reserved_texts.append(sub_pack.text)
+            reserved_selected.extend(sub_pack.selected_files)
+            reserved_symbols.extend(sub_pack.selected_symbols)
+            reserved_closure.extend(sub_pack.closure_files)
+            claimed_files.update(sub_pack.selected_files)
+            reserve_used += sub_pack.estimated_tokens
+
+    remaining_budget = max(max_tokens - reserve_used, _CATEGORY_RESERVE_FLOOR)
     pack = build_context_pack(
-        root, query, max_tokens=max_tokens, changed_boost=True,
+        root, query, max_tokens=remaining_budget, changed_boost=True,
         changed_files=changed_paths, priority_files=modified_paths,
+        exclude_files=claimed_files or None,
     )
+
+    if reserved_texts:
+        combined_text = "\n".join([pack.text.rstrip(), *(_strip_pack_header(t) for t in reserved_texts)]) + "\n"
+    else:
+        combined_text = pack.text
+    combined_tokens = pack.estimated_tokens + reserve_used
+    selected_files = [*pack.selected_files, *reserved_selected]
     index = build_index(root)
+    from .pack import ContextPack
+    combined_pack = ContextPack(
+        text=combined_text, estimated_tokens=combined_tokens,
+        scanned_files=pack.scanned_files, selected_files=selected_files,
+        ranked=pack.ranked, selected_symbols=[*pack.selected_symbols, *reserved_symbols],
+        redactions=pack.redactions, closure_files=[*pack.closure_files, *reserved_closure],
+    )
     return {
         "review": review,
-        "context": pack.text,
-        "estimated_tokens": pack.estimated_tokens,
-        "selected_files": pack.selected_files,
-        "selected_symbols": pack.selected_symbols,
-        "closure_files": pack.closure_files,
-        "coverage": _coverage(review, index, pack),
+        "context": combined_pack.text,
+        "estimated_tokens": combined_pack.estimated_tokens,
+        "selected_files": combined_pack.selected_files,
+        "selected_symbols": combined_pack.selected_symbols,
+        "closure_files": combined_pack.closure_files,
+        "coverage": _coverage(review, index, combined_pack),
     }

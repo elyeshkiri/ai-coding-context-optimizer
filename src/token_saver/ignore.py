@@ -57,8 +57,15 @@ SKIP_FILE_NAMES = {
     "uv.lock",
 }
 
+# Dot-directories that are conventionally committed, human-authored config
+# (unlike .git/.venv/.cache, which are VCS/tooling internals never meant to
+# be read as source) and so should not fall under the blanket "." skip.
+_DOT_DIR_ALLOWLIST = {".github", ".gitlab", ".circleci"}
+
 
 def should_skip_dir(name: str) -> bool:
+    if name in _DOT_DIR_ALLOWLIST:
+        return False
     return name in SKIP_DIR_NAMES or name.startswith(".")
 
 

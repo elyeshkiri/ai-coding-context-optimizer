@@ -30,8 +30,8 @@ v1.0 adds:
 - paired agent-outcome evaluation that suppresses savings claims when quality falls;
 - ready-to-copy Codex, Claude Code, Cursor, and GitHub Actions integrations.
 
-The included deterministic benchmark currently measures **92% relevant-file
-recall, 92% relevant-symbol recall, and 93.16% mean estimated context
+The included deterministic benchmark currently measures **88% relevant-file
+recall, 92% relevant-symbol recall, and 93.68% mean estimated context
 reduction** at a 6,000-token cap. These are retrieval measurements, not an
 end-to-end claim about agent success. (The 1.0.0 release measured 96%/100%/92.94%
 on this repository at that commit; see CHANGELOG.md. Numbers move slightly as
