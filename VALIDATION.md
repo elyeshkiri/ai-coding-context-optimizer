@@ -3,11 +3,14 @@
 Release validation executed locally on Linux with Python 3.14. The
 repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
 
-- Full test suite: **288 passed** in the release environment (up from 270 at
-  1.0.0; 18 new tests cover the SQL/config/CI/env extractors, the
-  changed-file/priority-file/fair-share allocation fixes, the coverage
-  manifest, and a synthetic regression fixture reproducing the structural
-  shape of the diff used for the real-world validation below).
+- Full test suite: **320 passed** at the current commit (270 at 1.0.0; +18
+  from this release's SQL/config/CI/env extractors, changed-file/
+  priority-file/fair-share allocation fixes, coverage manifest, and the
+  regression fixture reproducing the real-world validation diff's
+  structural shape below; +30 from index-backed retrieval, TypeScript
+  compiler semantics, frozen holdouts, and host validation merged after
+  this release was cut; +2 from the live-host-validation fix described
+  below).
 - Package build and isolated installation succeeded from `pyproject.toml` as
   token-saver 1.1.0 (`python -m build`, then `pip install` the built wheel
   into a fresh virtualenv and run `token-saver --help`).
@@ -36,6 +39,28 @@ repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
   `tests/test_evidence.py::test_mixed_diff_represents_every_evidence_category_within_budget`
   for the checked-in regression fixture that guards this result without
   depending on the private repository.
+- Live host validation executed against a real, separate Claude Code host
+  process (version 2.1.274), not a simulated payload: a fresh scratch
+  project had Token Saver's hooks installed via `token-saver install`, a
+  headless `claude -p` session (`--allowedTools Bash --debug-file ...`) ran
+  a command producing 500 distinct lines, and the host's own debug log was
+  captured and inspected directly. It shows the host receiving
+  `hookSpecificOutput.updatedToolOutput`, parsing and validating it, and
+  logging `Hook PostToolUse (token-saver hook) replaced tool output`. This
+  also surfaced and fixed a real bug: the host's own debug-log redaction
+  rewrote the word "filtered" to "[REDACTED]" inside Token Saver's recovery
+  note (confirmed unrelated to Token Saver -- invoking the hook directly
+  produces the unmangled note), which made the previous exact-string
+  evidence check report no acceptance despite genuine acceptance having
+  occurred. `host_validate.py` now checks for the recovery command's
+  generated hex id instead of exact prose, since nothing but Token Saver
+  produces that pattern and generic redaction of surrounding words doesn't
+  remove it. `token-saver host-check --live-evidence <captured-log>
+  --require-live` now exits 0 with `live_verified: true`. The raw debug log
+  is not included in this repository (it briefly names an internal socket
+  path and environment-probe details, distinct from and in addition to
+  Token Saver's own recovery marker, and is host session debug output, not
+  Token Saver's own artifact).
 - Regression coverage carried over from 1.0.0 still exercises bounded
   dependency closure, Tree-sitter-backed JS/TS/JSX/TSX symbol ranges,
   patch-aware context generation, public-signature/removed-symbol/
@@ -55,7 +80,6 @@ Observed dependency versions in the release environment:
 
 Not executed:
 
-- A live Claude Code session accepting the replacement on its model input path.
 - Real paired coding tasks with paid API usage and independently checked outcomes.
 - Windows execution of the locking branch.
 - A production benchmark proving that task-aware packs reduce total task cost

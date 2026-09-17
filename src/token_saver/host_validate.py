@@ -131,9 +131,16 @@ def _host_evidence(path: Path | None) -> dict[str, Any]:
             "provided": True, "accepted_replacement": False,
             "error": type(exc).__name__,
         }
-    # Debug formats vary by host version. Require both the replacement field
-    # and Token Saver's recovery marker before calling supplied evidence positive.
-    accepted = "updatedToolOutput" in text and "token-saver: filtered output" in text
+    # Debug formats vary by host version, and a host's own debug-log
+    # redaction can mangle prose inside the replacement -- observed live:
+    # a real host's log sanitizer rewrote "filtered" to "[REDACTED]" in the
+    # recovery note even though the replacement was genuinely accepted and
+    # applied (confirmed by the host's own "replaced tool output" log line
+    # alongside it). The recovery command's generated hex id is a stronger
+    # signal than exact prose: nothing but Token Saver produces it, and it
+    # doesn't look like a credential, so generic secret-redaction leaves it
+    # alone even when it rewrites the surrounding sentence.
+    accepted = "updatedToolOutput" in text and bool(_OUTPUT_ID.search(text))
     return {
         "provided": True,
         "accepted_replacement": accepted,

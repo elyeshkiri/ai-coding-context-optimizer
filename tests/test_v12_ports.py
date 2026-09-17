@@ -2,7 +2,7 @@ import json
 
 from token_saver.entry import main as entry_main
 from token_saver.evaluate import ground_truth_hash
-from token_saver.host_validate import _transport_roundtrip
+from token_saver.host_validate import _host_evidence, _transport_roundtrip
 
 
 def test_hook_transport_roundtrip_recovers_omitted_middle(tmp_path, monkeypatch):
@@ -40,6 +40,40 @@ def test_evaluate_cli_prints_portable_ground_truth_hash(tmp_path, capsys):
         "evaluate", str(manifest), "--print-ground-truth-hash"
     ]) == 0
     assert capsys.readouterr().out.strip() == ground_truth_hash(payload)
+
+
+def test_host_evidence_survives_host_redaction_of_marker_prose(tmp_path):
+    # Observed live against a real Claude Code host (2.1.274): its own
+    # debug-log redaction rewrote "filtered" to "[REDACTED]" inside Token
+    # Saver's recovery note, even though the replacement was genuinely
+    # accepted and applied (the host's own log confirmed "replaced tool
+    # output" alongside it). The old exact-string check
+    # ("token-saver: filtered output") would report no acceptance here
+    # despite that; the recovery command's generated hex id is not prose
+    # and survives.
+    log = tmp_path / "host-debug.log"
+    log.write_text(
+        '2026-09-17T13:04:51.085Z [DEBUG] "Hook PostToolUse:Bash (PostToolUse) success:\\n'
+        '{\\"hookSpecificOutput\\": {\\"hookEventName\\": \\"PostToolUse\\", '
+        '\\"updatedToolOutput\\": {\\"stdout\\": \\"...\\\\n\\\\n'
+        '[token-saver: [REDACTED] output; original saved. '
+        'Retrieve: token-saver output 91acb963a86740d48a648a77fb5c367c '
+        '--stream stdout --offset 1 --limit 80]\\\\n\\"}}}"\n'
+        '2026-09-17T13:04:51.085Z [DEBUG] Hook PostToolUse (token-saver hook) replaced tool output\n',
+        encoding="utf-8",
+    )
+    result = _host_evidence(log)
+    assert result["accepted_replacement"] is True
+
+
+def test_host_evidence_rejects_evidence_without_recovery_command(tmp_path):
+    log = tmp_path / "host-debug.log"
+    log.write_text(
+        '{"hookSpecificOutput": {"updatedToolOutput": {"stdout": "no recovery command here"}}}',
+        encoding="utf-8",
+    )
+    result = _host_evidence(log)
+    assert result["accepted_replacement"] is False
 
 
 def test_host_check_command_is_routed(monkeypatch, capsys, tmp_path):
