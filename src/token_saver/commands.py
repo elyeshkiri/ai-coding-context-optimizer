@@ -59,9 +59,16 @@ def evaluate_main(argv: list[str]) -> int:
     parser.add_argument("manifest")
     parser.add_argument("--path", default=".")
     parser.add_argument("--max-tokens", type=int, default=6000)
+    parser.add_argument(
+        "--require-holdout", action="store_true",
+        help="require frozen ground truth and development-excluded holdout metadata",
+    )
     args = parser.parse_args(argv)
     try:
-        result = evaluate_manifest(Path(args.path), Path(args.manifest), args.max_tokens)
+        result = evaluate_manifest(
+            Path(args.path), Path(args.manifest), args.max_tokens,
+            require_holdout=args.require_holdout,
+        )
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
