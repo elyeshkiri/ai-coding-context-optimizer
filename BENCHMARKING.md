@@ -13,6 +13,51 @@ token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 Add project-specific tasks using `query`, `files`, and `symbols`. Keep the
 manifest under version control so ranking changes can be compared reproducibly.
 
+## Multi-repository holdout benchmark
+
+The repository-local selector benchmark is useful for regressions, but because
+Token Saver is developed against this codebase it is not independent evidence of
+generalization. For unseen evaluation, define ground truth before running the
+tool and point one manifest at repositories that were excluded from ranking
+work/tuning. `benchmarks/holdout.example.json` contains the full schema.
+
+Repository paths are resolved relative to the manifest. Pin exact Git commits so
+the corpus cannot move between runs:
+
+```json
+{
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true
+  },
+  "repositories": {
+    "app-a": {"path": "../app-a", "revision": "ACTUAL_COMMIT_SHA"},
+    "app-b": {"path": "../app-b", "revision": "ACTUAL_COMMIT_SHA"}
+  },
+  "tasks": [
+    {
+      "id": "auth-refresh",
+      "repository": "app-a",
+      "query": "session refresh after logout",
+      "files": ["src/auth/session.ts"],
+      "symbols": ["refreshSession"]
+    }
+  ]
+}
+```
+
+Run it with enforcement enabled:
+
+```bash
+token-saver evaluate benchmarks/holdout.json --require-holdout --max-tokens 6000
+```
+
+`--require-holdout` rejects a manifest unless both protocol flags are true and
+rejects a repository whose current `HEAD` differs from its declared revision.
+The output includes both aggregate metrics and per-repository summaries. This
+does not prove the labels were honestly created before tuning; preserve the
+manifest history and task-definition process as audit evidence.
+
 ## Paired agent outcomes
 
 Record independently validated baseline and Token Saver runs using the schema in
