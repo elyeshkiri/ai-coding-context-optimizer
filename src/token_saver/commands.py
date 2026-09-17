@@ -1,4 +1,4 @@
-"""v0.9 command-line surfaces kept separate from the legacy CLI."""
+"""High-value command-line surfaces kept separate from the legacy CLI."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ import json
 import sys
 from pathlib import Path
 
-from .evaluate import evaluate_manifest
+from .evaluate import evaluate_manifest, ground_truth_hash
 from .agent_eval import evaluate_agent_runs
 from .feedback import record_feedback
+from .host_validate import validate_host
 from .impact import analyze_impact
 from .patch_context import build_diff_context, review_patch
 from .serve import serve
@@ -61,12 +62,23 @@ def evaluate_main(argv: list[str]) -> int:
     parser.add_argument("--max-tokens", type=int, default=6000)
     parser.add_argument(
         "--require-holdout", action="store_true",
-        help="require frozen ground truth and development-excluded holdout metadata",
+        help="require development-excluded holdout metadata and a valid frozen ground-truth hash",
+    )
+    parser.add_argument(
+        "--print-ground-truth-hash", action="store_true",
+        help="print the SHA-256 to freeze into protocol.ground_truth_sha256 without running tasks",
     )
     args = parser.parse_args(argv)
+    manifest = Path(args.manifest)
     try:
+        if args.print_ground_truth_hash:
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("manifest must be a JSON object")
+            print(ground_truth_hash(payload))
+            return 0
         result = evaluate_manifest(
-            Path(args.path), Path(args.manifest), args.max_tokens,
+            Path(args.path), manifest, args.max_tokens,
             require_holdout=args.require_holdout,
         )
     except (OSError, ValueError) as exc:
@@ -86,6 +98,40 @@ def agent_evaluate_main(argv: list[str]) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def host_check_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver host-check")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--host", default="claude", help="host executable to inspect")
+    parser.add_argument(
+        "--live-evidence",
+        help="host debug transcript proving updatedToolOutput acceptance",
+    )
+    parser.add_argument(
+        "--require-ready", action="store_true",
+        help="return nonzero unless hooks are configured and transport recovery passes",
+    )
+    parser.add_argument(
+        "--require-live", action="store_true",
+        help="return nonzero unless supplied host debug evidence verifies replacement acceptance",
+    )
+    args = parser.parse_args(argv)
+    try:
+        result = validate_host(
+            Path(args.path),
+            executable=args.host,
+            live_evidence=Path(args.live_evidence) if args.live_evidence else None,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    if args.require_live and not result["live_verified"]:
+        return 1
+    if args.require_ready and not result["ready"]:
+        return 1
     return 0
 
 

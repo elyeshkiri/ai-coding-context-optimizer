@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 
 from .pack import build_context_pack
+from .repo_index import build_index
+from .semantic_ts import enrich_index_with_typescript
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,6 +32,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--session", help="remember the selected working set for related tasks")
     parser.add_argument("--embeddings", action="store_true",
                         help="rerank with an already-downloaded local sentence-transformer")
+    parser.add_argument("--typescript-semantic", action="store_true",
+                        help="overlay TS/JS edges resolved by the repository's local TypeScript compiler")
+    parser.add_argument("--strict-semantic", action="store_true",
+                        help="fail instead of falling back when compiler semantic resolution is unavailable")
     parser.add_argument("--no-index-cache", action="store_true")
     parser.add_argument("--target-symbol", help="prioritize and emit an exact symbol body")
     parser.add_argument("--json", action="store_true", help="emit structured JSON metadata and text")
@@ -46,6 +52,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"not a directory: {root}", file=sys.stderr)
         return 1
     try:
+        index = build_index(
+            root,
+            use_gitignore=not args.no_gitignore,
+            persist=not args.no_index_cache,
+        )
+        semantic_enabled = True if (args.typescript_semantic or args.strict_semantic) else None
+        semantic_edges = enrich_index_with_typescript(
+            index,
+            enabled=semantic_enabled,
+            strict=args.strict_semantic,
+        )
         pack = build_context_pack(
             root,
             args.query,
@@ -61,6 +78,7 @@ def main(argv: list[str] | None = None) -> int:
             persist_index=not args.no_index_cache,
             target_symbol=args.target_symbol,
             closure_max_items=args.closure_items,
+            index=index,
         )
     except (ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
@@ -76,6 +94,8 @@ def main(argv: list[str] | None = None) -> int:
             "selected_symbols": pack.selected_symbols,
             "redactions": pack.redactions,
             "closure_files": pack.closure_files,
+            "retrieval_plan": pack.retrieval_plan,
+            "typescript_semantic_edges": semantic_edges,
         }
         rendered = json.dumps(payload, indent=2)
         if args.out:
@@ -94,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.explain:
         print("\nTOKEN-SAVER RELEVANCE", file=sys.stderr)
+        if semantic_edges:
+            print(f"compiler semantic edges: {semantic_edges}", file=sys.stderr)
         for item in pack.ranked[: min(20, len(pack.ranked))]:
             marker = "*" if item.rel in pack.selected_files else " "
             print(

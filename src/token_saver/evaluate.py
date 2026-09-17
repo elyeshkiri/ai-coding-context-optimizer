@@ -1,9 +1,11 @@
 """Ground-truth evaluation for context selection quality."""
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from .pack import build_context_pack
 from .repo_index import RepositoryIndex, build_index
@@ -55,7 +57,61 @@ def _repository_specs(payload: dict, manifest: Path) -> dict[str, tuple[Path, st
     return specs
 
 
-def _validate_holdout_protocol(payload: dict) -> None:
+def _ground_truth_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize only evidence-defining fields for a portable freeze hash.
+
+    Local filesystem paths are excluded so a frozen manifest can be replicated
+    on another machine. Repository aliases and pinned revisions are included.
+    """
+    raw_repositories = payload.get("repositories", {})
+    repositories: dict[str, dict[str, str | None]] = {}
+    if isinstance(raw_repositories, dict):
+        for name, value in sorted(raw_repositories.items()):
+            if not isinstance(name, str):
+                continue
+            revision = value.get("revision") if isinstance(value, dict) else None
+            repositories[name] = {
+                "revision": revision if isinstance(revision, str) else None,
+            }
+
+    raw_tasks = payload.get("tasks", [])
+    tasks: list[dict[str, Any]] = []
+    if isinstance(raw_tasks, list):
+        for position, raw in enumerate(raw_tasks, start=1):
+            if not isinstance(raw, dict):
+                continue
+            tasks.append({
+                "id": raw.get("id", position),
+                "repository": raw.get("repository"),
+                "query": str(raw.get("query", "")),
+                "files": sorted(
+                    str(value).replace("\\", "/")
+                    for value in raw.get("files", []) if isinstance(value, str)
+                ),
+                "symbols": sorted(
+                    str(value) for value in raw.get("symbols", []) if isinstance(value, str)
+                ),
+                "max_tokens": int(raw.get("max_tokens", payload.get("max_tokens", 6000))),
+            })
+    return {
+        "suite_version": int(payload.get("suite_version", 1)),
+        "repositories": repositories,
+        "tasks": tasks,
+    }
+
+
+def ground_truth_hash(payload: dict[str, Any]) -> str:
+    """Return a stable SHA-256 for the frozen benchmark definition."""
+    encoded = json.dumps(
+        _ground_truth_payload(payload),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _validate_holdout_protocol(payload: dict) -> str:
     protocol = payload.get("protocol")
     if not isinstance(protocol, dict):
         raise ValueError("holdout evaluation requires a 'protocol' object")
@@ -65,6 +121,17 @@ def _validate_holdout_protocol(payload: dict) -> None:
         raise ValueError(
             "holdout protocol requires true flags: " + ", ".join(missing)
         )
+    frozen_at = protocol.get("frozen_at")
+    if not isinstance(frozen_at, str) or not frozen_at.strip():
+        raise ValueError("holdout protocol requires a non-empty 'frozen_at' timestamp")
+    expected = ground_truth_hash(payload)
+    declared = protocol.get("ground_truth_sha256")
+    if not isinstance(declared, str) or declared != expected:
+        raise ValueError(
+            "holdout ground truth is not frozen or changed; set "
+            f"protocol.ground_truth_sha256 to {expected}"
+        )
+    return expected
 
 
 def _summary(items: list[dict]) -> dict:
@@ -88,9 +155,9 @@ def evaluate_manifest(
     Backward-compatible manifests use only ``tasks`` and the supplied ``root``.
     Multi-repository manifests may add a top-level ``repositories`` mapping and
     set each task's ``repository`` alias. Repository specs may pin a git
-    ``revision``. ``require_holdout`` additionally requires protocol flags that
-    attest ground truth was frozen and the repositories/tasks were excluded from
-    Token Saver development/tuning.
+    ``revision``. ``require_holdout`` requires development-exclusion metadata
+    and a SHA-256 freeze of the task/repository ground truth so post-hoc edits
+    are detected before evaluation.
     """
     root = root.resolve()
     manifest = manifest.resolve()
@@ -100,8 +167,7 @@ def evaluate_manifest(
         raise ValueError("manifest must contain a non-empty 'tasks' list")
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
-    if require_holdout:
-        _validate_holdout_protocol(payload)
+    frozen_hash = _validate_holdout_protocol(payload) if require_holdout else None
 
     specs = _repository_specs(payload, manifest)
     indexes: dict[Path, RepositoryIndex] = {}
@@ -146,8 +212,11 @@ def evaluate_manifest(
         query = str(task.get("query", ""))
         expected_files = set(task.get("files", []))
         expected_symbols = set(task.get("symbols", []))
+        task_budget = int(task.get("max_tokens", max_tokens))
+        if task_budget <= 0:
+            raise ValueError(f"task {task.get('id', position)!r} max_tokens must be positive")
         pack = build_context_pack(
-            repo_root, query, max_tokens=max_tokens, changed_boost=False,
+            repo_root, query, max_tokens=task_budget, changed_boost=False,
             feedback_boost=False, index=index,
         )
         actual_symbols = {
@@ -175,4 +244,5 @@ def evaluate_manifest(
         },
         "summary": _summary(results),
         "holdout_protocol_enforced": require_holdout,
+        "ground_truth_sha256": frozen_hash or ground_truth_hash(payload),
     }

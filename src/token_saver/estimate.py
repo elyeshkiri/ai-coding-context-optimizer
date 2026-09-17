@@ -1,12 +1,16 @@
-"""Token counting.
+"""Provider-aware token counting.
 
 Two modes are intentionally separate:
 
-* **exact** uses the provider's tokenizer/counting mechanism for a concrete
-  model: Anthropic's count-tokens API or OpenAI's local tiktoken model map.
-* **estimate** is the existing conservative offline file-type heuristic used
-  for fast context budgeting. It is not billing-grade and remains provider
-  neutral so ranking does not silently change when a model name changes.
+* **exact** uses a provider/model-specific counting mechanism: Anthropic's
+  count-tokens API, OpenAI's local tiktoken model map, or Gemini's count_tokens
+  API through google-genai.
+* **estimate** is the conservative offline file-type heuristic used for fast
+  context budgeting. It is not billing-grade and remains provider neutral.
+
+Raw-text tokenizer counts intentionally do not pretend to include arbitrary
+request-envelope/tool-schema overhead. Billing validation should use the
+provider-reported usage from the actual agent run.
 """
 from __future__ import annotations
 
@@ -71,12 +75,14 @@ def estimate_file(path: Path) -> int:
 
 
 def provider_for_model(model: str) -> str | None:
-    """Infer a supported tokenizer provider from a model id."""
+    """Infer a supported token-counting provider from a model id."""
     name = model.strip().lower()
     if name.startswith("claude-"):
         return "anthropic"
     if name.startswith(("gpt-", "chatgpt-", "o1", "o3", "o4")):
         return "openai"
+    if name.startswith(("gemini-", "models/gemini-")):
+        return "google"
     return None
 
 
@@ -112,28 +118,38 @@ def _count_openai(text: str, model: str) -> int:
     return len(encoding.encode(text))
 
 
+def _count_google(text: str, model: str) -> int:
+    try:
+        from google import genai
+    except ImportError as exc:  # pragma: no cover - environment dependent
+        raise RuntimeError(
+            "exact Google/Gemini counting needs: pip install 'token-saver[google]'"
+        ) from exc
+    client = genai.Client()
+    response = client.models.count_tokens(model=model, contents=text)
+    value = getattr(response, "total_tokens", None)
+    if value is None:
+        raise RuntimeError("Gemini count_tokens response did not include total_tokens")
+    return int(value)
+
+
 def count_tokens_exact(
     text: str,
     model: str = DEFAULT_MODEL,
     *,
     provider: str | None = None,
 ) -> int:
-    """Count model input tokens with the selected provider.
-
-    Anthropic uses its message-count API and therefore includes provider message
-    framing. OpenAI uses the model's local tiktoken encoding and counts the text
-    content itself; callers that need full request accounting should add their
-    own message/tool schema overhead rather than pretending a generic wrapper is
-    exact for every API surface.
-    """
+    """Count model input tokens with the selected provider."""
     chosen = (provider or provider_for_model(model) or "").lower()
     if chosen == "anthropic":
         return _count_anthropic(text, model)
     if chosen == "openai":
         return _count_openai(text, model)
+    if chosen in {"google", "gemini"}:
+        return _count_google(text, model)
     raise RuntimeError(
         f"unsupported token-counting provider for model {model!r}; "
-        "pass provider='anthropic' or provider='openai'"
+        "pass provider='anthropic', provider='openai', or provider='google'"
     )
 
 

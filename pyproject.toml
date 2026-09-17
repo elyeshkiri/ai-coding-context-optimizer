@@ -12,6 +12,7 @@ license-files = ["LICENSE"]
 dev = ["pytest>=7", "build>=1"]
 # provider-aware exact token counting: Anthropic API + OpenAI local tokenizer
 exact = ["anthropic>=0.40", "tiktoken>=0.7,<1"]
+google = ["google-genai>=1,<2"]
 embeddings = ["sentence-transformers>=3,<6"]
 
 [project.scripts]
