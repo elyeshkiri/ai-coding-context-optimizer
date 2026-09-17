@@ -21,6 +21,7 @@ from .feedback import load_feedback
 from .lexical import document_counts, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
+from .semantic_ts import resolve_module_path
 from .skeleton import file_priority
 from .working_set import load_working_set, save_working_set
 
@@ -227,13 +228,22 @@ def rank_files(
     if priority_files:
         seed_pool.sort(key=lambda rel: rel not in priority_files)
     seeds = seed_pool[:seed_limit]
+    q_term_set = set(q_terms)
     for related in dependency_closure(
         index, seeds, max_hops=graph_hops, max_items=closure_max_items,
     ):
         item = by_rel.get(related.path)
         if item is None:
             continue
-        item.score += 2.5 * related.confidence
+        graph_boost = 2.5 * related.confidence
+        target_record = index.records.get(related.path)
+        if target_record is not None and related.reason in {"semantic-call", "reexport"}:
+            target_terms = set((target_record.term_counts or {}).keys())
+            graph_query_hits = len(q_term_set & target_terms)
+            if graph_query_hits:
+                graph_boost += min(4.5, 1.5 * graph_query_hits)
+                item.reasons.append(f"graph-query:{graph_query_hits}")
+        item.score += graph_boost
         item.reasons.append(f"graph:{related.reason}@{related.distance}")
         item.reasons.append(
             f"closure:{related.source}@{related.distance}:{related.confidence:.2f}"
@@ -308,6 +318,83 @@ def _source_window(text: str, start: int, end: int) -> str:
     return f"#### lines {start}-{end}\n```\n" + "\n".join(body) + "\n```\n"
 
 
+def _semantic_symbol_ref_index(
+    index: RepositoryIndex,
+) -> dict[tuple[str, str], list[tuple[str, str]]]:
+    cached = getattr(index, "_token_saver_symbol_referrers", None)
+    if cached is not None:
+        return cached
+    known = index.records.keys()
+    built: dict[tuple[str, str], list[tuple[str, str]]] = {}
+    for source_rel, record in index.records.items():
+        for ref in record.semantic_refs or []:
+            if not isinstance(ref, dict):
+                continue
+            symbol = str(ref.get("symbol", "")).strip().lower()
+            module = str(ref.get("module", ""))
+            if not symbol or symbol == "*" or not module:
+                continue
+            target = resolve_module_path(source_rel, module, known)
+            if target is None or target == source_rel:
+                continue
+            kind = str(ref.get("kind", "semantic-call"))
+            built.setdefault((target, symbol), []).append((source_rel, kind))
+    for key, values in built.items():
+        built[key] = sorted(set(values))
+    setattr(index, "_token_saver_symbol_referrers", built)
+    return built
+
+
+def _record_query_overlap(index: RepositoryIndex, rel: str, query_terms: set[str]) -> int:
+    record = index.records.get(rel)
+    if record is None or not query_terms:
+        return 0
+    return len(query_terms & set((record.term_counts or {}).keys()))
+
+
+def _symbol_graph_score(
+    index: RepositoryIndex, target_rel: str, symbol: object, query_terms: set[str],
+) -> float:
+    """Score structural evidence for a definition without rewarding prose density."""
+    name = str(getattr(symbol, "name", ""))
+    if not name:
+        return 0.0
+
+    score = 0.0
+    referrers = _semantic_symbol_ref_index(index).get((target_rel, name.lower()), [])
+    if referrers:
+        strengths: list[float] = []
+        for source_rel, kind in referrers:
+            overlap = _record_query_overlap(index, source_rel, query_terms)
+            base = 34.0 if kind == "semantic-call" else 24.0 if kind == "reexport" else 28.0
+            strengths.append(base + min(12.0, 3.0 * overlap))
+        score += max(strengths)
+        score += min(12.0, 3.0 * (len({source for source, _ in referrers}) - 1))
+
+    caller_strengths: list[float] = []
+    caller_sources: set[str] = set()
+    for caller_rel, caller in index.symbol_callers(name):
+        if caller_rel == target_rel and getattr(caller, "name", None) == name:
+            continue
+        signature_terms = set(terms(f"{caller.name} {caller.signature}"))
+        signature_overlap = len(query_terms & signature_terms)
+        file_overlap = _record_query_overlap(index, caller_rel, query_terms)
+        if not signature_overlap and not file_overlap:
+            continue
+        caller_sources.add(caller_rel)
+        caller_strengths.append(
+            10.0 + 4.0 * signature_overlap + 2.0 * min(3, file_overlap)
+        )
+    if caller_strengths:
+        score += max(caller_strengths)
+        score += min(8.0, 2.0 * (len(caller_sources) - 1))
+
+    parent = getattr(symbol, "parent", None)
+    if parent:
+        score += 4.0 * len(query_terms & set(terms(str(parent))))
+    return score
+
+
 def _symbol_windows(
     item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
 ) -> tuple[list[tuple[int, int]], list[str]]:
@@ -315,7 +402,7 @@ def _symbol_windows(
     if record is None:
         return [], []
     wanted = (target_symbol or "").lower()
-    matches: list[tuple[int, object]] = []
+    matches: list[tuple[float, object]] = []
     source_lines = item.text.splitlines()
     for symbol in record.definitions or []:
         name_terms = set(terms(symbol.name + " " + symbol.signature))
@@ -323,9 +410,18 @@ def _symbol_windows(
         body_terms = set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
-        score = 100 if exact else 50 if partial else 0
+        score = 1000.0 if exact else 500.0 if partial else 0.0
         if not wanted:
-            score = 20 * len(query_terms & name_terms) + len(query_terms & body_terms)
+            name_hits = len(query_terms & name_terms)
+            name_coverage = name_hits / max(1, len(name_terms))
+            # Keep lexical evidence bounded: dense helper bodies should not beat
+            # the definition that the repository graph actually points at.
+            score = (
+                18.0 * name_hits
+                + 8.0 * name_coverage
+                + min(6.0, float(len(query_terms & body_terms)))
+                + _symbol_graph_score(index, item.rel, symbol, query_terms)
+            )
         if score:
             matches.append((score, symbol))
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
