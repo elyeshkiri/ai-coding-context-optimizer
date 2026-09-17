@@ -97,7 +97,7 @@ def test_openai_unknown_tokenizer_is_not_silently_approximated(monkeypatch):
 
 
 def test_unknown_provider_requires_explicit_choice():
-    with pytest.raises(ValueError, match="unsupported token-counting provider"):
+    with pytest.raises(RuntimeError, match="unsupported token-counting provider"):
         count_tokens_exact("hi", model="local-model")
 
 
