@@ -1,12 +1,62 @@
-# Token Saver 1.0.0
+# Token Saver 1.1.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
-## What is new in 1.0
+## What is new in 1.1
 
-Token Saver now compiles both tasks and patches into bounded, explainable context:
+`pack-diff`/`review` used to see only source files. The index now also
+covers SQL migrations, `package.json`, CI workflows
+(`.github/workflows/*.yml`), and `.env.example`-style templates -- each with
+real extracted symbols (table names, npm scripts, CI job ids, env vars)
+reusing the same symbol/call-graph machinery as functions and classes,
+rather than a separate subsystem. A file that carries real regression risk
+but would otherwise lose the ranking competition to a large newly-added file
+(a migration landing next to a big new feature, say) gets a small,
+budget-capped guaranteed allocation instead of being silently dropped.
+
+```bash
+token-saver pack-diff . --base main --max-tokens 6000 --json
+```
+
+v1.1 adds:
+
+- SQL/JSON/YAML and `.env.example`-style indexing with dedicated symbol
+  extraction -- table names, npm scripts, CI job ids, env vars;
+- budgeted evidence allocation: database/config/CI/test evidence that is
+  entirely newly-added (so the usual changed-file priority can't reach it)
+  gets a small, fair-share-capped guaranteed budget share instead of
+  competing purely on relevance score against large new source files;
+- a `coverage` field (and a `# coverage: N/M changed files represented`
+  footer) distinguishing selected, closure-only, policy-excluded, and
+  simply-didn't-fit changed files;
+- fixed `pack-diff`/`review` returning an empty pack on large diffs, a
+  20-30x impact-analysis performance cliff, and the changed-file boost
+  being a no-op for a historical `--base` range -- see CHANGELOG.md for
+  each fix.
+
+Validated end-to-end against a real 129-file diff from a separate
+production application (private, not included in this repository): at a
+fixed 4,000-token budget, an isolated reviewing model with no repository
+access went from recovering roughly 5-7 of 15 independently-defined
+ground-truth concerns to roughly 12-13 of 15 -- including two findings a
+much larger (100,416-token, full-repository-access) baseline review missed
+-- while token cost stayed within about 1% of the pre-widening figure. This
+is a single diff, not a statistically validated benchmark; see
+[CHANGELOG.md](CHANGELOG.md) for full methodology and the checked-in
+regression fixture that guards the result going forward.
+
+The included deterministic benchmark currently measures **88% relevant-file
+recall, 92% relevant-symbol recall, and 93.83% mean estimated context
+reduction** at a 6,000-token cap. These are retrieval measurements, not an
+end-to-end claim about agent success. Numbers move slightly as the tool's
+own source -- part of the benchmark corpus -- changes; re-run
+`token-saver evaluate` for the exact figure on your checkout.
+
+## What was new in 1.0
+
+Token Saver compiles both tasks and patches into bounded, explainable context:
 
 ```bash
 # Task-aware context with exact symbol bodies and dependency closure
@@ -30,14 +80,6 @@ v1.0 adds:
 - paired agent-outcome evaluation that suppresses savings claims when quality falls;
 - ready-to-copy Codex, Claude Code, Cursor, and GitHub Actions integrations.
 
-The included deterministic benchmark currently measures **88% relevant-file
-recall, 92% relevant-symbol recall, and 93.68% mean estimated context
-reduction** at a 6,000-token cap. These are retrieval measurements, not an
-end-to-end claim about agent success. (The 1.0.0 release measured 96%/100%/92.94%
-on this repository at that commit; see CHANGELOG.md. Numbers move slightly as
-the tool's own source -- part of the benchmark corpus -- changes; re-run
-`token-saver evaluate` for the exact figure on your checkout.)
-
 For paired real-agent outcomes:
 
 ```bash
@@ -46,41 +88,6 @@ token-saver agent-evaluate benchmarks/agent-runs.example.json
 
 The evaluator reports a token-per-success reduction only when the Token Saver
 condition preserves baseline success rate.
-
-### Evidence coverage beyond source code (unreleased)
-
-`pack-diff`/`review` used to see only source files. The index now also
-covers SQL migrations, `package.json`, CI workflows
-(`.github/workflows/*.yml`), and `.env.example`-style templates -- each with
-real extracted symbols (table names, npm scripts, CI job ids, env vars)
-reusing the same symbol/call-graph machinery as functions and classes,
-rather than a separate subsystem. A file that carries real regression risk
-but would otherwise lose the ranking competition to a large newly-added file
-(a migration landing next to a big new feature, say) gets a small,
-budget-capped guaranteed allocation instead of being silently dropped.
-
-```bash
-token-saver pack-diff . --base main --max-tokens 6000 --json
-```
-
-The JSON output includes a `coverage` field distinguishing selected,
-closure-only, policy-excluded, and simply-didn't-fit files, and the
-non-JSON output prints a one-line summary:
-
-```text
-# coverage: 12/129 changed files represented (110 not selected, 0 excluded by policy)
-```
-
-Validated end-to-end against a real 129-file diff from a separate
-production application (private, not included in this repository): at a
-fixed 4,000-token budget, an isolated reviewing model with no repository
-access went from recovering roughly 5-7 of 15 independently-defined
-ground-truth concerns to roughly 12-13 of 15 -- including two findings a
-much larger (100,416-token, full-repository-access) baseline review missed
--- while token cost stayed within about 1% of the pre-widening figure. This
-is a single diff, not a statistically validated benchmark; see
-[CHANGELOG.md](CHANGELOG.md) for full methodology and the checked-in
-regression fixture that guards the result going forward.
 
 ## What was new in 0.9
 

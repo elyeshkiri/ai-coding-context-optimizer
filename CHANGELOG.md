@@ -1,4 +1,4 @@
-# Unreleased
+# 1.1.0
 
 - Fixed `pack-diff`/`review` silently returning an empty pack (exit 0, no
   output) on large diffs: the ranking query embedded every changed
