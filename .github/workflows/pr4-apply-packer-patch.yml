@@ -1,0 +1,96 @@
+name: PR4 Apply Packer Patch
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.ref == 'fix/authoritative-file-ranking' && github.event.pull_request.head.sha == 'a9ce856c7f7f219ae0122ce02bd1d15f9de2717d'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/authoritative-file-ranking
+      - name: Apply bounded provider reservation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/token_saver/pack.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''    priority_seen = 0
+
+    for item in candidates:
+        if len(selected) >= max_files:
+            break
+        remaining = max_tokens - used
+        if remaining <= 20:
+            break
+        if priority_files and item.rel in priority_files:
+            priority_seen += 1
+            slots_left = priority_total - priority_seen + 1
+            if slots_left > 1:
+                remaining = min(remaining, max(remaining // slots_left, 200))
+'''
+          new = '''    priority_seen = 0
+
+    # Keep one bounded evidence slot for the strongest exact value provider.
+    # Without this, a huge top-ranked consumer can spend the entire token
+    # budget on its outline before a high-confidence one-hop semantic-ref
+    # provider is considered. This is deliberately not global fair-sharing:
+    # ordinary large files keep the historical greedy allocation behavior.
+    authoritative_rel = next(
+        (
+            item.rel
+            for item in candidates[: max(4, plan.seed_limit + 2)]
+            if any(reason.startswith("graph:semantic-ref@1") for reason in item.reasons)
+        ),
+        None,
+    )
+    authoritative_reserve = (
+        min(900, max(240, max_tokens // 8)) if authoritative_rel else 0
+    )
+
+    for item in candidates:
+        if len(selected) >= max_files:
+            break
+        remaining = max_tokens - used
+        if remaining <= 20:
+            break
+        if priority_files and item.rel in priority_files:
+            priority_seen += 1
+            slots_left = priority_total - priority_seen + 1
+            if slots_left > 1:
+                remaining = min(remaining, max(remaining // slots_left, 200))
+
+        section_budget = remaining
+        if (
+            authoritative_rel
+            and authoritative_rel not in selected
+            and item.rel != authoritative_rel
+        ):
+            section_budget = max(0, remaining - authoritative_reserve)
+            if section_budget <= 20:
+                continue
+'''
+          if old not in text:
+              raise SystemExit('allocator anchor not found')
+          text = text.replace(old, new, 1)
+          old_fit = '        fitted = _fit_section(section, remaining)\n'
+          new_fit = '        fitted = _fit_section(section, section_budget)\n'
+          if old_fit not in text:
+              raise SystemExit('fit anchor not found')
+          text = text.replace(old_fit, new_fit, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'Elyes Hkiri'
+          git config user.email '55228083+elyeshkiri@users.noreply.github.com'
+          git add src/token_saver/pack.py
+          git commit -m 'fix: reserve budget for authoritative provider evidence'
+          git push origin HEAD:fix/authoritative-file-ranking
