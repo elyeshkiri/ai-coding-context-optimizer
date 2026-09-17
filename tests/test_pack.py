@@ -583,3 +583,34 @@ def test_symbol_window_matches_completion_to_complete_identifier(tmp_path):
     )
 
     assert any(label.startswith("src/completion.py:ShellComplete@") for label in pack.selected_symbols)
+
+
+def test_tight_budget_keeps_exact_symbol_source_before_large_outline(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    lines = []
+    for n in range(80):
+        lines.extend([
+            f"def helper_{n}(value):",
+            f"    return value + {n}",
+            "",
+        ])
+    lines.extend([
+        "def target_refresh_session(token):",
+        "    return rotate_token(token)",
+        "",
+    ])
+    (src / "large_service.py").write_text("\n".join(lines), encoding="utf-8")
+
+    pack = build_context_pack(
+        tmp_path,
+        "refresh session rotate token",
+        max_tokens=500,
+        changed_boost=False,
+    )
+
+    assert "return rotate_token(token)" in pack.text
+    assert any(
+        label.startswith("src/large_service.py:target_refresh_session@")
+        for label in pack.selected_symbols
+    )
