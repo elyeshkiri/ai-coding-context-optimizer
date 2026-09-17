@@ -1,27 +1,19 @@
 """Token counting.
 
-Two modes:
+Two modes are intentionally separate:
 
-* **exact** - `POST /v1/messages/count_tokens` via the Anthropic SDK. Model-specific
-  and correct. Requires credentials and a network round trip.
-* **estimate** - an offline heuristic, per file type. Free and instant, but only
-  good to roughly ±20%. Use it for budgets, never for billing.
-
-The heuristic's chars-per-token ratios were measured over ~17 MB of real source
-with a BPE tokenizer, then corrected: Claude's tokenizer is not cl100k, and cl100k
-undercounts Claude by ~15-20% on prose and more on code. The ratios below fold in
-that correction, so they are deliberately conservative — they bias toward
-over-estimating, because a budget that is too tight is cheaper to discover than
-one that is silently blown. When a number actually matters, use exact mode.
+* **exact** uses the provider's tokenizer/counting mechanism for a concrete
+  model: Anthropic's count-tokens API or OpenAI's local tiktoken model map.
+* **estimate** is the existing conservative offline file-type heuristic used
+  for fast context budgeting. It is not billing-grade and remains provider
+  neutral so ranking does not silently change when a model name changes.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
-# chars per Claude token, by file extension
 _RATIOS = {
     ".py": 3.1,
     ".pyi": 3.1,
@@ -60,50 +52,117 @@ def ratio_for(suffix: str) -> float:
 
 
 def estimate_tokens(text: str, suffix: str = "") -> int:
-    """Offline estimate. `suffix` selects the calibration; omit it for prose."""
+    """Offline estimate. ``suffix`` selects the calibration; omit for prose."""
     if not text:
         return 0
-    ratio = _RATIOS.get(suffix.lower(), _PROSE_DEFAULT if not suffix else _CODE_DEFAULT)
+    ratio = _RATIOS.get(
+        suffix.lower(), _PROSE_DEFAULT if not suffix else _CODE_DEFAULT
+    )
     return max(1, int(len(text) / ratio))
 
 
 def estimate_file(path: Path) -> int:
     try:
-        return estimate_tokens(path.read_text(encoding="utf-8", errors="replace"), path.suffix)
+        return estimate_tokens(
+            path.read_text(encoding="utf-8", errors="replace"), path.suffix
+        )
     except OSError:
         return 0
 
 
-def count_tokens_exact(text: str, model: str = DEFAULT_MODEL) -> int:
-    """Exact count from the Messages API. Raises if the SDK or credentials are missing."""
+def provider_for_model(model: str) -> str | None:
+    """Infer a supported tokenizer provider from a model id."""
+    name = model.strip().lower()
+    if name.startswith("claude-"):
+        return "anthropic"
+    if name.startswith(("gpt-", "chatgpt-", "o1", "o3", "o4")):
+        return "openai"
+    return None
+
+
+def _count_anthropic(text: str, model: str) -> int:
     try:
         import anthropic
-    except ImportError as exc:  # pragma: no cover - depends on the environment
+    except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(
-            "exact counting needs the Anthropic SDK: pip install 'token-saver[exact]'"
+            "exact Anthropic counting needs: pip install 'token-saver[exact]'"
         ) from exc
     client = anthropic.Anthropic()
     resp = client.messages.count_tokens(
         model=model,
         messages=[{"role": "user", "content": text}],
     )
-    return resp.input_tokens
+    return int(resp.input_tokens)
+
+
+def _count_openai(text: str, model: str) -> int:
+    try:
+        import tiktoken
+    except ImportError as exc:  # pragma: no cover - environment dependent
+        raise RuntimeError(
+            "exact OpenAI counting needs: pip install 'token-saver[exact]'"
+        ) from exc
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError as exc:
+        raise RuntimeError(
+            f"tiktoken does not have an exact tokenizer mapping for model {model!r}; "
+            "upgrade tiktoken or use offline estimate mode"
+        ) from exc
+    return len(encoding.encode(text))
+
+
+def count_tokens_exact(
+    text: str,
+    model: str = DEFAULT_MODEL,
+    *,
+    provider: str | None = None,
+) -> int:
+    """Count model input tokens with the selected provider.
+
+    Anthropic uses its message-count API and therefore includes provider message
+    framing. OpenAI uses the model's local tiktoken encoding and counts the text
+    content itself; callers that need full request accounting should add their
+    own message/tool schema overhead rather than pretending a generic wrapper is
+    exact for every API surface.
+    """
+    chosen = (provider or provider_for_model(model) or "").lower()
+    if chosen == "anthropic":
+        return _count_anthropic(text, model)
+    if chosen == "openai":
+        return _count_openai(text, model)
+    raise RuntimeError(
+        f"unsupported token-counting provider for model {model!r}; "
+        "pass provider='anthropic' or provider='openai'"
+    )
 
 
 class Counter:
     """Counts tokens, exactly or by estimate, behind one interface."""
 
-    def __init__(self, exact: bool = False, model: str = DEFAULT_MODEL) -> None:
+    def __init__(
+        self,
+        exact: bool = False,
+        model: str = DEFAULT_MODEL,
+        provider: str | None = None,
+    ) -> None:
         self.exact = exact
         self.model = model
+        self.provider = provider
 
     @property
     def label(self) -> str:
         return "exact" if self.exact else "≈est"
 
+    @property
+    def provider_label(self) -> str | None:
+        return self.provider or provider_for_model(self.model)
+
     def count(self, text: str, suffix: str = "") -> int:
         if self.exact:
-            return count_tokens_exact(text, self.model)
+            return count_tokens_exact(
+                text, self.model, provider=self.provider
+            )
         return estimate_tokens(text, suffix)
 
 

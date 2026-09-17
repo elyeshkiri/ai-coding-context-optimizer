@@ -1,0 +1,41 @@
+{
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true
+  },
+  "repositories": {
+    "project-a": {
+      "path": "../project-a",
+      "revision": "REPLACE_WITH_EXACT_COMMIT_SHA"
+    },
+    "project-b": {
+      "path": "../project-b",
+      "revision": "REPLACE_WITH_EXACT_COMMIT_SHA"
+    }
+  },
+  "tasks": [
+    {
+      "id": "project-a-session-refresh",
+      "repository": "project-a",
+      "query": "session refresh after logout",
+      "files": [
+        "src/auth/session.ts",
+        "src/auth/refresh.ts"
+      ],
+      "symbols": [
+        "refreshSession"
+      ]
+    },
+    {
+      "id": "project-b-worker-retry",
+      "repository": "project-b",
+      "query": "retry failed background jobs without duplicating work",
+      "files": [
+        "src/worker/retry.py"
+      ],
+      "symbols": [
+        "retry_failed"
+      ]
+    }
+  ]
+}

@@ -53,14 +53,6 @@ def analyze_impact(
     if not matched:
         raise ValueError(f"no indexed file or symbol matches: {target}")
 
-    # A generic symbol name (e.g. a Next.js route's GET/POST export) can
-    # appear in many matches. All matches sharing a name have an identical
-    # caller list, so scanning it once per match is pure repeated work.
-    # Self-exclusion (skip a symbol calling itself) only has to be checked
-    # when exactly one match owns that name: with two or more matches for
-    # the same name, any caller excluded for one match's own file is still
-    # included via the other matches, so the excluded entry always survives
-    # in the final (deduplicated-by-key) impacts dict either way.
     sole_owner_by_name: dict[str, tuple[str, str] | None] = {}
     for rel, symbol in matched:
         if symbol is None:
@@ -85,8 +77,12 @@ def analyze_impact(
         })
         for neighbor, edge in index.neighbors(rel):
             confidence = {
-                "imported-by": 0.95, "calls-symbol": 0.9,
-                "imports": 0.75, "calls": 0.75,
+                "semantic-call": 0.99,
+                "imported-by": 0.95,
+                "reexport": 0.9,
+                "calls-symbol": 0.9,
+                "imports": 0.75,
+                "calls": 0.75,
             }.get(edge, 0.65)
             item = ImpactItem(neighbor, edge, confidence)
             impacts[(neighbor, edge, None)] = item

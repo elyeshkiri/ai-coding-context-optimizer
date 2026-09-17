@@ -1,5 +1,7 @@
+from pathlib import Path
 import textwrap
 
+import token_saver.pack as pack_module
 from token_saver.pack import build_context_pack, rank_files
 from token_saver.repo_index import build_index, similarity
 
@@ -36,6 +38,32 @@ def test_incremental_index_reuses_unchanged_records(tmp_path):
     assert third.reused == 2
 
 
+def test_warm_index_does_not_reopen_unchanged_source(tmp_path, monkeypatch):
+    root = _repo(tmp_path)
+    cache = tmp_path / "index.json"
+    build_index(root, cache_path=cache)
+    original = Path.read_text
+
+    def guarded(path, *args, **kwargs):
+        if path.suffix == ".py":
+            raise AssertionError(f"warm index reopened source: {path}")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", guarded)
+    warm = build_index(root, cache_path=cache)
+    assert warm.reparsed == 0
+    assert warm.reused == 3
+
+
+def test_index_persists_retrieval_payload(tmp_path):
+    index = build_index(_repo(tmp_path), persist=False)
+    service = index.records["src/service.py"]
+    assert service.outline
+    assert service.term_counts
+    assert service.document_length > 0
+    assert service.term_counts.get("refresh", 0) > 0
+
+
 def test_index_extracts_symbols_imports_calls_and_edges(tmp_path):
     index = build_index(_repo(tmp_path), persist=False)
     service = index.records["src/service.py"]
@@ -43,6 +71,40 @@ def test_index_extracts_symbols_imports_calls_and_edges(tmp_path):
     assert "src.repository" in service.imports
     assert "load_user" in service.calls
     assert ("src/repository.py", "imports") in index.neighbors("src/service.py")
+
+
+def test_rank_files_uses_index_without_source_hydration(tmp_path, monkeypatch):
+    root = _repo(tmp_path)
+    index = build_index(root, persist=False)
+
+    def forbidden(_path):
+        raise AssertionError("rank_files must not hydrate source")
+
+    monkeypatch.setattr(pack_module, "_read_source", forbidden)
+    ranked = rank_files(
+        root, "refresh session", index=index, graph_hops=1, changed_boost=False
+    )
+    assert ranked[0].rel == "src/service.py"
+    assert all(item.text == "" for item in ranked)
+
+
+def test_context_pack_hydrates_only_final_candidates(tmp_path, monkeypatch):
+    root = _repo(tmp_path)
+    index = build_index(root, persist=False)
+    original = pack_module._read_source
+    reads = []
+
+    def counted(path):
+        reads.append(path)
+        return original(path)
+
+    monkeypatch.setattr(pack_module, "_read_source", counted)
+    pack = build_context_pack(
+        root, "refresh session", index=index, max_files=1, max_tokens=800,
+        graph_hops=0, changed_boost=False,
+    )
+    assert pack.selected_files == ["src/service.py"]
+    assert reads == [root / "src/service.py"]
 
 
 def test_graph_expansion_promotes_dependency(tmp_path):

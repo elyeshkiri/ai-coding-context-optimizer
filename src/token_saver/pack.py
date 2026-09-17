@@ -1,11 +1,9 @@
 """Task-aware context packing for coding agents.
 
-The packer spends a fixed token budget on the source most relevant to a task.
-It is intentionally local and deterministic: no embeddings, network calls, or
-LLM summarisation are required. Exact source windows are emitted for matches so
-an agent can reason about/edit code without first ingesting whole files.
+Ranking operates on the persistent repository index. Source bytes are hydrated
+only for files that survive retrieval and are considered for the final context
+pack, avoiding a full repository reread on every query.
 """
-
 from __future__ import annotations
 
 from collections import Counter
@@ -16,29 +14,19 @@ import re
 import subprocess
 from pathlib import Path
 
-from .estimate import estimate_tokens
+from .budget import RetrievalPlan, plan_retrieval
 from .closure import dependency_closure
+from .estimate import estimate_tokens
 from .feedback import load_feedback
+from .lexical import document_counts, terms
 from .repo_index import RepositoryIndex, build_index, similarity
-from .security import inspect_path, redact_secrets
-from .skeleton import file_priority, skeletonize, walk_repo
+from .security import redact_secrets
+from .skeleton import file_priority
 from .working_set import load_working_set, save_working_set
 
-_WORD = re.compile(r"[A-Za-z0-9_$]+")
-_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
-_STOP = {
-    "a", "an", "and", "are", "as", "at", "be", "by", "can", "code", "do",
-    "for", "from", "how", "i", "if", "in", "into", "is", "it", "me", "of",
-    "on", "or", "our", "please", "project", "the", "this", "to", "use", "we",
-    "with", "you", "your", "fix", "implement", "add", "build", "create",
-}
 _MAX_FILE_BYTES = 2_000_000
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
-_TERM_ALIASES = {
-    "outline": "skeleton",
-    "structural": "skeleton",
-}
 
 
 @dataclass
@@ -63,37 +51,17 @@ class ContextPack:
     selected_symbols: list[str] = field(default_factory=list)
     redactions: list[str] = field(default_factory=list)
     closure_files: list[str] = field(default_factory=list)
+    retrieval_plan: dict[str, int] = field(default_factory=dict)
 
 
+# Kept as private compatibility aliases for callers/tests that imported these
+# helpers before retrieval was moved into the persistent index.
 def _terms(text: str) -> list[str]:
-    """Tokenise prose, paths and identifiers into stable search terms."""
-    expanded = _CAMEL.sub(" ", text.replace("_", " ").replace("-", " ").replace("/", " "))
-    out: list[str] = []
-    for match in _WORD.finditer(expanded):
-        term = match.group(0).lower().strip("_$")
-        if len(term) < 2 or term in _STOP:
-            continue
-        out.append(term)
-        alias = _TERM_ALIASES.get(term)
-        if alias:
-            out.append(alias)
-        if term.endswith("ize") and len(term) > 6:
-            out.append(term[:-3])
-        elif term.endswith("ing") and len(term) > 6:
-            stem = term[:-3]
-            if len(stem) > 2 and stem[-1] == stem[-2]:
-                stem = stem[:-1]
-            if stem.endswith("c"):
-                stem += "e"
-            out.append(stem)
-        elif term.endswith("ed") and len(term) > 5:
-            stem = term[:-2]
-            if stem.endswith(("s", "g", "c", "v")):
-                stem += "e"
-            out.append(stem)
-        elif term.endswith("s") and len(term) > 4:
-            out.append(term[:-1])
-    return out
+    return terms(text)
+
+
+def _document_terms(text: str, outline: str, rel: str) -> Counter[str]:
+    return Counter(document_counts(text, outline, rel))
 
 
 def _changed_files(root: Path) -> set[str]:
@@ -110,7 +78,10 @@ def _changed_files(root: Path) -> set[str]:
             continue
         if proc.returncode != 0:
             continue
-        changed.update(line.strip().replace("\\", "/") for line in proc.stdout.splitlines() if line.strip())
+        changed.update(
+            line.strip().replace("\\", "/")
+            for line in proc.stdout.splitlines() if line.strip()
+        )
     return changed
 
 
@@ -121,17 +92,6 @@ def _read_source(path: Path) -> str | None:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-
-
-def _document_terms(text: str, outline: str, rel: str) -> Counter[str]:
-    # Full source gets one vote, structural API gets two, path gets three. This
-    # keeps identifier/path matches ahead of incidental comments/log strings.
-    counts = Counter(_terms(text))
-    counts.update(_terms(outline))
-    counts.update(_terms(outline))
-    for term in _terms(rel):
-        counts[term] += 3
-    return counts
 
 
 def rank_files(
@@ -150,58 +110,66 @@ def rank_files(
     priority_files: set[str] | None = None,
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
+    seed_limit: int = 6,
 ) -> list[RankedFile]:
-    """Rank repository source files for `query` using BM25 + code-aware boosts.
+    """Rank indexed files for ``query`` using BM25 + code-aware boosts.
 
-    `changed_files` overrides live git status (needed for a historical
-    revision range, not the working tree). `priority_files` orders closure
-    seeding ahead of score alone, so a large file's term-overlap can't starve
-    out a small critical edit. `exclude_files` drops paths from candidacy
-    entirely -- for a caller that already claimed them in a separate,
-    budget-capped pass (see build_diff_context's category reservation) and
-    doesn't want them selected again here. `restrict_files`, when given, is
-    the *only* set of paths eligible -- the complement of `exclude_files`,
-    used to scope a reservation pass to one evidence category's own files
-    without unrelated repo content winning the slot instead.
+    The expensive parse/skeleton/token-frequency work is performed when a file
+    enters or changes in the index. Query-time ranking touches only cached
+    records; exact source is read later for final context candidates.
     """
     root = root.resolve()
     if graph_hops < 0:
         raise ValueError("graph_hops must be nonnegative")
+    if seed_limit <= 0:
+        raise ValueError("seed_limit must be positive")
     index = index or build_index(root, use_gitignore=use_gitignore)
-    q_terms = list(dict.fromkeys(_terms(query)))
+    q_terms = list(dict.fromkeys(terms(query)))
+
     if not changed_boost:
         changed = set()
     elif changed_files is not None:
         changed = changed_files
     else:
         changed = _changed_files(root)
-    remembered_files, remembered_terms = load_working_set(root, session) if session else (set(), set())
+
+    remembered_files, remembered_terms = (
+        load_working_set(root, session) if session else (set(), set())
+    )
     feedback = load_feedback(root) if feedback_boost else {}
     query_continues = bool(set(q_terms) & remembered_terms)
-    docs: list[tuple[Path, str, str, str, Counter[str]]] = []
-    for path in walk_repo(root, use_gitignore=use_gitignore):
-        if not inspect_path(root, path).allowed:
-            continue
-        rel = path.relative_to(root).as_posix()
+
+    docs: list[tuple[Path, str, str, Counter[str]]] = []
+    for rel, record in index.records.items():
         if exclude_files and rel in exclude_files:
             continue
         if restrict_files is not None and rel not in restrict_files:
             continue
-        text = _read_source(path)
-        if text is None:
+        if record.size > _MAX_FILE_BYTES:
             continue
-        outline = skeletonize(text, path.suffix, line_numbers=True)
-        docs.append((path, rel, text, outline, _document_terms(text, outline, rel)))
+        counts = Counter(record.term_counts or {})
+        # A current index record always has term_counts. Keeping this fallback
+        # makes an explicitly-constructed RepositoryIndex degrade safely.
+        if not counts:
+            counts.update(terms(" ".join(record.tokens)))
+            counts.update(terms(record.outline))
+            counts.update(terms(record.outline))
+            for term in terms(rel):
+                counts[term] += 3
+        docs.append((root / rel, rel, record.outline, counts))
 
     if not docs:
         return []
 
     lengths = [sum(counts.values()) for *_, counts in docs]
     avg_len = max(1.0, sum(lengths) / len(lengths))
-    doc_freq = Counter({term: sum(1 for *_, counts in docs if term in counts) for term in q_terms})
-    query_lower = query.strip().lower()
+    doc_freq = Counter({
+        term: sum(1 for *_, counts in docs if term in counts)
+        for term in q_terms
+    })
+
     ranked: list[RankedFile] = []
-    for (path, rel, text, outline, counts), length in zip(docs, lengths):
+    for (path, rel, outline, counts), length in zip(docs, lengths):
         score = 0.0
         reasons: list[str] = []
         matched = 0
@@ -216,8 +184,8 @@ def rank_files(
             denom = tf + k1 * (1.0 - b + b * length / avg_len)
             score += idf * (tf * (k1 + 1.0) / denom)
 
-        rel_terms = set(_terms(rel))
-        outline_terms = set(_terms(outline))
+        rel_terms = set(terms(rel))
+        outline_terms = set(terms(outline))
         path_hits = sum(1 for term in q_terms if term in rel_terms)
         symbol_hits = sum(1 for term in q_terms if term in outline_terms)
         if path_hits:
@@ -226,12 +194,7 @@ def rank_files(
         if symbol_hits:
             score += 5.0 * symbol_hits
             reasons.append(f"symbols:{symbol_hits}")
-        if query_lower and len(query_lower) >= 4 and query_lower in text.lower():
-            score += 5.0
-            reasons.append("exact phrase")
 
-        # Entry points/public source stay useful under vague prompts, but never
-        # overpower a concrete lexical match.
         priority = file_priority(rel)
         score += max(0.0, 1.2 - 0.3 * priority)
         if rel in changed:
@@ -247,27 +210,23 @@ def rank_files(
         if matched:
             reasons.insert(0, f"term-hits:{matched}")
 
-        ranked.append(
-            RankedFile(
-                path=path,
-                rel=rel,
-                text=text,
-                outline=outline,
-                score=score,
-                reasons=reasons or [f"priority:{priority}"],
-                term_hits=matched,
-                changed=rel in changed,
-            )
-        )
+        ranked.append(RankedFile(
+            path=path,
+            rel=rel,
+            text="",
+            outline=outline,
+            score=score,
+            reasons=reasons or [f"priority:{priority}"],
+            term_hits=matched,
+            changed=rel in changed,
+        ))
 
-    # Graph seeds must be the strongest lexical/changed candidates, independent
-    # of filesystem traversal order.
     ranked.sort(key=lambda item: (-item.score, file_priority(item.rel), item.rel))
     by_rel = {item.rel: item for item in ranked}
     seed_pool = [item.rel for item in ranked if item.term_hits or item.changed]
     if priority_files:
         seed_pool.sort(key=lambda rel: rel not in priority_files)
-    seeds = seed_pool[:6]
+    seeds = seed_pool[:seed_limit]
     for related in dependency_closure(
         index, seeds, max_hops=graph_hops, max_items=closure_max_items,
     ):
@@ -293,7 +252,10 @@ def rank_files(
             raise RuntimeError(
                 "local embedding model all-MiniLM-L6-v2 is not downloaded"
             ) from exc
-        descriptions = [f"{item.rel} {' '.join(index.records[item.rel].symbols)} {item.outline}" for item in ranked]
+        descriptions = [
+            f"{item.rel} {' '.join(index.records[item.rel].symbols)} {item.outline}"
+            for item in ranked
+        ]
         vectors = model.encode([query] + descriptions, normalize_embeddings=True)
         query_vector = vectors[0]
         for item, vector in zip(ranked, vectors[1:]):
@@ -310,7 +272,7 @@ def _hit_lines(text: str, query_terms: set[str]) -> list[tuple[int, int]]:
     if not query_terms:
         return hits
     for number, line in enumerate(text.splitlines(), start=1):
-        line_terms = set(_terms(line))
+        line_terms = set(terms(line))
         overlap = len(query_terms & line_terms)
         if overlap:
             hits.append((number, overlap))
@@ -356,12 +318,12 @@ def _symbol_windows(
     matches: list[tuple[int, object]] = []
     source_lines = item.text.splitlines()
     for symbol in record.definitions or []:
-        name_terms = set(_terms(symbol.name + " " + symbol.signature))
+        name_terms = set(terms(symbol.name + " " + symbol.signature))
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-        body_terms = set(_terms(body))
+        body_terms = set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
-        score = (100 if exact else 50 if partial else 0)
+        score = 100 if exact else 50 if partial else 0
         if not wanted:
             score = 20 * len(query_terms & name_terms) + len(query_terms & body_terms)
         if score:
@@ -380,7 +342,6 @@ def _file_section(
     lines = item.text.splitlines()
     symbol_windows, symbol_labels = _symbol_windows(item, index, query_terms, target_symbol)
     hit_lines = _hit_lines(item.text, query_terms)
-    # Prefer a few high-signal windows. More can be added later if budget remains.
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
     windows = _merge_ranges(symbol_windows + lexical, len(lines))
@@ -403,7 +364,7 @@ def _fingerprint(section: str) -> str:
 
 
 def _fit_section(section: str, budget: int) -> str:
-    """Fit on line boundaries. Never return text estimated above `budget`."""
+    """Fit on line boundaries. Never return text estimated above ``budget``."""
     if budget <= 0:
         return ""
     if estimate_tokens(section) <= budget:
@@ -428,6 +389,17 @@ def _fit_section(section: str, budget: int) -> str:
     return out
 
 
+def _static_plan(
+    graph_hops: int, closure_max_items: int, context_lines: int,
+) -> RetrievalPlan:
+    return RetrievalPlan(
+        seed_limit=6,
+        graph_hops=graph_hops,
+        closure_items=closure_max_items,
+        context_lines=context_lines,
+    )
+
+
 def build_context_pack(
     root: Path,
     query: str,
@@ -450,32 +422,48 @@ def build_context_pack(
     priority_files: set[str] | None = None,
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
+    adaptive_budget: bool = True,
 ) -> ContextPack:
-    """Create a relevance-ranked, deduplicated context pack under a hard cap.
-
-    `priority_files` orders inclusion ahead of score alone; see `rank_files`.
-    `exclude_files`/`restrict_files` narrow candidacy; see `rank_files`.
-    """
+    """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
         raise ValueError("max_tokens must be positive")
     if max_files <= 0:
         raise ValueError("max_files must be positive")
     if not 0.0 <= duplicate_threshold <= 1.0:
         raise ValueError("duplicate_threshold must be between 0 and 1")
+
     root = root.resolve()
     index = index or build_index(root, use_gitignore=use_gitignore, persist=persist_index)
     effective_query = f"{query} {target_symbol or ''}".strip()
+    q_terms = set(terms(effective_query))
+
+    resolved_changed = changed_files
+    if changed_boost and resolved_changed is None:
+        resolved_changed = _changed_files(root)
+    if not changed_boost:
+        resolved_changed = set()
+
+    plan = (
+        plan_retrieval(
+            max_tokens=max_tokens,
+            query_terms=len(q_terms),
+            changed_count=len(resolved_changed or ()),
+            graph_hops=graph_hops,
+            closure_items=closure_max_items,
+            context_lines=context_lines,
+        )
+        if adaptive_budget
+        else _static_plan(graph_hops, closure_max_items, context_lines)
+    )
+
     ranked = rank_files(
         root, effective_query, use_gitignore=use_gitignore, changed_boost=changed_boost,
-        index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
-        feedback_boost=feedback_boost,
-        closure_max_items=closure_max_items,
-        changed_files=changed_files,
-        priority_files=priority_files,
-        exclude_files=exclude_files,
-        restrict_files=restrict_files,
+        index=index, graph_hops=plan.graph_hops, session=session, embeddings=embeddings,
+        feedback_boost=feedback_boost, closure_max_items=plan.closure_items,
+        changed_files=resolved_changed, priority_files=priority_files,
+        exclude_files=exclude_files, restrict_files=restrict_files,
+        seed_limit=plan.seed_limit,
     )
-    q_terms = set(_terms(effective_query))
     task_display = query.strip() or "(no query; structural priority mode)"
     if len(task_display) > 300:
         task_display = task_display[:300] + f"… (+{len(task_display) - 300} chars)"
@@ -487,7 +475,10 @@ def build_context_pack(
     )
     if estimate_tokens(header) >= max_tokens:
         fitted = _fit_section(header, max_tokens)
-        return ContextPack(fitted, estimate_tokens(fitted), len(ranked), [], ranked)
+        return ContextPack(
+            fitted, estimate_tokens(fitted), len(ranked), [], ranked,
+            retrieval_plan=plan.to_dict(),
+        )
 
     blocks = [header]
     selected: list[str] = []
@@ -497,13 +488,14 @@ def build_context_pack(
     redactions: set[str] = set()
     used = estimate_tokens(header)
 
-    # Concrete matches first. For an empty/vague query all files still have a
-    # small structural score and fall back to source priority.
     candidates = [item for item in ranked if item.term_hits or item.changed] or ranked
     if priority_files:
         candidates = sorted(candidates, key=lambda item: item.rel not in priority_files)
-    priority_total = sum(1 for item in candidates if priority_files and item.rel in priority_files)
+    priority_total = sum(
+        1 for item in candidates if priority_files and item.rel in priority_files
+    )
     priority_seen = 0
+
     for item in candidates:
         if len(selected) >= max_files:
             break
@@ -514,22 +506,26 @@ def build_context_pack(
             priority_seen += 1
             slots_left = priority_total - priority_seen + 1
             if slots_left > 1:
-                # A fair-share cap: without it, one large modified file (e.g.
-                # a config file with many appended lines) can consume the
-                # whole budget and starve the other modified files -- which
-                # are equally or more likely to carry regression risk.
                 remaining = min(remaining, max(remaining // slots_left, 200))
-        section, symbols, section_redactions = _file_section(
-            item, q_terms, context_lines, index, target_symbol
-        )
-        fingerprint = _fingerprint(section)
-        if fingerprint in seen:
+
+        if not item.text:
+            item.text = _read_source(item.path) or ""
+        if not item.text:
+            item.reasons.append("source-unavailable")
             continue
+
         record = index.records.get(item.rel)
         if record is not None and any(
             similarity(record, prior) >= duplicate_threshold for prior in selected_records
         ):
             item.reasons.append("near-duplicate-skipped")
+            continue
+
+        section, symbols, section_redactions = _file_section(
+            item, q_terms, plan.context_lines, index, target_symbol
+        )
+        fingerprint = _fingerprint(section)
+        if fingerprint in seen:
             continue
         fitted = _fit_section(section, remaining)
         if not fitted:
@@ -544,7 +540,6 @@ def build_context_pack(
         used += estimate_tokens(fitted)
 
     text = "\n".join(block.rstrip() for block in blocks if block).rstrip() + "\n"
-    # Defensive final cap in case heuristic token counting changed between calls.
     if estimate_tokens(text) > max_tokens:
         text = _fit_section(text, max_tokens)
     result = ContextPack(
@@ -559,6 +554,7 @@ def build_context_pack(
             item.rel for item in ranked
             if any(reason.startswith("closure:") for reason in item.reasons)
         ],
+        retrieval_plan=plan.to_dict(),
     )
     if session:
         save_working_set(root, session, query, selected)
