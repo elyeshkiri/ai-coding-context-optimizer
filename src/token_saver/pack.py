@@ -335,6 +335,37 @@ def _source_window(text: str, start: int, end: int) -> str:
     return f"#### lines {start}-{end}\n```\n" + "\n".join(body) + "\n```\n"
 
 
+def _prioritized_ranges(
+    primary: list[tuple[int, int]],
+    secondary: list[tuple[int, int]],
+    total: int,
+) -> list[tuple[int, int]]:
+    """Deduplicate source windows without destroying relevance order.
+
+    ``primary`` is already ordered by symbol score. Sorting every window by
+    source line lets an earlier-but-weaker definition consume a clipped section
+    before a later, higher-scoring symbol. Preserve primary order and append
+    lexical navigation windows only when they add source not already covered.
+    """
+    result: list[tuple[int, int]] = []
+
+    def add(window: tuple[int, int]) -> None:
+        start, end = max(1, window[0]), min(total, window[1])
+        if start > end:
+            return
+        for idx, (existing_start, existing_end) in enumerate(result):
+            if start <= existing_end + 1 and end >= existing_start - 1:
+                result[idx] = (min(start, existing_start), max(end, existing_end))
+                return
+        result.append((start, end))
+
+    for window in primary:
+        add(window)
+    for window in secondary:
+        add(window)
+    return result
+
+
 def _symbol_windows(
     item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
 ) -> tuple[list[tuple[int, int]], list[str]]:
@@ -427,7 +458,7 @@ def _file_section(
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
-    windows = _merge_ranges(symbol_windows + lexical, len(lines))
+    windows = _prioritized_ranges(symbol_windows, lexical, len(lines))
     # Exact implementation evidence is the primary payload. Put it before the
     # navigation outline so a tight per-file budget clips optional structure
     # rather than silently dropping the symbol source that caused the file to
