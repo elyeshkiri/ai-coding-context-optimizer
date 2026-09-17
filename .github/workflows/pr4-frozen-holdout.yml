@@ -1,0 +1,25 @@
+name: PR4 Frozen Holdout
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  frozen-holdout:
+    if: github.event.pull_request.head.ref == 'fix/authoritative-file-ranking'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Clone frozen repositories
+        run: |
+          git clone https://github.com/encode/httpx.git benchmarks/httpx
+          git -C benchmarks/httpx checkout b5addb64f0161ff6bfe94c124ef76f6a1fba5254
+          git clone https://github.com/colinhacks/zod.git benchmarks/zod
+          git -C benchmarks/zod checkout 59bbc03e10c636b9eb3c393dfeb552819774ec21
+      - name: Run frozen external holdout
+        run: token-saver evaluate benchmarks/holdout-external.json --path . --max-tokens 6000 --require-holdout
