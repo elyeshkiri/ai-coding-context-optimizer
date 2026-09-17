@@ -315,9 +315,30 @@ def _symbol_windows(
     if record is None:
         return [], []
     wanted = (target_symbol or "").lower()
-    matches: list[tuple[int, object]] = []
+    definitions = record.definitions or []
     source_lines = item.text.splitlines()
-    for symbol in record.definitions or []:
+
+    term_weight: dict[str, float] = {}
+    if not wanted and definitions:
+        # Weight a query-term match by how distinctive it is *within this
+        # file's own symbols*, not just whether it occurs at all. Sibling
+        # symbols doing similar things (e.g. a family of error-transform
+        # functions that all mention "error"/"validation") share most of
+        # their vocabulary; a flat, unweighted overlap count then ties them
+        # together on the words every one of them shares and can't tell them
+        # apart on the few words that actually single out which one the
+        # query is about.
+        doc_freq: Counter[str] = Counter()
+        for symbol in definitions:
+            name_terms = set(terms(symbol.name + " " + symbol.signature))
+            body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
+            for term in name_terms | set(terms(body)):
+                doc_freq[term] += 1
+        n = len(definitions)
+        term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
+
+    matches: list[tuple[float, object]] = []
+    for symbol in definitions:
         name_terms = set(terms(symbol.name + " " + symbol.signature))
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
         body_terms = set(terms(body))
@@ -325,7 +346,12 @@ def _symbol_windows(
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
         if not wanted:
-            score = 20 * len(query_terms & name_terms) + len(query_terms & body_terms)
+            name_hits = query_terms & name_terms
+            body_hits = query_terms & body_terms
+            score = (
+                20 * sum(term_weight.get(t, 1.0) for t in name_hits)
+                + sum(term_weight.get(t, 1.0) for t in body_hits)
+            )
         if score:
             matches.append((score, symbol))
     if not wanted:
@@ -347,11 +373,21 @@ def _symbol_windows(
         # class -- or an unrelated standalone function -- with one truly
         # precise match, the same failure shape a purely lexical file-level
         # ranking signal hit earlier.
+        # Only credit class parents, not arbitrary containment (e.g. a
+        # function nested inside another function): a class groups multiple
+        # members that can each be independently the right, narrower answer,
+        # so its own thin body being outscored by one of them is a ranking
+        # artifact worth correcting. A function containing a nested helper is
+        # a single implementation detail, not a set of candidate answers --
+        # crediting it the same way let an unrelated top-level function's
+        # incidentally query-matching nested helper outscore the actually
+        # correct standalone function elsewhere in the file.
+        class_names = {symbol.name for _, symbol in matches if symbol.kind == "class"}
         own_score = {symbol.name: score for score, symbol in matches}
         best_child_score: dict[str, float] = {}
         best_child_symbol: dict[str, object] = {}
         for score, symbol in matches:
-            if symbol.parent and symbol.parent in own_score:
+            if symbol.parent and symbol.parent in own_score and symbol.parent in class_names:
                 if score > best_child_score.get(symbol.parent, 0):
                     best_child_score[symbol.parent] = score
                     best_child_symbol[symbol.parent] = symbol

@@ -57,9 +57,18 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
                     extent = node.parent
                     if extent.parent and extent.parent.type == "export_statement": extent = extent.parent
             body = (value if is_function else node).child_by_field_name("body")
+            # type_alias_declaration has no "body" field -- its right-hand side
+            # sits under "value" instead, so it previously went untruncated
+            # into the signature no matter its shape (object type, intersection
+            # with other types, etc.), double-counting every word in it at
+            # both the 20x name-term weight (via signature) and the 1x
+            # body-term weight the type already gets like any other symbol's
+            # body. Truncate it the same way a function/class body is.
+            if body is None and node.type == "type_alias_declaration" and value is not None:
+                body = value
             head_end = body.start_byte if body else node.end_byte
             signature = " ".join(source[extent.start_byte:head_end].decode().split())
-            if body: signature += " { … }" if body.type in {"statement_block", "class_body", "interface_body"} else " …"
+            if body: signature += " { … }" if body.type in {"statement_block", "class_body", "interface_body", "object_type", "mapped_type"} else " …"
             end_line = extent.end_point.row + (1 if extent.end_point.column else 0)
             found.append(Symbol(name, ".".join((*parents, name)), extent.start_point.row + 1,
                                 max(extent.start_point.row + 1, end_line), extent.start_byte, extent.end_byte, signature))

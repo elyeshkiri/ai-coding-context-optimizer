@@ -57,6 +57,30 @@ def test_tree_sitter_index_has_exact_typescript_ranges_and_parent(tmp_path):
     assert "rotateToken" in refresh.calls
 
 
+def test_type_alias_signature_is_truncated_like_a_function_body(tmp_path):
+    # type_alias_declaration has no tree-sitter "body" field (unlike
+    # functions/classes/interfaces), so its inline right-hand side previously
+    # went untruncated into its captured signature -- double-counting every
+    # word in it at both the 20x name-term ranking weight (signature) and
+    # the 1x body-term weight it already gets like any other symbol's body.
+    # Found via the frozen external holdout (colinhacks/zod): a type alias
+    # describing a function's return shape outscored the function itself
+    # purely because the type's inline object-literal fields happened to
+    # lexically match the query.
+    source = tmp_path / "errors.ts"
+    source.write_text(textwrap.dedent("""
+        type FlattenedError<T, U = string> = {
+          formErrors: U[];
+          fieldErrors: { [P in keyof T]?: U[] };
+        };
+    """))
+    index = build_index(tmp_path, persist=False)
+    alias = next(symbol for symbol in index.records["errors.ts"].definitions
+                 if symbol.name == "FlattenedError")
+    assert "formErrors" not in alias.signature
+    assert "fieldErrors" not in alias.signature
+
+
 def test_dependency_closure_is_bounded_explained_and_ordered(tmp_path):
     index = build_index(_graph_repo(tmp_path), persist=False)
     closure = dependency_closure(index, ["src/repository.py"], max_hops=2, max_items=2)

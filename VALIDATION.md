@@ -92,12 +92,28 @@ repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13:
   That regression was itself fixed (crediting the child whose score
   earned its parent a window slot, since the parent's window already
   contains that child's source) and re-verified with a second one-time
-  holdout re-run: **mean symbol recall 66.7%**, file recall and token
-  reduction still unchanged, no new regressions. See CHANGELOG.md for
-  full detail on both fixes. Remaining known gap: `zod-flatten-error` and
-  `zod-email-regex` (the disclosed, still-unfixed file-level terse-file
-  ranking weakness) are unrelated to symbol-window selection and remain
-  deliberately unfixed pending their own separately-frozen holdout.
+  holdout re-run: mean symbol recall 66.7%, file recall and token
+  reduction still unchanged, no new regressions.
+
+  `zod-flatten-error` and `zod-error-tree` turned out, on investigation,
+  to be symbol-window bugs too, not the file-ranking issue they were
+  originally filed under (file recall was already 1.0 for both): an
+  untruncated TypeScript type-alias signature double-counting its own
+  inline fields, and the parent-credit boost above applying to
+  function-in-function nesting, not just class/method containment. Both
+  fixed and re-verified with a third one-time holdout re-run: **mean
+  symbol recall 83.3%**, file recall and token reduction still unchanged,
+  no new regressions across any of the 5 tasks this now passes. A fourth
+  attempt, at the real remaining file-ranking gap behind
+  `zod-email-regex` (root cause: an unnormalized, presence-only outline-
+  term bonus lets a large file rack up more distinct query-term hits than
+  a small, precisely on-topic one purely from having more surface area),
+  was tried and reverted after it broke a different, previously-fixed
+  task (`httpx-redirects`) -- see CHANGELOG.md for the full account,
+  including why it looked clean on the self-benchmark alone (100%/100%)
+  and only the frozen holdout caught the regression. `zod-email-regex`
+  remains deliberately unfixed pending its own separately-frozen holdout
+  to validate a future fix against.
 - Regression coverage carried over from 1.0.0 still exercises bounded
   dependency closure, Tree-sitter-backed JS/TS/JSX/TSX symbol ranges,
   patch-aware context generation, public-signature/removed-symbol/

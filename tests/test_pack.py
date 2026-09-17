@@ -262,6 +262,43 @@ def test_symbol_window_credits_shared_method_name_when_two_classes_both_win_slot
     assert any(label.startswith("src/client.py:send_handling_redirects@") for label in pack.selected_symbols)
 
 
+def test_symbol_window_does_not_boost_function_nested_in_another_function(tmp_path):
+    # The parent-credit boost above is deliberately restricted to class
+    # parents (SymbolRecord.kind == "class"): a class groups multiple
+    # members that can each be independently the right, narrower answer, but
+    # a function nested inside another function is just an implementation
+    # detail of that one function, not a set of candidate answers. Found via
+    # the frozen external holdout (colinhacks/zod): a top-level distractor
+    # function whose own body already includes its nested helper's text (so
+    # its own score already reflects the helper) got boosted a *second* time
+    # by that same helper's score, pushing the file's actually correct,
+    # unrelated top-level function out of the results entirely.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "errors.ts").write_text(textwrap.dedent("""
+        export function distractor(value: any) {
+            function convertNestedTreeFieldLevelMessages(value: any) {
+                return value;
+            }
+            return convertNestedTreeFieldLevelMessages(value);
+        }
+
+        export function treeifyError(error: any) {
+            // convert a validation error into a nested tree
+            return error;
+        }
+    """), encoding="utf-8")
+
+    pack = build_context_pack(
+        tmp_path,
+        "convert a validation error into a nested tree of field level messages",
+        max_tokens=1400,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/errors.ts:treeifyError@") for label in pack.selected_symbols)
+
+
 def test_semantic_graph_boost_recovers_terse_dependency_file(tmp_path):
     src = tmp_path / "src"
     src.mkdir()

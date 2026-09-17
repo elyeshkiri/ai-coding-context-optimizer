@@ -1,5 +1,87 @@
 # Unreleased
 
+- **Fixed both remaining symbol-selection root causes behind
+  `zod-flatten-error` and `zod-error-tree`** (the other two frozen external
+  holdout tasks disclosed as unfixed in VALIDATION.md), found by
+  investigating `zod-flatten-error` fresh rather than reusing the
+  previously-abandoned "terse implementation" file-ranking framing --
+  both turned out to be *symbol-window* bugs, not file-ranking bugs (file
+  recall was already 1.0 for both).
+
+  1. **Type alias signatures went untruncated.** `type_alias_declaration`
+     has no tree-sitter "body" field (functions/classes/interfaces do), so
+     its inline right-hand side -- however large -- went straight into its
+     captured `signature`, double-counting every word in it at both the
+     20x name-term ranking weight (signature) and the 1x body-term weight
+     it already gets like any other symbol's body. A type alias describing
+     `flattenError`'s return shape (`_FlattenedError`, whose fields are
+     literally named `formErrors`/`fieldErrors`) outscored `flattenError`
+     itself purely from its own field names matching the query. Fixed in
+     `syntax.py` by truncating a type alias's signature at its `value`
+     field, the same way a function/class signature truncates at its
+     `body` field. New direct test:
+     `test_type_alias_signature_is_truncated_like_a_function_body`
+     (`tests/test_v1.py`), confirmed via git stash to fail without the fix.
+
+  2. **The parent-credit boost (from the DigestAuth fix above) wasn't
+     scoped to classes.** It also applied when a *function* contained a
+     nested helper function -- a fundamentally different relationship
+     from class/method: a class groups multiple members that can each
+     independently be the right, narrower answer; a function's nested
+     helper is just an implementation detail of that one function, not a
+     set of candidate answers. A top-level distractor function's own body
+     already includes its nested helper's text (so its own score already
+     reflects the helper), but the boost added the helper's score a
+     *second* time, letting an unrelated function outscore the file's
+     actually correct, unrelated top-level function (`treeifyError` /
+     `flattenError`, depending on the query). Fixed in `pack.py` by
+     restricting the boost to parents with `kind == "class"` -- available
+     for Python (`ast.ClassDef`); JS/TS symbols are all tagged `"symbol"`
+     today regardless of shape, so this disables the boost for JS/TS
+     entirely for now rather than mis-scoping it, a disclosed limitation,
+     not a regression (no passing JS/TS behavior depended on it). New
+     regression test:
+     `test_symbol_window_does_not_boost_function_nested_in_another_function`
+     (`tests/test_pack.py`), confirmed via git stash to fail without the
+     fix.
+
+  Verified: 328 tests passing (was 326), self-benchmark unchanged
+  (92%/96%), and a one-time re-run of the frozen external holdout (not a
+  tuning loop -- both fixes are general correctness fixes discovered by
+  reading the symbol-extraction and boosting code, not by iterating
+  against this suite's specific scores) shows **`zod-flatten-error` and
+  `zod-error-tree` both now at 1.0/1.0** with no new regressions across
+  any of the 5 previously-passing tasks: mean symbol recall
+  **66.7% -> 83.3%**, file recall and token reduction unchanged.
+
+  **A third attempt, at the actual remaining `zod-email-regex` file-ranking
+  gap, was tried and reverted.** Root cause identified precisely this
+  time: `rank_files()`'s `symbol_hits` bonus (`+5` per distinct query term
+  present anywhere in a file's outline) is presence-only, not
+  frequency-normalized, unlike the properly length-normalized BM25 term
+  right above it in the same function -- so a file with a sprawling,
+  many-hundred-symbol outline (`schemas.ts`, 201,606 outline characters)
+  picks up far more distinct query-term hits than a small, precisely
+  on-topic file (`regexes.ts`, 900 outline characters) purely from having
+  more surface area, even though raw BM25 alone (before this bonus is
+  added) already correctly favors the smaller file (15.8 vs 8.0).
+  Dampening the bonus by how far a file's outline exceeds the corpus's
+  average outline size fixed `zod-email-regex` and, unexpectedly, pushed
+  the self-benchmark to a clean 100%/100% -- but it also broke a
+  previously-fixed, previously-passing task, `httpx-redirects` (1.0 ->
+  0.0 file recall): `_client.py` is *itself* a large, many-symbol file
+  that is genuinely the correct answer, and the same dampening that
+  correctly demotes `schemas.ts` also demotes `_client.py` below a test
+  file with high raw term overlap. A flat per-file outline-size dampener
+  can't distinguish "large file, diffusely and incidentally matching" from
+  "large file, genuinely and heavily on-topic" -- the same class of
+  failure the earlier "terse implementation" attempts hit, now confirmed
+  a third time on a different mechanism. Reverted; `zod-email-regex`
+  remains a disclosed, deliberately unfixed gap. The self-benchmark's
+  100%/100% result on the reverted version is itself worth noting: it
+  would have shipped clean on the self-benchmark alone had the frozen
+  external holdout not been re-checked before committing.
+
 - **Fixed the DigestAuth per-file symbol-selection bug** the external
   holdout benchmark found (`httpx-digest-auth`: found the right file,
   `_auth.py`, but selected helper methods `_parse_challenge`/
