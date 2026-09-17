@@ -15,7 +15,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from .lexical import document_counts
+from .lexical import document_counts, terms
 from .security import ENV_TEMPLATE_NAMES, inspect_path
 from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
@@ -159,8 +159,6 @@ class RepositoryIndex:
                 if target is None or target == rel:
                     continue
                 kind = ref.get("kind", "semantic-call")
-                # A concrete alias-resolved call carries more information than
-                # a broad re-export relation when both point at the same file.
                 if target not in targets or kind == "semantic-call":
                     targets[target] = kind
             if targets:
@@ -498,6 +496,94 @@ def _record(rel: str, text: str, suffix: str, *, size: int, mtime_ns: int) -> Fi
     )
 
 
+def _extend_signature(symbol: SymbolRecord, evidence_terms: set[str]) -> SymbolRecord:
+    if not evidence_terms:
+        return symbol
+    marker = " refs " + " ".join(sorted(evidence_terms))
+    return replace(symbol, signature=(symbol.signature + marker)[:900])
+
+
+def _apply_structural_evidence(records: dict[str, FileRecord]) -> None:
+    """Propagate bounded caller/import evidence into query-time index records.
+
+    This runs *after* the raw index has been persisted, so the derived weights
+    never accumulate across warm refreshes. Exact cross-file relationships can
+    lend vocabulary to terse implementations without globally rewarding short
+    symbol names or prose density.
+    """
+    known = records.keys()
+
+    # JS/TS: exact imported members are strong evidence for both the target file
+    # and the referenced definition. Propagate only source path/defined-symbol
+    # vocabulary, not arbitrary source-body prose.
+    for source_rel, source in list(records.items()):
+        if Path(source_rel).suffix.lower() not in JS_TS:
+            continue
+        context = set(terms(Path(source_rel).stem + " " + " ".join(source.symbols[:16])))
+        for ref in source.semantic_refs or []:
+            if not isinstance(ref, dict):
+                continue
+            symbol_name = str(ref.get("symbol", "")).strip()
+            module = str(ref.get("module", ""))
+            if not symbol_name or symbol_name == "*" or not module:
+                continue
+            target_rel = resolve_module_path(source_rel, module, known)
+            if target_rel is None or target_rel == source_rel:
+                continue
+            target = records.get(target_rel)
+            if target is None:
+                continue
+            counts = dict(target.term_counts or {})
+            for term in terms(symbol_name):
+                counts[term] = counts.get(term, 0) + 6
+            for term in context:
+                counts[term] = counts.get(term, 0) + 2
+            target.term_counts = counts
+            target.definitions = [
+                _extend_signature(definition, context)
+                if definition.name.lower() == symbol_name.lower() else definition
+                for definition in target.definitions or []
+            ]
+
+    # Python: when a caller invokes a uniquely-defined symbol in another file,
+    # lend the caller signature to that exact definition. This is deliberately
+    # symbol-window evidence only; it does not boost target file BM25 scores.
+    python_defs: dict[str, list[tuple[str, SymbolRecord]]] = {}
+    for rel, record in records.items():
+        if Path(rel).suffix.lower() not in {".py", ".pyi"}:
+            continue
+        for definition in record.definitions or []:
+            python_defs.setdefault(definition.name.lower(), []).append((rel, definition))
+
+    enrichments: dict[tuple[str, str, int], set[str]] = {}
+    for source_rel, source in records.items():
+        if Path(source_rel).suffix.lower() not in {".py", ".pyi"}:
+            continue
+        for caller in source.definitions or []:
+            caller_terms = set(terms(
+                f"{Path(source_rel).stem} {caller.name} {caller.signature}"
+            ))
+            for called in caller.calls or []:
+                targets = python_defs.get(called.lower(), [])
+                cross_file = [(rel, sym) for rel, sym in targets if rel != source_rel]
+                if len(cross_file) != 1:
+                    continue
+                target_rel, target_symbol = cross_file[0]
+                key = (target_rel, target_symbol.name.lower(), target_symbol.start_line)
+                enrichments.setdefault(key, set()).update(caller_terms)
+
+    for target_rel, target in records.items():
+        if Path(target_rel).suffix.lower() not in {".py", ".pyi"}:
+            continue
+        target.definitions = [
+            _extend_signature(
+                definition,
+                enrichments.get((target_rel, definition.name.lower(), definition.start_line), set()),
+            )
+            for definition in target.definitions or []
+        ]
+
+
 def build_index(
     root: Path, *, use_gitignore: bool = True, cache_path: Path | None = None,
     persist: bool = True,
@@ -554,6 +640,7 @@ def build_index(
 
     if persist:
         _save(target, records)
+    _apply_structural_evidence(records)
     return RepositoryIndex(root, records, reparsed, reused, excluded)
 
 
