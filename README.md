@@ -47,6 +47,41 @@ token-saver agent-evaluate benchmarks/agent-runs.example.json
 The evaluator reports a token-per-success reduction only when the Token Saver
 condition preserves baseline success rate.
 
+### Evidence coverage beyond source code (unreleased)
+
+`pack-diff`/`review` used to see only source files. The index now also
+covers SQL migrations, `package.json`, CI workflows
+(`.github/workflows/*.yml`), and `.env.example`-style templates -- each with
+real extracted symbols (table names, npm scripts, CI job ids, env vars)
+reusing the same symbol/call-graph machinery as functions and classes,
+rather than a separate subsystem. A file that carries real regression risk
+but would otherwise lose the ranking competition to a large newly-added file
+(a migration landing next to a big new feature, say) gets a small,
+budget-capped guaranteed allocation instead of being silently dropped.
+
+```bash
+token-saver pack-diff . --base main --max-tokens 6000 --json
+```
+
+The JSON output includes a `coverage` field distinguishing selected,
+closure-only, policy-excluded, and simply-didn't-fit files, and the
+non-JSON output prints a one-line summary:
+
+```text
+# coverage: 12/129 changed files represented (110 not selected, 0 excluded by policy)
+```
+
+Validated end-to-end against a real 129-file diff from a separate
+production application (private, not included in this repository): at a
+fixed 4,000-token budget, an isolated reviewing model with no repository
+access went from recovering roughly 5-7 of 15 independently-defined
+ground-truth concerns to roughly 12-13 of 15 -- including two findings a
+much larger (100,416-token, full-repository-access) baseline review missed
+-- while token cost stayed within about 1% of the pre-widening figure. This
+is a single diff, not a statistically validated benchmark; see
+[CHANGELOG.md](CHANGELOG.md) for full methodology and the checked-in
+regression fixture that guards the result going forward.
+
 ## What was new in 0.9
 
 ### Evaluation-driven symbol context
