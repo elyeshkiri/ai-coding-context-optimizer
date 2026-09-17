@@ -1,5 +1,38 @@
 # Unreleased
 
+- **Improved actual symbol-source recall rather than metadata-only recall.**
+  Added a conservative, query-only symbol normalization layer for nearby
+  code-oriented wording such as `connection -> connect`,
+  `equality -> equal`, `completion -> complete`,
+  `validation -> validate`, `persistence -> persist`, and
+  `first/begin -> start`. The richer terms are used only after a file has
+  already been selected, so repository-wide BM25/file ranking is unchanged.
+
+  Fixed two context-allocation bugs uncovered while making the metric stricter:
+  (1) `selected_symbols` previously credited labels even when their exact
+  source had been clipped out of the final section, and (2) exact source
+  windows were emitted after ranking metadata/full outlines and then sorted by
+  source line, allowing lower-value navigation or an earlier weaker symbol to
+  consume a tight per-file budget before the higher-scoring implementation.
+  Symbol labels now count only when their source line survives, exact source is
+  emitted before metadata/outlines, and source windows preserve symbol-score
+  order before lexical navigation windows.
+
+  The stricter accounting initially exposed the self-benchmark's previous
+  100% symbol result as partly metadata-only (88% when source presence was
+  enforced). The source-priority fixes recovered a **real 100% file / 100%
+  symbol recall** on the 25-task self-benchmark at ~96.0% estimated context
+  reduction. Full suite: **360 tests passing** on Python 3.10/3.12/3.13.
+
+  A one-time diagnostic run of the already-burned 41-task external suite is
+  intentionally *not* treated as new generalization evidence. Under the new
+  stricter source-visible metric it measured 87.8% file / 59.8% symbol recall;
+  compared task-by-task with the old stored result, `requests-connect-timeout`
+  improved from 0 to 1 while three old positive symbol hits disappeared because
+  their labels did not have source surviving in the actual pack. Further
+  tuning against that suite was stopped; a fresh holdout is required for a new
+  generalization claim.
+
 - **Added Output Saver, a deterministic output-token layer for coding agents.**
   Generation-time `output-policy` produces terse/normal/detailed response
   contracts with explicit token targets, no task restatement/tool narration,
