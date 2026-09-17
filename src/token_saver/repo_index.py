@@ -18,8 +18,9 @@ import tempfile
 from pathlib import Path
 
 from .skeleton import walk_repo
+from .security import inspect_path
 
-INDEX_VERSION = 1
+INDEX_VERSION = 2
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -34,6 +35,17 @@ _CALL_STOP = {"if", "for", "while", "switch", "catch", "return", "function", "de
 
 
 @dataclass
+class SymbolRecord:
+    name: str
+    kind: str
+    start_line: int
+    end_line: int
+    signature: str = ""
+    parent: str | None = None
+    calls: list[str] | None = None
+
+
+@dataclass
 class FileRecord:
     path: str
     digest: str
@@ -42,6 +54,7 @@ class FileRecord:
     imports: list[str]
     calls: list[str]
     tokens: list[str]
+    definitions: list[SymbolRecord] | None = None
 
 
 @dataclass
@@ -50,6 +63,29 @@ class RepositoryIndex:
     records: dict[str, FileRecord]
     reparsed: int = 0
     reused: int = 0
+    excluded: dict[str, str] | None = None
+
+    def find_symbols(self, name: str) -> list[tuple[str, SymbolRecord]]:
+        needle = name.lower()
+        exact: list[tuple[str, SymbolRecord]] = []
+        partial: list[tuple[str, SymbolRecord]] = []
+        for rel, record in self.records.items():
+            for symbol in record.definitions or []:
+                target = symbol.name.lower()
+                if target == needle:
+                    exact.append((rel, symbol))
+                elif needle in target:
+                    partial.append((rel, symbol))
+        return sorted(exact or partial, key=lambda item: (item[0], item[1].start_line))
+
+    def symbol_callers(self, name: str) -> list[tuple[str, SymbolRecord]]:
+        needle = name.lower()
+        out = []
+        for rel, record in self.records.items():
+            for symbol in record.definitions or []:
+                if needle in {call.lower() for call in symbol.calls or []}:
+                    out.append((rel, symbol))
+        return sorted(out, key=lambda item: (item[0], item[1].start_line))
 
     def neighbors(self, rel: str) -> list[tuple[str, str]]:
         """Return related files and the edge that connected them."""
@@ -80,17 +116,57 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()
 
 
-def _extract_python(text: str) -> tuple[set[str], set[str], set[str]]:
+def _python_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return None
+
+
+def _python_signature(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> str:
+    if isinstance(node, ast.ClassDef):
+        bases = ", ".join(ast.unparse(base) for base in node.bases)
+        return f"class {node.name}({bases})" if bases else f"class {node.name}"
+    prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
+    try:
+        args = ast.unparse(node.args)
+        returns = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+        return f"{prefix} {node.name}({args}){returns}"
+    except (ValueError, TypeError):
+        return f"{prefix} {node.name}(...)"
+
+
+def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[SymbolRecord]]:
     symbols: set[str] = set()
     imports: set[str] = set()
     calls: set[str] = set()
+    definitions: list[SymbolRecord] = []
     try:
         tree = ast.parse(text)
     except SyntaxError:
-        return symbols, imports, calls
+        return symbols, imports, calls, definitions
     for node in ast.walk(tree):
         if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             symbols.add(node.name)
+            local_calls = {
+                name for child in ast.walk(node)
+                if isinstance(child, ast.Call) and (name := _python_name(child.func))
+            }
+            parent = None
+            for candidate in ast.walk(tree):
+                if isinstance(candidate, ast.ClassDef) and node in candidate.body:
+                    parent = candidate.name
+                    break
+            definitions.append(SymbolRecord(
+                name=node.name,
+                kind="class" if isinstance(node, ast.ClassDef) else "function",
+                start_line=int(getattr(node, "lineno", 1)),
+                end_line=int(getattr(node, "end_lineno", getattr(node, "lineno", 1))),
+                signature=_python_signature(node),
+                parent=parent,
+                calls=sorted(local_calls),
+            ))
         elif isinstance(node, ast.Import):
             imports.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
@@ -101,18 +177,30 @@ def _extract_python(text: str) -> tuple[set[str], set[str], set[str]]:
                 calls.add(target.id)
             elif isinstance(target, ast.Attribute):
                 calls.add(target.attr)
-    return symbols, imports, calls
+    return symbols, imports, calls, definitions
 
 
-def _extract(text: str, suffix: str) -> tuple[list[str], list[str], list[str], list[str]]:
+def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
+    lines = text.splitlines()
+    found: list[SymbolRecord] = []
+    for match in _DECL.finditer(text):
+        name = match.group(1) or match.group(2)
+        start = text.count("\n", 0, match.start()) + 1
+        signature = lines[start - 1].strip() if start <= len(lines) else name
+        found.append(SymbolRecord(name, "symbol", start, start, signature[:300], calls=[]))
+    return found
+
+
+def _extract(text: str, suffix: str) -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
     if suffix.lower() in {".py", ".pyi"}:
-        symbols, imports, calls = _extract_python(text)
+        symbols, imports, calls, definitions = _extract_python(text)
     else:
         symbols = {a or b for a, b in _DECL.findall(text)}
         imports = {next(value for value in groups if value) for groups in _IMPORT.findall(text)}
         calls = {match.group(1).split(".")[-1] for match in _CALL.finditer(text)} - _CALL_STOP
+        definitions = _extract_generic_definitions(text)
     tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
-    return sorted(symbols), sorted(imports), sorted(calls), tokens
+    return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
 
 
 def _default_cache(root: Path) -> Path:
@@ -127,7 +215,15 @@ def _load(path: Path) -> dict[str, FileRecord]:
         payload = json.loads(path.read_text(encoding="utf-8"))
         if payload.get("version") != INDEX_VERSION:
             return {}
-        return {key: FileRecord(**value) for key, value in payload.get("records", {}).items()}
+        records = {}
+        for key, value in payload.get("records", {}).items():
+            raw_definitions = value.get("definitions") or []
+            value["definitions"] = [
+                item if isinstance(item, SymbolRecord) else SymbolRecord(**item)
+                for item in raw_definitions
+            ]
+            records[key] = FileRecord(**value)
+        return records
     except (OSError, ValueError, TypeError):
         return {}
 
@@ -155,8 +251,16 @@ def build_index(
     target = cache_path or _default_cache(root)
     old = _load(target) if persist else {}
     records: dict[str, FileRecord] = {}
+    excluded: dict[str, str] = {}
     reparsed = reused = 0
     for path in walk_repo(root, use_gitignore=use_gitignore):
+        decision = inspect_path(root, path)
+        if not decision.allowed:
+            try:
+                excluded[path.relative_to(root).as_posix()] = decision.reason
+            except ValueError:
+                excluded[str(path)] = decision.reason
+            continue
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -167,12 +271,14 @@ def build_index(
             records[rel] = old[rel]
             reused += 1
             continue
-        symbols, imports, calls, tokens = _extract(text, path.suffix)
-        records[rel] = FileRecord(rel, digest, len(text.encode()), symbols, imports, calls, tokens)
+        symbols, imports, calls, tokens, definitions = _extract(text, path.suffix)
+        records[rel] = FileRecord(
+            rel, digest, len(text.encode()), symbols, imports, calls, tokens, definitions
+        )
         reparsed += 1
     if persist:
         _save(target, records)
-    return RepositoryIndex(root, records, reparsed, reused)
+    return RepositoryIndex(root, records, reparsed, reused, excluded)
 
 
 def similarity(left: FileRecord, right: FileRecord) -> float:

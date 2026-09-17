@@ -1,10 +1,60 @@
-# Token Saver 0.8.0
+# Token Saver 0.9.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
-## What is new in 0.8
+## What is new in 0.9
+
+### Evaluation-driven symbol context
+
+v0.9 upgrades the file-level index into a symbol graph. Python definitions carry
+exact ranges, signatures, parent classes, and calls; other languages retain a
+conservative declaration index. Context packs prefer complete symbol bodies and
+still enforce the hard token cap.
+
+```bash
+token-saver pack . -q "session refresh bug" \
+  --target-symbol refresh_session --max-tokens 4000 --json
+
+token-saver impact refresh_session --path . --json
+```
+
+The release adds:
+
+- exact symbol-level packing with selected-symbol metadata;
+- file/symbol change-impact analysis across imports, calls, and related tests;
+- bounded, inspectable local feedback via `token-saver feedback`;
+- a ground-truth evaluator reporting file recall, symbol recall, and token reduction;
+- an included 25-task benchmark manifest in `benchmarks/context-quality.json`;
+- a native stdio MCP server with context, symbol, impact, and feedback tools;
+- sensitive-path rejection, symlink containment, and inline secret redaction;
+- structured JSON output for agent integrations.
+
+Run the reproducible selector benchmark:
+
+```bash
+token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+```
+
+Run Token Saver as an MCP server:
+
+```json
+{
+  "mcpServers": {
+    "token-saver": {"command": "token-saver", "args": ["serve", "."]}
+  }
+}
+```
+
+Feedback is explicit, bounded, local, and never replaces deterministic relevance:
+
+```bash
+token-saver feedback src/auth/session.py --path . --useful
+token-saver feedback src/legacy/auth.py --path . --irrelevant
+```
+
+## What was new in 0.8
 
 ### Incremental context compiler
 
@@ -89,7 +139,7 @@ token-saver pack . -q "authentication refresh token" --explain
 token-saver-pack . -q "authentication refresh token" --max-tokens 3000
 ```
 
-`--max-files`, `--context-lines`, `--graph-hops`, `--duplicate-threshold`,
+`--target-symbol`, `--json`, `--max-files`, `--context-lines`, `--graph-hops`, `--duplicate-threshold`,
 `--session`, `--no-index-cache`, `--no-gitignore`, and `--no-changed-boost`
 provide tighter control.
 
@@ -235,6 +285,6 @@ python -m pip install '.[dev]'
 python -m pytest -q
 ```
 
-CI runs the full suite on Python 3.10 and 3.12.
+CI runs the full suite on Python 3.10, 3.12, and 3.13.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and [VALIDATION.md](VALIDATION.md) for validation limits.

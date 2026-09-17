@@ -17,7 +17,9 @@ import subprocess
 from pathlib import Path
 
 from .estimate import estimate_tokens
+from .feedback import load_feedback
 from .repo_index import RepositoryIndex, build_index, similarity
+from .security import inspect_path, redact_secrets
 from .skeleton import file_priority, skeletonize, walk_repo
 from .working_set import load_working_set, save_working_set
 
@@ -53,6 +55,8 @@ class ContextPack:
     scanned_files: int
     selected_files: list[str]
     ranked: list[RankedFile]
+    selected_symbols: list[str] = field(default_factory=list)
+    redactions: list[str] = field(default_factory=list)
 
 
 def _terms(text: str) -> list[str]:
@@ -124,9 +128,12 @@ def rank_files(
     q_terms = list(dict.fromkeys(_terms(query)))
     changed = _changed_files(root) if changed_boost else set()
     remembered_files, remembered_terms = load_working_set(root, session) if session else (set(), set())
+    feedback = load_feedback(root)
     query_continues = bool(set(q_terms) & remembered_terms)
     docs: list[tuple[Path, str, str, str, Counter[str]]] = []
     for path in walk_repo(root, use_gitignore=use_gitignore):
+        if not inspect_path(root, path).allowed:
+            continue
         text = _read_source(path)
         if text is None:
             continue
@@ -181,6 +188,10 @@ def rank_files(
         if query_continues and rel in remembered_files:
             score += 2.0
             reasons.append("working-set")
+        if feedback.get(rel):
+            boost = max(-2.0, min(2.0, feedback[rel] * 0.4))
+            score += boost
+            reasons.append(f"feedback:{feedback[rel]:+d}")
         if matched:
             reasons.insert(0, f"term-hits:{matched}")
 
@@ -267,6 +278,16 @@ def _merge_windows(lines: list[int], total: int, radius: int) -> list[tuple[int,
     return merged
 
 
+def _merge_ranges(windows: list[tuple[int, int]], total: int) -> list[tuple[int, int]]:
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted((max(1, a), min(total, b)) for a, b in windows):
+        if merged and start <= merged[-1][1] + 1:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
 def _source_window(text: str, start: int, end: int) -> str:
     lines = text.splitlines()
     width = len(str(end))
@@ -274,12 +295,35 @@ def _source_window(text: str, start: int, end: int) -> str:
     return f"#### lines {start}-{end}\n```\n" + "\n".join(body) + "\n```\n"
 
 
-def _file_section(item: RankedFile, query_terms: set[str], context_lines: int) -> str:
+def _symbol_windows(
+    item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
+) -> tuple[list[tuple[int, int]], list[str]]:
+    record = index.records.get(item.rel)
+    if record is None:
+        return [], []
+    wanted = (target_symbol or "").lower()
+    matches = []
+    for symbol in record.definitions or []:
+        name_terms = set(_terms(symbol.name + " " + symbol.signature))
+        if (wanted and wanted in symbol.name.lower()) or (not wanted and query_terms & name_terms):
+            matches.append(symbol)
+    matches.sort(key=lambda symbol: (0 if wanted and symbol.name.lower() == wanted else 1, symbol.start_line))
+    windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in matches[:4]]
+    labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in matches[:4]]
+    return windows, labels
+
+
+def _file_section(
+    item: RankedFile, query_terms: set[str], context_lines: int,
+    index: RepositoryIndex, target_symbol: str | None = None,
+) -> tuple[str, list[str], list[str]]:
     lines = item.text.splitlines()
+    symbol_windows, symbol_labels = _symbol_windows(item, index, query_terms, target_symbol)
     hit_lines = _hit_lines(item.text, query_terms)
     # Prefer a few high-signal windows. More can be added later if budget remains.
     top_numbers = [n for n, _ in hit_lines[:4]]
-    windows = _merge_windows(top_numbers, len(lines), max(0, context_lines))
+    lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
+    windows = _merge_ranges(symbol_windows + lexical, len(lines))
     pieces = [
         f"## {item.rel}",
         f"# relevance={item.score:.2f} ({', '.join(item.reasons)})",
@@ -289,7 +333,8 @@ def _file_section(item: RankedFile, query_terms: set[str], context_lines: int) -
     if windows:
         pieces.append("### exact source windows")
         pieces.extend(_source_window(item.text, start, end).rstrip() for start, end in windows)
-    return "\n".join(pieces).rstrip() + "\n"
+    section, redactions = redact_secrets("\n".join(pieces).rstrip() + "\n")
+    return section, symbol_labels, redactions
 
 
 def _fingerprint(section: str) -> str:
@@ -337,6 +382,7 @@ def build_context_pack(
     session: str | None = None,
     embeddings: bool = False,
     persist_index: bool = True,
+    target_symbol: str | None = None,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
@@ -347,11 +393,12 @@ def build_context_pack(
         raise ValueError("duplicate_threshold must be between 0 and 1")
     root = root.resolve()
     index = build_index(root, use_gitignore=use_gitignore, persist=persist_index)
+    effective_query = f"{query} {target_symbol or ''}".strip()
     ranked = rank_files(
-        root, query, use_gitignore=use_gitignore, changed_boost=changed_boost,
+        root, effective_query, use_gitignore=use_gitignore, changed_boost=changed_boost,
         index=index, graph_hops=graph_hops, session=session, embeddings=embeddings,
     )
-    q_terms = set(_terms(query))
+    q_terms = set(_terms(effective_query))
     header = (
         f"# TOKEN-SAVER CONTEXT PACK: {root.name}\n"
         f"# task: {query.strip() or '(no query; structural priority mode)'}\n"
@@ -366,6 +413,8 @@ def build_context_pack(
     selected: list[str] = []
     seen: set[str] = set()
     selected_records = []
+    selected_symbols: list[str] = []
+    redactions: set[str] = set()
     used = estimate_tokens(header)
 
     # Concrete matches first. For an empty/vague query all files still have a
@@ -377,7 +426,9 @@ def build_context_pack(
         remaining = max_tokens - used
         if remaining <= 20:
             break
-        section = _file_section(item, q_terms, context_lines)
+        section, symbols, section_redactions = _file_section(
+            item, q_terms, context_lines, index, target_symbol
+        )
         fingerprint = _fingerprint(section)
         if fingerprint in seen:
             continue
@@ -392,6 +443,8 @@ def build_context_pack(
             continue
         blocks.append(fitted)
         selected.append(item.rel)
+        selected_symbols.extend(symbols)
+        redactions.update(section_redactions)
         seen.add(fingerprint)
         if record is not None:
             selected_records.append(record)
@@ -407,6 +460,8 @@ def build_context_pack(
         scanned_files=len(ranked),
         selected_files=selected,
         ranked=ranked,
+        selected_symbols=selected_symbols,
+        redactions=sorted(redactions),
     )
     if session:
         save_working_set(root, session, query, selected)

@@ -29,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--embeddings", action="store_true",
                         help="rerank with an already-downloaded local sentence-transformer")
     parser.add_argument("--no-index-cache", action="store_true")
+    parser.add_argument("--target-symbol", help="prioritize and emit an exact symbol body")
+    parser.add_argument("--json", action="store_true", help="emit structured JSON metadata and text")
     parser.add_argument("--explain", action="store_true",
                         help="print the top relevance scores on stderr")
     parser.add_argument("-o", "--out", help="write pack to a file instead of stdout")
@@ -55,12 +57,28 @@ def main(argv: list[str] | None = None) -> int:
             session=args.session,
             embeddings=args.embeddings,
             persist_index=not args.no_index_cache,
+            target_symbol=args.target_symbol,
         )
     except (ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
-    if args.out:
+    if args.json:
+        import json
+        payload = {
+            "text": pack.text,
+            "estimated_tokens": pack.estimated_tokens,
+            "scanned_files": pack.scanned_files,
+            "selected_files": pack.selected_files,
+            "selected_symbols": pack.selected_symbols,
+            "redactions": pack.redactions,
+        }
+        rendered = json.dumps(payload, indent=2)
+        if args.out:
+            Path(args.out).write_text(rendered + "\n", encoding="utf-8")
+        else:
+            sys.stdout.write(rendered + "\n")
+    elif args.out:
         Path(args.out).write_text(pack.text, encoding="utf-8")
         print(
             f"wrote {args.out} ({pack.estimated_tokens} estimated tokens, "

@@ -1,3 +1,19 @@
+# 0.9.0
+
+- Upgraded the content-addressed index to store symbol ranges, signatures,
+  parent classes, and per-symbol calls with automatic v1 cache invalidation.
+- Added exact symbol-body context packing through `--target-symbol`, structured
+  JSON output, selected-symbol metadata, and high-confidence secret redaction.
+- Added `token-saver impact` for explainable file/symbol blast-radius analysis
+  across imports, callers, and related tests.
+- Added bounded local relevance feedback and a ground-truth context evaluator
+  measuring file recall, symbol recall, and token reduction.
+- Added a 25-task repository benchmark manifest and a dependency-free stdio MCP
+  server exposing context, symbol lookup, impact, and feedback tools.
+- Hardened repository scanning against sensitive paths, generated/vendor trees,
+  escaping symlinks, and oversized context exposure.
+- Full suite: 259 tests pass in the release environment.
+
 # 0.8.0
 
 - Added an incremental, content-addressed repository index. It extracts symbols,

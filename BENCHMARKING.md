@@ -1,5 +1,18 @@
 # Verify integration, then benchmark successful work
 
+## Deterministic context-quality benchmark
+
+Before paid paired-agent trials, run the included 25-task ground-truth selector
+benchmark. It measures relevant-file recall, relevant-symbol recall, and context
+reduction; selection metrics alone do not prove agent success.
+
+```bash
+token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+```
+
+Add project-specific tasks using `query`, `files`, and `symbols`. Keep the
+manifest under version control so ranking changes can be compared reproducibly.
+
 ## Live host validation (not yet executed for this release)
 
 1. Record `claude --version`, model ID, configuration, and Token Saver version.
