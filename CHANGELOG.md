@@ -1,5 +1,31 @@
 # Unreleased
 
+- **Fixed an acronym-prefixed identifier tokenization bug.** `terms()`'s
+  camelCase splitter only recognized a lowercase/digit-to-uppercase
+  transition, not an uppercase-run-to-title-case one, so an identifier
+  like `HTTPBasicAuth` tokenized as one fused word (`httpbasic`, `auth`)
+  instead of `http`, `basic`, `auth`. Found via the second frozen external
+  holdout: a query for "HTTP basic authentication" never matched
+  `HTTPBasicAuth`'s own name at all (scored 0), so an unrelated helper
+  function that merely mentioned "basic"/"HTTP" in prose comments won the
+  symbol-window competition instead of the obviously correct class. Fixed
+  by adding the missing boundary pattern to `_CAMEL` in `lexical.py`
+  (`URLPattern`, `XMLHttpRequest`, and similar acronym-prefixed names are
+  affected the same way; plain acronyms like `ID` are unaffected). New
+  tests: `tests/test_lexical.py` (direct tokenizer unit tests) and
+  `test_symbol_window_matches_acronym_prefixed_class_name`
+  (`tests/test_pack.py`, an end-to-end reproduction of the real shape),
+  both confirmed via git stash to fail without the fix.
+
+  Verified: 338 tests passing (was 335), self-benchmark unchanged (96%
+  file / 96% symbol recall -- this repository's own identifiers happen not
+  to hit the acronym-prefix shape), and a one-time re-run of both frozen
+  external holdouts (not a tuning loop -- this is a general tokenizer
+  correctness fix, not tuned to either suite's scores): the second, larger
+  suite's mean symbol recall rose from 53.7% to **56.1%** with zero
+  regressions (`requests-basic-auth` now 1.0/1.0), the first httpx/zod
+  suite remains a clean 100%/100%.
+
 - **Built and ran a second, larger, genuinely fresh frozen external
   holdout suite** (`benchmarks/holdout-external-2.json` /
   `.result.json`): 41 tasks across 8 independently-authored public

@@ -104,6 +104,47 @@ def test_context_pack_does_not_let_one_large_file_monopolize_the_budget(tmp_path
     assert "src/target_provider.py" in pack.selected_files
 
 
+def test_symbol_window_matches_acronym_prefixed_class_name(tmp_path):
+    # Found via the second frozen external holdout (psf/requests):
+    # HTTPBasicAuth's own name previously tokenized as one fused word
+    # ("httpbasic") rather than ["http", "basic", "auth"] (see
+    # test_lexical.py), so it scored 0 against a query naming exactly what
+    # it does -- two unrelated helper functions that merely mention
+    # "basic"/"http" in prose comments won the symbol-window competition
+    # instead, even though the class is the obviously correct answer.
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "auth.py").write_text(textwrap.dedent("""
+        def _basic_auth_str(username, password):
+            # Encode a basic auth Authorization header value for HTTP requests.
+            # Basic authentication combines username and password with base64.
+            credentials = f"{username}:{password}"
+            return "Basic " + credentials
+
+
+        def handle_http_error(response):
+            # Handle an HTTP error response for basic authentication retries.
+            if response.status_code == 401:
+                return True
+            return False
+
+
+        class HTTPBasicAuth:
+            def __init__(self, username, password):
+                self.username = username
+                self.password = password
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "where is HTTP basic authentication implemented",
+        max_tokens=800,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/auth.py:HTTPBasicAuth@") for label in pack.selected_symbols)
+
+
 def test_changed_file_gets_bonus(tmp_path, monkeypatch):
     root = _write_repo(tmp_path)
     monkeypatch.setattr("token_saver.pack._changed_files", lambda _root: {"src/billing.py"})

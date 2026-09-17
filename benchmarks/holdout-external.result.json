@@ -6,8 +6,8 @@
       "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 5988,
-      "token_reduction": 0.9756054834701485
+      "tokens": 5994,
+      "token_reduction": 0.975581040066812
     },
     {
       "id": "httpx-redirects",
@@ -60,7 +60,7 @@
       "task_count": 3,
       "mean_file_recall": 1.0,
       "mean_symbol_recall": 1.0,
-      "mean_token_reduction": 0.975578324133108
+      "mean_token_reduction": 0.9755701763319958
     },
     "zod": {
       "task_count": 3,
@@ -73,7 +73,7 @@
     "task_count": 6,
     "mean_file_recall": 1.0,
     "mean_symbol_recall": 1.0,
-    "mean_token_reduction": 0.9847919928097041
+    "mean_token_reduction": 0.9847879189091479
   },
   "holdout_protocol_enforced": true,
   "ground_truth_sha256": "634e639b26d9137cbb9f24086ed08bad2b2ace0de576cce60db4b56cb4f946dd"

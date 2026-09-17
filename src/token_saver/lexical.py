@@ -5,7 +5,14 @@ from collections import Counter
 import re
 
 _WORD = re.compile(r"[A-Za-z0-9_$]+")
-_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+# A lower/digit-to-upper transition splits ordinary camelCase (fetchUser ->
+# fetch, User); an upper-to-(upper,lower) transition splits an acronym
+# prefix from the title-case word after it (HTTPBasicAuth -> HTTP, Basic,
+# Auth), which the first pattern alone can't see since "P" to "B" is an
+# upper-to-upper transition. Without the second pattern, identifiers like
+# HTTPBasicAuth/HTTPDigestAuth/URLPattern collapse into one fused token
+# ("httpbasic") that never matches a query's separate "http"/"basic" terms.
+_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 _STOP = {
     "a", "an", "and", "are", "as", "at", "be", "by", "can", "code", "do",
     "for", "from", "how", "i", "if", "in", "into", "is", "it", "me", "of",
