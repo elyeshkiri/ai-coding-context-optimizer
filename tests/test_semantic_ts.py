@@ -22,6 +22,19 @@ def test_extracts_named_import_alias_call():
     } in refs
 
 
+def test_extracts_named_import_non_call_reference():
+    refs = extract_module_refs(
+        'import { sessionPolicy } from "./session";\n'
+        'export const currentPolicy = sessionPolicy;\n'
+    )
+    assert {
+        "module": "./session",
+        "symbol": "sessionPolicy",
+        "local": "sessionPolicy",
+        "kind": "semantic-ref",
+    } in refs
+
+
 def test_extracts_namespace_call():
     refs = extract_module_refs(
         'import * as sessions from "./session";\n'
@@ -31,6 +44,19 @@ def test_extracts_namespace_call():
         "module": "./session",
         "symbol": "refreshSession",
         "local": "sessions.refreshSession",
+        "kind": "semantic-call",
+    } in refs
+
+
+def test_extracts_namespace_member_used_as_method_receiver():
+    refs = extract_module_refs(
+        'import * as regexes from "./regexes";\n'
+        'export function valid(value) { return regexes.email.test(value); }\n'
+    )
+    assert {
+        "module": "./regexes",
+        "symbol": "email",
+        "local": "regexes.email",
         "kind": "semantic-call",
     } in refs
 
