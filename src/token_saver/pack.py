@@ -369,54 +369,28 @@ def _semantic_symbol_ref_index(
     return built
 
 
-def _record_query_overlap(index: RepositoryIndex, rel: str, query_terms: set[str]) -> int:
-    record = index.records.get(rel)
-    if record is None or not query_terms:
-        return 0
-    return len(query_terms & set((record.term_counts or {}).keys()))
-
-
 def _symbol_graph_score(
     index: RepositoryIndex, target_rel: str, symbol: object, query_terms: set[str],
 ) -> float:
-    """Score structural evidence for a definition without rewarding prose density."""
+    """Return a conservative exact-reference bonus for a query-named symbol."""
     name = str(getattr(symbol, "name", ""))
-    if not name:
+    name_hits = len(query_terms & set(terms(name)))
+    if not name or not name_hits:
         return 0.0
 
-    score = 0.0
     referrers = _semantic_symbol_ref_index(index).get((target_rel, name.lower()), [])
-    if referrers:
-        strengths: list[float] = []
-        for source_rel, kind in referrers:
-            overlap = _record_query_overlap(index, source_rel, query_terms)
-            base = 34.0 if kind == "semantic-call" else 24.0 if kind == "reexport" else 28.0
-            strengths.append(base + min(12.0, 3.0 * overlap))
-        score += max(strengths)
-        score += min(12.0, 3.0 * (len({source for source, _ in referrers}) - 1))
+    if not referrers:
+        return 0.0
 
-    caller_strengths: list[float] = []
-    caller_sources: set[str] = set()
-    for caller_rel, caller in index.symbol_callers(name):
-        if caller_rel == target_rel and getattr(caller, "name", None) == name:
-            continue
-        signature_terms = set(terms(f"{caller.name} {caller.signature}"))
-        signature_overlap = len(query_terms & signature_terms)
-        file_overlap = _record_query_overlap(index, caller_rel, query_terms)
-        if not signature_overlap and not file_overlap:
-            continue
-        caller_sources.add(caller_rel)
-        caller_strengths.append(
-            10.0 + 4.0 * signature_overlap + 2.0 * min(3, file_overlap)
-        )
-    if caller_strengths:
-        score += max(caller_strengths)
-        score += min(8.0, 2.0 * (len(caller_sources) - 1))
-
-    parent = getattr(symbol, "parent", None)
-    if parent:
-        score += 4.0 * len(query_terms & set(terms(str(parent))))
-    return score
+    # Exact imported-symbol identity is structural evidence. Keep this bounded
+    # and independent of caller prose/body density so unrelated packs retain
+    # their historical selection and size characteristics.
+    kind_strength = max(
+        30.0 if kind == "semantic-call" else 22.0 if kind == "reexport" else 18.0
+        for _, kind in referrers
+    )
+    diversity = min(8.0, 2.0 * (len({source for source, _ in referrers}) - 1))
+    return kind_strength + 4.0 * name_hits + diversity
 
 
 def _symbol_windows(
@@ -436,14 +410,12 @@ def _symbol_windows(
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 1000.0 if exact else 500.0 if partial else 0.0
         if not wanted:
-            name_hits = len(query_terms & name_terms)
-            name_coverage = name_hits / max(1, len(name_terms))
-            # Keep lexical evidence bounded: dense helper bodies should not beat
-            # the definition that the repository graph actually points at.
+            # Preserve the pre-fix lexical ranking exactly, then add only the
+            # narrow exact-reference bonus above. This avoids changing pack
+            # size/ordering for unrelated Python and generic-source tasks.
             score = (
-                18.0 * name_hits
-                + 8.0 * name_coverage
-                + min(6.0, float(len(query_terms & body_terms)))
+                20.0 * len(query_terms & name_terms)
+                + float(len(query_terms & body_terms))
                 + _symbol_graph_score(index, item.rel, symbol, query_terms)
             )
         if score:
