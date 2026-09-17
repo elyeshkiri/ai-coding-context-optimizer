@@ -41,12 +41,23 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
         is_variable = node.type in {"variable_declarator", "public_field_definition", "field_definition"}
         is_object = is_variable and value is not None and value.type == "object"
         is_function = is_variable and value is not None and value.type in {"arrow_function", "function_expression", "generator_function"}
+        is_exported_variable = False
+        if node.type == "variable_declarator" and node.parent is not None:
+            declaration = node.parent
+            is_exported_variable = bool(
+                declaration.type in {"lexical_declaration", "variable_declaration"}
+                and declaration.parent is not None
+                and declaration.parent.type == "export_statement"
+            )
         if node.type == "pair":
             key = node.child_by_field_name("key")
             if key: name = source[key.start_byte:key.end_byte].decode().strip("\"'")
             is_function = value is not None and value.type in {"arrow_function", "function_expression"}
             is_object = value is not None and value.type == "object"
-        accepted = bool(name) and (node.type in declarations or is_function)
+        # Exported constants are public API symbols too, even when their value
+        # is data (regex/schema/config) rather than a function. Local variables
+        # remain excluded so implementation temporaries do not flood the index.
+        accepted = bool(name) and (node.type in declarations or is_function or is_exported_variable)
         next_parents = parents
         if accepted:
             extent = node
@@ -57,13 +68,14 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
                     extent = node.parent
                     if extent.parent and extent.parent.type == "export_statement": extent = extent.parent
             body = (value if is_function else node).child_by_field_name("body")
+            # Exported data variables have no function/class body. Treat their
+            # value as the signature boundary so a huge regex/object literal is
+            # shown in the exact source window but does not get double-counted
+            # as high-weight signature vocabulary.
+            if is_exported_variable and not is_function and value is not None:
+                body = value
             # type_alias_declaration has no "body" field -- its right-hand side
-            # sits under "value" instead, so it previously went untruncated
-            # into the signature no matter its shape (object type, intersection
-            # with other types, etc.), double-counting every word in it at
-            # both the 20x name-term weight (via signature) and the 1x
-            # body-term weight the type already gets like any other symbol's
-            # body. Truncate it the same way a function/class body is.
+            # sits under "value" instead, so truncate it like other bodies.
             if body is None and node.type == "type_alias_declaration" and value is not None:
                 body = value
             head_end = body.start_byte if body else node.end_byte
