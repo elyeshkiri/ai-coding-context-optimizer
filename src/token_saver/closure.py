@@ -96,6 +96,42 @@ def _neighbors(index: RepositoryIndex, source: str) -> list[tuple[str, str]]:
     return sorted(out.items())
 
 
+def authoritative_providers(index: RepositoryIndex, sources: list[str]) -> list[ClosureItem]:
+    """One-hop ``semantic-ref`` providers reached from any of ``sources``.
+
+    Deliberately not bounded by the caller's graph-hop seed limit: a
+    ``semantic-ref`` edge never expands further (see ``dependency_closure``'s
+    docstring), so scanning every already-relevant candidate for one is cheap
+    -- a single dict lookup per source, most of which have none -- unlike the
+    general closure walk, which is seed-limited because other edge kinds are
+    transitive and can fan out. Without this, a source file that is clearly
+    on-topic but ranks below the (deliberately small, cost-bounded) seed
+    cutoff -- e.g. because several near-duplicate files outscore it on raw
+    term overlap -- can never surface the exact value it imports.
+    """
+    out: list[ClosureItem] = []
+    seen: set[str] = set()
+    confidence = EDGE_CONFIDENCE["semantic-ref"]
+    for source in sources:
+        record = index.records.get(source)
+        if record is None:
+            continue
+        for ref in record.semantic_refs or []:
+            if not isinstance(ref, dict):
+                continue
+            if ref.get("kind", "semantic-call") != "semantic-ref":
+                continue
+            module = ref.get("module", "")
+            if not isinstance(module, str) or not module:
+                continue
+            target = _semantic_target(index, source, module)
+            if target is None or target == source or target in seen:
+                continue
+            seen.add(target)
+            out.append(ClosureItem(target, 1, "semantic-ref", source, confidence))
+    return out
+
+
 def dependency_closure(
     index: RepositoryIndex,
     seeds: list[str],

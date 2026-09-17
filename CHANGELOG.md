@@ -1,5 +1,30 @@
 # Unreleased
 
+- **Fixed CI on `main`**, broken by PR #4 (`fix/authoritative-file-ranking`,
+  merged despite its own `CI` check failing on every push -- only its
+  separate, narrower `PR4 Frozen Holdout` workflow was green). The failing
+  test, `test_context_pack_reserves_budget_for_exact_provider_behind_large_consumer`,
+  exposed a real gap in that PR's own "authoritative provider" mechanism,
+  not an interaction with unrelated work: `rank_files()` only seeds
+  `dependency_closure` from the top `seed_limit` files by raw score
+  (deliberately small and cost-bounded, since most edge kinds it walks are
+  transitive and can fan out), so a source file that's clearly on-topic but
+  ranks below that cutoff -- e.g. behind several near-duplicate files that
+  outscore it on raw term overlap alone -- never got a chance to surface an
+  exact value it imports via a `semantic-ref` edge. `build_context_pack`'s
+  budget-reservation search window for that same signal was independently
+  too narrow for the same reason. Fixed with `closure.authoritative_providers`
+  (`src/token_saver/closure.py`): a separate, cheap, non-transitive one-hop
+  scan over every relevant candidate (not just the seed set) for
+  `semantic-ref` edges specifically -- cheap because that edge kind never
+  expands further regardless of how many sources it's checked from, unlike
+  the general closure walk. `build_context_pack`'s reservation search now
+  scans all candidates for the resulting tag instead of a truncated prefix,
+  since the tag itself is already the bounded, authoritative signal.
+  Verified: 334 tests passing (was 328), self-benchmark unchanged
+  (92%/96%), frozen external holdout unchanged (83.3%/83.3%, one-time
+  re-run, not a tuning loop).
+
 - **Fixed both remaining symbol-selection root causes behind
   `zod-flatten-error` and `zod-error-tree`** (the other two frozen external
   holdout tasks disclosed as unfixed in VALIDATION.md), found by

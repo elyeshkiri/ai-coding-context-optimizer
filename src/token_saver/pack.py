@@ -15,7 +15,7 @@ import subprocess
 from pathlib import Path
 
 from .budget import RetrievalPlan, plan_retrieval
-from .closure import dependency_closure
+from .closure import authoritative_providers, dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
 from .lexical import document_counts, terms
@@ -230,6 +230,23 @@ def rank_files(
     ):
         item = by_rel.get(related.path)
         if item is None:
+            continue
+        item.score += 2.5 * related.confidence
+        item.reasons.append(f"graph:{related.reason}@{related.distance}")
+        item.reasons.append(
+            f"closure:{related.source}@{related.distance}:{related.confidence:.2f}"
+        )
+
+    # dependency_closure above is seeded from only the top seed_limit files
+    # (deliberately small/cost-bounded, since most of its edge kinds are
+    # transitive and can fan out). A source ranked just below that cutoff --
+    # e.g. behind several near-duplicate files that outscore it on raw term
+    # overlap alone -- would otherwise never get a chance to surface an exact
+    # value it imports. Run the cheap, non-transitive semantic-ref lookup over
+    # every relevant candidate instead of just the seed set.
+    for related in authoritative_providers(index, seed_pool):
+        item = by_rel.get(related.path)
+        if item is None or any(reason.startswith("graph:") for reason in item.reasons):
             continue
         item.score += 2.5 * related.confidence
         item.reasons.append(f"graph:{related.reason}@{related.distance}")
@@ -538,13 +555,19 @@ def build_context_pack(
     priority_seen = 0
 
     # Reserve a bounded slot for the highest-ranked exact one-hop value
-    # provider among the leading candidates. This prevents a huge consumer
-    # outline from monopolizing the whole context budget before its provider
-    # is considered, without imposing global fair-sharing on ordinary files.
+    # provider among the candidates. This prevents a huge consumer outline
+    # from monopolizing the whole context budget before its provider is
+    # considered, without imposing global fair-sharing on ordinary files. Scan
+    # every candidate, not just the leading few: a "graph:semantic-ref@1" tag
+    # is only ever attached to the small, already-bounded set of files
+    # rank_files() actually found via a real one-hop reference (see
+    # closure.authoritative_providers), never a large fraction of the repo,
+    # so the scan stays cheap regardless of where such a file ranks by raw
+    # lexical score -- which, being a tiny provider file, is often low.
     authoritative_rel = next(
         (
             item.rel
-            for item in candidates[: max(4, plan.seed_limit + 2)]
+            for item in candidates
             if any(reason.startswith("graph:semantic-ref@1") for reason in item.reasons)
         ),
         None,
