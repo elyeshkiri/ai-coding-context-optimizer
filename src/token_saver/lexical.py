@@ -77,6 +77,24 @@ def terms(text: str) -> list[str]:
     return out
 
 
+def identifier_terms(text: str) -> list[str]:
+    """Split an identifier into literal components without prose stopword loss.
+
+    This does not stem or drop API verbs such as create, build, or add.
+    It is intended only for exact leaf-identifier evidence after a file has
+    already been selected.
+    """
+    expanded = _CAMEL.sub(
+        " ", text.replace("_", " ").replace("-", " ").replace("/", " ")
+    )
+    out: list[str] = []
+    for match in _WORD.finditer(expanded):
+        value = match.group(0).lower().strip("_$")
+        if len(value) >= 2:
+            out.append(value)
+    return out
+
+
 def symbol_terms(text: str) -> list[str]:
     """Tokenise for within-file symbol matching with conservative inflections.
 
