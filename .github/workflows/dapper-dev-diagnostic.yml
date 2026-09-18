@@ -1,0 +1,51 @@
+name: Dapper Development Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/overload-partial-class-ranking
+
+jobs:
+  dapper-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/overload-partial-class-ranking
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Clone pinned Dapper revision
+        run: |
+          git init -q /tmp/dapper
+          git -C /tmp/dapper remote add origin https://github.com/DapperLib/Dapper.git
+          git -C /tmp/dapper fetch -q --depth=1 origin 8becae8d0e2b360165ae03c0d5d1330b0273473d
+          git -C /tmp/dapper checkout -q --detach FETCH_HEAD
+      - name: Build development-only Dapper manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          frozen = json.loads(Path("benchmarks/holdout-external-7.json").read_text())
+          dev = {
+              "suite_version": 1,
+              "max_tokens": frozen["max_tokens"],
+              "repositories": {
+                  "dapper": {
+                      "path": "/tmp/dapper",
+                      "revision": frozen["repositories"]["dapper"]["revision"],
+                  }
+              },
+              "tasks": [
+                  task for task in frozen["tasks"] if task["repository"] == "dapper"
+              ],
+          }
+          Path("/tmp/dapper-dev.json").write_text(json.dumps(dev))
+          PY
+      - name: Run burned Dapper cases as development diagnostics only
+        run: |
+          echo "===== DAPPER_DEV_RESULT_BEGIN ====="
+          token-saver evaluate /tmp/dapper-dev.json --path . --max-tokens 6000
+          echo "===== DAPPER_DEV_RESULT_END ====="
