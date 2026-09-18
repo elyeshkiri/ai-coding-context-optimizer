@@ -1,4 +1,5 @@
 import json
+import json
 import textwrap
 
 from token_saver.entry import main
@@ -55,6 +56,23 @@ def test_dispatcher_exposes_context_browser(tmp_path, capsys):
     assert "CONTEXT BROWSER" in out
     assert "views.py" in out
     assert "renderTemplate" in out
+
+
+
+def test_dispatcher_exposes_output_benchmark(tmp_path, capsys):
+    manifest = tmp_path / "output.json"
+    manifest.write_text(json.dumps({
+        "cases": [{
+            "id": "duplicate",
+            "text": "Done.\n\nDone.\n",
+            "mode": "terse",
+        }]
+    }))
+
+    assert main(["output-benchmark", str(manifest)]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["summary"]["case_count"] == 1
+    assert payload["cases"][0]["removed_units"] >= 1
 
 
 

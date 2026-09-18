@@ -15,6 +15,7 @@ from .feedback import record_feedback
 from .host_validate import validate_host
 from .impact import analyze_impact
 from .patch_context import build_diff_context, review_patch
+from .output_benchmark import evaluate_output_manifest
 from .output_saver import build_output_policy, compact_output, compact_structured_result
 from .serve import serve
 
@@ -330,6 +331,20 @@ def browse_main(argv: list[str]) -> int:
                     print("candidate number out of range")
                 continue
             print("commands: list | show N | quit")
+    return 0
+
+
+
+def output_benchmark_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver output-benchmark")
+    parser.add_argument("manifest")
+    args = parser.parse_args(argv)
+    try:
+        result = evaluate_output_manifest(Path(args.manifest))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
     return 0
 
 

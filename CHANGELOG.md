@@ -1,5 +1,13 @@
 # Unreleased
 
+- **Added a deterministic Output Saver benchmark harness.**
+  `token-saver output-benchmark manifest.json` runs compaction over inline or
+  file-backed responses and reports weighted/mean output-token reduction,
+  exact fenced-code preservation, required-content preservation, removed
+  units, and budget-overflow rate. The harness intentionally does not claim
+  generation-time savings from post-processing; real generated-token and
+  invoice effects belong in paired agent runs measured by `cost-report`.
+
 - **Added paired cost-per-success reporting for real agent runs.**
   `token-saver cost-report baseline.json optimized.json` compares identical
   task IDs across baseline and Token Saver runs using success outcomes,
