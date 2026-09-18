@@ -79,8 +79,8 @@ def test_cost_report_can_derive_cost_from_token_pricing(tmp_path):
 def test_cost_report_rejects_unpaired_tasks_by_default(tmp_path):
     baseline = tmp_path / "baseline.json"
     optimized = tmp_path / "optimized.json"
-    _write(baseline, [{"task_id": "a", "success": True}])
-    _write(optimized, [{"task_id": "b", "success": True}])
+    _write(baseline, [{"task_id": "a", "success": True, "cost_usd": 0.0}])
+    _write(optimized, [{"task_id": "b", "success": True, "cost_usd": 0.0}])
 
     with pytest.raises(ValueError, match="same task_ids"):
         compare_cost_files(baseline, optimized)
