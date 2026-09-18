@@ -1,5 +1,34 @@
 # Unreleased
 
+- **Built and first-ran an eighth frozen external holdout focused on adversarial callable resolution.**
+  `benchmarks/holdout-external-8.json` contains **48 source-grounded tasks
+  across 8 previously-unused repositories**: FluentValidation and Polly (C#),
+  Guice and Retrofit (Java), class-validator and tsyringe (TypeScript), Rayon
+  (Rust), and Viper (Go). The suite deliberately stresses overload families,
+  partial classes, generic arity, nested builders, interface/trait members,
+  async/sync twins, and package-level functions sharing names with receiver
+  methods. All repositories are pinned to exact revisions. Ground truth was
+  committed before evaluation and frozen at SHA
+  `ea638a0cf9a5777ac5799982a728b6f895aaa952cf7b9f04a714991650c0d7ab`.
+
+  **First-ever result: 100% file recall, 97.9% bare source-visible symbol
+  recall, 91.7% qualified-symbol recall, 81.25% exact symbol-identity recall,
+  and ~95.31% estimated context reduction.** Per repository
+  file/bare/qualified/identity recall: FluentValidation 100/83.3/83.3/83.3,
+  Polly 100/100/100/100, Guice 100/100/100/100, Retrofit
+  100/100/83.3/83.3, class-validator 100/100/100/50, tsyringe
+  100/100/100/66.7, Rayon 100/100/100/100, and Viper
+  100/100/66.7/66.7.
+
+  The suite validates the post-Dapper partial-class and overload work on fresh
+  repositories: file retrieval is perfect and exact declaration identity
+  crosses 80% on an intentionally overload-heavy benchmark. The remaining
+  misses are concentrated in TypeScript overload declaration identity,
+  package-level-vs-receiver disambiguation in Go, and isolated nested/member
+  selection cases. The exact first-run output is preserved in
+  `benchmarks/holdout-external-8.result.json`. Holdout #8 is now burned for
+  tuning.
+
 - **Hardened partial-class and overload retrieval after holdout #7's Dapper failures.**
   Repository ranking now gives a bounded, length-independent boost to files that
   structurally define the requested container/member, preventing very large

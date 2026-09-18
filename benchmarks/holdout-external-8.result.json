@@ -1,0 +1,608 @@
+{
+  "tasks": [
+    {
+      "id": "fv-rulefor-property",
+      "repository": "fluentvalidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5993,
+      "token_reduction": 0.9814059266475751
+    },
+    {
+      "id": "fv-ruleforeach-collection",
+      "repository": "fluentvalidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9813935161197244
+    },
+    {
+      "id": "fv-when-simple",
+      "repository": "fluentvalidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9813842082238363
+    },
+    {
+      "id": "fv-when-context",
+      "repository": "fluentvalidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9814028240156124
+    },
+    {
+      "id": "fv-include-validator",
+      "repository": "fluentvalidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5981,
+      "token_reduction": 0.9814431582311275
+    },
+    {
+      "id": "fv-include-factory",
+      "repository": "fluentvalidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5986,
+      "token_reduction": 0.981427645071314
+    },
+    {
+      "id": "polly-execute-context-state",
+      "repository": "polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9952983552087149
+    },
+    {
+      "id": "polly-execute-cancellation-action",
+      "repository": "polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9952952176412866
+    },
+    {
+      "id": "polly-execute-result-context-state",
+      "repository": "polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9952936488575724
+    },
+    {
+      "id": "polly-executeasync-context-state",
+      "repository": "polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9952960020331437
+    },
+    {
+      "id": "polly-executeasync-cancellation",
+      "repository": "polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9952952176412866
+    },
+    {
+      "id": "polly-executeasync-result-context-state",
+      "repository": "polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5984,
+      "token_reduction": 0.9953061991272856
+    },
+    {
+      "id": "guice-bind-key",
+      "repository": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5989,
+      "token_reduction": 0.993944871946528
+    },
+    {
+      "id": "guice-bind-typeliteral",
+      "repository": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9939337504890914
+    },
+    {
+      "id": "guice-bind-class",
+      "repository": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9939337504890914
+    },
+    {
+      "id": "guice-requestinjection-object",
+      "repository": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9939398167386023
+    },
+    {
+      "id": "guice-requestinjection-typeliteral",
+      "repository": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9939337504890914
+    },
+    {
+      "id": "guice-getprovider-class",
+      "repository": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5992,
+      "token_reduction": 0.9939418388217726
+    },
+    {
+      "id": "retrofit-builder-client",
+      "repository": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5992,
+      "token_reduction": 0.9893904652295161
+    },
+    {
+      "id": "retrofit-builder-callfactory",
+      "repository": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5995,
+      "token_reduction": 0.9893851533796645
+    },
+    {
+      "id": "retrofit-builder-baseurl-url",
+      "repository": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5988,
+      "token_reduction": 0.9893975476959851
+    },
+    {
+      "id": "retrofit-builder-baseurl-string",
+      "repository": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5980,
+      "token_reduction": 0.989411712628923
+    },
+    {
+      "id": "retrofit-builder-baseurl-httpurl",
+      "repository": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5981,
+      "token_reduction": 0.9894099420123058
+    },
+    {
+      "id": "retrofit-builder-build",
+      "repository": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5991,
+      "token_reduction": 0.9893922358461334
+    },
+    {
+      "id": "cv-validate-object",
+      "repository": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 5981,
+      "token_reduction": 0.9581350095195431
+    },
+    {
+      "id": "cv-validate-schema",
+      "repository": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5996,
+      "token_reduction": 0.9580300145593011
+    },
+    {
+      "id": "cv-reject-object",
+      "repository": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 5984,
+      "token_reduction": 0.9581140105274947
+    },
+    {
+      "id": "cv-reject-schema",
+      "repository": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9580160152312689
+    },
+    {
+      "id": "cv-sync-object",
+      "repository": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.9580020159032366
+    },
+    {
+      "id": "cv-sync-schema",
+      "repository": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9580440138873334
+    },
+    {
+      "id": "tsyringe-register-value",
+      "repository": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 5997,
+      "token_reduction": 0.8284169265543189
+    },
+    {
+      "id": "tsyringe-register-factory",
+      "repository": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.828331092100369
+    },
+    {
+      "id": "tsyringe-register-token",
+      "repository": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.828331092100369
+    },
+    {
+      "id": "tsyringe-register-class",
+      "repository": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.8283883150696689
+    },
+    {
+      "id": "tsyringe-register-constructor",
+      "repository": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.8283883150696689
+    },
+    {
+      "id": "tsyringe-register-implementation",
+      "repository": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.8284169265543189
+    },
+    {
+      "id": "rayon-find-any",
+      "repository": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9817108892523251
+    },
+    {
+      "id": "rayon-find-first",
+      "repository": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5995,
+      "token_reduction": 0.9817078380159641
+    },
+    {
+      "id": "rayon-find-last",
+      "repository": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9817108892523251
+    },
+    {
+      "id": "rayon-position-any",
+      "repository": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5996,
+      "token_reduction": 0.981704786779603
+    },
+    {
+      "id": "rayon-position-first",
+      "repository": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5990,
+      "token_reduction": 0.9817230941977689
+    },
+    {
+      "id": "rayon-position-last",
+      "repository": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5990,
+      "token_reduction": 0.9817230941977689
+    },
+    {
+      "id": "viper-global-get",
+      "repository": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5996,
+      "token_reduction": 0.8962216799072296
+    },
+    {
+      "id": "viper-method-get",
+      "repository": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5999,
+      "token_reduction": 0.8961697561313325
+    },
+    {
+      "id": "viper-global-unmarshal",
+      "repository": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5990,
+      "token_reduction": 0.8963255274590235
+    },
+    {
+      "id": "viper-method-unmarshal",
+      "repository": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5995,
+      "token_reduction": 0.8962389878325285
+    },
+    {
+      "id": "viper-global-bindpflag",
+      "repository": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.8961524482060336
+    },
+    {
+      "id": "viper-method-bindpflag",
+      "repository": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.8961524482060336
+    }
+  ],
+  "repositories": {
+    "class-validator": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9580568466046963,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 0.5
+    },
+    "fluentvalidation": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.8333333333333334,
+      "mean_token_reduction": 0.981409546384865,
+      "mean_qualified_symbol_recall": 0.8333333333333334,
+      "mean_symbol_identity_recall": 0.8333333333333334
+    },
+    "guice": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9939379631623629,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 1
+    },
+    "polly": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9952974400848816,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 1
+    },
+    "rayon": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9817134319492925,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 1
+    },
+    "retrofit": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9893978427987546,
+      "mean_qualified_symbol_recall": 0.8333333333333334,
+      "mean_symbol_identity_recall": 0.8333333333333334
+    },
+    "tsyringe": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.828378777908119,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 0.6666666666666666
+    },
+    "viper": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.8962101412903635,
+      "mean_qualified_symbol_recall": 0.6666666666666666,
+      "mean_symbol_identity_recall": 0.6666666666666666
+    }
+  },
+  "summary": {
+    "task_count": 48,
+    "mean_file_recall": 1,
+    "mean_symbol_recall": 0.9791666666666666,
+    "mean_token_reduction": 0.953050248772917,
+    "mean_qualified_symbol_recall": 0.9166666666666666,
+    "mean_symbol_identity_recall": 0.8125
+  },
+  "holdout_protocol_enforced": true,
+  "ground_truth_sha256": "ea638a0cf9a5777ac5799982a728b6f895aaa952cf7b9f04a714991650c0d7ab"
+}
