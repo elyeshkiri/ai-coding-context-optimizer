@@ -588,8 +588,6 @@ def _symbols_extra(text: str, suffix: str) -> list[Symbol]:
 
     source = text.encode("utf-8")
     tree = Parser(_extra_language(suffix)).parse(source)
-    if tree.root_node.has_error:
-        raise ValueError("Source has syntax errors; use an explicit source range instead")
 
     if suffix == ".go":
         found = _go_symbols(source, tree.root_node)
@@ -599,6 +597,14 @@ def _symbols_extra(text: str, suffix: str) -> list[Symbol]:
         found = _java_symbols(source, tree.root_node)
     else:
         found = _csharp_symbols(source, tree.root_node)
+
+    # Error recovery still provides exact declaration nodes around unsupported
+    # or newer syntax. Discarding the whole tree on one ERROR node degraded
+    # large real-world C# files to the generic regex fallback and erased their
+    # methods. Keep recovered symbols; fall back only when nothing structural
+    # survived.
+    if tree.root_node.has_error and not found:
+        raise ValueError("Source has syntax errors; use an explicit source range instead")
     return _attach_structured_calls(source, tree.root_node, suffix, found)
 
 def symbols(text: str, suffix: str) -> list[Symbol]:
