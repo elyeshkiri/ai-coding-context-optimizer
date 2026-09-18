@@ -1,0 +1,422 @@
+{
+  "tasks": [
+    {
+      "id": "jinja-load-template-cache",
+      "repository": "jinja",
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5993,
+      "token_reduction": 0.9693877029795016
+    },
+    {
+      "id": "jinja-template-from-string",
+      "repository": "jinja",
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5987,
+      "token_reduction": 0.969418351032584
+    },
+    {
+      "id": "jinja-context-variable-resolution",
+      "repository": "jinja",
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9693825949706545
+    },
+    {
+      "id": "jinja-filesystem-loader-source",
+      "repository": "jinja",
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5980,
+      "token_reduction": 0.9694541070945135
+    },
+    {
+      "id": "jinja-select-filter",
+      "repository": "jinja",
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9693519469175721
+    },
+    {
+      "id": "werkzeug-generate-password-hash",
+      "repository": "werkzeug",
+      "revision": "6a604e005d95af8129ee314863be8ad6b240dead",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5977,
+      "token_reduction": 0.9805757406372275
+    },
+    {
+      "id": "werkzeug-check-password-hash",
+      "repository": "werkzeug",
+      "revision": "6a604e005d95af8129ee314863be8ad6b240dead",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9805107439520584
+    },
+    {
+      "id": "werkzeug-http-redirect-response",
+      "repository": "werkzeug",
+      "revision": "6a604e005d95af8129ee314863be8ad6b240dead",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.9805009944492831
+    },
+    {
+      "id": "werkzeug-route-adapter-match",
+      "repository": "werkzeug",
+      "revision": "6a604e005d95af8129ee314863be8ad6b240dead",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5993,
+      "token_reduction": 0.9805237432890923
+    },
+    {
+      "id": "werkzeug-response-set-cookie",
+      "repository": "werkzeug",
+      "revision": "6a604e005d95af8129ee314863be8ad6b240dead",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5995,
+      "token_reduction": 0.9805172436205754
+    },
+    {
+      "id": "eslint-lint-files",
+      "repository": "eslint",
+      "revision": "92086c87e042413a3d0363d8fc3fbb11db98d06a",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5992,
+      "token_reduction": 0.9986071015042235
+    },
+    {
+      "id": "eslint-linter-verify",
+      "repository": "eslint",
+      "revision": "92086c87e042413a3d0363d8fc3fbb11db98d06a",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5988,
+      "token_reduction": 0.9986080313430057
+    },
+    {
+      "id": "eslint-rule-tester-run",
+      "repository": "eslint",
+      "revision": "92086c87e042413a3d0363d8fc3fbb11db98d06a",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.998605241826659
+    },
+    {
+      "id": "eslint-load-api-constructor",
+      "repository": "eslint",
+      "revision": "92086c87e042413a3d0363d8fc3fbb11db98d06a",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5993,
+      "token_reduction": 0.9986068690445279
+    },
+    {
+      "id": "eslint-cli-execute",
+      "repository": "eslint",
+      "revision": "92086c87e042413a3d0363d8fc3fbb11db98d06a",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5987,
+      "token_reduction": 0.9986082638027012
+    },
+    {
+      "id": "undici-redirect-handler",
+      "repository": "undici",
+      "revision": "4fb32a0eaf62e27fac3087abae9663696294043b",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5978,
+      "token_reduction": 0.9965768289456656
+    },
+    {
+      "id": "undici-client-dispatch",
+      "repository": "undici",
+      "revision": "4fb32a0eaf62e27fac3087abae9663696294043b",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5990,
+      "token_reduction": 0.9965699574079185
+    },
+    {
+      "id": "undici-build-connector",
+      "repository": "undici",
+      "revision": "4fb32a0eaf62e27fac3087abae9663696294043b",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "tokens": 5999,
+      "token_reduction": 0.9965648037546082
+    },
+    {
+      "id": "undici-websocket-api",
+      "repository": "undici",
+      "revision": "4fb32a0eaf62e27fac3087abae9663696294043b",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5999,
+      "token_reduction": 0.9965648037546082
+    },
+    {
+      "id": "undici-fetch-entry",
+      "repository": "undici",
+      "revision": "4fb32a0eaf62e27fac3087abae9663696294043b",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5990,
+      "token_reduction": 0.9965699574079185
+    },
+    {
+      "id": "mux-new-router",
+      "repository": "mux",
+      "revision": "db9d1d0073d27a0a2d9a8c1bc52aa0af4374d265",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5988,
+      "token_reduction": 0.9055341705054585
+    },
+    {
+      "id": "mux-serve-http",
+      "repository": "mux",
+      "revision": "db9d1d0073d27a0a2d9a8c1bc52aa0af4374d265",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5995,
+      "token_reduction": 0.9054237395090553
+    },
+    {
+      "id": "mux-handle-func",
+      "repository": "mux",
+      "revision": "db9d1d0073d27a0a2d9a8c1bc52aa0af4374d265",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5979,
+      "token_reduction": 0.9056761532151196
+    },
+    {
+      "id": "mux-walk-routes",
+      "repository": "mux",
+      "revision": "db9d1d0073d27a0a2d9a8c1bc52aa0af4374d265",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5999,
+      "token_reduction": 0.9053606360825392
+    },
+    {
+      "id": "mux-get-path-template",
+      "repository": "mux",
+      "revision": "db9d1d0073d27a0a2d9a8c1bc52aa0af4374d265",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.9053448602259102
+    },
+    {
+      "id": "gin-serve-http",
+      "repository": "gin",
+      "revision": "5c6a15f8f9566612076bd209e623861bf92a6283",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5996,
+      "token_reduction": 0.972091377930033
+    },
+    {
+      "id": "gin-run-server",
+      "repository": "gin",
+      "revision": "5c6a15f8f9566612076bd209e623861bf92a6283",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5991,
+      "token_reduction": 0.9721146506302247
+    },
+    {
+      "id": "gin-client-ip",
+      "repository": "gin",
+      "revision": "5c6a15f8f9566612076bd209e623861bf92a6283",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5996,
+      "token_reduction": 0.972091377930033
+    },
+    {
+      "id": "gin-json-response",
+      "repository": "gin",
+      "revision": "5c6a15f8f9566612076bd209e623861bf92a6283",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9720820688499563
+    },
+    {
+      "id": "gin-bind-json-request",
+      "repository": "gin",
+      "revision": "5c6a15f8f9566612076bd209e623861bf92a6283",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5996,
+      "token_reduction": 0.972091377930033
+    },
+    {
+      "id": "axum-serve-listener",
+      "repository": "axum",
+      "revision": "3f46d25e9274d485a99905d3734d37828112bc31",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9853164780114442
+    },
+    {
+      "id": "axum-router-route",
+      "repository": "axum",
+      "revision": "3f46d25e9274d485a99905d3734d37828112bc31",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9853164780114442
+    },
+    {
+      "id": "axum-json-response",
+      "repository": "axum",
+      "revision": "3f46d25e9274d485a99905d3734d37828112bc31",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5996,
+      "token_reduction": 0.9853189264893479
+    },
+    {
+      "id": "axum-path-extractor",
+      "repository": "axum",
+      "revision": "3f46d25e9274d485a99905d3734d37828112bc31",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5996,
+      "token_reduction": 0.9853189264893479
+    },
+    {
+      "id": "axum-extension-extractor",
+      "repository": "axum",
+      "revision": "3f46d25e9274d485a99905d3734d37828112bc31",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9853140295335405
+    },
+    {
+      "id": "serde-json-from-str",
+      "repository": "serde-json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9666331032104095
+    },
+    {
+      "id": "serde-json-to-string",
+      "repository": "serde-json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5993,
+      "token_reduction": 0.9666609182294071
+    },
+    {
+      "id": "serde-json-pointer",
+      "repository": "serde-json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5990,
+      "token_reduction": 0.9666776072408058
+    },
+    {
+      "id": "serde-json-map-insert",
+      "repository": "serde-json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5989,
+      "token_reduction": 0.9666831702446053
+    },
+    {
+      "id": "serde-json-number-from-f64",
+      "repository": "serde-json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5997,
+      "token_reduction": 0.966638666214209
+    }
+  ],
+  "repositories": {
+    "axum": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.4,
+      "mean_token_reduction": 0.985316967707025
+    },
+    "eslint": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.8,
+      "mean_token_reduction": 0.9986071015042235
+    },
+    "gin": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0,
+      "mean_token_reduction": 0.9720941706540559
+    },
+    "jinja": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.6,
+      "mean_token_reduction": 0.9693989405989651
+    },
+    "mux": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.2,
+      "mean_token_reduction": 0.9054679119076166
+    },
+    "serde-json": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.2,
+      "mean_token_reduction": 0.9666586930278873
+    },
+    "undici": {
+      "task_count": 5,
+      "mean_file_recall": 0.8,
+      "mean_symbol_recall": 0.8,
+      "mean_token_reduction": 0.9965692702541439
+    },
+    "werkzeug": {
+      "task_count": 5,
+      "mean_file_recall": 0.8,
+      "mean_symbol_recall": 0.6,
+      "mean_token_reduction": 0.9805256931896473
+    }
+  },
+  "summary": {
+    "task_count": 40,
+    "mean_file_recall": 0.95,
+    "mean_symbol_recall": 0.45,
+    "mean_token_reduction": 0.9718298436054456
+  },
+  "holdout_protocol_enforced": true,
+  "ground_truth_sha256": "73b66da6cc5b5595ee956154b8c05242a44b011e2d0bd22b3c86faa0278edb38"
+}
