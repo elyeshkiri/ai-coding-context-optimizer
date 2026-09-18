@@ -337,3 +337,25 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
     if suffix == ".java":
         return _java_symbols(source, tree.root_node)
     return _csharp_symbols(source, tree.root_node)
+
+
+def extract(text: str, suffix: str, name: str):
+    """Extract one exact structural symbol by qualified or bare name."""
+    matches = [
+        symbol for symbol in symbols(text, suffix)
+        if symbol.qualified == name or ("." not in name and symbol.name == name)
+    ]
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise ValueError(
+            "Ambiguous symbol; use a qualified name: "
+            + ", ".join(symbol.qualified for symbol in matches)
+        )
+    symbol = matches[0]
+    body = text.encode("utf-8")[symbol.start_byte:symbol.end_byte].decode("utf-8", "replace")
+    return (
+        f"# {symbol.qualified}  lines {symbol.start}-{symbol.end}\\n{body}\\n",
+        symbol.start,
+        symbol.end,
+    )
