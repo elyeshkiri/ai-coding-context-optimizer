@@ -9,7 +9,10 @@
   Costs can be supplied directly per run or derived from configurable
   per-million input/output/cached-input pricing. Mismatched workloads are
   rejected by default so savings cannot be inflated by comparing different
-  task sets.
+  task sets. The command also accepts the existing single-file
+  `agent-evaluate` paired manifest format (`task` +
+  `condition=baseline|token-saver`), so quality parity and economics can be
+  computed from the same experiment record rather than duplicated data.
 
 - **Built and first-ran a fourth frozen external holdout before any tuning
   against its repositories.** `benchmarks/holdout-external-4.json` contains
