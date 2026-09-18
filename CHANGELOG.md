@@ -1,5 +1,23 @@
 # Unreleased
 
+- **Built and first-ran a fifth frozen external holdout after the multi-language
+  parser work.** `benchmarks/holdout-external-5.json` contains **30
+  source-grounded tasks across 6 previously-unused repositories**: chi and zap
+  (Go), clap and tower (Rust), Guava (Java), and Serilog (C#). Ground truth and
+  exact repository revisions were frozen before Token Saver saw any selected
+  repository at SHA
+  `9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3`.
+
+  **First-ever result: 90.0% file recall, 56.7% source-visible symbol recall,
+  and ~97.28% estimated context reduction.** Per repository: chi 100%/100%,
+  zap 100%/60%, clap 100%/40%, tower 80%/60%, Guava 60%/40%, and Serilog
+  100%/40% (file/symbol recall). The exact first-run output is preserved in
+  `benchmarks/holdout-external-5.result.json`.
+
+  This suite is now burned for tuning. Subsequent structural improvements are
+  developed on independent synthetic fixtures; a later untouched suite is
+  required for fresh generalization evidence.
+
 - **Added structural cross-language symbol graph v2.** Parser-backed Go, Rust,
   Java, and C# symbols now contribute AST-native method calls and import/use
   targets to the repository graph instead of relying on generic call/import
