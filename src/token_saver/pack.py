@@ -464,8 +464,19 @@ def _symbol_windows(
             identifier_hits = symbol_query_terms & identifier_name_terms
             signature_hits = symbol_query_terms & signature_name_terms
             body_hits = symbol_query_terms & body_terms
+            action_terms = {"add", "build", "create", "use"}
+            specific_identifier_hits = identifier_hits - action_terms
+            action_identifier_hits = identifier_hits & action_terms
+            action_weight = 20 if specific_identifier_hits else 4
             score = (
-                20 * sum(term_weight.get(t, 1.0) for t in identifier_hits)
+                20 * sum(
+                    term_weight.get(t, 1.0)
+                    for t in specific_identifier_hits
+                )
+                + action_weight * sum(
+                    term_weight.get(t, 1.0)
+                    for t in action_identifier_hits
+                )
                 + 8 * sum(term_weight.get(t, 1.0) for t in signature_hits)
                 + 3 * sum(term_weight.get(t, 1.0) for t in body_hits)
             )
