@@ -58,6 +58,7 @@ def test_qualified_symbol_evaluation_is_opt_in_and_source_visible(tmp_path):
             "files": ["service.py"],
             "symbols": ["run"],
             "qualified_symbols": ["service.py:UserService.run"],
+            "symbol_identities": ["service.py:UserService.run@7"],
             "max_tokens": 800,
         }],
         "protocol": {
@@ -75,7 +76,9 @@ def test_qualified_symbol_evaluation_is_opt_in_and_source_visible(tmp_path):
     task = result["tasks"][0]
     assert task["symbol_recall"] == 1.0
     assert task["qualified_symbol_recall"] == 1.0
+    assert task["symbol_identity_recall"] == 1.0
     assert result["summary"]["mean_qualified_symbol_recall"] == 1.0
+    assert result["summary"]["mean_symbol_identity_recall"] == 1.0
 
 
 def test_legacy_holdout_hash_does_not_gain_implicit_qualified_field():
@@ -96,3 +99,30 @@ def test_legacy_holdout_hash_does_not_gain_implicit_qualified_field():
     with_empty = ground_truth_hash(explicit)
 
     assert without != with_empty
+
+
+
+def test_exact_identity_distinguishes_overloads_by_source_line(tmp_path):
+    source = textwrap.dedent("""
+        class Formatter {
+            public string Format(int value) {
+                return value.ToString();
+            }
+
+            public string Format(string value) {
+                return value.Trim();
+            }
+        }
+    """)
+    (tmp_path / "Formatter.cs").write_text(source)
+
+    pack = build_context_pack(
+        tmp_path,
+        "Formatter Format string Trim",
+        max_tokens=900,
+        changed_boost=False,
+    )
+
+    identities = set(pack.selected_symbol_identities)
+    assert "Formatter.cs:Formatter.Format@7" in identities
+    assert any(identity.startswith("Formatter.cs:Formatter.Format@") for identity in identities)
