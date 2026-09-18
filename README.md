@@ -47,6 +47,35 @@ the model generates tokens, which is the primary savings path; post-processing
 cannot refund tokens that were already generated.
 
 
+## Typo-tolerant retrieval and context browser
+
+Token Saver now has a conservative typo/fuzzy layer designed to complement,
+not replace, structural retrieval.
+
+Repository-level typo correction compares query words only against indexed
+identifier vocabulary, uses strict similarity and ambiguity margins, and keeps
+the original terms. Once a file has already survived retrieval, a slightly
+broader fuzzy fallback can rescue a misspelled symbol identifier without
+turning fuzzy similarity into a repository-wide ranking signal.
+
+Inspect what the real packer is considering:
+
+```bash
+token-saver browse . --query "rendr template"
+token-saver browse . --query "refresh sesion token" --show 1
+token-saver browse . --query "cookie persistence" --interactive
+token-saver browse . --query "redirect request" --json
+```
+
+Interactive mode supports `list`, `show N`, and `quit`. The browser reuses
+the same file ranker, graph evidence, exact source-window selection, secret
+redaction, and source-visible symbol accounting as `pack`; it is not a second
+search engine. It also surfaces any high-confidence fuzzy corrections so a
+human or agent can see why a typo matched an identifier.
+
+The same inspection surface is available through MCP as `browse_context`.
+
+
 ## What is new in 1.2
 
 Retrieval ranking got a full correctness pass, driven by a frozen,

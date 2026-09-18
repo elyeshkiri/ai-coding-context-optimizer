@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import time
 
 from .feedback import record_feedback
+from .context_browser import browse_context
 from .impact import analyze_impact
 from .pack import build_context_pack
 from .patch_context import build_diff_context, review_patch
@@ -31,6 +32,15 @@ TOOLS = [
         "description": "Find exact or partial symbol definitions with source ranges.",
         "inputSchema": {"type": "object", "required": ["name"], "properties": {
             "name": {"type": "string"},
+        }},
+    },
+    {
+        "name": "browse_context",
+        "description": "Inspect ranked files, selected symbols, fuzzy corrections, and source previews.",
+        "inputSchema": {"type": "object", "required": ["query"], "properties": {
+            "query": {"type": "string"},
+            "max_files": {"type": "integer", "minimum": 1},
+            "preview_tokens": {"type": "integer", "minimum": 1},
         }},
     },
     {
@@ -137,6 +147,14 @@ def call_tool(
             "selected_symbols": pack.selected_symbols, "redactions": pack.redactions,
             "closure_files": pack.closure_files,
         })
+    if name == "browse_context":
+        return _result(browse_context(
+            root,
+            str(arguments.get("query", "")),
+            max_files=int(arguments.get("max_files", 8)),
+            preview_tokens=int(arguments.get("preview_tokens", 350)),
+            index=service.get(),
+        ))
     if name == "find_symbol":
         index = service.get()
         found = [

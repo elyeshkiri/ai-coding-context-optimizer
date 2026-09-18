@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from difflib import SequenceMatcher
 import re
 
 _WORD = re.compile(r"[A-Za-z0-9_$]+")
@@ -119,3 +120,47 @@ def document_counts(text: str, outline: str, rel: str) -> dict[str, int]:
     for term in terms(rel):
         counts[term] += 3
     return dict(counts)
+
+
+def fuzzy_symbol_terms(
+    query_terms: set[str],
+    vocabulary: set[str],
+    *,
+    min_ratio: float = 0.82,
+    min_margin: float = 0.06,
+) -> dict[str, tuple[str, float]]:
+    """Map likely typo terms to identifier terms inside an already-selected file.
+
+    This is intentionally *not* a general query expander. It only compares
+    query words against the symbol-name vocabulary from one retrieved file,
+    requires similar length and prefix shape, and rejects ambiguous near-ties.
+    That makes fuzzy matching a late, structure-gated fallback rather than a
+    repository-wide source of semantic noise.
+    """
+    vocab = {term.lower() for term in vocabulary if len(term) >= 4}
+    matches: dict[str, tuple[str, float]] = {}
+    for raw in query_terms:
+        query = raw.lower()
+        if len(query) < 4 or query in vocab:
+            continue
+
+        ranked: list[tuple[float, str]] = []
+        for candidate in vocab:
+            if query[0] != candidate[0]:
+                continue
+            if abs(len(query) - len(candidate)) > 2:
+                continue
+            ratio = SequenceMatcher(None, query, candidate).ratio()
+            threshold = min_ratio if max(len(query), len(candidate)) >= 7 else max(min_ratio, 0.86)
+            if ratio >= threshold:
+                ranked.append((ratio, candidate))
+        if not ranked:
+            continue
+
+        ranked.sort(key=lambda item: (-item[0], item[1]))
+        best_ratio, best = ranked[0]
+        second_ratio = ranked[1][0] if len(ranked) > 1 else 0.0
+        if best_ratio < 0.94 and best_ratio - second_ratio < min_margin:
+            continue
+        matches[query] = (best, best_ratio)
+    return matches

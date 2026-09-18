@@ -18,7 +18,7 @@ from .budget import RetrievalPlan, plan_retrieval
 from .closure import authoritative_providers, dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
-from .lexical import document_counts, symbol_terms, terms
+from .lexical import document_counts, fuzzy_symbol_terms, symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
 from .skeleton import file_priority
@@ -129,6 +129,21 @@ def rank_files(
         raise ValueError("seed_limit must be positive")
     index = index or build_index(root, use_gitignore=use_gitignore)
     q_terms = list(dict.fromkeys(terms(query)))
+
+    # Conservative typo normalization at repository scope. Only identifier
+    # vocabulary participates, and the global thresholds are intentionally
+    # stricter than the within-file fallback below. Original query terms are
+    # always retained; corrected terms are additive evidence, never rewrites.
+    symbol_vocabulary: set[str] = set()
+    for record in index.records.values():
+        for symbol_name in record.symbols:
+            symbol_vocabulary.update(terms(symbol_name))
+    typo_corrections = fuzzy_symbol_terms(
+        set(q_terms), symbol_vocabulary, min_ratio=0.88, min_margin=0.08,
+    )
+    for _source_term, (corrected, _ratio) in typo_corrections.items():
+        if corrected not in q_terms:
+            q_terms.append(corrected)
 
     if not changed_boost:
         changed = set()
@@ -384,12 +399,21 @@ def _symbol_windows(
     # inflections (connection/connect, equality/equal, completion/complete)
     # without perturbing repository-wide ranking.
     symbol_query_terms = set(symbol_terms(" ".join(sorted(query_terms))))
+    name_terms_by_symbol = {
+        (symbol.name, symbol.start_line): set(terms(symbol.name + " " + symbol.signature))
+        for symbol in definitions
+    }
+    all_symbol_name_terms = set().union(*name_terms_by_symbol.values()) if definitions else set()
+    fuzzy_query_terms = (
+        fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
+        if not wanted else {}
+    )
 
     term_weight: dict[str, float] = {}
     if not wanted and definitions:
         doc_freq: Counter[str] = Counter()
         for symbol in definitions:
-            name_terms = set(terms(symbol.name + " " + symbol.signature))
+            name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
             for term in name_terms | set(terms(body)):
                 doc_freq[term] += 1
@@ -398,7 +422,7 @@ def _symbol_windows(
 
     matches: list[tuple[float, object]] = []
     for symbol in definitions:
-        name_terms = set(terms(symbol.name + " " + symbol.signature))
+        name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
         body_terms = set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
@@ -411,6 +435,16 @@ def _symbol_windows(
                 20 * sum(term_weight.get(t, 1.0) for t in name_hits)
                 + sum(term_weight.get(t, 1.0) for t in body_hits)
             )
+
+            # Fuzzy similarity is a bounded *fallback* for identifier typos.
+            # It is gated twice: the file has already survived structural/file
+            # retrieval, and only query terms with no exact identifier match
+            # anywhere in this file are eligible for correction.
+            fuzzy_bonus = 0.0
+            for _query_term, (candidate, ratio) in fuzzy_query_terms.items():
+                if candidate in name_terms:
+                    fuzzy_bonus += 10.0 * ratio
+            score += min(12.0, fuzzy_bonus)
         if score:
             matches.append((score, symbol))
 

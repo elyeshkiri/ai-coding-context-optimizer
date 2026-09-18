@@ -1,5 +1,30 @@
 # Unreleased
 
+- **Added conservative typo-tolerant retrieval and an inspectable context browser.**
+  Repository-scope typo normalization now compares query words only against
+  indexed identifier vocabulary, requires a high similarity score plus a clear
+  margin over the next candidate, and retains the original query term instead
+  of rewriting it. Within an already-selected file, a bounded fuzzy identifier
+  bonus provides a slightly broader fallback for misspelled symbol names. This
+  keeps fuzzy matching subordinate to BM25/graph/structural evidence rather
+  than turning it into a new global retrieval strategy.
+
+  Added `token-saver browse` with ranked files, reasons, source-backed selected
+  symbols, redacted previews, estimated preview tokens, and visible fuzzy
+  corrections. `--show N` prints a detailed candidate and `--interactive`
+  provides a small terminal inspection loop (`list`, `show N`, `quit`).
+  The browser deliberately reuses the production ranker/source-window/redaction
+  path. The same surface is exposed to agents through MCP as
+  `browse_context`.
+
+  Validation: **368 tests passing** on Python 3.10/3.12/3.13. The 25-task
+  self-benchmark remains **100% file / 100% source-visible symbol recall** at
+  **~96.3% estimated context reduction**. The fresh external holdout #3 was
+  created and run before this work (90.0% file / 51.7% symbol / ~97.3%
+  reduction), so it is not being reused as a tuning target for these changes;
+  another untouched holdout is required to make a fresh generalization claim
+  about fuzzy retrieval.
+
 - **Built and ran a third, genuinely fresh frozen external holdout
   suite** (`benchmarks/holdout-external-3.json` / `.result.json`): 30
   tasks across 6 independently-authored public repositories never used
