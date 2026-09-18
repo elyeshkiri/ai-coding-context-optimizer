@@ -59,7 +59,6 @@ def browse_context(
         section, labels, redactions = _file_section(
             item, query_terms, 4, index, None,
         )
-        visible = _visible_symbol_labels(section, labels)
         record = index.records.get(item.rel)
         vocabulary: set[str] = set()
         if record is not None:
@@ -68,6 +67,7 @@ def browse_context(
         fuzzy = fuzzy_symbol_terms(symbol_query, vocabulary)
         preview = _fit_section(section, preview_tokens)
         detail = _fit_section(section, detail_tokens)
+        visible = _visible_symbol_labels(detail, labels)
 
         files.append({
             "rank": rank,
