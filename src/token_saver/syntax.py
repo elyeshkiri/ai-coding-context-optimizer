@@ -13,6 +13,7 @@ class Symbol:
     start_byte: int
     end_byte: int
     signature: str
+    kind: str = "symbol"
 
 @lru_cache(maxsize=3)
 def _language(suffix):
