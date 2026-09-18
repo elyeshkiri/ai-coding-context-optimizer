@@ -1,5 +1,40 @@
 # Unreleased
 
+- **Fixed a real regression on the first (httpx/zod) frozen external
+  holdout: `httpx-redirects` dropped from 1.0 to 0.0 symbol recall**,
+  surfaced by re-running that suite after this cycle's stricter
+  visible-source-only symbol labeling (see the entry below) started
+  correctly filtering out labels whose source doesn't actually survive
+  budget fitting. This wasn't the stricter check introducing a bug -- it
+  correctly caught a latent fragility in an earlier fix (from before this
+  cycle): crediting a boosted parent's matching child with a label
+  assumed the parent's *entire* window would render, so the child's code
+  would "already be there." For a genuinely large container -- httpx's
+  `Client` spans ~1400 lines -- real cross-file budget competition clips
+  the window long before reaching the credited child's line (`_client.py`
+  was truncated at line 907, well short of `_send_handling_redirects` at
+  964), so the label pointed at source that was never actually rendered.
+
+  Fixed by rendering a tight window around the credited child instead of
+  the container's full span, once the container exceeds 200 lines (a
+  conservative threshold -- small classes like `DigestAuth` keep
+  rendering in full, unaffected). A second regression was found and fixed
+  while validating this: substituting only the child's window dropped the
+  *container's own* declaration line, so its own label then failed the
+  same visible-source check for the same reason -- fixed by also keeping
+  a couple of lines at the container's declaration alongside the child's
+  tight window.
+
+  New regression test
+  `test_symbol_window_uses_tight_window_for_credited_child_in_large_container`
+  (`tests/test_pack.py`), confirmed via git stash to fail without the fix.
+  Verified: 361 tests passing (was 360), self-benchmark unchanged at
+  100%/100%, and a one-time re-run of both frozen external holdouts (not
+  a tuning loop): the first suite is back to a clean 100%/100%, the
+  second, larger suite is unaffected either way (zero regressions, zero
+  new passes) -- none of its 41 tasks happened to exercise this specific
+  large-container-with-credited-child shape.
+
 - **Improved actual symbol-source recall rather than metadata-only recall.**
   Added a conservative, query-only symbol normalization layer for nearby
   code-oriented wording such as `connection -> connect`,

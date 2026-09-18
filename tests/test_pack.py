@@ -298,6 +298,57 @@ def test_symbol_window_prefers_class_over_its_own_denser_matching_method(tmp_pat
     assert any(label.startswith("src/auth.py:DigestAuth@") for label in pack.selected_symbols)
 
 
+def test_symbol_window_uses_tight_window_for_credited_child_in_large_container(tmp_path):
+    # Regression for a real bug found on the real, live httpx-redirects
+    # holdout task (not a synthetic what-if): the parent-credit label
+    # mechanism assumed a boosted parent's *entire* window would render,
+    # so the credited child's source would always "already be there." For
+    # a genuinely large container (httpx's Client spans ~1400 lines),
+    # under real cross-file budget competition the window gets clipped
+    # long before reaching the credited child's line -- the label then
+    # pointed at a line that was never actually rendered. A later,
+    # stricter check (visible-source-only labeling) correctly caught and
+    # dropped this stale label, exposing the underlying bug. Fixed by
+    # rendering a tight window around the credited child instead of the
+    # container's full span once the container is large enough that
+    # rendering it whole risks this -- plus a couple of lines at the
+    # container's own declaration, so *its* label's line survives too
+    # (a second regression found while fixing the first: substituting
+    # only the child's window dropped the parent's own line as well).
+    src = tmp_path / "src"
+    src.mkdir()
+    lines = [
+        "def distractor_function(request, redirects):",
+        "    # follow redirects rebuild new request location for the",
+        "    return redirects",
+        "",
+        "class BigClient:",
+        "    def __init__(self):",
+        "        self.state = 0",
+    ]
+    for n in range(250):
+        lines.append(f"    def unrelated_helper_{n}(self, value):")
+        lines.append(f"        # filler method number {n} to pad the class body")
+        lines.append(f"        return value + {n}")
+    lines.append("    def send_handling_redirects(self, request):")
+    lines.append("        # follow redirects and rebuild the request for the new location")
+    lines.append("        return request")
+    (src / "client.py").write_text("\n".join(lines))
+
+    pack = build_context_pack(
+        tmp_path,
+        "follow redirects and rebuild the request for the new location",
+        max_tokens=1200,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/client.py:BigClient@") for label in pack.selected_symbols)
+    assert any(
+        label.startswith("src/client.py:send_handling_redirects@")
+        for label in pack.selected_symbols
+    )
+
+
 def test_symbol_window_credits_shared_method_name_when_two_classes_both_win_slots(tmp_path):
     # Regression for a real bug the parent-credit fix above introduced,
     # found by re-running the frozen external holdout after landing it

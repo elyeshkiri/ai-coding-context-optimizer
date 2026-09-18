@@ -6,8 +6,8 @@
       "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 5995,
-      "token_reduction": 0.9755769661662559
+      "tokens": 5987,
+      "token_reduction": 0.9756095573707045
     },
     {
       "id": "httpx-redirects",
@@ -15,8 +15,8 @@
       "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 5984,
-      "token_reduction": 0.9756217790723728
+      "tokens": 5991,
+      "token_reduction": 0.9755932617684803
     },
     {
       "id": "httpx-multipart",
@@ -24,8 +24,8 @@
       "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 5994,
-      "token_reduction": 0.975581040066812
+      "tokens": 5989,
+      "token_reduction": 0.9756014095695924
     },
     {
       "id": "zod-error-tree",
@@ -42,8 +42,8 @@
       "revision": "59bbc03e10c636b9eb3c393dfeb552819774ec21",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 5990,
-      "token_reduction": 0.9940126583796794
+      "tokens": 5991,
+      "token_reduction": 0.9940116588234824
     },
     {
       "id": "zod-email-regex",
@@ -51,8 +51,8 @@
       "revision": "59bbc03e10c636b9eb3c393dfeb552819774ec21",
       "file_recall": 1.0,
       "symbol_recall": 1.0,
-      "tokens": 5997,
-      "token_reduction": 0.9940056614863001
+      "tokens": 5985,
+      "token_reduction": 0.9940176561606646
     }
   ],
   "repositories": {
@@ -60,20 +60,20 @@
       "task_count": 3,
       "mean_file_recall": 1.0,
       "mean_symbol_recall": 1.0,
-      "mean_token_reduction": 0.9755932617684803
+      "mean_token_reduction": 0.9756014095695923
     },
     "zod": {
       "task_count": 3,
       "mean_file_recall": 1.0,
       "mean_symbol_recall": 1.0,
-      "mean_token_reduction": 0.9940079937840932
+      "mean_token_reduction": 0.9940116588234824
     }
   },
   "summary": {
     "task_count": 6,
     "mean_file_recall": 1.0,
     "mean_symbol_recall": 1.0,
-    "mean_token_reduction": 0.9848006277762867
+    "mean_token_reduction": 0.9848065341965374
   },
   "holdout_protocol_enforced": true,
   "ground_truth_sha256": "634e639b26d9137cbb9f24086ed08bad2b2ace0de576cce60db4b56cb4f946dd"

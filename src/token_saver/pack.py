@@ -27,6 +27,10 @@ from .working_set import load_working_set, save_working_set
 _MAX_FILE_BYTES = 2_000_000
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
+# A container span above this many lines is large enough that rendering it
+# in full risks being clipped by a tight per-file budget before reaching
+# the specific credited member -- see _symbol_windows.
+_LARGE_CONTAINER_LINES = 200
 
 
 @dataclass
@@ -438,13 +442,37 @@ def _symbol_windows(
 
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
     selected = [symbol for _, symbol in matches[:2]]
-    windows = [(max(1, symbol.start_line - 1), symbol.end_line + 1) for symbol in selected]
-    labels = [f"{item.rel}:{symbol.name}@{symbol.start_line}" for symbol in selected]
+    windows: list[tuple[int, int]] = []
+    labels: list[str] = []
     for symbol in selected:
         child = best_child_symbol.get(symbol.name)
-        if child is None or child in selected:
-            continue
-        if child.start_line >= symbol.start_line and child.end_line <= symbol.end_line:
+        has_child = (
+            child is not None and child not in selected
+            and child.start_line >= symbol.start_line and child.end_line <= symbol.end_line
+        )
+        if has_child and symbol.end_line - symbol.start_line > _LARGE_CONTAINER_LINES:
+            # A container large enough that rendering it in full risks
+            # being clipped by a tight per-file budget before ever
+            # reaching the specific member that earned it the boost --
+            # found via a real regression: httpx's ~1400-line Client
+            # class was truncated well before its credited
+            # _send_handling_redirects method at line 964, even though
+            # the (untruncated) window nominally "contained" it. Render a
+            # tight window around that member instead of the container's
+            # full span -- still labeled as the container, since that's
+            # still why this slot was won, but backed by source that
+            # actually survives budget fitting regardless of the
+            # container's own size. Also keep a couple of lines at the
+            # container's own declaration so its label's line survives
+            # too -- omitting it caused a second real regression: the
+            # container's own label was then stripped as "not visible" by
+            # the same downstream check this whole fix exists to satisfy.
+            windows.append((max(1, symbol.start_line - 1), symbol.start_line + 1))
+            windows.append((max(1, child.start_line - 1), child.end_line + 1))
+        else:
+            windows.append((max(1, symbol.start_line - 1), symbol.end_line + 1))
+        labels.append(f"{item.rel}:{symbol.name}@{symbol.start_line}")
+        if has_child:
             labels.append(f"{item.rel}:{child.name}@{child.start_line}")
     return windows, labels
 
