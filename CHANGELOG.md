@@ -1,5 +1,16 @@
 # Unreleased
 
+- **Added paired cost-per-success reporting for real agent runs.**
+  `token-saver cost-report baseline.json optimized.json` compares identical
+  task IDs across baseline and Token Saver runs using success outcomes,
+  input/output/cache tokens, model/tool calls, latency, and cost. It reports
+  total token and invoice reductions, success-rate change, improved/regressed
+  tasks, and the primary commercial metric: **cost per successful task**.
+  Costs can be supplied directly per run or derived from configurable
+  per-million input/output/cached-input pricing. Mismatched workloads are
+  rejected by default so savings cannot be inflated by comparing different
+  task sets.
+
 - **Built and first-ran a fourth frozen external holdout before any tuning
   against its repositories.** `benchmarks/holdout-external-4.json` contains
   **40 source-grounded tasks across 8 previously-unused public repositories**:
