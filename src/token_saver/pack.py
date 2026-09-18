@@ -581,6 +581,20 @@ def _symbol_windows(
 
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
     selected = [symbol for _, symbol in matches[:2]]
+    relevant_children_by_parent: dict[tuple[str, int, int], list[object]] = {}
+    if not wanted:
+        for _score, candidate in matches:
+            if not candidate.parent:
+                continue
+            for parent in containers_by_qualified.get(candidate.parent, []):
+                contained = (
+                    parent.start_line <= candidate.start_line
+                    and candidate.end_line <= parent.end_line
+                )
+                if contained:
+                    relevant_children_by_parent.setdefault(
+                        symbol_key(parent), []
+                    ).append(candidate)
     windows: list[tuple[int, int]] = []
     labels: list[str] = []
     identities: list[str] = []
@@ -618,11 +632,31 @@ def _symbol_windows(
         identities.append(
             f"{item.rel}:{symbol.qualified or symbol.name}@{identity_line}"
         )
-        if credit_child_label:
-            labels.append(f"{item.rel}:{child.name}@{child.start_line}")
-            child_identity_line = child.identity_line or child.start_line
+
+        # selected_symbols is an evidence ledger, not a strict 1:1 list of
+        # rendered windows. When a selected container renders the exact source
+        # of multiple relevant members, credit those members too; the downstream
+        # visibility filter still drops any label whose declaration line was
+        # clipped from the final section. This avoids losing a relevant sibling
+        # merely because another member supplied the container's max parent
+        # score.
+        credited_children = list(
+            relevant_children_by_parent.get(symbol_key(symbol), [])
+        )
+        if credit_child_label and child not in credited_children:
+            credited_children.insert(0, child)
+        for credited in credited_children[:3]:
+            if credited in selected:
+                continue
+            labels.append(
+                f"{item.rel}:{credited.name}@{credited.start_line}"
+            )
+            credited_identity_line = (
+                credited.identity_line or credited.start_line
+            )
             identities.append(
-                f"{item.rel}:{child.qualified or child.name}@{child_identity_line}"
+                f"{item.rel}:{credited.qualified or credited.name}"
+                f"@{credited_identity_line}"
             )
     return windows, labels, identities
 
