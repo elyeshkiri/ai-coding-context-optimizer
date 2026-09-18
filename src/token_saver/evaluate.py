@@ -102,6 +102,12 @@ def _ground_truth_payload(payload: dict[str, Any]) -> dict[str, Any]:
                     for value in raw.get("qualified_symbols", [])
                     if isinstance(value, str)
                 )
+            if "symbol_identities" in raw:
+                normalized["symbol_identities"] = sorted(
+                    str(value)
+                    for value in raw.get("symbol_identities", [])
+                    if isinstance(value, str)
+                )
             tasks.append(normalized)
     return {
         "suite_version": int(payload.get("suite_version", 1)),
@@ -158,6 +164,13 @@ def _summary(items: list[dict]) -> dict:
     ]
     if strict:
         out["mean_qualified_symbol_recall"] = sum(strict) / len(strict)
+    exact = [
+        item["symbol_identity_recall"]
+        for item in items
+        if item.get("symbol_identity_recall") is not None
+    ]
+    if exact:
+        out["mean_symbol_identity_recall"] = sum(exact) / len(exact)
     return out
 
 
@@ -231,6 +244,7 @@ def evaluate_manifest(
         expected_files = set(task.get("files", []))
         expected_symbols = set(task.get("symbols", []))
         expected_qualified_symbols = set(task.get("qualified_symbols", []))
+        expected_symbol_identities = set(task.get("symbol_identities", []))
         task_budget = int(task.get("max_tokens", max_tokens))
         if task_budget <= 0:
             raise ValueError(f"task {task.get('id', position)!r} max_tokens must be positive")
@@ -255,6 +269,13 @@ def evaluate_manifest(
             "qualified_symbol_recall": (
                 _recall(expected_qualified_symbols, actual_qualified_symbols)
                 if expected_qualified_symbols else None
+            ),
+            "symbol_identity_recall": (
+                _recall(
+                    expected_symbol_identities,
+                    set(pack.selected_symbol_identities),
+                )
+                if expected_symbol_identities else None
             ),
             "tokens": pack.estimated_tokens,
             "token_reduction": 1.0 - min(
