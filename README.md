@@ -76,6 +76,33 @@ human or agent can see why a typo matched an identifier.
 The same inspection surface is available through MCP as `browse_context`.
 
 
+## Measure cost per successful task
+
+Context reduction is not the same thing as invoice reduction. Token Saver can
+compare paired baseline and optimized agent runs directly:
+
+```bash
+token-saver cost-report baseline.json token-saver.json
+token-saver cost-report baseline.json token-saver.json --json
+```
+
+Each run records a `task_id`, success outcome, input/output/cache tokens,
+tool/model calls, latency, and optionally `cost_usd`. If the provider bill is
+not already available, pass token pricing instead:
+
+```bash
+token-saver cost-report baseline.json token-saver.json \
+  --input-per-million 10 \
+  --output-per-million 30 \
+  --cached-input-per-million 2
+```
+
+The report computes total cost, success rate, **cost per successful task**,
+token/cost/latency reductions, call-count changes, and tasks whose outcome
+improved or regressed. By default the two files must contain exactly the same
+task IDs so cost comparisons cannot silently use different workloads.
+
+
 ## What is new in 1.2
 
 Retrieval ranking got a full correctness pass, driven by a frozen,
