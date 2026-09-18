@@ -1,6 +1,7 @@
 """Syntax-aware JS/TS symbols and exact byte spans, using maintained grammars."""
 from dataclasses import dataclass
 from functools import lru_cache
+import re
 
 JS_TS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 
