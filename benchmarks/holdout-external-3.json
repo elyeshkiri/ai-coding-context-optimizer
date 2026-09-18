@@ -1,0 +1,382 @@
+{
+  "suite_version": 1,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T10:59:58Z",
+    "ground_truth_sha256": "b575466f76d63c38312802df8e81d092dfa0e21ef75d7f02dc695b5157fe3b94"
+  },
+  "repositories": {
+    "flask": {
+      "path": "flask",
+      "revision": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35"
+    },
+    "tornado": {
+      "path": "tornado",
+      "revision": "85b6917d05a84a6d26b7488b2b56d0b52c107a0f"
+    },
+    "scrapy": {
+      "path": "scrapy",
+      "revision": "3a799fd70127aba17895e891b61d27a4340ff13c"
+    },
+    "commander": {
+      "path": "commander.js",
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834"
+    },
+    "koa": {
+      "path": "koa",
+      "revision": "c3c14b6979d313b567afa78f591b1dfe47a85eb0"
+    },
+    "socketio": {
+      "path": "socket.io",
+      "revision": "aaf2af36ec8ad05910f357a788e0e358bad32738"
+    }
+  },
+  "tasks": [
+    {
+      "id": "flask-app-context-push-pop",
+      "repository": "flask",
+      "query": "how does flask push and pop the application context onto the context stack",
+      "files": [
+        "src/flask/ctx.py"
+      ],
+      "symbols": [
+        "AppContext",
+        "push"
+      ]
+    },
+    {
+      "id": "flask-blueprint-route-registration",
+      "repository": "flask",
+      "query": "where are URL routes registered with a blueprint",
+      "files": [
+        "src/flask/sansio/blueprints.py"
+      ],
+      "symbols": [
+        "add_url_rule"
+      ]
+    },
+    {
+      "id": "flask-session-cookie-signing",
+      "repository": "flask",
+      "query": "how are flask's session cookies cryptographically signed",
+      "files": [
+        "src/flask/sessions.py"
+      ],
+      "symbols": [
+        "SecureCookieSessionInterface",
+        "get_signing_serializer"
+      ]
+    },
+    {
+      "id": "flask-exception-to-response",
+      "repository": "flask",
+      "query": "how does flask turn an uncaught exception raised in a view into an error response",
+      "files": [
+        "src/flask/app.py"
+      ],
+      "symbols": [
+        "Flask",
+        "handle_user_exception"
+      ]
+    },
+    {
+      "id": "flask-current-app-proxy",
+      "repository": "flask",
+      "query": "how does flask make current_app and request available as global-looking objects without real globals",
+      "files": [
+        "src/flask/globals.py"
+      ],
+      "symbols": [
+        "current_app",
+        "request"
+      ]
+    },
+    {
+      "id": "tornado-schedule-callback",
+      "repository": "tornado",
+      "query": "how does tornado's IOLoop schedule a callback to run after a delay",
+      "files": [
+        "tornado/ioloop.py"
+      ],
+      "symbols": [
+        "call_later",
+        "call_at"
+      ]
+    },
+    {
+      "id": "tornado-websocket-upgrade",
+      "repository": "tornado",
+      "query": "how is an incoming WebSocket connection upgrade request handled",
+      "files": [
+        "tornado/websocket.py"
+      ],
+      "symbols": [
+        "WebSocketHandler"
+      ]
+    },
+    {
+      "id": "tornado-finish-response",
+      "repository": "tornado",
+      "query": "how does a RequestHandler finish writing the response for a request",
+      "files": [
+        "tornado/web.py"
+      ],
+      "symbols": [
+        "finish"
+      ]
+    },
+    {
+      "id": "tornado-http-client-redirects",
+      "repository": "tornado",
+      "query": "how does tornado's simple HTTP client decide whether to follow a redirect",
+      "files": [
+        "tornado/simple_httpclient.py"
+      ],
+      "symbols": [
+        "_should_follow_redirect"
+      ]
+    },
+    {
+      "id": "tornado-exception-to-error-response",
+      "repository": "tornado",
+      "query": "how does an uncaught exception in a request handler get turned into an error response",
+      "files": [
+        "tornado/web.py"
+      ],
+      "symbols": [
+        "_handle_request_exception",
+        "send_error"
+      ]
+    },
+    {
+      "id": "scrapy-retry-failed-request",
+      "repository": "scrapy",
+      "query": "how does scrapy retry a request that failed with a connection timeout or server error",
+      "files": [
+        "scrapy/downloadermiddlewares/retry.py"
+      ],
+      "symbols": [
+        "RetryMiddleware",
+        "get_retry_request"
+      ]
+    },
+    {
+      "id": "scrapy-duplicate-request-filter",
+      "repository": "scrapy",
+      "query": "how are duplicate requests filtered out so the same URL isn't crawled twice",
+      "files": [
+        "scrapy/dupefilters.py"
+      ],
+      "symbols": [
+        "RFPDupeFilter"
+      ]
+    },
+    {
+      "id": "scrapy-scheduler-next-request",
+      "repository": "scrapy",
+      "query": "how does the engine decide which request to schedule next from the queue",
+      "files": [
+        "scrapy/core/scheduler.py"
+      ],
+      "symbols": [
+        "Scheduler",
+        "next_request"
+      ]
+    },
+    {
+      "id": "scrapy-spider-callback-output",
+      "repository": "scrapy",
+      "query": "how does a spider's parse callback's yielded requests and items get processed",
+      "files": [
+        "scrapy/core/scraper.py"
+      ],
+      "symbols": [
+        "Scraper",
+        "handle_spider_output_async"
+      ]
+    },
+    {
+      "id": "scrapy-robots-txt-obey",
+      "repository": "scrapy",
+      "query": "how does scrapy check robots.txt before downloading a page",
+      "files": [
+        "scrapy/downloadermiddlewares/robotstxt.py"
+      ],
+      "symbols": [
+        "RobotsTxtMiddleware"
+      ]
+    },
+    {
+      "id": "commander-option-default-value",
+      "repository": "commander",
+      "query": "how does commander parse a command-line option with a default value",
+      "files": [
+        "lib/option.js"
+      ],
+      "symbols": [
+        "default"
+      ]
+    },
+    {
+      "id": "commander-option-choices-validation",
+      "repository": "commander",
+      "query": "how does commander validate that an option's value is one of a fixed set of choices",
+      "files": [
+        "lib/option.js"
+      ],
+      "symbols": [
+        "choices"
+      ]
+    },
+    {
+      "id": "commander-missing-required-argument",
+      "repository": "commander",
+      "query": "how does commander handle a required positional argument that's missing",
+      "files": [
+        "lib/command.js"
+      ],
+      "symbols": [
+        "missingArgument"
+      ]
+    },
+    {
+      "id": "commander-subcommand-dispatch",
+      "repository": "commander",
+      "query": "how are subcommands registered and dispatched to the right handler",
+      "files": [
+        "lib/command.js"
+      ],
+      "symbols": [
+        "addCommand",
+        "_dispatchSubcommand"
+      ]
+    },
+    {
+      "id": "commander-invalid-argument-error",
+      "repository": "commander",
+      "query": "what error class does commander throw when a parsed argument value is invalid",
+      "files": [
+        "lib/error.js"
+      ],
+      "symbols": [
+        "InvalidArgumentError"
+      ]
+    },
+    {
+      "id": "koa-dispatch-middleware-chain",
+      "repository": "koa",
+      "query": "how does koa run the composed middleware chain for an incoming request and send the final response",
+      "files": [
+        "lib/application.js"
+      ],
+      "symbols": [
+        "handleRequest",
+        "callback"
+      ]
+    },
+    {
+      "id": "koa-context-error-handling",
+      "repository": "koa",
+      "query": "how does koa handle an error thrown inside middleware and notify app-level error listeners",
+      "files": [
+        "lib/context.js"
+      ],
+      "symbols": [
+        "onerror"
+      ]
+    },
+    {
+      "id": "koa-write-response-body",
+      "repository": "koa",
+      "query": "where is the response body actually written out to the underlying node http response object",
+      "files": [
+        "lib/application.js"
+      ],
+      "symbols": [
+        "respond"
+      ]
+    },
+    {
+      "id": "koa-client-ip-proxy",
+      "repository": "koa",
+      "query": "how does koa determine the client's ip address when the app trusts a proxy",
+      "files": [
+        "lib/request.js"
+      ],
+      "symbols": [
+        "ip"
+      ]
+    },
+    {
+      "id": "koa-infer-content-type-from-body",
+      "repository": "koa",
+      "query": "how does koa infer the content type when I set the response body to a string or json object",
+      "files": [
+        "lib/response.js"
+      ],
+      "symbols": [
+        "body"
+      ]
+    },
+    {
+      "id": "socketio-join-room",
+      "repository": "socketio",
+      "query": "how does a socket join a room",
+      "files": [
+        "packages/socket.io/lib/socket.ts"
+      ],
+      "symbols": [
+        "join"
+      ]
+    },
+    {
+      "id": "socketio-broadcast-emit",
+      "repository": "socketio",
+      "query": "how does the server broadcast an event to every socket in a room",
+      "files": [
+        "packages/socket.io/lib/broadcast-operator.ts"
+      ],
+      "symbols": [
+        "BroadcastOperator",
+        "emit"
+      ]
+    },
+    {
+      "id": "socketio-ack-callback",
+      "repository": "socketio",
+      "query": "how does socket.io handle an acknowledgement callback for an emitted event",
+      "files": [
+        "packages/socket.io/lib/socket.ts"
+      ],
+      "symbols": [
+        "ack",
+        "onack"
+      ]
+    },
+    {
+      "id": "socketio-client-connect",
+      "repository": "socketio",
+      "query": "where is a new client connection's namespace handshake processed",
+      "files": [
+        "packages/socket.io/lib/client.ts"
+      ],
+      "symbols": [
+        "Client",
+        "connect"
+      ]
+    },
+    {
+      "id": "socketio-dynamic-namespace",
+      "repository": "socketio",
+      "query": "how does socket.io support a dynamic namespace matched by a regular expression",
+      "files": [
+        "packages/socket.io/lib/parent-namespace.ts"
+      ],
+      "symbols": [
+        "ParentNamespace",
+        "createChild"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,48 @@
 # Unreleased
 
+- **Built and ran a third, genuinely fresh frozen external holdout
+  suite** (`benchmarks/holdout-external-3.json` / `.result.json`): 30
+  tasks across 6 independently-authored public repositories never used
+  in either prior suite -- [pallets/flask](https://github.com/pallets/flask),
+  [tornadoweb/tornado](https://github.com/tornadoweb/tornado),
+  [scrapy/scrapy](https://github.com/scrapy/scrapy),
+  [tj/commander.js](https://github.com/tj/commander.js),
+  [koajs/koa](https://github.com/koajs/koa), and
+  [socketio/socket.io](https://github.com/socketio/socket.io) (server
+  package). Ground truth authored the same way as the second suite: by
+  isolated agents reading each repository's actual source, before
+  token-saver was ever run against it, then frozen via
+  `--print-ground-truth-hash`. This suite exists because both prior
+  suites are now heavily reused for diagnosing and validating fixes --
+  a third, untouched suite is needed to check those fixes generalize
+  rather than having been quietly tuned to the specific repos that found
+  them.
+
+  **First-ever result: 90.0% mean file recall, 51.7% mean symbol
+  recall**, ~97.3% mean estimated token reduction. File recall is
+  markedly better than either prior suite started at (83.3% and 58.5%
+  respectively, before any fixes), consistent with this cycle's fixes
+  generalizing rather than overfitting. Symbol recall (51.7%) sits
+  between the two prior suites' *current*, already-fixed numbers
+  (100% and 63.4%), which is a reasonable, expected outcome for a
+  never-tuned suite rather than a red flag on its own.
+
+  One clear repository-level outlier: scrapy, at 40% file / 20% symbol
+  recall (3 of 5 tasks missed entirely), spot-checked directly rather
+  than left as an unexplained number. All three misses are buried well
+  down the file ranking (position 5, 9, and 20) behind several other
+  files that are *also* genuinely, non-coincidentally about
+  downloading/requests/crawling (`core/downloader/handlers/http11.py`,
+  `exceptions.py`, `pipelines/media.py`, `spiders/crawl.py`, ...) --
+  the same already-disclosed "large/broadly-related hub file"
+  competition pattern found and deliberately left unfixed on the second
+  suite (pydantic's `core_schema.py`/`_generate_schema.py`), not a new,
+  cleanly-fixable bug. Not chased further in this pass, for the same
+  reason: a blanket fix for "many files legitimately share this
+  vocabulary" broke a different, previously-correct case (httpx's large
+  but genuinely-correct `_client.py`) the one time it was tried this
+  release.
+
 - **Fixed a real regression on the first (httpx/zod) frozen external
   holdout: `httpx-redirects` dropped from 1.0 to 0.0 symbol recall**,
   surfaced by re-running that suite after this cycle's stricter

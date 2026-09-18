@@ -1,0 +1,320 @@
+{
+  "tasks": [
+    {
+      "id": "flask-app-context-push-pop",
+      "repository": "flask",
+      "revision": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 5990,
+      "token_reduction": 0.9603350660530411
+    },
+    {
+      "id": "flask-blueprint-route-registration",
+      "repository": "flask",
+      "revision": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5987,
+      "token_reduction": 0.9603549316293083
+    },
+    {
+      "id": "flask-session-cookie-signing",
+      "repository": "flask",
+      "revision": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 5985,
+      "token_reduction": 0.9603681753468198
+    },
+    {
+      "id": "flask-exception-to-response",
+      "repository": "flask",
+      "revision": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 5988,
+      "token_reduction": 0.9603483097705526
+    },
+    {
+      "id": "flask-current-app-proxy",
+      "repository": "flask",
+      "revision": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5998,
+      "token_reduction": 0.960282091182995
+    },
+    {
+      "id": "tornado-schedule-callback",
+      "repository": "tornado",
+      "revision": "85b6917d05a84a6d26b7488b2b56d0b52c107a0f",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5981,
+      "token_reduction": 0.9866861369762995
+    },
+    {
+      "id": "tornado-websocket-upgrade",
+      "repository": "tornado",
+      "revision": "85b6917d05a84a6d26b7488b2b56d0b52c107a0f",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5990,
+      "token_reduction": 0.9866661027400158
+    },
+    {
+      "id": "tornado-finish-response",
+      "repository": "tornado",
+      "revision": "85b6917d05a84a6d26b7488b2b56d0b52c107a0f",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5982,
+      "token_reduction": 0.9866839109500457
+    },
+    {
+      "id": "tornado-http-client-redirects",
+      "repository": "tornado",
+      "revision": "85b6917d05a84a6d26b7488b2b56d0b52c107a0f",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5999,
+      "token_reduction": 0.9866460685037319
+    },
+    {
+      "id": "tornado-exception-to-error-response",
+      "repository": "tornado",
+      "revision": "85b6917d05a84a6d26b7488b2b56d0b52c107a0f",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 6000,
+      "token_reduction": 0.9866438424774782
+    },
+    {
+      "id": "scrapy-retry-failed-request",
+      "repository": "scrapy",
+      "revision": "3a799fd70127aba17895e891b61d27a4340ff13c",
+      "file_recall": 0.0,
+      "symbol_recall": 0.0,
+      "tokens": 6000,
+      "token_reduction": 0.9928095489190355
+    },
+    {
+      "id": "scrapy-duplicate-request-filter",
+      "repository": "scrapy",
+      "revision": "3a799fd70127aba17895e891b61d27a4340ff13c",
+      "file_recall": 0.0,
+      "symbol_recall": 0.0,
+      "tokens": 5999,
+      "token_reduction": 0.992810747327549
+    },
+    {
+      "id": "scrapy-scheduler-next-request",
+      "repository": "scrapy",
+      "revision": "3a799fd70127aba17895e891b61d27a4340ff13c",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5987,
+      "token_reduction": 0.9928251282297109
+    },
+    {
+      "id": "scrapy-spider-callback-output",
+      "repository": "scrapy",
+      "revision": "3a799fd70127aba17895e891b61d27a4340ff13c",
+      "file_recall": 0.0,
+      "symbol_recall": 0.0,
+      "tokens": 5990,
+      "token_reduction": 0.9928215330041704
+    },
+    {
+      "id": "scrapy-robots-txt-obey",
+      "repository": "scrapy",
+      "revision": "3a799fd70127aba17895e891b61d27a4340ff13c",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5991,
+      "token_reduction": 0.992820334595657
+    },
+    {
+      "id": "commander-option-default-value",
+      "repository": "commander",
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5997,
+      "token_reduction": 0.9728384437700983
+    },
+    {
+      "id": "commander-option-choices-validation",
+      "repository": "commander",
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5983,
+      "token_reduction": 0.9729018524389692
+    },
+    {
+      "id": "commander-missing-required-argument",
+      "repository": "commander",
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5995,
+      "token_reduction": 0.9728475021513655
+    },
+    {
+      "id": "commander-subcommand-dispatch",
+      "repository": "commander",
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5983,
+      "token_reduction": 0.9729018524389692
+    },
+    {
+      "id": "commander-invalid-argument-error",
+      "repository": "commander",
+      "revision": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5997,
+      "token_reduction": 0.9728384437700983
+    },
+    {
+      "id": "koa-dispatch-middleware-chain",
+      "repository": "koa",
+      "revision": "c3c14b6979d313b567afa78f591b1dfe47a85eb0",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 6000,
+      "token_reduction": 0.930351608297445
+    },
+    {
+      "id": "koa-context-error-handling",
+      "repository": "koa",
+      "revision": "c3c14b6979d313b567afa78f591b1dfe47a85eb0",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5996,
+      "token_reduction": 0.9303980405585801
+    },
+    {
+      "id": "koa-write-response-body",
+      "repository": "koa",
+      "revision": "c3c14b6979d313b567afa78f591b1dfe47a85eb0",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5995,
+      "token_reduction": 0.9304096486238639
+    },
+    {
+      "id": "koa-client-ip-proxy",
+      "repository": "koa",
+      "revision": "c3c14b6979d313b567afa78f591b1dfe47a85eb0",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5996,
+      "token_reduction": 0.9303980405585801
+    },
+    {
+      "id": "koa-infer-content-type-from-body",
+      "repository": "koa",
+      "revision": "c3c14b6979d313b567afa78f591b1dfe47a85eb0",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5988,
+      "token_reduction": 0.9304909050808502
+    },
+    {
+      "id": "socketio-join-room",
+      "repository": "socketio",
+      "revision": "aaf2af36ec8ad05910f357a788e0e358bad32738",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5992,
+      "token_reduction": 0.9970951512489589
+    },
+    {
+      "id": "socketio-broadcast-emit",
+      "repository": "socketio",
+      "revision": "aaf2af36ec8ad05910f357a788e0e358bad32738",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 5994,
+      "token_reduction": 0.9970941816732743
+    },
+    {
+      "id": "socketio-ack-callback",
+      "repository": "socketio",
+      "revision": "aaf2af36ec8ad05910f357a788e0e358bad32738",
+      "file_recall": 1.0,
+      "symbol_recall": 0.0,
+      "tokens": 5999,
+      "token_reduction": 0.9970917577340629
+    },
+    {
+      "id": "socketio-client-connect",
+      "repository": "socketio",
+      "revision": "aaf2af36ec8ad05910f357a788e0e358bad32738",
+      "file_recall": 1.0,
+      "symbol_recall": 0.5,
+      "tokens": 5998,
+      "token_reduction": 0.9970922425219051
+    },
+    {
+      "id": "socketio-dynamic-namespace",
+      "repository": "socketio",
+      "revision": "aaf2af36ec8ad05910f357a788e0e358bad32738",
+      "file_recall": 1.0,
+      "symbol_recall": 1.0,
+      "tokens": 5995,
+      "token_reduction": 0.997093696885432
+    }
+  ],
+  "repositories": {
+    "commander": {
+      "task_count": 5,
+      "mean_file_recall": 1.0,
+      "mean_symbol_recall": 0.6,
+      "mean_token_reduction": 0.9728656189139
+    },
+    "flask": {
+      "task_count": 5,
+      "mean_file_recall": 1.0,
+      "mean_symbol_recall": 0.5,
+      "mean_token_reduction": 0.9603377147965434
+    },
+    "koa": {
+      "task_count": 5,
+      "mean_file_recall": 1.0,
+      "mean_symbol_recall": 0.7,
+      "mean_token_reduction": 0.9304096486238638
+    },
+    "scrapy": {
+      "task_count": 5,
+      "mean_file_recall": 0.4,
+      "mean_symbol_recall": 0.2,
+      "mean_token_reduction": 0.9928174584152245
+    },
+    "socketio": {
+      "task_count": 5,
+      "mean_file_recall": 1.0,
+      "mean_symbol_recall": 0.6,
+      "mean_token_reduction": 0.9970934060127267
+    },
+    "tornado": {
+      "task_count": 5,
+      "mean_file_recall": 1.0,
+      "mean_symbol_recall": 0.5,
+      "mean_token_reduction": 0.9866652123295141
+    }
+  },
+  "summary": {
+    "task_count": 30,
+    "mean_file_recall": 0.9,
+    "mean_symbol_recall": 0.5166666666666667,
+    "mean_token_reduction": 0.9733648431819621
+  },
+  "holdout_protocol_enforced": true,
+  "ground_truth_sha256": "b575466f76d63c38312802df8e81d092dfa0e21ef75d7f02dc695b5157fe3b94"
+}
