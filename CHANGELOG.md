@@ -1,5 +1,15 @@
 # Unreleased
 
+- **Hardened partial-class and overload retrieval after holdout #7's Dapper failures.**
+  Repository ranking now gives a bounded, length-independent boost to files that
+  structurally define the requested container/member, preventing very large
+  implementation files from losing solely to BM25 length normalization. Within
+  a file, callable overloads now use overload-family-local signature IDF plus
+  structural features for generic arity, arrays, async callables, generic type
+  parameter roles, and CommandDefinition-style discriminators. This targets
+  exact overload selection without changing holdout #7 or treating a rerun as
+  fresh evidence.
+
 - **Built and first-ran a seventh frozen external holdout after callable symbol
   ranking v3, before any tuning against its repositories.**
   `benchmarks/holdout-external-7.json` contains **48 source-grounded tasks
