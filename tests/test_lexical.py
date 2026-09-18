@@ -61,9 +61,9 @@ def test_fuzzy_symbol_terms_recovers_high_confidence_identifier_typos():
 
 def test_fuzzy_symbol_terms_rejects_ambiguous_near_ties():
     matches = fuzzy_symbol_terms(
-        {"collor"},
-        {"color", "collar"},
+        {"rende"},
+        {"render", "rendez"},
         min_ratio=0.80,
         min_margin=0.08,
     )
-    assert "collor" not in matches
+    assert "rende" not in matches
