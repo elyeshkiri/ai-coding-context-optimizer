@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .evaluate import evaluate_manifest, ground_truth_hash
 from .context_browser import browse_context
-from .cost_report import Pricing, compare_cost_files
+from .cost_report import Pricing, compare_cost_files, compare_paired_agent_file
 from .agent_eval import evaluate_agent_runs
 from .feedback import record_feedback
 from .host_validate import validate_host
@@ -336,7 +336,7 @@ def browse_main(argv: list[str]) -> int:
 def cost_report_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="token-saver cost-report")
     parser.add_argument("baseline")
-    parser.add_argument("optimized")
+    parser.add_argument("optimized", nargs="?")
     parser.add_argument("--input-per-million", type=float, default=0.0)
     parser.add_argument("--output-per-million", type=float, default=0.0)
     parser.add_argument("--cached-input-per-million", type=float, default=0.0)
@@ -358,12 +358,20 @@ def cost_report_main(argv: list[str]) -> int:
             pricing.cached_input_per_million,
         ) < 0:
             raise ValueError("pricing values must be nonnegative")
-        result = compare_cost_files(
-            Path(args.baseline),
-            Path(args.optimized),
-            pricing=pricing,
-            require_same_tasks=not args.allow_unpaired,
-        )
+        if args.optimized is None:
+            if args.allow_unpaired:
+                raise ValueError("--allow-unpaired is only valid in two-file mode")
+            result = compare_paired_agent_file(
+                Path(args.baseline),
+                pricing=pricing,
+            )
+        else:
+            result = compare_cost_files(
+                Path(args.baseline),
+                Path(args.optimized),
+                pricing=pricing,
+                require_same_tasks=not args.allow_unpaired,
+            )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
