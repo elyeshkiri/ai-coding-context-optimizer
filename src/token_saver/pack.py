@@ -53,6 +53,7 @@ class ContextPack:
     selected_files: list[str]
     ranked: list[RankedFile]
     selected_symbols: list[str] = field(default_factory=list)
+    selected_symbol_identities: list[str] = field(default_factory=list)
     redactions: list[str] = field(default_factory=list)
     closure_files: list[str] = field(default_factory=list)
     retrieval_plan: dict[str, int] = field(default_factory=dict)
@@ -387,10 +388,10 @@ def _prioritized_ranges(
 
 def _symbol_windows(
     item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
-) -> tuple[list[tuple[int, int]], list[str]]:
+) -> tuple[list[tuple[int, int]], list[str], list[str]]:
     record = index.records.get(item.rel)
     if record is None:
-        return [], []
+        return [], [], []
     wanted = (target_symbol or "").lower()
     definitions = record.definitions or []
     source_lines = item.text.splitlines()
@@ -400,7 +401,9 @@ def _symbol_windows(
     # without perturbing repository-wide ranking.
     symbol_query_terms = set(symbol_terms(" ".join(sorted(query_terms))))
     name_terms_by_symbol = {
-        (symbol.name, symbol.start_line): set(terms(symbol.name + " " + symbol.signature))
+        (symbol.name, symbol.start_line): set(terms(
+            (symbol.qualified or symbol.name) + " " + symbol.signature
+        ))
         for symbol in definitions
     }
     all_symbol_name_terms = set().union(*name_terms_by_symbol.values()) if definitions else set()
@@ -445,6 +448,16 @@ def _symbol_windows(
                 if candidate in name_terms:
                     fuzzy_bonus += 10.0 * ratio
             score += min(12.0, fuzzy_bonus)
+
+            # Parser-derived calls are stronger than incidental body vocabulary:
+            # if the task names an operation this definition structurally calls,
+            # add a bounded bonus without turning call names into a global ranker.
+            call_hits = symbol_query_terms & set(symbol.calls or [])
+            if call_hits:
+                score += min(
+                    12.0,
+                    4.0 * sum(term_weight.get(t, 1.0) for t in call_hits),
+                )
         if score:
             matches.append((score, symbol))
 
@@ -478,6 +491,7 @@ def _symbol_windows(
     selected = [symbol for _, symbol in matches[:2]]
     windows: list[tuple[int, int]] = []
     labels: list[str] = []
+    identities: list[str] = []
     for symbol in selected:
         child = best_child_symbol.get(symbol.name)
         has_child = (
@@ -506,17 +520,25 @@ def _symbol_windows(
         else:
             windows.append((max(1, symbol.start_line - 1), symbol.end_line + 1))
         labels.append(f"{item.rel}:{symbol.name}@{symbol.start_line}")
+        identities.append(
+            f"{item.rel}:{symbol.qualified or symbol.name}@{symbol.start_line}"
+        )
         if has_child:
             labels.append(f"{item.rel}:{child.name}@{child.start_line}")
-    return windows, labels
+            identities.append(
+                f"{item.rel}:{child.qualified or child.name}@{child.start_line}"
+            )
+    return windows, labels, identities
 
 
 def _file_section(
     item: RankedFile, query_terms: set[str], context_lines: int,
     index: RepositoryIndex, target_symbol: str | None = None,
-) -> tuple[str, list[str], list[str]]:
+) -> tuple[str, list[str], list[str], list[str]]:
     lines = item.text.splitlines()
-    symbol_windows, symbol_labels = _symbol_windows(item, index, query_terms, target_symbol)
+    symbol_windows, symbol_labels, symbol_identities = _symbol_windows(
+        item, index, query_terms, target_symbol
+    )
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
@@ -535,7 +557,7 @@ def _file_section(
         item.outline.rstrip(),
     ])
     section, redactions = redact_secrets("\n".join(pieces).rstrip() + "\n")
-    return section, symbol_labels, redactions
+    return section, symbol_labels, symbol_identities, redactions
 
 
 def _fingerprint(section: str) -> str:
@@ -673,7 +695,11 @@ def build_context_pack(
     if estimate_tokens(header) >= max_tokens:
         fitted = _fit_section(header, max_tokens)
         return ContextPack(
-            fitted, estimate_tokens(fitted), len(ranked), [], ranked,
+            text=fitted,
+            estimated_tokens=estimate_tokens(fitted),
+            scanned_files=len(ranked),
+            selected_files=[],
+            ranked=ranked,
             retrieval_plan=plan.to_dict(),
         )
 
@@ -682,6 +708,7 @@ def build_context_pack(
     seen: set[str] = set()
     selected_records = []
     selected_symbols: list[str] = []
+    selected_symbol_identities: list[str] = []
     redactions: set[str] = set()
     used = estimate_tokens(header)
 
@@ -761,7 +788,7 @@ def build_context_pack(
             item.reasons.append("near-duplicate-skipped")
             continue
 
-        section, symbols, section_redactions = _file_section(
+        section, symbols, identities, section_redactions = _file_section(
             item, q_terms, plan.context_lines, index, target_symbol
         )
         fingerprint = _fingerprint(section)
@@ -773,6 +800,7 @@ def build_context_pack(
         blocks.append(fitted)
         selected.append(item.rel)
         selected_symbols.extend(_visible_symbol_labels(fitted, symbols))
+        selected_symbol_identities.extend(_visible_symbol_labels(fitted, identities))
         redactions.update(section_redactions)
         seen.add(fingerprint)
         if record is not None:
@@ -789,6 +817,7 @@ def build_context_pack(
         selected_files=selected,
         ranked=ranked,
         selected_symbols=selected_symbols,
+        selected_symbol_identities=selected_symbol_identities,
         redactions=sorted(redactions),
         closure_files=[
             item.rel for item in ranked
