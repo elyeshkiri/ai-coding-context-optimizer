@@ -1,4 +1,4 @@
-# Token Saver 1.2.0
+# Token Saver 1.3.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -134,6 +134,64 @@ Paired manifests use `task` plus
 normalized to milliseconds in the cost report.
 
 
+## What is new in 1.3
+
+v1.3 turns the external holdout program into the primary retrieval-quality
+signal and adds exact callable-identity evaluation across six languages.
+
+The release includes frozen external holdouts #2 through #11, culminating in
+holdout #11: **60 source-grounded tasks across 10 previously-unused
+repositories** spanning C#, Java, TypeScript, Rust, Go, and Python. Its first
+and only fresh run measured:
+
+| Metric | Fresh holdout #11 |
+| --- | ---: |
+| File recall | **96.67%** |
+| Bare symbol recall | **96.67%** |
+| Symbol recall in expected files | **93.33%** |
+| Qualified-symbol recall | **91.67%** |
+| Exact symbol-identity recall | **88.33%** |
+| Mean estimated context reduction | **99.71%** |
+
+Six of the ten fresh repositories were perfect through exact identity. In
+particular, .NET Runtime and EF Core both scored 100% through exact identity,
+providing independent validation of the new C# 14
+`extension(Receiver receiver) { ... }` compatibility extraction beyond the
+RestSharp development case that originally exposed the parser gap.
+
+The seven misses from the fresh #11 run were then treated as **burned
+development evidence**, not as a new holdout. General fixes were added for
+partial TypeScript parser recovery, interface/generic member identity,
+same-name top-level TypeScript functions, explicit Go receiver/member
+authority, and Java overloads with explicitly excluded parameters. A single
+development-only rerun of frozen #11 reached **100% file, bare, scoped,
+qualified, and exact identity recall on all 60 tasks**, with the same ~99.71%
+mean context reduction. The preserved fresh first-run result above remains the
+independent generalization evidence.
+
+The repository's included 25-task self-benchmark is now saturated at **100%
+file recall, 100% symbol recall, and 100% scoped symbol recall**, with
+**97.90% mean estimated context reduction** at a 6,000-token cap. Because that
+self-benchmark is no longer discriminative, external frozen holdouts are the
+stronger quality signal. CI currently runs **456 tests** on Python 3.10, 3.12,
+and 3.13.
+
+Other 1.3 highlights include:
+
+- exact `path:qualified@line` callable identities and scoped-symbol recall;
+- C# 14 extension-block recovery while published tree-sitter-c-sharp 0.23.x
+  still lacks native `extension_declaration` support;
+- stronger overload-family ranking across Java, C#, and TypeScript;
+- lower/camel-case member authority and explicit container/member ranking;
+- Rust trait/member and Go receiver-aware identity improvements;
+- deterministic `(task_id, trial)` pairing and cluster-bootstrap confidence
+  intervals in cost reports;
+- hardened repository indexing around malformed, generated, deeply nested, or
+  partially parseable source.
+
+See [VALIDATION.md](VALIDATION.md) for the exact methodology, frozen hashes,
+first-run/burned distinction, and current CI evidence.
+
 ## What is new in 1.2
 
 Retrieval ranking got a full correctness pass, driven by a frozen,
@@ -177,13 +235,11 @@ against a real, separate Claude Code host process rather than a simulated
 payload. See CHANGELOG.md and VALIDATION.md for full detail on all of the
 above.
 
-The included deterministic benchmark now measures **92% relevant-file
-recall, 96% relevant-symbol recall, and ~95.3% mean estimated context
-reduction** at a 6,000-token cap on this repository (88%/92%/93.83% at
-1.1). These are retrieval measurements, not an end-to-end claim about
-agent success, and move slightly release to release as the tool's own
-source -- part of the benchmark corpus -- changes; re-run
-`token-saver evaluate` for the exact figure on your checkout.
+At the 1.2.0 release point, the included deterministic benchmark measured
+**92% relevant-file recall, 96% relevant-symbol recall, and ~95.3% mean
+estimated context reduction** at a 6,000-token cap (88%/92%/93.83% at 1.1).
+Those are historical 1.2.0 measurements; the current 1.3.0 result is reported
+above and in `VALIDATION.md`.
 
 ## What was new in 1.1
 
