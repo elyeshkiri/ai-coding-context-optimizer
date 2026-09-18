@@ -292,7 +292,7 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
     return found
 
 
-def _extract_structured_definitions(text: str, suffix: str) -> list[SymbolRecord]:
+def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
     try:
         parsed = (
             syntax_symbols(text, suffix)
@@ -312,11 +312,6 @@ def _extract_structured_definitions(text: str, suffix: str) -> list[SymbolRecord
             symbol.signature[:500], parent, calls,
         ))
     return out
-
-
-def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
-    """Backward-compatible JS/TS entry point used by existing callers/tests."""
-    return _extract_structured_definitions(text, suffix)
 
 
 def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
@@ -422,7 +417,7 @@ def _extract(
         imports = {next(value for value in groups if value) for groups in _IMPORT.findall(text)}
         calls = {match.group(1).split(".")[-1] for match in _CALL.finditer(text)} - _CALL_STOP
         if suffix.lower() in JS_TS | STRUCTURED_EXTRA:
-            definitions = _extract_structured_definitions(text, suffix.lower())
+            definitions = _extract_javascript_definitions(text, suffix.lower())
             symbols = {definition.name for definition in definitions}
         else:
             symbols = {a or b for a, b in _DECL.findall(text)}
