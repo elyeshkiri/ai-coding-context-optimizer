@@ -419,21 +419,32 @@ def skeletonize(
     line_numbers: bool = False,
 ) -> str:
     """Dispatch to the parser that fits `suffix`, falling back to patterns."""
-    from .syntax import JS_TS, symbols
-    if suffix.lower() in JS_TS:
+    from .syntax import JS_TS, symbols as js_symbols
+    from .syntax_multilang import STRUCTURED_EXTRA, symbols as multilang_symbols
+    structured = JS_TS | STRUCTURED_EXTRA
+    if suffix.lower() in structured:
         try:
-            items = symbols(text, suffix.lower())
+            parser = js_symbols if suffix.lower() in JS_TS else multilang_symbols
+            items = parser(text, suffix.lower())
             rows = [(item.start, item.signature) for item in items]
             rows.extend((i, line.strip()) for i, line in enumerate(text.splitlines(), 1)
-                        if IMPORT_RE.match(line.strip()) or "require(" in line)
+                        if IMPORT_RE.match(line.strip()) or (
+                            suffix.lower() in JS_TS and "require(" in line
+                        ))
             rows.sort(key=lambda row: row[0])
-            if not rows: return text  # no useful navigational structure; preserve content
+            if not rows:
+                return text  # no useful navigational structure; preserve content
             lines = [row[1] for row in rows]
             return _numbered(lines, [row[0] for row in rows]) if line_numbers else "\n".join(lines) + "\n"
         except ValueError:
-            # Truncated or invalid source must not produce a falsely authoritative map.
-            lines = text.splitlines()
-            return _numbered(lines, list(range(1, len(lines) + 1))) if line_numbers else text
+            if suffix.lower() in JS_TS:
+                # Preserve the long-standing JS/TS behavior: truncated or
+                # invalid source must not produce a falsely authoritative map.
+                lines = text.splitlines()
+                return _numbered(lines, list(range(1, len(lines) + 1))) if line_numbers else text
+            return skeletonize_text(text, suffix, line_numbers=line_numbers)
+        except (ImportError, OSError):
+            return skeletonize_text(text, suffix, line_numbers=line_numbers)
     if suffix.lower() in PYTHON_SUFFIXES:
         try:
             return skeletonize_python(
