@@ -1,5 +1,27 @@
 # Unreleased
 
+- **Built and first-ran a fourth frozen external holdout before any tuning
+  against its repositories.** `benchmarks/holdout-external-4.json` contains
+  **40 source-grounded tasks across 8 previously-unused public repositories**:
+  Jinja and Werkzeug (Python), ESLint and Undici (JavaScript), gorilla/mux and
+  Gin (Go), and Axum and serde_json (Rust). All repositories are pinned to
+  exact revisions. Ground truth was authored from source first, frozen at SHA
+  `73b66da6cc5b5595ee956154b8c05242a44b011e2d0bd22b3c86faa0278edb38`,
+  verified by the evaluator before cloning, and only then evaluated once.
+
+  **First-ever result: 95.0% mean file recall, 45.0% source-visible symbol
+  recall, and ~97.18% mean estimated context reduction.** The exact first-run
+  output is preserved in `benchmarks/holdout-external-4.result.json`.
+
+  The language split is especially useful: Python measured 90% file / 60%
+  symbol recall, JavaScript 90% / 80%, Go 100% / 10%, and Rust 100% / 30%.
+  Thus the suite provides strong new evidence that file retrieval generalizes
+  across additional languages while exposing a substantial Go/Rust
+  symbol-level gap. This suite is now considered burned for tuning; fixes
+  inspired by these misses must be developed on independent synthetic fixtures
+  and validated by another untouched external suite before being claimed as
+  fresh generalization evidence.
+
 - **Added conservative typo-tolerant retrieval and an inspectable context browser.**
   Repository-scope typo normalization now compares query words only against
   indexed identifier vocabulary, requires a high similarity score plus a clear
