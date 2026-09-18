@@ -559,16 +559,16 @@ _CSHARP_MEMBERS = {
 
 
 _CSHARP_EXTENSION_START = re.compile(
-    rb"\\bextension\\s*(?:<[^{}()]*>\\s*)?\\("
+    rb"\bextension\s*(?:<[^{}()]*>\s*)?\("
 )
 _CSHARP_EXTENSION_METHOD = re.compile(
-    rb"(?m)^[ \\t]*"
+    rb"(?m)^[ \t]*"
     rb"(?P<header>"
-    rb"(?:(?:public|private|protected|internal|static|virtual|abstract|sealed|new|unsafe|extern|partial|async|readonly)\\s+)*"
-    rb"(?:[A-Za-z_][A-Za-z0-9_:.?<>\\[\\],]*\\s+)+"
+    rb"(?:(?:public|private|protected|internal|static|virtual|abstract|sealed|new|unsafe|extern|partial|async|readonly)\s+)*"
+    rb"(?:[A-Za-z_][A-Za-z0-9_:.?<>\[\],]*\s+)+"
     rb")"
     rb"(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
-    rb"(?:\\s*<[^{}();\\r\\n]*>)?\\s*\\("
+    rb"(?:\s*<[^{}();\r\n]*>)?\s*\("
 )
 
 
