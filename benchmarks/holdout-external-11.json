@@ -5,7 +5,7 @@
     "ground_truth_frozen": true,
     "development_excluded": true,
     "frozen_at": "2026-09-18T21:08:00Z",
-    "ground_truth_sha256": "PENDING"
+    "ground_truth_sha256": "011dffedad4fe5ea99400cc58655850dcf43f38b3664b9219b4f5cf92a7f94ec"
   },
   "repositories": {
     "runtime": {
