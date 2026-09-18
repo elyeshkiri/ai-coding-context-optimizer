@@ -1,4 +1,5 @@
 from token_saver.repo_index import record_for_text
+from token_saver.snippet import extract_symbol
 from token_saver.syntax_multilang import symbols
 
 
@@ -141,3 +142,23 @@ func (s *Service) Run() {
     assert "Alpha string" not in items["Service"].signature
     assert "first()" not in items["Service.Run"].signature
     assert "Run" in items["Service.Run"].signature
+
+
+def test_snippet_uses_exact_go_method_boundaries():
+    source = """package api
+
+func (e *Engine) Run() {
+    first()
+    second()
+}
+
+func Other() {}
+"""
+    result = extract_symbol(source, ".go", "Engine.Run")
+    assert result is not None
+    snippet, start, end = result
+    assert start == 3
+    assert end == 6
+    assert "first()" in snippet
+    assert "func Other" not in snippet
+    assert "approximate boundaries" not in snippet
