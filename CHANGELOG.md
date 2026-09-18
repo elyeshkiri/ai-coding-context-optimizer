@@ -25,6 +25,46 @@
   now burned for tuning; follow-up fixes must use independent synthetic
   fixtures and another untouched suite for fresh generalization evidence.
 
+- **Added a deterministic Output Saver benchmark harness.**
+  `token-saver output-benchmark manifest.json` runs compaction over inline or
+  file-backed responses and reports weighted/mean output-token reduction,
+  exact fenced-code preservation, required-content preservation, removed
+  units, and budget-overflow rate. The harness intentionally does not claim
+  generation-time savings from post-processing; real generated-token and
+  invoice effects belong in paired agent runs measured by `cost-report`.
+
+- **Added paired cost-per-success reporting for real agent runs.**
+  `token-saver cost-report baseline.json optimized.json` compares identical
+  task IDs across baseline and Token Saver runs using success outcomes,
+  input/output/cache tokens, model/tool calls, latency, and cost. It reports
+  total token and invoice reductions, success-rate change, improved/regressed
+  tasks, and the primary commercial metric: **cost per successful task**.
+  Costs can be supplied directly per run or derived from configurable
+  per-million input/output/cached-input pricing. Mismatched workloads are
+  rejected by default so savings cannot be inflated by comparing different
+  task sets. The command also accepts the existing single-file
+  `agent-evaluate` paired manifest format (`task` +
+  `condition=baseline|token-saver`), so quality parity and economics can be
+  computed from the same experiment record rather than duplicated data.
+
+- **Built and first-ran a fifth frozen external holdout after the multi-language
+  parser work.** `benchmarks/holdout-external-5.json` contains **30
+  source-grounded tasks across 6 previously-unused repositories**: chi and zap
+  (Go), clap and tower (Rust), Guava (Java), and Serilog (C#). Ground truth and
+  exact repository revisions were frozen before Token Saver saw any selected
+  repository at SHA
+  `9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3`.
+
+  **First-ever result: 90.0% file recall, 56.7% source-visible symbol recall,
+  and ~97.28% estimated context reduction.** Per repository: chi 100%/100%,
+  zap 100%/60%, clap 100%/40%, tower 80%/60%, Guava 60%/40%, and Serilog
+  100%/40% (file/symbol recall). The exact first-run output is preserved in
+  `benchmarks/holdout-external-5.result.json`.
+
+  This suite is now burned for tuning. Subsequent structural improvements are
+  developed on independent synthetic fixtures; a later untouched suite is
+  required for fresh generalization evidence.
+
 - **Added structural cross-language symbol graph v2.** Parser-backed Go, Rust,
   Java, and C# symbols now contribute AST-native method calls and import/use
   targets to the repository graph instead of relying on generic call/import
@@ -34,8 +74,9 @@
   Context packing keeps the legacy bare-name symbol labels for compatibility
   while also emitting source-visible `path + qualified symbol + line`
   identities. The evaluator can opt into stricter `qualified_symbols`
-  ground truth without changing hashes for historical manifests that do not
-  use the field.
+  ground truth and, when overload/member disambiguation matters, exact
+  `symbol_identities` such as `Formatter.cs:Formatter.Format@7`. Both
+  fields are opt-in, so historical frozen manifests keep their original hashes.
 
   Within-file ranking now uses qualified/container names plus a bounded
   parser-derived call signal. Container symbols no longer inherit all
@@ -43,7 +84,7 @@
   this prevents large classes/types from becoming lexical hubs while still
   allowing relevant children to credit their container.
 
-  Validation: **380 tests passing**, Python 3.10/3.12/3.13 CI green, and the
+  Validation: **381 tests passing**, Python 3.10/3.12/3.13 CI green, and the
   25-task self benchmark remains **100% file / 100% source-visible symbol
   recall** at **~96.6% estimated context reduction**. Development used
   independent synthetic fixtures; frozen holdout #5 is diagnostic only.

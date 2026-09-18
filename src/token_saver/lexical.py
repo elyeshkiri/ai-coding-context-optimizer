@@ -39,6 +39,12 @@ _SYMBOL_ALIASES = {
     "begin": "start",
 }
 
+# These are prose stopwords at repository scope, but they are common API
+# identifier verbs. Keep them only for late within-file symbol matching so
+# a query such as "create widget" can still match a method literally named
+# Create without making every source file containing "create" rank higher.
+_SYMBOL_IDENTIFIER_TERMS = {"add", "build", "create", "use"}
+
 
 def terms(text: str) -> list[str]:
     """Tokenise prose, paths and identifiers into stable search terms."""
@@ -71,6 +77,24 @@ def terms(text: str) -> list[str]:
     return out
 
 
+def identifier_terms(text: str) -> list[str]:
+    """Split an identifier into literal components without prose stopword loss.
+
+    This does not stem or drop API verbs such as create, build, or add.
+    It is intended only for exact leaf-identifier evidence after a file has
+    already been selected.
+    """
+    expanded = _CAMEL.sub(
+        " ", text.replace("_", " ").replace("-", " ").replace("/", " ")
+    )
+    out: list[str] = []
+    for match in _WORD.finditer(expanded):
+        value = match.group(0).lower().strip("_$")
+        if len(value) >= 2:
+            out.append(value)
+    return out
+
+
 def symbol_terms(text: str) -> list[str]:
     """Tokenise for within-file symbol matching with conservative inflections.
 
@@ -82,6 +106,15 @@ def symbol_terms(text: str) -> list[str]:
     """
     out = list(terms(text))
     seen = set(out)
+
+    expanded = _CAMEL.sub(
+        " ", text.replace("_", " ").replace("-", " ").replace("/", " ")
+    )
+    for match in _WORD.finditer(expanded):
+        value = match.group(0).lower().strip("_$")
+        if value in _SYMBOL_IDENTIFIER_TERMS and value not in seen:
+            seen.add(value)
+            out.append(value)
 
     def add(value: str) -> None:
         if len(value) >= 3 and value not in seen and value not in _STOP:
