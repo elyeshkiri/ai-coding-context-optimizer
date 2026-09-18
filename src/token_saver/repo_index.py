@@ -314,6 +314,11 @@ def _extract_structured_definitions(text: str, suffix: str) -> list[SymbolRecord
     return out
 
 
+def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
+    """Backward-compatible JS/TS entry point used by existing callers/tests."""
+    return _extract_structured_definitions(text, suffix)
+
+
 def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
