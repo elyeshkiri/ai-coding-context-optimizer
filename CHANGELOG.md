@@ -15,7 +15,13 @@
   is bumped to invalidate stale C# records. Synthetic regressions cover
   overload identity, generic methods, expression-bodied methods, receiver
   evidence, and false-positive protection inside comments/strings. Holdout #10
-  remains burned and any rerun is development evidence only.
+  remains burned and any rerun is development evidence only. A development-only
+  rerun of that burned suite moved bare recall from 89.6% to 100%, scoped recall
+  from 87.5% to 100%, qualified recall from 87.5% to 100%, and exact identity
+  from 87.5% to 100%; file recall remained 100% and context reduction remained
+  ~98.98%. RestSharp specifically moved from 16.7% bare and 0%
+  scoped/qualified/exact to 100% on all retrieval and identity metrics. These
+  numbers are regression diagnostics, not independent generalization evidence.
 
 - **Built and first-ran a tenth frozen external holdout after callable-identity v5.**
   `benchmarks/holdout-external-10.json` contains **48 source-grounded tasks
