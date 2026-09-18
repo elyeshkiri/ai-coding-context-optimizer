@@ -65,14 +65,13 @@ def _pattern_span(text: str, name: str) -> tuple[int, int] | None:
 
 def extract_symbol(text: str, suffix: str, name: str) -> tuple[str, int, int] | None:
     """Return (snippet, start_line, end_line) or None if the symbol is missing."""
-    from .syntax import JS_TS, extract
-    from .syntax_multilang import STRUCTURED_EXTRA, extract as extract_multilang
+    from .syntax import JS_TS, STRUCTURED_EXTRA, extract
 
     lowered = suffix.lower()
     if lowered in JS_TS:
         return extract(text, lowered, name)
     if lowered in STRUCTURED_EXTRA:
-        return extract_multilang(text, lowered, name)
+        return extract(text, lowered, name)
     span = None
     if lowered in PYTHON_SUFFIXES:
         span = _python_span(text, name)
