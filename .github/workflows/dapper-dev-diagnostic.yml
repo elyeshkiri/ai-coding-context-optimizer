@@ -89,3 +89,37 @@ jobs:
               print("FILES", pack.selected_files)
               print("IDENTITIES", pack.selected_symbol_identities)
           PY
+
+      - name: Inspect overload signatures
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from token_saver.repo_index import build_index
+          from token_saver.pack import (
+              _callable_signature_terms,
+              _generic_arity,
+              _query_generic_arity,
+          )
+
+          root = Path("/tmp/dapper")
+          index = build_index(root, persist=False)
+          record = index.records["Dapper/SqlMapper.Async.cs"]
+          queries = {
+              "generic": "which generic SqlMapper QueryAsync<T> overload asynchronously queries a SQL string into typed rows",
+              "multi2": "which SqlMapper QueryAsync overload asynchronously multi maps two input types into a return type from a SQL string",
+              "array": "which SqlMapper QueryAsync overload asynchronously multi maps a runtime Type array using an object array mapping function",
+          }
+          for symbol in record.definitions or []:
+              if symbol.name not in {"QueryAsync", "ExecuteAsync", "QueryFirstAsync", "QuerySingleAsync", "ExecuteScalarAsync"}:
+                  continue
+              print(
+                  "SYMBOL",
+                  symbol.start_line,
+                  symbol.qualified,
+                  "ARITY", _generic_arity(symbol.signature, symbol.name),
+                  "TERMS", sorted(_callable_signature_terms(symbol)),
+                  "SIG", repr(symbol.signature),
+              )
+          for name, query in queries.items():
+              print("QUERY_ARITY", name, _query_generic_arity(query, "QueryAsync"))
+          PY
