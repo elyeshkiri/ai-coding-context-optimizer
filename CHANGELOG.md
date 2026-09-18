@@ -1,5 +1,13 @@
 # Unreleased
 
+- **Added a deterministic Output Saver benchmark harness.**
+  `token-saver output-benchmark manifest.json` runs compaction over inline or
+  file-backed responses and reports weighted/mean output-token reduction,
+  exact fenced-code preservation, required-content preservation, removed
+  units, and budget-overflow rate. The harness intentionally does not claim
+  generation-time savings from post-processing; real generated-token and
+  invoice effects belong in paired agent runs measured by `cost-report`.
+
 - **Built and first-ran a fourth frozen external holdout before any tuning
   against its repositories.** `benchmarks/holdout-external-4.json` contains
   **40 source-grounded tasks across 8 previously-unused public repositories**:
