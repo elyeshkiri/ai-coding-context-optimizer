@@ -42,7 +42,7 @@ _NUMBER_WORDS = {
 def _generic_parameter_names(signature: str, name: str) -> tuple[str, ...]:
     """Return generic parameters declared directly on a callable name."""
     match = re.search(
-        rf"\\b{re.escape(name)}\\s*<([^<>]+)>\\s*\\(", signature,
+        rf"\b{re.escape(name)}\s*<([^<>]+)>\s*\(", signature,
         re.IGNORECASE,
     )
     if not match:
@@ -62,11 +62,11 @@ def _query_generic_arity(query: str, name: str) -> int | None:
 
     lowered = query.lower()
     match = re.search(
-        r"\\b(one|two|three|four|five|six|seven|eight)\\s+"
-        r"(?:generic\\s+)?input\\s+types?\\b",
+        r"\b(one|two|three|four|five|six|seven|eight)\s+"
+        r"(?:generic\s+)?input\s+types?\b",
         lowered,
     )
-    if match and re.search(r"\\b(?:a\\s+)?return\\s+type\\b", lowered):
+    if match and re.search(r"\b(?:a\s+)?return\s+type\b", lowered):
         # Multi-map APIs conventionally have N input generic types plus one
         # return generic type. Keep this inference narrow to explicit wording.
         return _NUMBER_WORDS[match.group(1)] + 1
@@ -90,7 +90,7 @@ def _callable_signature_terms(symbol) -> set[str]:
         out.add("array")
     if "func" in out:
         out.add("function")
-    if symbol.name.lower().endswith("async") or re.search(r"\\basync\\b", raw, re.I):
+    if symbol.name.lower().endswith("async") or re.search(r"\basync\b", raw, re.I):
         out.add("async")
     return out
 
