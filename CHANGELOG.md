@@ -1,5 +1,19 @@
 # Unreleased
 
+- **Added paired cost-per-success reporting for real agent runs.**
+  `token-saver cost-report baseline.json optimized.json` compares identical
+  task IDs across baseline and Token Saver runs using success outcomes,
+  input/output/cache tokens, model/tool calls, latency, and cost. It reports
+  total token and invoice reductions, success-rate change, improved/regressed
+  tasks, and the primary commercial metric: **cost per successful task**.
+  Costs can be supplied directly per run or derived from configurable
+  per-million input/output/cached-input pricing. Mismatched workloads are
+  rejected by default so savings cannot be inflated by comparing different
+  task sets. The command also accepts the existing single-file
+  `agent-evaluate` paired manifest format (`task` +
+  `condition=baseline|token-saver`), so quality parity and economics can be
+  computed from the same experiment record rather than duplicated data.
+
 - **Built and first-ran a fifth frozen external holdout after the multi-language
   parser work.** `benchmarks/holdout-external-5.json` contains **30
   source-grounded tasks across 6 previously-unused repositories**: chi and zap
