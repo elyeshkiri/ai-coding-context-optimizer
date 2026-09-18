@@ -14,6 +14,48 @@
   `condition=baseline|token-saver`), so quality parity and economics can be
   computed from the same experiment record rather than duplicated data.
 
+- **Built and first-ran a fifth frozen external holdout after the multi-language
+  parser work.** `benchmarks/holdout-external-5.json` contains **30
+  source-grounded tasks across 6 previously-unused repositories**: chi and zap
+  (Go), clap and tower (Rust), Guava (Java), and Serilog (C#). Ground truth and
+  exact repository revisions were frozen before Token Saver saw any selected
+  repository at SHA
+  `9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3`.
+
+  **First-ever result: 90.0% file recall, 56.7% source-visible symbol recall,
+  and ~97.28% estimated context reduction.** Per repository: chi 100%/100%,
+  zap 100%/60%, clap 100%/40%, tower 80%/60%, Guava 60%/40%, and Serilog
+  100%/40% (file/symbol recall). The exact first-run output is preserved in
+  `benchmarks/holdout-external-5.result.json`.
+
+  This suite is now burned for tuning. Subsequent structural improvements are
+  developed on independent synthetic fixtures; a later untouched suite is
+  required for fresh generalization evidence.
+
+- **Added structural cross-language symbol graph v2.** Parser-backed Go, Rust,
+  Java, and C# symbols now contribute AST-native method calls and import/use
+  targets to the repository graph instead of relying on generic call/import
+  regexes. `SymbolRecord` now persists qualified identities (for example
+  `UserLogger.Information`) and the index format is version 7.
+
+  Context packing keeps the legacy bare-name symbol labels for compatibility
+  while also emitting source-visible `path + qualified symbol + line`
+  identities. The evaluator can opt into stricter `qualified_symbols`
+  ground truth and, when overload/member disambiguation matters, exact
+  `symbol_identities` such as `Formatter.cs:Formatter.Format@7`. Both
+  fields are opt-in, so historical frozen manifests keep their original hashes.
+
+  Within-file ranking now uses qualified/container names plus a bounded
+  parser-derived call signal. Container symbols no longer inherit all
+  descendant body vocabulary or additively double-count child relevance;
+  this prevents large classes/types from becoming lexical hubs while still
+  allowing relevant children to credit their container.
+
+  Validation: **381 tests passing**, Python 3.10/3.12/3.13 CI green, and the
+  25-task self benchmark remains **100% file / 100% source-visible symbol
+  recall** at **~96.6% estimated context reduction**. Development used
+  independent synthetic fixtures; frozen holdout #5 is diagnostic only.
+
 - **Built and first-ran a fourth frozen external holdout before any tuning
   against its repositories.** `benchmarks/holdout-external-4.json` contains
   **40 source-grounded tasks across 8 previously-unused public repositories**:
