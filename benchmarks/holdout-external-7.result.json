@@ -1,0 +1,608 @@
+{
+  "tasks": [
+    {
+      "id": "rich-console-init",
+      "repository": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5994,
+      "token_reduction": 0.9935478245705816
+    },
+    {
+      "id": "rich-console-print",
+      "repository": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5985,
+      "token_reduction": 0.9935575125216768
+    },
+    {
+      "id": "rich-console-log",
+      "repository": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5995,
+      "token_reduction": 0.993546748131571
+    },
+    {
+      "id": "rich-table-add-column",
+      "repository": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5993,
+      "token_reduction": 0.9935489010095921
+    },
+    {
+      "id": "rich-table-add-row",
+      "repository": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9935413659365181
+    },
+    {
+      "id": "rich-table-add-section",
+      "repository": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9935478245705816
+    },
+    {
+      "id": "nest-factory-create",
+      "repository": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5992,
+      "token_reduction": 0.9948743918045015
+    },
+    {
+      "id": "nest-factory-create-microservice",
+      "repository": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9948692593530374
+    },
+    {
+      "id": "nest-factory-create-context",
+      "repository": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9948726809873468
+    },
+    {
+      "id": "nest-router-explore",
+      "repository": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9948692593530374
+    },
+    {
+      "id": "nest-router-register-resolved",
+      "repository": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5992,
+      "token_reduction": 0.9948743918045015
+    },
+    {
+      "id": "nest-injector-instantiate-class",
+      "repository": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5995,
+      "token_reduction": 0.9948718255787694
+    },
+    {
+      "id": "echo-echo-use",
+      "repository": "echo",
+      "revision": "9ce228d5b232644c40d03d40cc3e0c2df0b764a1",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5981,
+      "token_reduction": 0.9820824608231703
+    },
+    {
+      "id": "echo-group-use",
+      "repository": "echo",
+      "revision": "9ce228d5b232644c40d03d40cc3e0c2df0b764a1",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5999,
+      "token_reduction": 0.982028537448286
+    },
+    {
+      "id": "echo-echo-add",
+      "repository": "echo",
+      "revision": "9ce228d5b232644c40d03d40cc3e0c2df0b764a1",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5982,
+      "token_reduction": 0.9820794650801211
+    },
+    {
+      "id": "echo-serve-http",
+      "repository": "echo",
+      "revision": "9ce228d5b232644c40d03d40cc3e0c2df0b764a1",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9820345289343843
+    },
+    {
+      "id": "fx-new",
+      "repository": "fx",
+      "revision": "d5da5b04ac906bfbad8b400baeee9b970c1be6f3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5988,
+      "token_reduction": 0.9692006995165107
+    },
+    {
+      "id": "fx-app-start",
+      "repository": "fx",
+      "revision": "d5da5b04ac906bfbad8b400baeee9b970c1be6f3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9691698384939821
+    },
+    {
+      "id": "fx-app-stop",
+      "repository": "fx",
+      "revision": "d5da5b04ac906bfbad8b400baeee9b970c1be6f3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5996,
+      "token_reduction": 0.9691595514864726
+    },
+    {
+      "id": "fx-module-invoke-all",
+      "repository": "fx",
+      "revision": "d5da5b04ac906bfbad8b400baeee9b970c1be6f3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9691492644789631
+    },
+    {
+      "id": "hyper-h1-server-serve",
+      "repository": "hyper",
+      "revision": "74a39081ff1496970fb75da75c5282b23a9b69e5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9831032734238548
+    },
+    {
+      "id": "hyper-h2-server-serve",
+      "repository": "hyper",
+      "revision": "74a39081ff1496970fb75da75c5282b23a9b69e5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5990,
+      "token_reduction": 0.9831258099047834
+    },
+    {
+      "id": "hyper-h1-client-builder-handshake",
+      "repository": "hyper",
+      "revision": "74a39081ff1496970fb75da75c5282b23a9b69e5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5991,
+      "token_reduction": 0.9831229928446673
+    },
+    {
+      "id": "hyper-h2-client-builder-handshake",
+      "repository": "hyper",
+      "revision": "74a39081ff1496970fb75da75c5282b23a9b69e5",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5991,
+      "token_reduction": 0.9831229928446673
+    },
+    {
+      "id": "serde-serializer-str",
+      "repository": "serde",
+      "revision": "a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5992,
+      "token_reduction": 0.9810062382715423
+    },
+    {
+      "id": "serde-serializer-map",
+      "repository": "serde",
+      "revision": "a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5976,
+      "token_reduction": 0.981056955926358
+    },
+    {
+      "id": "serde-deserializer-any",
+      "repository": "serde",
+      "revision": "a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5977,
+      "token_reduction": 0.981053786072932
+    },
+    {
+      "id": "serde-visitor-expecting",
+      "repository": "serde",
+      "revision": "a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5985,
+      "token_reduction": 0.9810284272455242
+    },
+    {
+      "id": "jackson-objectmapper-init",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5999,
+      "token_reduction": 0.9981996949174617
+    },
+    {
+      "id": "jackson-readvalue-string-class",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5971,
+      "token_reduction": 0.998208097741651
+    },
+    {
+      "id": "jackson-readvalue-string-typeref",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5983,
+      "token_reduction": 0.9982044965312842
+    },
+    {
+      "id": "jackson-readtree-string",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5996,
+      "token_reduction": 0.9982005952200534
+    },
+    {
+      "id": "jackson-write-string",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5976,
+      "token_reduction": 0.9982065972373315
+    },
+    {
+      "id": "jackson-convert-class",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5992,
+      "token_reduction": 0.9982017956235091
+    },
+    {
+      "id": "jackson-tree-to-class",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5984,
+      "token_reduction": 0.9982041964304202
+    },
+    {
+      "id": "jackson-reader-read-string",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9981999950183257
+    },
+    {
+      "id": "jackson-reader-readvalues-stream",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5982,
+      "token_reduction": 0.9982047966321481
+    },
+    {
+      "id": "jackson-writer-write-string",
+      "repository": "jackson",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5975,
+      "token_reduction": 0.9982068973381953
+    },
+    {
+      "id": "dapper-execute-sql",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5977,
+      "token_reduction": 0.9807163067710702
+    },
+    {
+      "id": "dapper-query-dynamic",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5983,
+      "token_reduction": 0.9806969488725638
+    },
+    {
+      "id": "dapper-queryfirst-generic",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5994,
+      "token_reduction": 0.9806614593919684
+    },
+    {
+      "id": "dapper-querysingle-type",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5980,
+      "token_reduction": 0.980706627821817
+    },
+    {
+      "id": "dapper-queryasync-generic",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9806485541262974
+    },
+    {
+      "id": "dapper-queryfirstasync-command",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 1,
+      "tokens": 5997,
+      "token_reduction": 0.9806517804427152
+    },
+    {
+      "id": "dapper-querysingleasync-generic",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5987,
+      "token_reduction": 0.9806840436068927
+    },
+    {
+      "id": "dapper-executeasync-command",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5983,
+      "token_reduction": 0.9806969488725638
+    },
+    {
+      "id": "dapper-queryasync-multimap-two",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "qualified_symbol_recall": 1,
+      "symbol_identity_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.9806421014934619
+    },
+    {
+      "id": "dapper-queryasync-type-array",
+      "repository": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "qualified_symbol_recall": 0,
+      "symbol_identity_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9806485541262974
+    }
+  ],
+  "repositories": {
+    "dapper": {
+      "task_count": 10,
+      "mean_file_recall": 0.6,
+      "mean_symbol_recall": 0.5,
+      "mean_token_reduction": 0.9806753325525648,
+      "mean_qualified_symbol_recall": 0.3,
+      "mean_symbol_identity_recall": 0.1
+    },
+    "echo": {
+      "task_count": 4,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9820562480714904,
+      "mean_qualified_symbol_recall": 0.75,
+      "mean_symbol_identity_recall": 0.75
+    },
+    "fx": {
+      "task_count": 4,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9691698384939821,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 1
+    },
+    "hyper": {
+      "task_count": 4,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9831187672544932,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 1
+    },
+    "jackson": {
+      "task_count": 10,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.998203716269038,
+      "mean_qualified_symbol_recall": 0.7,
+      "mean_symbol_identity_recall": 0.7
+    },
+    "nest": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9948719681468656,
+      "mean_qualified_symbol_recall": 1,
+      "mean_symbol_identity_recall": 1
+    },
+    "rich": {
+      "task_count": 6,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.8333333333333334,
+      "mean_token_reduction": 0.9935483627900868,
+      "mean_qualified_symbol_recall": 0.8333333333333334,
+      "mean_symbol_identity_recall": 0.8333333333333334
+    },
+    "serde": {
+      "task_count": 4,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.75,
+      "mean_token_reduction": 0.9810363518790891,
+      "mean_qualified_symbol_recall": 0.75,
+      "mean_symbol_identity_recall": 0.75
+    }
+  },
+  "summary": {
+    "task_count": 48,
+    "mean_file_recall": 0.9166666666666666,
+    "mean_symbol_recall": 0.8541666666666666,
+    "mean_token_reduction": 0.9871007770132075,
+    "mean_qualified_symbol_recall": 0.7291666666666666,
+    "mean_symbol_identity_recall": 0.6875
+  },
+  "holdout_protocol_enforced": true,
+  "ground_truth_sha256": "ebd45fda46047399cf3d68a494760e25002cbe0e384b3ae2913834be5afa1249"
+}
