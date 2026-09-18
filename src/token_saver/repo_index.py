@@ -21,7 +21,7 @@ from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, STRUCTURED_EXTRA, structured_imports, symbols as syntax_symbols
 
-INDEX_VERSION = 9
+INDEX_VERSION = 10
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
