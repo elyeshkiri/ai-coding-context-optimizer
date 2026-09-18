@@ -208,6 +208,94 @@ def compare_costs(
     }
 
 
+
+def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[list[Run], list[Run]]:
+    """Load the same paired manifest accepted by agent-evaluate."""
+    pricing = pricing or Pricing()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    raw = payload.get("runs") if isinstance(payload, dict) else None
+    if not isinstance(raw, list) or not raw:
+        raise ValueError(f"{path}: paired agent manifest requires a non-empty 'runs' list")
+
+    by_condition: dict[str, list[Run]] = {"baseline": [], "token-saver": []}
+    seen: set[tuple[str, str]] = set()
+    tasks_by_condition: dict[str, set[str]] = {"baseline": set(), "token-saver": set()}
+
+    for position, item in enumerate(raw, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path}: run {position} must be an object")
+        task_id = str(item.get("task", "")).strip()
+        condition = str(item.get("condition", "")).strip()
+        if not task_id or condition not in by_condition:
+            raise ValueError(
+                f"{path}: each paired run requires task and condition baseline|token-saver"
+            )
+        key = (task_id, condition)
+        if key in seen:
+            raise ValueError(f"{path}: duplicate {condition} run for task {task_id!r}")
+        seen.add(key)
+        tasks_by_condition[condition].add(task_id)
+
+        success = item.get("success")
+        if not isinstance(success, bool):
+            raise ValueError(f"{path}: run {task_id!r}/{condition} success must be boolean")
+        input_tokens = int(_number(item.get("input_tokens", 0), "input_tokens", integer=True))
+        output_tokens = int(_number(item.get("output_tokens", 0), "output_tokens", integer=True))
+        cached = int(_number(item.get("cached_input_tokens", 0), "cached_input_tokens", integer=True))
+        if cached > input_tokens:
+            raise ValueError(
+                f"{path}: cached_input_tokens cannot exceed input_tokens for "
+                f"{task_id!r}/{condition}"
+            )
+        tool_calls = int(_number(item.get("tool_calls", 0), "tool_calls", integer=True))
+        model_calls = int(_number(item.get("model_calls", 1), "model_calls", integer=True))
+        if "latency_ms" in item:
+            latency = float(_number(item["latency_ms"], "latency_ms"))
+        else:
+            latency = float(_number(item.get("seconds", 0), "seconds")) * 1000.0
+
+        if "cost_usd" in item:
+            cost = float(_number(item["cost_usd"], "cost_usd"))
+        else:
+            if (
+                pricing.input_per_million == 0
+                and pricing.output_per_million == 0
+                and pricing.cached_input_per_million == 0
+            ):
+                raise ValueError(
+                    f"{path}: run {task_id!r}/{condition} has no cost_usd "
+                    "and no token pricing was supplied"
+                )
+            cost = pricing.cost(input_tokens, output_tokens, cached)
+
+        by_condition[condition].append(Run(
+            task_id=task_id,
+            success=success,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cached_input_tokens=cached,
+            tool_calls=tool_calls,
+            model_calls=model_calls,
+            latency_ms=latency,
+            cost_usd=cost,
+        ))
+
+    baseline_tasks = tasks_by_condition["baseline"]
+    optimized_tasks = tasks_by_condition["token-saver"]
+    if baseline_tasks != optimized_tasks:
+        missing_optimized = sorted(baseline_tasks - optimized_tasks)
+        missing_baseline = sorted(optimized_tasks - baseline_tasks)
+        raise ValueError(
+            f"{path}: unpaired tasks; missing token-saver={missing_optimized}, "
+            f"missing baseline={missing_baseline}"
+        )
+    return by_condition["baseline"], by_condition["token-saver"]
+
+
+def compare_paired_agent_file(path: Path, *, pricing: Pricing | None = None) -> dict:
+    baseline, optimized = load_paired_agent_runs(path, pricing)
+    return compare_costs(baseline, optimized, require_same_tasks=True)
+
 def compare_cost_files(
     baseline_path: Path,
     optimized_path: Path,
