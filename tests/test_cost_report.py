@@ -2,7 +2,9 @@ import json
 
 import pytest
 
-from token_saver.cost_report import Pricing, compare_cost_files, load_runs
+from token_saver.cost_report import (
+    Pricing, compare_cost_files, compare_paired_agent_file, load_runs,
+)
 
 
 def _write(path, runs):
@@ -109,3 +111,40 @@ def test_cost_report_rejects_missing_cost_without_pricing(tmp_path):
     }])
     with pytest.raises(ValueError, match="no cost_usd and no token pricing"):
         load_runs(path)
+
+
+
+def test_cost_report_accepts_agent_evaluate_paired_manifest(tmp_path):
+    path = tmp_path / "agent-runs.json"
+    path.write_text(json.dumps({
+        "runs": [
+            {
+                "task": "auth", "condition": "baseline", "success": True,
+                "input_tokens": 1200, "output_tokens": 300,
+                "seconds": 2.5, "tool_calls": 4, "cost_usd": 0.90,
+            },
+            {
+                "task": "auth", "condition": "token-saver", "success": True,
+                "input_tokens": 500, "output_tokens": 150,
+                "seconds": 1.4, "tool_calls": 2, "cost_usd": 0.35,
+            },
+            {
+                "task": "cache", "condition": "baseline", "success": False,
+                "input_tokens": 1000, "output_tokens": 250,
+                "seconds": 2.0, "cost_usd": 0.70,
+            },
+            {
+                "task": "cache", "condition": "token-saver", "success": True,
+                "input_tokens": 600, "output_tokens": 180,
+                "seconds": 1.5, "cost_usd": 0.40,
+            },
+        ]
+    }), encoding="utf-8")
+
+    result = compare_paired_agent_file(path)
+
+    assert result["paired_task_count"] == 2
+    assert result["baseline"]["success_rate"] == 0.5
+    assert result["optimized"]["success_rate"] == 1.0
+    assert result["outcomes"]["improved_tasks"] == ["cache"]
+    assert result["optimized"]["mean_latency_ms"] == pytest.approx(1450)
