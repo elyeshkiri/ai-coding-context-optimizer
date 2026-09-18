@@ -10,7 +10,6 @@ def test_diagnostic_snippet_ranking():
         "extract exact body named source symbol",
         changed_boost=False,
         feedback_boost=False,
-        persist_index=False,
     )
     top = [(item.rel, round(item.score, 3), item.reasons) for item in ranked[:12]]
     raise AssertionError(top)
