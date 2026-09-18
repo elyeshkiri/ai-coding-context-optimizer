@@ -1,5 +1,30 @@
 # Unreleased
 
+- **Built and first-ran a sixth frozen external holdout after structural symbol
+  graph v2, before any tuning against its repositories.**
+  `benchmarks/holdout-external-6.json` contains **24 source-grounded tasks
+  across 6 previously-unused repositories**: go-playground/validator and
+  spf13/cobra (Go), seanmonstar/reqwest and tokio-rs/bytes (Rust), google/gson
+  (Java), and LuckyPennySoftware/AutoMapper (C#). Every repository is pinned to
+  an exact revision. Ground truth includes file, bare symbol, qualified symbol,
+  and exact `path:qualified@line` identity and was frozen at SHA
+  `6c069bc6ef9fcaffd19f6960b9da5e45797a1cbc6f30f9938b937dd2ac7f0535`
+  before the repositories were cloned into the validation run.
+
+  **First-ever result: 91.7% file recall, 58.3% bare source-visible symbol
+  recall, 50.0% qualified-symbol recall, 45.8% exact symbol-identity recall,
+  and ~97.41% estimated context reduction.** Per repository file/bare/qualified/
+  identity recall: validator 75/75/50/50, Cobra 100/25/25/25, reqwest
+  100/75/75/75, bytes 100/75/75/75, Gson 100/75/75/50, and AutoMapper
+  75/25/0/0.
+
+  This is the first fresh suite to measure overload/container identity directly,
+  and it confirms the remaining bottleneck is primarily symbol selection inside
+  already-correct files rather than file retrieval. The exact first-run output
+  is preserved in `benchmarks/holdout-external-6.result.json`. This suite is
+  now burned for tuning; follow-up fixes must use independent synthetic
+  fixtures and another untouched suite for fresh generalization evidence.
+
 - **Added a deterministic Output Saver benchmark harness.**
   `token-saver output-benchmark manifest.json` runs compaction over inline or
   file-backed responses and reports weighted/mean output-token reduction,
