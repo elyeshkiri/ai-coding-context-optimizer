@@ -1,5 +1,28 @@
 # Unreleased
 
+- **Added structural cross-language symbol graph v2.** Parser-backed Go, Rust,
+  Java, and C# symbols now contribute AST-native method calls and import/use
+  targets to the repository graph instead of relying on generic call/import
+  regexes. `SymbolRecord` now persists qualified identities (for example
+  `UserLogger.Information`) and the index format is version 7.
+
+  Context packing keeps the legacy bare-name symbol labels for compatibility
+  while also emitting source-visible `path + qualified symbol + line`
+  identities. The evaluator can opt into stricter `qualified_symbols`
+  ground truth without changing hashes for historical manifests that do not
+  use the field.
+
+  Within-file ranking now uses qualified/container names plus a bounded
+  parser-derived call signal. Container symbols no longer inherit all
+  descendant body vocabulary or additively double-count child relevance;
+  this prevents large classes/types from becoming lexical hubs while still
+  allowing relevant children to credit their container.
+
+  Validation: **380 tests passing**, Python 3.10/3.12/3.13 CI green, and the
+  25-task self benchmark remains **100% file / 100% source-visible symbol
+  recall** at **~96.6% estimated context reduction**. Development used
+  independent synthetic fixtures; frozen holdout #5 is diagnostic only.
+
 - **Built and first-ran a fourth frozen external holdout before any tuning
   against its repositories.** `benchmarks/holdout-external-4.json` contains
   **40 source-grounded tasks across 8 previously-unused public repositories**:
