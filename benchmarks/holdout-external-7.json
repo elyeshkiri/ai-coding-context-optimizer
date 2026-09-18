@@ -1,0 +1,910 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T18:00:00Z",
+    "ground_truth_sha256": "ebd45fda46047399cf3d68a494760e25002cbe0e384b3ae2913834be5afa1249"
+  },
+  "repositories": {
+    "rich": {
+      "path": "rich",
+      "revision": "9d8f9a372cc5916fd4781fec207ced7ddac2f08f"
+    },
+    "nest": {
+      "path": "nest",
+      "revision": "f1def7602b6a42c74ce3062c306745c8cdeab6b5"
+    },
+    "echo": {
+      "path": "echo",
+      "revision": "9ce228d5b232644c40d03d40cc3e0c2df0b764a1"
+    },
+    "fx": {
+      "path": "fx",
+      "revision": "d5da5b04ac906bfbad8b400baeee9b970c1be6f3"
+    },
+    "hyper": {
+      "path": "hyper",
+      "revision": "74a39081ff1496970fb75da75c5282b23a9b69e5"
+    },
+    "serde": {
+      "path": "serde",
+      "revision": "a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb"
+    },
+    "jackson": {
+      "path": "jackson-databind",
+      "revision": "2a428d9b569ec1ac28f0b071a71f3296a43fa6a3"
+    },
+    "dapper": {
+      "path": "dapper",
+      "revision": "8becae8d0e2b360165ae03c0d5d1330b0273473d"
+    }
+  },
+  "tasks": [
+    {
+      "id": "rich-console-init",
+      "repository": "rich",
+      "query": "where does Rich initialize a Console instance including output streams color system and terminal sizing",
+      "files": [
+        "rich/console.py"
+      ],
+      "symbols": [
+        "__init__"
+      ],
+      "qualified_symbols": [
+        "rich/console.py:Console.__init__"
+      ],
+      "symbol_identities": [
+        "rich/console.py:Console.__init__@619"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rich-console-print",
+      "repository": "rich",
+      "query": "how does Console print renderables with separators endings styles highlighting and overflow options",
+      "files": [
+        "rich/console.py"
+      ],
+      "symbols": [
+        "print"
+      ],
+      "qualified_symbols": [
+        "rich/console.py:Console.print"
+      ],
+      "symbol_identities": [
+        "rich/console.py:Console.print@1652"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rich-console-log",
+      "repository": "rich",
+      "query": "how does Console log objects with optional time path markup and highlighting",
+      "files": [
+        "rich/console.py"
+      ],
+      "symbols": [
+        "log"
+      ],
+      "qualified_symbols": [
+        "rich/console.py:Console.log"
+      ],
+      "symbol_identities": [
+        "rich/console.py:Console.log@1947"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rich-table-add-column",
+      "repository": "rich",
+      "query": "where does Table add a column with header footer style width and overflow configuration",
+      "files": [
+        "rich/table.py"
+      ],
+      "symbols": [
+        "add_column"
+      ],
+      "qualified_symbols": [
+        "rich/table.py:Table.add_column"
+      ],
+      "symbol_identities": [
+        "rich/table.py:Table.add_column@364"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rich-table-add-row",
+      "repository": "rich",
+      "query": "how does Table add a row of renderables with optional style and end section behavior",
+      "files": [
+        "rich/table.py"
+      ],
+      "symbols": [
+        "add_row"
+      ],
+      "qualified_symbols": [
+        "rich/table.py:Table.add_row"
+      ],
+      "symbol_identities": [
+        "rich/table.py:Table.add_row@422"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rich-table-add-section",
+      "repository": "rich",
+      "query": "where does Table insert a section break after the current row",
+      "files": [
+        "rich/table.py"
+      ],
+      "symbols": [
+        "add_section"
+      ],
+      "qualified_symbols": [
+        "rich/table.py:Table.add_section"
+      ],
+      "symbol_identities": [
+        "rich/table.py:Table.add_section@469"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nest-factory-create",
+      "repository": "nest",
+      "query": "where is the concrete NestFactoryStatic create implementation that builds a Nest HTTP application from a root module",
+      "files": [
+        "packages/core/nest-factory.ts"
+      ],
+      "symbols": [
+        "create"
+      ],
+      "qualified_symbols": [
+        "packages/core/nest-factory.ts:NestFactoryStatic.create"
+      ],
+      "symbol_identities": [
+        "packages/core/nest-factory.ts:NestFactoryStatic.create@89"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nest-factory-create-microservice",
+      "repository": "nest",
+      "query": "how does NestFactoryStatic create a standalone Nest microservice with microservice options",
+      "files": [
+        "packages/core/nest-factory.ts"
+      ],
+      "symbols": [
+        "createMicroservice"
+      ],
+      "qualified_symbols": [
+        "packages/core/nest-factory.ts:NestFactoryStatic.createMicroservice"
+      ],
+      "symbol_identities": [
+        "packages/core/nest-factory.ts:NestFactoryStatic.createMicroservice@135"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nest-factory-create-context",
+      "repository": "nest",
+      "query": "how does NestFactoryStatic create an application context without an HTTP server",
+      "files": [
+        "packages/core/nest-factory.ts"
+      ],
+      "symbols": [
+        "createApplicationContext"
+      ],
+      "qualified_symbols": [
+        "packages/core/nest-factory.ts:NestFactoryStatic.createApplicationContext"
+      ],
+      "symbol_identities": [
+        "packages/core/nest-factory.ts:NestFactoryStatic.createApplicationContext@177"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nest-router-explore",
+      "repository": "nest",
+      "query": "how does RouterExplorer explore controller routes and apply discovered paths to the router proxy",
+      "files": [
+        "packages/core/router/router-explorer.ts"
+      ],
+      "symbols": [
+        "explore"
+      ],
+      "qualified_symbols": [
+        "packages/core/router/router-explorer.ts:RouterExplorer.explore"
+      ],
+      "symbol_identities": [
+        "packages/core/router/router-explorer.ts:RouterExplorer.explore@106"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nest-router-register-resolved",
+      "repository": "nest",
+      "query": "where does RouterExplorer register a previously resolved route on the HTTP adapter",
+      "files": [
+        "packages/core/router/router-explorer.ts"
+      ],
+      "symbols": [
+        "registerResolvedRoute"
+      ],
+      "qualified_symbols": [
+        "packages/core/router/router-explorer.ts:RouterExplorer.registerResolvedRoute"
+      ],
+      "symbol_identities": [
+        "packages/core/router/router-explorer.ts:RouterExplorer.registerResolvedRoute@310"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nest-injector-instantiate-class",
+      "repository": "nest",
+      "query": "how does Injector instantiate a provider class after resolving constructor instances and context",
+      "files": [
+        "packages/core/injector/injector.ts"
+      ],
+      "symbols": [
+        "instantiateClass"
+      ],
+      "qualified_symbols": [
+        "packages/core/injector/injector.ts:Injector.instantiateClass"
+      ],
+      "symbol_identities": [
+        "packages/core/injector/injector.ts:Injector.instantiateClass@883"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "echo-echo-use",
+      "repository": "echo",
+      "query": "where does Echo register middleware on the root Echo instance rather than on a Group",
+      "files": [
+        "echo.go"
+      ],
+      "symbols": [
+        "Use"
+      ],
+      "qualified_symbols": [
+        "echo.go:Echo.Use"
+      ],
+      "symbol_identities": [
+        "echo.go:Echo.Use@510"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "echo-group-use",
+      "repository": "echo",
+      "query": "where does Group register middleware for a route group rather than the root Echo instance",
+      "files": [
+        "group.go"
+      ],
+      "symbols": [
+        "Use"
+      ],
+      "qualified_symbols": [
+        "group.go:Group.Use"
+      ],
+      "symbol_identities": [
+        "group.go:Group.Use@31"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "echo-echo-add",
+      "repository": "echo",
+      "query": "where does Echo add a route for an explicit HTTP method and path on the root router",
+      "files": [
+        "echo.go"
+      ],
+      "symbols": [
+        "Add"
+      ],
+      "qualified_symbols": [
+        "echo.go:Echo.Add"
+      ],
+      "symbol_identities": [
+        "echo.go:Echo.Add@740"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "echo-serve-http",
+      "repository": "echo",
+      "query": "how does Echo implement http.Handler ServeHTTP and dispatch an incoming request through its router",
+      "files": [
+        "echo.go"
+      ],
+      "symbols": [
+        "ServeHTTP"
+      ],
+      "qualified_symbols": [
+        "echo.go:Echo.ServeHTTP"
+      ],
+      "symbol_identities": [
+        "echo.go:Echo.ServeHTTP@803"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fx-new",
+      "repository": "fx",
+      "query": "where does Fx create a new App from a list of options and build its dependency graph",
+      "files": [
+        "app.go"
+      ],
+      "symbols": [
+        "New"
+      ],
+      "qualified_symbols": [
+        "app.go:New"
+      ],
+      "symbol_identities": [
+        "app.go:New@422"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fx-app-start",
+      "repository": "fx",
+      "query": "how does App Start execute lifecycle OnStart hooks using the supplied context",
+      "files": [
+        "app.go"
+      ],
+      "symbols": [
+        "Start"
+      ],
+      "qualified_symbols": [
+        "app.go:App.Start"
+      ],
+      "symbol_identities": [
+        "app.go:App.Start@660"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fx-app-stop",
+      "repository": "fx",
+      "query": "how does App Stop execute lifecycle OnStop hooks using the supplied context",
+      "files": [
+        "app.go"
+      ],
+      "symbols": [
+        "Stop"
+      ],
+      "qualified_symbols": [
+        "app.go:App.Stop"
+      ],
+      "symbol_identities": [
+        "app.go:App.Stop@716"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fx-module-invoke-all",
+      "repository": "fx",
+      "query": "where does an Fx module invoke all registered invoke functions after providers are installed",
+      "files": [
+        "module.go"
+      ],
+      "symbols": [
+        "invokeAll"
+      ],
+      "qualified_symbols": [
+        "module.go:module.invokeAll"
+      ],
+      "symbol_identities": [
+        "module.go:module.invokeAll@313"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "hyper-h1-server-serve",
+      "repository": "hyper",
+      "query": "where does the HTTP/1 server Builder serve a connection with an IO transport and service",
+      "files": [
+        "src/server/conn/http1.rs"
+      ],
+      "symbols": [
+        "serve_connection"
+      ],
+      "qualified_symbols": [
+        "src/server/conn/http1.rs:Builder.serve_connection"
+      ],
+      "symbol_identities": [
+        "src/server/conn/http1.rs:Builder.serve_connection@452"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "hyper-h2-server-serve",
+      "repository": "hyper",
+      "query": "where does the HTTP/2 server Builder serve a connection using its executor and service",
+      "files": [
+        "src/server/conn/http2.rs"
+      ],
+      "symbols": [
+        "serve_connection"
+      ],
+      "qualified_symbols": [
+        "src/server/conn/http2.rs:Builder.serve_connection"
+      ],
+      "symbol_identities": [
+        "src/server/conn/http2.rs:Builder.serve_connection@306"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "hyper-h1-client-builder-handshake",
+      "repository": "hyper",
+      "query": "where does the HTTP/1 client Builder perform a configured client connection handshake",
+      "files": [
+        "src/client/conn/http1.rs"
+      ],
+      "symbols": [
+        "handshake"
+      ],
+      "qualified_symbols": [
+        "src/client/conn/http1.rs:Builder.handshake"
+      ],
+      "symbol_identities": [
+        "src/client/conn/http1.rs:Builder.handshake@556"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "hyper-h2-client-builder-handshake",
+      "repository": "hyper",
+      "query": "where does the HTTP/2 client Builder perform a configured client connection handshake",
+      "files": [
+        "src/client/conn/http2.rs"
+      ],
+      "symbols": [
+        "handshake"
+      ],
+      "qualified_symbols": [
+        "src/client/conn/http2.rs:Builder.handshake"
+      ],
+      "symbol_identities": [
+        "src/client/conn/http2.rs:Builder.handshake@566"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "serde-serializer-str",
+      "repository": "serde",
+      "query": "which Serializer trait method serializes a string value",
+      "files": [
+        "serde_core/src/ser/mod.rs"
+      ],
+      "symbols": [
+        "serialize_str"
+      ],
+      "qualified_symbols": [
+        "serde_core/src/ser/mod.rs:Serializer.serialize_str"
+      ],
+      "symbol_identities": [
+        "serde_core/src/ser/mod.rs:Serializer.serialize_str@720"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "serde-serializer-map",
+      "repository": "serde",
+      "query": "which Serializer trait method begins serialization of a map with an optional length",
+      "files": [
+        "serde_core/src/ser/mod.rs"
+      ],
+      "symbols": [
+        "serialize_map"
+      ],
+      "qualified_symbols": [
+        "serde_core/src/ser/mod.rs:Serializer.serialize_map"
+      ],
+      "symbol_identities": [
+        "serde_core/src/ser/mod.rs:Serializer.serialize_map@1188"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "serde-deserializer-any",
+      "repository": "serde",
+      "query": "which Deserializer trait method asks a visitor to deserialize any self describing input type",
+      "files": [
+        "serde_core/src/de/mod.rs"
+      ],
+      "symbols": [
+        "deserialize_any"
+      ],
+      "qualified_symbols": [
+        "serde_core/src/de/mod.rs:Deserializer.deserialize_any"
+      ],
+      "symbol_identities": [
+        "serde_core/src/de/mod.rs:Deserializer.deserialize_any@959"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "serde-visitor-expecting",
+      "repository": "serde",
+      "query": "where does the Visitor trait require implementors to describe the data they expect to a formatter",
+      "files": [
+        "serde_core/src/de/mod.rs"
+      ],
+      "symbols": [
+        "expecting"
+      ],
+      "qualified_symbols": [
+        "serde_core/src/de/mod.rs:Visitor.expecting"
+      ],
+      "symbol_identities": [
+        "serde_core/src/de/mod.rs:Visitor.expecting@1343"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-objectmapper-init",
+      "repository": "jackson",
+      "query": "where is the no argument ObjectMapper constructor that initializes the default mapper",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "ObjectMapper"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.ObjectMapper"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.ObjectMapper@276"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-readvalue-string-class",
+      "repository": "jackson",
+      "query": "which ObjectMapper readValue overload reads JSON from a String into a Class target",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "readValue"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.readValue"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.readValue@1551"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-readvalue-string-typeref",
+      "repository": "jackson",
+      "query": "which ObjectMapper readValue overload reads JSON from a String using a TypeReference target",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "readValue"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.readValue"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.readValue@1573"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-readtree-string",
+      "repository": "jackson",
+      "query": "which ObjectMapper readTree overload parses a JSON String into a JsonNode tree",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "readTree"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.readTree"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.readTree@1163"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-write-string",
+      "repository": "jackson",
+      "query": "where does ObjectMapper serialize a value directly to a JSON String",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "writeValueAsString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.writeValueAsString"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.writeValueAsString@1851"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-convert-class",
+      "repository": "jackson",
+      "query": "which ObjectMapper convertValue overload converts an object to a target Class",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "convertValue"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.convertValue"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.convertValue@2383"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-tree-to-class",
+      "repository": "jackson",
+      "query": "which ObjectMapper treeToValue overload converts a JsonNode into a target Class",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java"
+      ],
+      "symbols": [
+        "treeToValue"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.treeToValue"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectMapper.java:ObjectMapper.treeToValue@1274"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-reader-read-string",
+      "repository": "jackson",
+      "query": "where does ObjectReader read one configured value from a String source",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectReader.java"
+      ],
+      "symbols": [
+        "readValue"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectReader.java:ObjectReader.readValue"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectReader.java:ObjectReader.readValue@1300"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-reader-readvalues-stream",
+      "repository": "jackson",
+      "query": "where does ObjectReader read a sequence of configured values from an InputStream",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectReader.java"
+      ],
+      "symbols": [
+        "readValues"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectReader.java:ObjectReader.readValues"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectReader.java:ObjectReader.readValues@1698"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "jackson-writer-write-string",
+      "repository": "jackson",
+      "query": "where does ObjectWriter serialize its configured value to a JSON String",
+      "files": [
+        "src/main/java/tools/jackson/databind/ObjectWriter.java"
+      ],
+      "symbols": [
+        "writeValueAsString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/tools/jackson/databind/ObjectWriter.java:ObjectWriter.writeValueAsString"
+      ],
+      "symbol_identities": [
+        "src/main/java/tools/jackson/databind/ObjectWriter.java:ObjectWriter.writeValueAsString@1099"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-execute-sql",
+      "repository": "dapper",
+      "query": "which SqlMapper Execute overload executes a SQL string with optional parameters transaction timeout and command type",
+      "files": [
+        "Dapper/SqlMapper.cs"
+      ],
+      "symbols": [
+        "Execute"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.cs:SqlMapper.Execute"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.cs:SqlMapper.Execute@557"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-query-dynamic",
+      "repository": "dapper",
+      "query": "where does SqlMapper Query execute a SQL string and return buffered or unbuffered dynamic rows",
+      "files": [
+        "Dapper/SqlMapper.cs"
+      ],
+      "symbols": [
+        "Query"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.cs:SqlMapper.Query"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.cs:SqlMapper.Query@769"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-queryfirst-generic",
+      "repository": "dapper",
+      "query": "which generic SqlMapper QueryFirst<T> overload reads the first row from a SQL string into T",
+      "files": [
+        "Dapper/SqlMapper.cs"
+      ],
+      "symbols": [
+        "QueryFirst"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.cs:SqlMapper.QueryFirst"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.cs:SqlMapper.QueryFirst@866"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-querysingle-type",
+      "repository": "dapper",
+      "query": "which SqlMapper QuerySingle overload accepts a runtime Type plus SQL string and requires exactly one row",
+      "files": [
+        "Dapper/SqlMapper.cs"
+      ],
+      "symbols": [
+        "QuerySingle"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.cs:SqlMapper.QuerySingle"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.cs:SqlMapper.QuerySingle@1022"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-queryasync-generic",
+      "repository": "dapper",
+      "query": "which generic SqlMapper QueryAsync<T> overload asynchronously queries a SQL string into typed rows",
+      "files": [
+        "Dapper/SqlMapper.Async.cs"
+      ],
+      "symbols": [
+        "QueryAsync"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryAsync"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryAsync@90"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-queryfirstasync-command",
+      "repository": "dapper",
+      "query": "where does SqlMapper QueryFirstAsync accept a CommandDefinition and return the first dynamic row",
+      "files": [
+        "Dapper/SqlMapper.Async.cs"
+      ],
+      "symbols": [
+        "QueryFirstAsync"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryFirstAsync"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryFirstAsync@45"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-querysingleasync-generic",
+      "repository": "dapper",
+      "query": "which generic SqlMapper QuerySingleAsync<T> overload asynchronously reads exactly one typed row from a SQL string",
+      "files": [
+        "Dapper/SqlMapper.Async.cs"
+      ],
+      "symbols": [
+        "QuerySingleAsync"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QuerySingleAsync"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QuerySingleAsync@132"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-executeasync-command",
+      "repository": "dapper",
+      "query": "where does SqlMapper ExecuteAsync accept a CommandDefinition and execute it asynchronously",
+      "files": [
+        "Dapper/SqlMapper.Async.cs"
+      ],
+      "symbols": [
+        "ExecuteAsync"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.ExecuteAsync"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.ExecuteAsync@535"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-queryasync-multimap-two",
+      "repository": "dapper",
+      "query": "which SqlMapper QueryAsync overload asynchronously multi maps two input types into a return type from a SQL string",
+      "files": [
+        "Dapper/SqlMapper.Async.cs"
+      ],
+      "symbols": [
+        "QueryAsync"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryAsync"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryAsync@691"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "dapper-queryasync-type-array",
+      "repository": "dapper",
+      "query": "which SqlMapper QueryAsync overload asynchronously multi maps a runtime Type array using an object array mapping function",
+      "files": [
+        "Dapper/SqlMapper.Async.cs"
+      ],
+      "symbols": [
+        "QueryAsync"
+      ],
+      "qualified_symbols": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryAsync"
+      ],
+      "symbol_identities": [
+        "Dapper/SqlMapper.Async.cs:SqlMapper.QueryAsync@969"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}
