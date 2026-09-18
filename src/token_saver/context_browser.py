@@ -56,7 +56,7 @@ def browse_context(
         if source is None:
             continue
         item.text = source
-        section, labels, redactions = _file_section(
+        section, labels, identities, redactions = _file_section(
             item, query_terms, 4, index, None,
         )
         record = index.records.get(item.rel)
@@ -75,6 +75,7 @@ def browse_context(
             "score": round(item.score, 4),
             "reasons": item.reasons,
             "symbols": visible,
+            "qualified_symbols": _visible_symbol_labels(detail, identities),
             "fuzzy_corrections": {
                 source_term: {"term": target, "similarity": round(ratio, 3)}
                 for source_term, (target, ratio) in fuzzy.items()
