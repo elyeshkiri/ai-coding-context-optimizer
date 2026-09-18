@@ -572,7 +572,7 @@ _CSHARP_EXTENSION_METHOD = re.compile(
 
 
 def _mask_csharp_noncode(source: bytes) -> bytes:
-    """Blank comments and literals while preserving exact byte/line offsets."""
+    """Blank comments and literals while preserving exact byte and line offsets."""
     masked = bytearray(source)
     size = len(source)
 
@@ -597,12 +597,11 @@ def _mask_csharp_noncode(source: bytes) -> bytes:
             continue
 
         byte = source[i]
-        if byte == 34:  # "
+        if byte == 34:
             quote_count = 1
             while i + quote_count < size and source[i + quote_count] == 34:
                 quote_count += 1
 
-            # C# raw string literals use at least three quote characters.
             if quote_count >= 3:
                 delimiter = b'"' * quote_count
                 end = source.find(delimiter, i + quote_count)
@@ -612,107 +611,19 @@ def _mask_csharp_noncode(source: bytes) -> bytes:
                 continue
 
             verbatim = (
-                (i > 0 and source[i - 1] == 64)  # @"
-                or (i > 1 and source[i - 2:i] == b'@    found: list[Symbol] = []
-
-    def walk(node, parents=()):
-        if node.type in _CSHARP_CONTAINERS:
-            name_node = node.child_by_field_name("name")
-            next_parents = parents
-            if name_node is not None:
-                name = _text(source, name_node)
-                _append(
-                    found, source, name=name, node=node,
-                    body=node.child_by_field_name("body"),
-                    parents=parents, kind=_CSHARP_CONTAINERS[node.type],
+                (i > 0 and source[i - 1] == 64)
+                or (
+                    i > 1
+                    and source[i - 2] == 64
+                    and source[i - 1] == 36
                 )
-                next_parents = (*parents, name)
-            for child in node.named_children:
-                walk(child, next_parents)
-            return
-
-        if node.type in _CSHARP_MEMBERS:
-            name_node = node.child_by_field_name("name")
-            if name_node is not None:
-                body = (
-                    node.child_by_field_name("body")
-                    or node.child_by_field_name("accessors")
-                    or node.child_by_field_name("value")
-                )
-                _append(
-                    found, source, name=_text(source, name_node), node=node,
-                    body=body, parents=parents, kind=_CSHARP_MEMBERS[node.type],
-                )
-
-        for child in node.named_children:
-            walk(child, parents)
-
-    walk(root)
-    found.extend(_csharp_extension_symbols(source, found))
-    return found
-
-
-def _symbols_extra(text: str, suffix: str) -> list[Symbol]:
-    """Return exact structural symbols for a supported non-JS language."""
-    from tree_sitter import Parser
-
-    suffix = suffix.lower()
-    if suffix not in STRUCTURED_EXTRA:
-        raise ValueError(f"unsupported structured language: {suffix}")
-
-    source = text.encode("utf-8")
-    tree = Parser(_extra_language(suffix)).parse(source)
-
-    if suffix == ".go":
-        found = _go_symbols(source, tree.root_node)
-    elif suffix == ".rs":
-        found = _rust_symbols(source, tree.root_node)
-    elif suffix == ".java":
-        found = _java_symbols(source, tree.root_node)
-    else:
-        found = _csharp_symbols(source, tree.root_node)
-
-    # Error recovery still provides exact declaration nodes around unsupported
-    # or newer syntax. Discarding the whole tree on one ERROR node degraded
-    # large real-world C# files to the generic regex fallback and erased their
-    # methods. Keep recovered symbols; fall back only when nothing structural
-    # survived.
-    if tree.root_node.has_error and not found:
-        raise ValueError("Source has syntax errors; use an explicit source range instead")
-    return _attach_structured_calls(source, tree.root_node, suffix, found)
-
-def symbols(text: str, suffix: str) -> list[Symbol]:
-    """Return exact structural symbols for any parser-backed language."""
-    suffix = suffix.lower()
-    try:
-        if suffix in JS_TS:
-            return _symbols_js_ts(text, suffix)
-        if suffix in STRUCTURED_EXTRA:
-            return _symbols_extra(text, suffix)
-    except RecursionError as exc:
-        # The per-language tree walkers are recursive, and generated code
-        # (a 3000-term chained expression, a deeply nested data literal) can
-        # be far deeper than Python's recursion limit. Report it as the same
-        # "cannot parse structurally" ValueError callers already degrade on,
-        # instead of letting one file abort indexing for the whole repository.
-        raise ValueError("Source is too deeply nested for structural parsing") from exc
-    raise ValueError(f"unsupported structured language: {suffix}")
-
-def extract(text: str, suffix: str, name: str):
-    matches = [s for s in symbols(text, suffix) if s.qualified == name or ("." not in name and s.name == name)]
-    if not matches: return None
-    if len(matches) != 1:
-        raise ValueError("Ambiguous symbol; use a qualified name: " + ", ".join(s.qualified for s in matches))
-    symbol = matches[0]
-    body = text.encode()[symbol.start_byte:symbol.end_byte].decode()
-    return f"# {symbol.qualified}  lines {symbol.start}-{symbol.end}\n{body}\n", symbol.start, symbol.end)
             )
             j = i + 1
             while j < size:
                 if verbatim and source[j:j + 2] == b'""':
                     j += 2
                     continue
-                if not verbatim and source[j] == 92:  # escape
+                if not verbatim and source[j] == 92:
                     j += 2
                     continue
                 if source[j] == 34:
@@ -723,7 +634,7 @@ def extract(text: str, suffix: str, name: str):
             i = j
             continue
 
-        if byte == 39:  # character literal
+        if byte == 39:
             j = i + 1
             while j < size:
                 if source[j] == 92:
@@ -757,13 +668,13 @@ def _matching_byte(masked: bytes, start: int, opening: int, closing: int) -> int
 
 
 def _csharp_extension_symbols(source: bytes, found: list[Symbol]) -> list[Symbol]:
-    """Recover C# 14 extension-block methods with the published 0.23 grammar.
+    """Recover C# 14 extension-block methods for the published 0.23 grammar.
 
-    tree-sitter-c-sharp 0.23.x predates ``extension_declaration``. Its error
-    recovery still preserves the outer class, but extension members disappear
-    as callable nodes. Scan only top-level declarations inside a balanced
-    ``extension(...) { ... }`` body so the compatibility layer is narrow and
-    disappears naturally once a future grammar emits native method nodes.
+    tree-sitter-c-sharp 0.23.x predates extension_declaration. Its error
+    recovery can preserve the outer class while dropping extension members.
+    This compatibility pass scans only top-level method declarations inside
+    balanced extension receiver blocks and deduplicates against native parser
+    symbols, so a future grammar can supersede it cleanly.
     """
     masked = _mask_csharp_noncode(source)
     recovered: list[Symbol] = []
@@ -920,6 +831,7 @@ def _csharp_symbols(source: bytes, root) -> list[Symbol]:
             walk(child, parents)
 
     walk(root)
+    found.extend(_csharp_extension_symbols(source, found))
     return found
 
 
