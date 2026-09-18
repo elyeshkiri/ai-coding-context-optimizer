@@ -139,3 +139,28 @@ def test_identity_line_disambiguates_annotated_csharp_overloads(tmp_path):
     )
 
     assert "Formatter.cs:Formatter.Format@7" in set(pack.selected_symbol_identities)
+
+
+
+def test_generic_action_verb_does_not_hijack_conceptual_symbol_query(tmp_path):
+    source = textwrap.dedent("""
+        def skeletonize(text):
+            # Produce a compact structural source outline.
+            return text
+
+        def build_map(entries):
+            return {entry: True for entry in entries}
+    """)
+    (tmp_path / "outline.py").write_text(source)
+
+    pack = build_context_pack(
+        tmp_path,
+        "build compact structural source outline",
+        max_tokens=700,
+        changed_boost=False,
+    )
+
+    assert any(
+        identity.startswith("outline.py:skeletonize@")
+        for identity in pack.selected_symbol_identities
+    )
