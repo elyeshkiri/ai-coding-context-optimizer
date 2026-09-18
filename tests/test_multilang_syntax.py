@@ -1,6 +1,6 @@
 from token_saver.repo_index import record_for_text
 from token_saver.snippet import extract_symbol
-from token_saver.syntax import symbols
+from token_saver.syntax import structured_imports, symbols
 
 
 def _qualified(text: str, suffix: str) -> set[str]:
@@ -162,3 +162,85 @@ func Other() {}
     assert "first()" in snippet
     assert "func Other" not in snippet
     assert "approximate boundaries" not in snippet
+
+
+
+def test_go_uses_ast_calls_and_imports():
+    source = """package api
+
+import (
+    "net/http"
+    "example.com/project/router"
+)
+
+type Server struct {}
+
+func (s *Server) Handle(req *http.Request) {
+    router.Dispatch(req)
+    finalize(req)
+}
+"""
+    record = record_for_text("server.go", source)
+    handle = next(item for item in record.definitions or [] if item.name == "Handle")
+    assert handle.qualified == "Server.Handle"
+    assert set(handle.calls or []) >= {"Dispatch", "finalize"}
+    assert "net/http" in record.imports
+    assert "example.com/project/router" in record.imports
+
+
+def test_rust_uses_ast_calls_and_use_declarations():
+    source = """use crate::transport::Client;
+use std::sync::Arc;
+
+pub struct Service;
+
+impl Service {
+    pub fn execute(&self) {
+        self.validate();
+        Client::connect();
+    }
+}
+"""
+    record = record_for_text("service.rs", source)
+    execute = next(item for item in record.definitions or [] if item.name == "execute")
+    assert execute.qualified == "Service.execute"
+    assert set(execute.calls or []) >= {"validate", "connect"}
+    assert "crate.transport.Client" in record.imports
+    assert "std.sync.Arc" in record.imports
+
+
+def test_java_and_csharp_use_parser_backed_imports_and_calls():
+    java = """package demo;
+import java.util.List;
+import demo.storage.Repository;
+
+class Service {
+    void execute() {
+        Repository.save();
+        helper();
+    }
+}
+"""
+    java_record = record_for_text("Service.java", java)
+    execute = next(item for item in java_record.definitions or [] if item.name == "execute")
+    assert execute.qualified == "Service.execute"
+    assert set(execute.calls or []) >= {"save", "helper"}
+    assert "java.util.List" in java_record.imports
+    assert "demo.storage.Repository" in java_record.imports
+
+    csharp = """using System.Text;
+using Store = Demo.Storage.Repository;
+
+class Controller {
+    void Execute() {
+        Store.Save();
+        Finish();
+    }
+}
+"""
+    cs_record = record_for_text("Controller.cs", csharp)
+    execute_cs = next(item for item in cs_record.definitions or [] if item.name == "Execute")
+    assert execute_cs.qualified == "Controller.Execute"
+    assert set(execute_cs.calls or []) >= {"Save", "Finish"}
+    assert "System.Text" in cs_record.imports
+    assert "Demo.Storage.Repository" in cs_record.imports
