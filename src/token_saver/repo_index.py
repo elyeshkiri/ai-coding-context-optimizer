@@ -21,7 +21,7 @@ from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, STRUCTURED_EXTRA, structured_imports, symbols as syntax_symbols
 
-INDEX_VERSION = 7
+INDEX_VERSION = 8
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -53,6 +53,7 @@ class SymbolRecord:
     parent: str | None = None
     calls: list[str] | None = None
     qualified: str | None = None
+    identity_line: int | None = None
 
 
 @dataclass
@@ -275,6 +276,7 @@ def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[Symbo
                 parent=parent,
                 calls=sorted(local_calls),
                 qualified=f"{parent}.{node.name}" if parent else node.name,
+                identity_line=int(getattr(node, "lineno", 1)),
             ))
         elif isinstance(node, ast.Import):
             imports.update(alias.name for alias in node.names)
@@ -298,7 +300,7 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
         signature = lines[start - 1].strip() if start <= len(lines) else name
         found.append(SymbolRecord(
             name, "symbol", start, start, signature[:300],
-            calls=[], qualified=name,
+            calls=[], qualified=name, identity_line=start,
         ))
     return found
 
@@ -319,6 +321,7 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
             symbol.signature[:500], parent,
             list(symbol.calls) if symbol.calls else calls,
             symbol.qualified,
+            symbol.identity_line or symbol.start,
         ))
     return out
 
