@@ -33,9 +33,10 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
     if tree.root_node.has_error:
         raise ValueError("Source has syntax errors; use an explicit source range instead")
     found = []
-    declarations = {"function_declaration", "generator_function_declaration", "class_declaration",
-                    "abstract_class_declaration", "interface_declaration", "type_alias_declaration",
-                    "enum_declaration", "method_definition", "method_signature", "abstract_method_signature"}
+    declarations = {"function_declaration", "generator_function_declaration", "function_signature",
+                    "class_declaration", "abstract_class_declaration", "interface_declaration",
+                    "type_alias_declaration", "enum_declaration", "method_definition",
+                    "method_signature", "abstract_method_signature"}
     containers = {"class_declaration", "abstract_class_declaration", "interface_declaration", "enum_declaration"}
     def walk(node, parents=()):
         name_node = node.child_by_field_name("name")
@@ -132,11 +133,27 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
                 identity_node.start_point.row + 1
                 if identity_node is not None else extent.start_point.row + 1
             )
+            if node.type in {"class_declaration", "abstract_class_declaration"}:
+                kind = "class"
+            elif node.type == "interface_declaration":
+                kind = "interface"
+            elif node.type == "enum_declaration":
+                kind = "enum"
+            elif node.type == "type_alias_declaration":
+                kind = "type"
+            elif node.type in {"method_definition", "method_signature", "abstract_method_signature"}:
+                kind = "constructor" if name == "constructor" else "method"
+            elif node.type in {"function_declaration", "generator_function_declaration", "function_signature"}:
+                kind = "function"
+            elif is_function:
+                kind = "method" if parents or prototype_owner else "function"
+            else:
+                kind = "variable"
             found.append(Symbol(
                 name, ".".join(qualifier), extent.start_point.row + 1,
                 max(extent.start_point.row + 1, end_line),
                 extent.start_byte, extent.end_byte, signature,
-                identity_line=identity_line,
+                kind=kind, identity_line=identity_line,
             ))
             # Only a genuine container (class/interface/enum) prefixes its
             # descendants' qualified names -- an ordinary function or method

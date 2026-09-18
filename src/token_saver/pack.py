@@ -102,15 +102,121 @@ def _callable_signature_terms(symbol) -> set[str]:
 
 
 def _query_member_hints(query: str) -> set[tuple[str, str]]:
-    """Return explicit adjacent Pascal/camel Container Member mentions."""
+    """Return explicit adjacent Container member mentions.
+
+    Containers conventionally start with an uppercase identifier, while member
+    casing is language-specific. Requiring an uppercase member silently
+    disabled the strongest structural signal for Java, TypeScript and Rust.
+    """
     pairs: set[tuple[str, str]] = set()
     for match in re.finditer(
         r"\b([A-Z][A-Za-z0-9_]*)\s+"
-        r"([A-Z][A-Za-z0-9_]*)(?:<[^<>]+>)?",
+        r"([A-Za-z_][A-Za-z0-9_]*)(?:<[^<>]+>)?",
         query,
     ):
         pairs.add((match.group(1).lower(), match.group(2).lower()))
     return pairs
+
+
+def _query_wants_top_level(query: str) -> bool:
+    return bool(re.search(
+        r"\b(?:package|module|top)[ -]?level\b", query, re.IGNORECASE
+    ))
+
+
+def _query_array_preference(query: str) -> bool | None:
+    """Return whether an overload request explicitly wants or excludes arrays."""
+    lowered = query.lower()
+    if re.search(
+        r"\b(?:rather\s+than|without|not|instead\s+of)\b[^,.;]{0,32}\barray\b",
+        lowered,
+    ):
+        return False
+    if re.search(r"\barrays?\b", lowered):
+        return True
+    return None
+
+
+def _query_parameter_count(query: str) -> int | None:
+    """Infer only parameter counts that are explicit enough to be reliable."""
+    lowered = query.lower()
+    if re.search(
+        r"\b(?:takes?|accepts?)\s+no\s+(?:arguments?|parameters?)\b",
+        lowered,
+    ):
+        return 0
+    if re.search(r"\baccepts?\s+only\s+(?:a|an|one)\b", lowered):
+        return 1
+    return None
+
+
+def _signature_parameter_count(signature: str, name: str) -> int | None:
+    """Count top-level callable parameters without parsing the whole language."""
+    match = re.search(
+        rf"\b{re.escape(name)}\s*(?:<[^<>]+>)?\s*\(",
+        signature,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    start = match.end()
+    depth_round = depth_square = depth_curly = depth_angle = 0
+    commas = 0
+    saw_token = False
+    for char in signature[start:]:
+        if char == "(":
+            depth_round += 1
+        elif char == ")":
+            if depth_round == 0:
+                return 0 if not saw_token else commas + 1
+            depth_round -= 1
+        elif char == "[":
+            depth_square += 1
+        elif char == "]" and depth_square:
+            depth_square -= 1
+        elif char == "{":
+            depth_curly += 1
+        elif char == "}" and depth_curly:
+            depth_curly -= 1
+        elif char == "<":
+            depth_angle += 1
+        elif char == ">" and depth_angle:
+            depth_angle -= 1
+        elif (
+            char == ","
+            and depth_round == depth_square == depth_curly == depth_angle == 0
+        ):
+            commas += 1
+        elif not char.isspace():
+            saw_token = True
+    return None
+
+
+def _signature_has_implementation(signature: str) -> bool:
+    return "{ … }" in signature
+
+
+def _query_declaration_preference(query: str) -> str | None:
+    lowered = query.lower()
+    if re.search(r"\bimplementation\b", lowered):
+        return "implementation"
+    if re.search(r"\boverload\b", lowered):
+        return "declaration"
+    return None
+
+
+def _query_negative_terms(query: str) -> set[str]:
+    """Terms explicitly excluded by phrases such as 'without an end index'."""
+    out: set[str] = set()
+    for match in re.finditer(
+        r"\b(?:without|rather\s+than|instead\s+of)\s+"
+        r"(?:a|an|the)?\s*"
+        r"([A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z_][A-Za-z0-9_]*){0,2})",
+        query,
+        re.IGNORECASE,
+    ):
+        out.update(symbol_terms(match.group(1)))
+    return out
 
 
 # A callable whose bare name is defined in more than this many files (get, add,
@@ -167,6 +273,11 @@ def _structural_file_authority(
             continue
         parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
         name_lower = symbol.name.lower()
+        wants_top_level = _query_wants_top_level(query)
+        if wants_top_level:
+            if not parent:
+                best = max(best, 120.0)
+            continue
         if parent and (parent, name_lower) in explicit_pairs:
             # An explicit parser-backed Container Member pair is authoritative
             # enough to overcome BM25 length normalisation in huge partial files.
@@ -605,7 +716,12 @@ def _symbol_windows(
         fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
         if not wanted else {}
     )
-    explicit_member_hints = _query_member_hints(symbol_query_text or "")
+    query_text = symbol_query_text or ""
+    explicit_member_hints = _query_member_hints(query_text)
+    array_preference = _query_array_preference(query_text)
+    desired_parameter_count = _query_parameter_count(query_text)
+    declaration_preference = _query_declaration_preference(query_text)
+    negative_query_terms = _query_negative_terms(query_text)
 
     container_names = {symbol.parent for symbol in definitions if symbol.parent}
 
@@ -630,9 +746,13 @@ def _symbol_windows(
     # definitions that share the exact same qualified callable name.
     family_sizes: Counter[str] = Counter()
     family_term_freq: dict[str, Counter[str]] = {}
+    family_body_shapes: dict[str, set[bool]] = {}
     for symbol in definitions:
         family = (symbol.qualified or symbol.name).lower()
         family_sizes[family] += 1
+        family_body_shapes.setdefault(family, set()).add(
+            _signature_has_implementation(symbol.signature or "")
+        )
         bucket = family_term_freq.setdefault(family, Counter())
         for term in signature_terms_by_symbol[(symbol.name, symbol.start_line)]:
             bucket[term] += 1
@@ -712,13 +832,14 @@ def _symbol_windows(
                 elif family_size > 1:
                     score -= 24.0
 
-            # Some overload dimensions are structural punctuation rather than
-            # normal words. Make them decisive inside an exact-name family.
-            if family_size > 1 and explicit_member:
-                wants_array = "array" in symbol_query_terms
+            # Some overload dimensions are structural rather than ordinary
+            # word overlap. Apply them to the exact qualified-name family even
+            # for top-level functions.
+            if family_size > 1:
                 has_array = "array" in signature_name_terms
-                if wants_array:
-                    score += 56.0 if has_array else -16.0
+                if array_preference is not None:
+                    score += 56.0 if has_array == array_preference else -16.0
+
                 wants_command_definition = {
                     "command", "definition"
                 } <= symbol_query_terms
@@ -727,6 +848,29 @@ def _symbol_windows(
                 } <= signature_name_terms
                 if wants_command_definition:
                     score += 48.0 if has_command_definition else -12.0
+
+                if desired_parameter_count is not None:
+                    actual_parameter_count = _signature_parameter_count(
+                        symbol.signature or "", symbol.name
+                    )
+                    if actual_parameter_count == desired_parameter_count:
+                        score += 52.0
+                    elif actual_parameter_count is not None:
+                        score -= 16.0
+
+                # TypeScript-style overload sets contain declaration-only
+                # signatures plus one body-bearing implementation with the same
+                # qualified name. Only use this signal when both shapes coexist,
+                # so ordinary C#/Java overload families remain unaffected.
+                shapes = family_body_shapes.get(family, set())
+                if shapes == {False, True} and declaration_preference:
+                    has_body = _signature_has_implementation(symbol.signature or "")
+                    wants_body = declaration_preference == "implementation"
+                    score += 72.0 if has_body == wants_body else -24.0
+
+                excluded_hits = negative_query_terms & signature_name_terms
+                if excluded_hits:
+                    score -= min(48.0, 18.0 * len(excluded_hits))
 
             # A query that literally names this symbol's leaf identifier is
             # stronger evidence than the same word merely occurring in a

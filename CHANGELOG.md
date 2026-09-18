@@ -1,5 +1,25 @@
 # Unreleased
 
+- **Hardened exact callable identity after holdout #9 exposed lower-case
+  member and overload-shape blind spots.** Container/member detection now treats
+  member casing as language-specific, so structural hints such as
+  `StringUtils split`, `SelectQueryBuilder select`, `ClassTransformer
+  instanceToPlain`, and `Sender send` receive the same parser-backed
+  authority that PascalCase C# members already had. JS/TS symbols now retain
+  structural kinds (function/method/constructor/class/interface/type), with an
+  index-version bump so persisted indexes cannot keep the old generic kind.
+  Overload ranking also uses explicit zero/one-parameter wording, positive or
+  negative array intent, excluded parameter terms, and declaration-vs-
+  implementation shape when a TypeScript-style overload family contains both.
+  Explicit package/module/top-level requests now prefer top-level definitions
+  over same-named receiver/class members. These changes are covered by new
+  cross-language synthetic regressions; holdout #9 remains burned and is not
+  reused as fresh evidence. A development-only rerun of that burned suite moved
+  scoped recall from 87.5% to 95.8%, qualified recall from 85.4% to 95.8%, and
+  exact identity from 70.8% to 93.75%, while file recall stayed at 100% and
+  context reduction stayed ~97.63%. These numbers are regression diagnostics,
+  not independent generalization evidence.
+
 - **Built and first-ran a ninth frozen external holdout under the stricter scoped-symbol metric.**
   `benchmarks/holdout-external-9.json` contains **48 source-grounded tasks
   across 8 previously-unused repositories**: NLog and FluentAssertions (C#),
