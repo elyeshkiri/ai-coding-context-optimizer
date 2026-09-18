@@ -1,0 +1,470 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T13:55:00Z",
+    "ground_truth_sha256": "6c069bc6ef9fcaffd19f6960b9da5e45797a1cbc6f30f9938b937dd2ac7f0535"
+  },
+  "repositories": {
+    "validator": {
+      "path": "validator",
+      "revision": "c7f3d2c8ade7c045456c263e8b98938e8e23ef81"
+    },
+    "cobra": {
+      "path": "cobra",
+      "revision": "adbc8813901bba65827259daa8e22ff94ec1f30e"
+    },
+    "reqwest": {
+      "path": "reqwest",
+      "revision": "a7abe639aed1949259739121067f89f315b629a5"
+    },
+    "bytes": {
+      "path": "bytes",
+      "revision": "7930d93d583757e922014312d4aa3e58a415131f"
+    },
+    "gson": {
+      "path": "gson",
+      "revision": "854c8255b625cf1e13c701a83ea9ccb4caaa576a"
+    },
+    "automapper": {
+      "path": "automapper",
+      "revision": "6e8697bc44f02fb54ef6a556a7d134e63485299e"
+    }
+  },
+  "tasks": [
+    {
+      "id": "validator-new",
+      "repository": "validator",
+      "query": "where does validator create a new Validate instance and initialize aliases validations and caches",
+      "files": [
+        "validator_instance.go"
+      ],
+      "symbols": [
+        "New"
+      ],
+      "qualified_symbols": [
+        "validator_instance.go:New"
+      ],
+      "symbol_identities": [
+        "validator_instance.go:New@107"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "validator-struct",
+      "repository": "validator",
+      "query": "how does Validate validate a struct recursively",
+      "files": [
+        "validator_instance.go"
+      ],
+      "symbols": [
+        "Struct"
+      ],
+      "qualified_symbols": [
+        "validator_instance.go:Validate.Struct"
+      ],
+      "symbol_identities": [
+        "validator_instance.go:Validate.Struct@346"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "validator-var",
+      "repository": "validator",
+      "query": "how does Validate validate a standalone field value against a tag",
+      "files": [
+        "validator_instance.go"
+      ],
+      "symbols": [
+        "Var"
+      ],
+      "qualified_symbols": [
+        "validator_instance.go:Validate.Var"
+      ],
+      "symbol_identities": [
+        "validator_instance.go:Validate.Var@594"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "validator-register-validation",
+      "repository": "validator",
+      "query": "where does Validate register a custom validation function for a tag",
+      "files": [
+        "validator_instance.go"
+      ],
+      "symbols": [
+        "RegisterValidation"
+      ],
+      "qualified_symbols": [
+        "validator_instance.go:Validate.RegisterValidation"
+      ],
+      "symbol_identities": [
+        "validator_instance.go:Validate.RegisterValidation@221"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cobra-execute",
+      "repository": "cobra",
+      "query": "how does Command execute the root command using command line arguments",
+      "files": [
+        "command.go"
+      ],
+      "symbols": [
+        "Execute"
+      ],
+      "qualified_symbols": [
+        "command.go:Command.Execute"
+      ],
+      "symbol_identities": [
+        "command.go:Command.Execute@1070"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cobra-add-command",
+      "repository": "cobra",
+      "query": "how does Command add child commands and set their parent",
+      "files": [
+        "command.go"
+      ],
+      "symbols": [
+        "AddCommand"
+      ],
+      "qualified_symbols": [
+        "command.go:Command.AddCommand"
+      ],
+      "symbol_identities": [
+        "command.go:Command.AddCommand@1342"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cobra-find",
+      "repository": "cobra",
+      "query": "how does Cobra find the target command for a sequence of arguments",
+      "files": [
+        "command.go"
+      ],
+      "symbols": [
+        "Find"
+      ],
+      "qualified_symbols": [
+        "command.go:Command.Find"
+      ],
+      "symbol_identities": [
+        "command.go:Command.Find@757"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cobra-help-func",
+      "repository": "cobra",
+      "query": "where does Command return the help function used to render help",
+      "files": [
+        "command.go"
+      ],
+      "symbols": [
+        "HelpFunc"
+      ],
+      "qualified_symbols": [
+        "command.go:Command.HelpFunc"
+      ],
+      "symbol_identities": [
+        "command.go:Command.HelpFunc@484"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "reqwest-client-build",
+      "repository": "reqwest",
+      "query": "how does ClientBuilder build a configured async Client and connector",
+      "files": [
+        "src/async_impl/client.rs"
+      ],
+      "symbols": [
+        "build"
+      ],
+      "qualified_symbols": [
+        "src/async_impl/client.rs:ClientBuilder.build"
+      ],
+      "symbol_identities": [
+        "src/async_impl/client.rs:ClientBuilder.build@409"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "reqwest-client-get",
+      "repository": "reqwest",
+      "query": "how does Client create a GET RequestBuilder for a URL",
+      "files": [
+        "src/async_impl/client.rs"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "src/async_impl/client.rs:Client.get"
+      ],
+      "symbol_identities": [
+        "src/async_impl/client.rs:Client.get@2539"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "reqwest-request-send",
+      "repository": "reqwest",
+      "query": "how does RequestBuilder construct and send its request through the client",
+      "files": [
+        "src/async_impl/request.rs"
+      ],
+      "symbols": [
+        "send"
+      ],
+      "qualified_symbols": [
+        "src/async_impl/request.rs:RequestBuilder.send"
+      ],
+      "symbol_identities": [
+        "src/async_impl/request.rs:RequestBuilder.send@521"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "reqwest-response-json",
+      "repository": "reqwest",
+      "query": "how does Response deserialize its body from JSON into a target type",
+      "files": [
+        "src/async_impl/response.rs"
+      ],
+      "symbols": [
+        "json"
+      ],
+      "qualified_symbols": [
+        "src/async_impl/response.rs:Response.json"
+      ],
+      "symbol_identities": [
+        "src/async_impl/response.rs:Response.json@269"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "bytes-copy-from-slice",
+      "repository": "bytes",
+      "query": "how does Bytes copy a byte slice into a new immutable Bytes value",
+      "files": [
+        "src/bytes.rs"
+      ],
+      "symbols": [
+        "copy_from_slice"
+      ],
+      "qualified_symbols": [
+        "src/bytes.rs:Bytes.copy_from_slice"
+      ],
+      "symbol_identities": [
+        "src/bytes.rs:Bytes.copy_from_slice@347"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "bytes-slice",
+      "repository": "bytes",
+      "query": "how does Bytes create a sliced view over a range without copying",
+      "files": [
+        "src/bytes.rs"
+      ],
+      "symbols": [
+        "slice"
+      ],
+      "qualified_symbols": [
+        "src/bytes.rs:Bytes.slice"
+      ],
+      "symbol_identities": [
+        "src/bytes.rs:Bytes.slice@373"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "bytes-mut-capacity",
+      "repository": "bytes",
+      "query": "how does BytesMut allocate with a requested capacity",
+      "files": [
+        "src/bytes_mut.rs"
+      ],
+      "symbols": [
+        "with_capacity"
+      ],
+      "qualified_symbols": [
+        "src/bytes_mut.rs:BytesMut.with_capacity"
+      ],
+      "symbol_identities": [
+        "src/bytes_mut.rs:BytesMut.with_capacity@161"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "bytes-mut-freeze",
+      "repository": "bytes",
+      "query": "how does BytesMut freeze mutable bytes into immutable Bytes",
+      "files": [
+        "src/bytes_mut.rs"
+      ],
+      "symbols": [
+        "freeze"
+      ],
+      "qualified_symbols": [
+        "src/bytes_mut.rs:BytesMut.freeze"
+      ],
+      "symbol_identities": [
+        "src/bytes_mut.rs:BytesMut.freeze@259"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gson-from-json-class",
+      "repository": "gson",
+      "query": "how does Gson deserialize a JSON string into a requested Java Class",
+      "files": [
+        "gson/src/main/java/com/google/gson/Gson.java"
+      ],
+      "symbols": [
+        "fromJson"
+      ],
+      "qualified_symbols": [
+        "gson/src/main/java/com/google/gson/Gson.java:Gson.fromJson"
+      ],
+      "symbol_identities": [
+        "gson/src/main/java/com/google/gson/Gson.java:Gson.fromJson@850"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gson-builder-create",
+      "repository": "gson",
+      "query": "how does GsonBuilder create the final Gson instance from builder configuration",
+      "files": [
+        "gson/src/main/java/com/google/gson/GsonBuilder.java"
+      ],
+      "symbols": [
+        "create"
+      ],
+      "qualified_symbols": [
+        "gson/src/main/java/com/google/gson/GsonBuilder.java:GsonBuilder.create"
+      ],
+      "symbol_identities": [
+        "gson/src/main/java/com/google/gson/GsonBuilder.java:GsonBuilder.create@922"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gson-register-adapter",
+      "repository": "gson",
+      "query": "how does GsonBuilder register a type adapter for a specific type",
+      "files": [
+        "gson/src/main/java/com/google/gson/GsonBuilder.java"
+      ],
+      "symbols": [
+        "registerTypeAdapter"
+      ],
+      "qualified_symbols": [
+        "gson/src/main/java/com/google/gson/GsonBuilder.java:GsonBuilder.registerTypeAdapter"
+      ],
+      "symbol_identities": [
+        "gson/src/main/java/com/google/gson/GsonBuilder.java:GsonBuilder.registerTypeAdapter@740"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gson-parameterized-token",
+      "repository": "gson",
+      "query": "how does TypeToken construct a parameterized generic type token from raw type and type arguments",
+      "files": [
+        "gson/src/main/java/com/google/gson/reflect/TypeToken.java"
+      ],
+      "symbols": [
+        "getParameterized"
+      ],
+      "qualified_symbols": [
+        "gson/src/main/java/com/google/gson/reflect/TypeToken.java:TypeToken.getParameterized"
+      ],
+      "symbol_identities": [
+        "gson/src/main/java/com/google/gson/reflect/TypeToken.java:TypeToken.getParameterized@385"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "automapper-map",
+      "repository": "automapper",
+      "query": "how does Mapper map an object source to a requested destination type using the default destination",
+      "files": [
+        "src/AutoMapper/Mapper.cs"
+      ],
+      "symbols": [
+        "Map"
+      ],
+      "qualified_symbols": [
+        "src/AutoMapper/Mapper.cs:Mapper.Map"
+      ],
+      "symbol_identities": [
+        "src/AutoMapper/Mapper.cs:Mapper.Map@157"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "automapper-project-to",
+      "repository": "automapper",
+      "query": "how does Mapper project an IQueryable to destination objects with parameters and members to expand",
+      "files": [
+        "src/AutoMapper/Mapper.cs"
+      ],
+      "symbols": [
+        "ProjectTo"
+      ],
+      "qualified_symbols": [
+        "src/AutoMapper/Mapper.cs:Mapper.ProjectTo"
+      ],
+      "symbol_identities": [
+        "src/AutoMapper/Mapper.cs:Mapper.ProjectTo@173"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "automapper-create-mapper",
+      "repository": "automapper",
+      "query": "where does MapperConfiguration create a runtime mapper instance",
+      "files": [
+        "src/AutoMapper/Configuration/MapperConfiguration.cs"
+      ],
+      "symbols": [
+        "CreateMapper"
+      ],
+      "qualified_symbols": [
+        "src/AutoMapper/Configuration/MapperConfiguration.cs:MapperConfiguration.CreateMapper"
+      ],
+      "symbol_identities": [
+        "src/AutoMapper/Configuration/MapperConfiguration.cs:MapperConfiguration.CreateMapper@200"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "automapper-create-map",
+      "repository": "automapper",
+      "query": "how does Profile create a typed source to destination mapping with the default member list",
+      "files": [
+        "src/AutoMapper/Configuration/Profile.cs"
+      ],
+      "symbols": [
+        "CreateMap"
+      ],
+      "qualified_symbols": [
+        "src/AutoMapper/Configuration/Profile.cs:Profile.CreateMap"
+      ],
+      "symbol_identities": [
+        "src/AutoMapper/Configuration/Profile.cs:Profile.CreateMap@135"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}
