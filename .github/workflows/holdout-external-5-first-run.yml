@@ -1,0 +1,53 @@
+name: Holdout External 5 First Run
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  frozen-holdout-5:
+    if: github.event.pull_request.head.ref == 'test/holdout-external-5'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/holdout-external-5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Verify frozen ground-truth hash before cloning
+        run: |
+          expected="9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3"
+          actual="$(token-saver evaluate benchmarks/holdout-external-5.json --print-ground-truth-hash)"
+          test "$actual" = "$expected"
+      - name: Clone pinned unseen repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          clone_at() {
+            local url="$1"; local dir="$2"; local sha="$3"
+            git init -q "$dir"
+            git -C "$dir" remote add origin "$url"
+            git -C "$dir" fetch -q --depth 1 origin "$sha"
+            git -C "$dir" checkout -q --detach FETCH_HEAD
+            test "$(git -C "$dir" rev-parse HEAD)" = "$sha"
+          }
+          clone_at https://github.com/go-chi/chi.git benchmarks/chi 3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc
+          clone_at https://github.com/uber-go/zap.git benchmarks/zap 4892335e05f14bce8a98a69a577fcf3844a42623
+          clone_at https://github.com/clap-rs/clap.git benchmarks/clap 7f26a2553eaaa40eccb896fc39002292fd0ab981
+          clone_at https://github.com/tower-rs/tower.git benchmarks/tower df06d70dbea345facbffb5881fe8647f53bf424d
+          clone_at https://github.com/google/guava.git benchmarks/guava 5a7407d8f0bcccdf36c919b77991809c1bced828
+          clone_at https://github.com/serilog/serilog.git benchmarks/serilog bebc7719004f76187ae72e64ce138ec2540f2070
+      - name: Run frozen holdout exactly once
+        run: |
+          token-saver evaluate benchmarks/holdout-external-5.json \
+            --path benchmarks \
+            --max-tokens 6000 \
+            --require-holdout | tee /tmp/holdout-external-5.result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holdout-external-5-first-run
+          path: /tmp/holdout-external-5.result.json
