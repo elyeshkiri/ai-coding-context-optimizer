@@ -1,4 +1,4 @@
-from token_saver.lexical import symbol_terms, terms
+from token_saver.lexical import fuzzy_symbol_terms, symbol_terms, terms
 
 
 def test_acronym_prefixed_identifiers_split_at_every_word_boundary():
@@ -47,3 +47,23 @@ def test_symbol_terms_add_small_code_oriented_synonym_set_only():
     # Repository-wide terms remain unchanged; the richer equivalence is
     # deliberately confined to within-file symbol ranking.
     assert "start" not in terms("first day of week")
+
+
+
+def test_fuzzy_symbol_terms_recovers_high_confidence_identifier_typos():
+    matches = fuzzy_symbol_terms(
+        {"conection", "rendr"},
+        {"connection", "render", "redirect"},
+    )
+    assert matches["conection"][0] == "connection"
+    assert matches["rendr"][0] == "render"
+
+
+def test_fuzzy_symbol_terms_rejects_ambiguous_near_ties():
+    matches = fuzzy_symbol_terms(
+        {"collor"},
+        {"color", "collar"},
+        min_ratio=0.80,
+        min_margin=0.08,
+    )
+    assert "collor" not in matches
