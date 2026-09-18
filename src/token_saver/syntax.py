@@ -585,7 +585,7 @@ def _mask_csharp_noncode(source: bytes) -> bytes:
     i = 0
     while i < size:
         if source.startswith(b"//", i):
-            end = source.find(b"\\n", i + 2)
+            end = source.find(b"\n", i + 2)
             end = size if end < 0 else end
             blank(i, end)
             i = end
@@ -772,9 +772,9 @@ def _csharp_extension_symbols(source: bytes, found: list[Symbol]) -> list[Symbol
             )
             receiver_prefix = f"extension({receiver}) " if receiver else "extension "
             signature = (receiver_prefix + compact_head + signature_marker).strip()[:1000]
-            start_line = source.count(b"\\n", 0, extent_start) + 1
-            end_line = source.count(b"\\n", 0, member_end) + 1
-            identity_line = source.count(b"\\n", 0, name_start) + 1
+            start_line = source.count(b"\n", 0, extent_start) + 1
+            end_line = source.count(b"\n", 0, member_end) + 1
+            identity_line = source.count(b"\n", 0, name_start) + 1
             qualified = ".".join((*parents, name)) if parents else name
             key = (qualified, identity_line)
             if key in existing:
