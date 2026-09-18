@@ -31,8 +31,6 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
     from tree_sitter import Parser
     source = text.encode("utf-8")
     tree = Parser(_language(suffix)).parse(source)
-    if tree.root_node.has_error:
-        raise ValueError("Source has syntax errors; use an explicit source range instead")
     found = []
     declarations = {"function_declaration", "generator_function_declaration", "function_signature",
                     "class_declaration", "abstract_class_declaration", "interface_declaration",
@@ -173,6 +171,12 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
         for child in node.named_children:
             walk(child, next_parents)
     walk(tree.root_node)
+    # Like the non-JS parsers below, Tree-sitter can preserve valid declaration
+    # nodes around one unsupported/newer construct. Do not erase an entire
+    # TypeScript module merely because root.has_error is true; degrade to the
+    # generic fallback only when no structural symbols survived at all.
+    if tree.root_node.has_error and not found:
+        raise ValueError("Source has syntax errors; use an explicit source range instead")
     return found
 
 
