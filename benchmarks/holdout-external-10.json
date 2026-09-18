@@ -5,7 +5,7 @@
     "ground_truth_frozen": true,
     "development_excluded": true,
     "frozen_at": "2026-09-18T20:15:00Z",
-    "ground_truth_sha256": "PENDING"
+    "ground_truth_sha256": "685ac9b9ca60fa02ea2ad797c7b768ee47790b015b9baaff447a74d37c1209f7"
   },
   "repositories": {
     "restsharp": {
