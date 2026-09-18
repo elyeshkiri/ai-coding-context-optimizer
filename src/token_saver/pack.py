@@ -56,9 +56,14 @@ def _generic_arity(signature: str, name: str) -> int:
 
 def _query_generic_arity(query: str, name: str) -> int | None:
     """Infer requested generic arity only from explicit or strongly-worded evidence."""
-    explicit = _generic_parameter_names(query, name)
-    if explicit:
-        return len(explicit)
+    explicit_match = re.search(
+        rf"\\b{re.escape(name)}\\s*<([^<>]+)>", query,
+        re.IGNORECASE,
+    )
+    if explicit_match:
+        return len([
+            part for part in explicit_match.group(1).split(",") if part.strip()
+        ])
 
     lowered = query.lower()
     match = re.search(
@@ -543,6 +548,7 @@ def _symbol_windows(
         fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
         if not wanted else {}
     )
+    explicit_member_hints = _query_member_hints(symbol_query_text or "")
 
     container_names = {symbol.parent for symbol in definitions if symbol.parent}
 
@@ -608,20 +614,33 @@ def _symbol_windows(
 
             family = (symbol.qualified or symbol.name).lower()
             family_size = family_sizes.get(family, 1)
+            parent_leaf = (symbol.parent or "").rsplit(".", 1)[-1].lower()
+            explicit_member = bool(
+                parent_leaf
+                and (parent_leaf, symbol.name.lower()) in explicit_member_hints
+            )
+            if explicit_member:
+                # A literal "Container Member" mention is the strongest
+                # within-file signal. It prevents QueryFirstAsync/ExecuteScalarAsync
+                # from beating QueryAsync/ExecuteAsync just because their bodies
+                # share more task vocabulary. Overloads of that exact member all
+                # receive the same bonus and are still separated below by signature.
+                score += 120.0
+
             if family_size > 1 and signature_hits:
                 discriminating = [
                     term for term in signature_hits
                     if family_term_freq[family].get(term, 0) < family_size
                 ]
                 if discriminating:
-                    family_bonus = 8.0 * sum(
+                    family_bonus = 12.0 * sum(
                         math.log(
                             (family_size + 1)
                             / (family_term_freq[family][term] + 1)
                         ) + 1.0
                         for term in discriminating
                     )
-                    score += min(36.0, family_bonus)
+                    score += min(72.0, family_bonus)
 
             # Explicit generic syntax (QueryAsync<T>) and narrowly-worded
             # multi-map requests ("two input types ... return type") are
@@ -632,9 +651,25 @@ def _symbol_windows(
             if desired_arity is not None:
                 actual_arity = _generic_arity(symbol.signature or "", symbol.name)
                 if actual_arity == desired_arity:
-                    score += 32.0
-                else:
-                    score -= 8.0
+                    score += 72.0
+                elif family_size > 1:
+                    score -= 24.0
+
+            # Some overload dimensions are structural punctuation rather than
+            # normal words. Make them decisive inside an exact-name family.
+            if family_size > 1 and explicit_member:
+                wants_array = "array" in symbol_query_terms
+                has_array = "array" in signature_name_terms
+                if wants_array:
+                    score += 56.0 if has_array else -16.0
+                wants_command_definition = {
+                    "command", "definition"
+                } <= symbol_query_terms
+                has_command_definition = {
+                    "command", "definition"
+                } <= signature_name_terms
+                if wants_command_definition:
+                    score += 48.0 if has_command_definition else -12.0
 
             # A query that literally names this symbol's leaf identifier is
             # stronger evidence than the same word merely occurring in a
