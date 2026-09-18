@@ -10,7 +10,7 @@ def test_output_benchmark_measures_reduction_and_preservation(tmp_path):
             "id": "status",
             "text": (
                 "Sure!\n\nImplemented the fix.\n\nImplemented the fix.\n\n"
-                "\`\`\`diff\n- old\n+ new\n\`\`\`\n\n"
+                "```diff\n- old\n+ new\n```\n\n"
                 "Tests: 42 passed.\n\nTests: 42 passed.\n"
             ),
             "mode": "terse",
@@ -36,7 +36,7 @@ def test_output_benchmark_reports_budget_overflow_without_cutting_code(tmp_path)
     manifest.write_text(json.dumps({
         "cases": [{
             "id": "large-code",
-            "text": "\`\`\`text\n" + ("important-output\n" * 50) + "\`\`\`",
+            "text": "```text\n" + ("important-output\n" * 50) + "```",
             "mode": "terse",
             "max_tokens": 20,
             "enforce_budget": True,
