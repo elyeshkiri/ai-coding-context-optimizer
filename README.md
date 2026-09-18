@@ -102,6 +102,19 @@ token/cost/latency reductions, call-count changes, and tasks whose outcome
 improved or regressed. By default the two files must contain exactly the same
 task IDs so cost comparisons cannot silently use different workloads.
 
+The same paired manifest already used by `agent-evaluate` can be passed
+directly as a single argument, so correctness and economics stay attached to
+one experiment artifact:
+
+```bash
+token-saver agent-evaluate benchmarks/agent-runs.json
+token-saver cost-report benchmarks/agent-runs.json
+```
+
+Paired manifests use `task` plus
+`condition: baseline|token-saver`; `seconds` is accepted as latency and is
+normalized to milliseconds in the cost report.
+
 
 ## What is new in 1.2
 
