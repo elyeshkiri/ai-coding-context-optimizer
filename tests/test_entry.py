@@ -38,3 +38,19 @@ def test_dispatcher_exposes_output_save(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "Sure!" not in out
     assert out.count("Implemented.") == 1
+
+
+
+def test_dispatcher_exposes_context_browser(tmp_path, capsys):
+    (tmp_path / "views.py").write_text(textwrap.dedent("""
+        def renderTemplate(template):
+            return template
+    """))
+    assert main([
+        "browse", str(tmp_path), "--query", "rendr template",
+        "--max-files", "3", "--no-changed-boost",
+    ]) == 0
+    out = capsys.readouterr().out
+    assert "CONTEXT BROWSER" in out
+    assert "views.py" in out
+    assert "renderTemplate" in out
