@@ -56,7 +56,7 @@ def test_explicit_container_member_pair_stays_authoritative_for_generic_name(tmp
 
     ranked = rank_files(tmp_path, "Session Get", changed_boost=False)
 
-    assert _authority(_reasons(ranked, "sess.py")) == 120.0
+    assert _authority(_reasons(ranked, "sess.py")) >= 200.0
     assert _authority(_reasons(ranked, "mod0.py")) == 0.0
 
 

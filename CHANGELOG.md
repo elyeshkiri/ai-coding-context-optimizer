@@ -1,5 +1,28 @@
 # Unreleased
 
+- **Hardened the four failure classes exposed by frozen holdout #11.**
+  JS/TS parsing now keeps structurally valid declarations around isolated
+  Tree-sitter `ERROR` nodes instead of degrading an entire file to generic
+  regex extraction, preserving interface members such as generic
+  `Slice.getSelectors` and `Slice.injectInto`. File ranking now gives
+  stronger parser-backed authority to an explicit `Container member` pair and
+  uses callable-signature evidence to distinguish same-named top-level
+  functions; exported top-level API declarations receive a small bounded edge
+  over equivalent file-local helpers. Overload ranking now removes terms
+  explicitly negated by `without ...` from positive lexical evidence and
+  applies a decisive same-family penalty when an overload still carries the
+  excluded parameter. These changes target general failure classes rather than
+  holdout task IDs, with synthetic regressions for partial TypeScript parsing,
+  interface-member identity, Java negative-parameter overloads, cross-file
+  same-name top-level TypeScript functions, and Go receiver/member authority
+  under many `context.WithTimeout` call sites. The repository index version is
+  bumped so persisted indexes cannot retain the old JS/TS fallback records.
+  Holdout #11 remains burned. A single development-only rerun of the
+  frozen suite (run 35399929752) reached **100% file, bare, scoped, qualified,
+  and exact identity recall across all 60 tasks**, with **99.71% mean context
+  reduction** and zero remaining misses. This is regression confirmation only
+  and does not replace the preserved 88.33% exact fresh first-run evidence.
+
 - **Built and first-ran an eleventh frozen external holdout after C# 14 extension-block support.**
   `benchmarks/holdout-external-11.json` contains **60 source-grounded tasks
   across 10 previously-unused repositories**: .NET Runtime and EF Core (C#),

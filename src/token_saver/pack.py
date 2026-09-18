@@ -231,6 +231,23 @@ def _leaf_identifier_terms(name: str) -> frozenset[str]:
     return frozenset(identifier_terms(name))
 
 
+@lru_cache(maxsize=65536)
+def _authority_leaf_terms(name: str) -> frozenset[str]:
+    """Leaf terms comparable with repository/query tokenization.
+
+    File authority consumes symbol_terms(query), which intentionally drops prose
+    stopwords such as "is" and "with". Requiring every raw identifier component
+    made isPrimitive and WithTimeout impossible to recognize structurally.
+    Mirror repository tokenization for the gate, while preserving the small set
+    of API verbs that symbol matching deliberately restores.
+    """
+    out = set(terms(name))
+    out.update(
+        set(identifier_terms(name)) & {"add", "build", "create", "use"}
+    )
+    return frozenset(out)
+
+
 def _callable_file_counts(index: RepositoryIndex) -> Counter[str]:
     """How many files define a callable with each (lowercased) bare name."""
     counts: Counter[str] = Counter()
@@ -268,20 +285,40 @@ def _structural_file_authority(
     for symbol in record.definitions:
         if symbol.kind not in _AUTHORITY_CALLABLE_KINDS:
             continue
-        leaf_terms = _leaf_identifier_terms(symbol.name)
+        leaf_terms = _authority_leaf_terms(symbol.name)
         if not leaf_terms or not leaf_terms <= query_terms:
             continue
         parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
         name_lower = symbol.name.lower()
+        # File authority only needs identifier-level shape evidence.
+        # Avoid symbol_terms() here: this loop runs once per candidate symbol
+        # and query tokenization must remain O(1) per repository query.
+        authority_signature_terms = set(
+            identifier_terms(symbol.signature or "")
+        )
+        non_leaf_signature_hits = len(
+            (query_terms - leaf_terms) & authority_signature_terms
+        )
+        signature_bonus = min(48.0, 12.0 * non_leaf_signature_hits)
         wants_top_level = _query_wants_top_level(query)
         if wants_top_level:
             if not parent:
-                best = max(best, 120.0)
+                # Same-named module helpers are common in large JS/TS repos.
+                # Prefer the top-level declaration whose signature actually
+                # matches the query; an exported API gets a small bounded edge
+                # over an otherwise-equivalent file-local helper.
+                export_bonus = (
+                    80.0
+                    if re.search(r"\bexport\b", symbol.signature or "", re.I)
+                    else 0.0
+                )
+                best = max(best, 140.0 + signature_bonus + export_bonus)
             continue
         if parent and (parent, name_lower) in explicit_pairs:
-            # An explicit parser-backed Container Member pair is authoritative
-            # enough to overcome BM25 length normalisation in huge partial files.
-            best = max(best, 120.0)
+            # A literal parser-backed Container Member pair is stronger than
+            # arbitrarily many call-site mentions of a common method name
+            # (e.g. Client WithTimeout vs context.WithTimeout across a repo).
+            best = max(best, 200.0 + signature_bonus)
             continue
         if (
             callable_file_counts is not None
@@ -295,7 +332,7 @@ def _structural_file_authority(
         if parent_terms and not parent_hits:
             score *= 0.45
         best = max(best, score)
-    return min(120.0, best)
+    return min(320.0, best)
 
 
 @dataclass
@@ -722,6 +759,7 @@ def _symbol_windows(
     desired_parameter_count = _query_parameter_count(query_text)
     declaration_preference = _query_declaration_preference(query_text)
     negative_query_terms = _query_negative_terms(query_text)
+    positive_symbol_query_terms = symbol_query_terms - negative_query_terms
 
     container_names = {symbol.parent for symbol in definitions if symbol.parent}
 
@@ -769,9 +807,9 @@ def _symbol_windows(
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
         if not wanted:
-            identifier_hits = symbol_query_terms & identifier_name_terms
-            signature_hits = symbol_query_terms & signature_name_terms
-            body_hits = symbol_query_terms & body_terms
+            identifier_hits = positive_symbol_query_terms & identifier_name_terms
+            signature_hits = positive_symbol_query_terms & signature_name_terms
+            body_hits = positive_symbol_query_terms & body_terms
             action_terms = {"add", "build", "create", "use"}
             specific_identifier_hits = identifier_hits - action_terms
             action_identifier_hits = identifier_hits & action_terms
@@ -870,7 +908,11 @@ def _symbol_windows(
 
                 excluded_hits = negative_query_terms & signature_name_terms
                 if excluded_hits:
-                    score -= min(48.0, 18.0 * len(excluded_hits))
+                    # These terms were explicitly negated by the request, so
+                    # they must never be allowed to win back their own penalty
+                    # through positive signature overlap. A same-family overload
+                    # carrying the excluded parameter is strong counter-evidence.
+                    score -= min(120.0, 32.0 * len(excluded_hits))
 
             # A query that literally names this symbol's leaf identifier is
             # stronger evidence than the same word merely occurring in a
@@ -912,7 +954,7 @@ def _symbol_windows(
             # if the task names an operation this definition structurally calls,
             # add a bounded bonus without turning call names into a global ranker.
             call_terms = set(terms(" ".join(symbol.calls or [])))
-            call_hits = symbol_query_terms & call_terms
+            call_hits = positive_symbol_query_terms & call_terms
             if call_hits:
                 score += min(
                     24.0,
