@@ -419,13 +419,11 @@ def skeletonize(
     line_numbers: bool = False,
 ) -> str:
     """Dispatch to the parser that fits `suffix`, falling back to patterns."""
-    from .syntax import JS_TS, symbols as js_symbols
-    from .syntax_multilang import STRUCTURED_EXTRA, symbols as multilang_symbols
+    from .syntax import JS_TS, STRUCTURED_EXTRA, symbols
     structured = JS_TS | STRUCTURED_EXTRA
     if suffix.lower() in structured:
         try:
-            parser = js_symbols if suffix.lower() in JS_TS else multilang_symbols
-            items = parser(text, suffix.lower())
+            items = symbols(text, suffix.lower())
             rows = [(item.start, item.signature) for item in items]
             rows.extend((i, line.strip()) for i, line in enumerate(text.splitlines(), 1)
                         if IMPORT_RE.match(line.strip()) or (
