@@ -9,8 +9,9 @@
   Context packing keeps the legacy bare-name symbol labels for compatibility
   while also emitting source-visible `path + qualified symbol + line`
   identities. The evaluator can opt into stricter `qualified_symbols`
-  ground truth without changing hashes for historical manifests that do not
-  use the field.
+  ground truth and, when overload/member disambiguation matters, exact
+  `symbol_identities` such as `Formatter.cs:Formatter.Format@7`. Both
+  fields are opt-in, so historical frozen manifests keep their original hashes.
 
   Within-file ranking now uses qualified/container names plus a bounded
   parser-derived call signal. Container symbols no longer inherit all
@@ -18,7 +19,7 @@
   this prevents large classes/types from becoming lexical hubs while still
   allowing relevant children to credit their container.
 
-  Validation: **380 tests passing**, Python 3.10/3.12/3.13 CI green, and the
+  Validation: **381 tests passing**, Python 3.10/3.12/3.13 CI green, and the
   25-task self benchmark remains **100% file / 100% source-visible symbol
   recall** at **~96.6% estimated context reduction**. Development used
   independent synthetic fixtures; frozen holdout #5 is diagnostic only.
