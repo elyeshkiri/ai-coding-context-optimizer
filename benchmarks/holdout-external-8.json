@@ -1,0 +1,910 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T18:44:10Z",
+    "ground_truth_sha256": "ea638a0cf9a5777ac5799982a728b6f895aaa952cf7b9f04a714991650c0d7ab"
+  },
+  "repositories": {
+    "fluentvalidation": {
+      "path": "FluentValidation",
+      "revision": "fa9787a0d4fd0c0b99f9682292d76d5ad97ba6cb"
+    },
+    "polly": {
+      "path": "Polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee"
+    },
+    "guice": {
+      "path": "guice",
+      "revision": "bb8fb34bf994586b81e7bdfe30e3d4fdf36a73b7"
+    },
+    "retrofit": {
+      "path": "retrofit",
+      "revision": "e27d855b7b029e7f907dfc52205fdb3e9c603c16"
+    },
+    "class-validator": {
+      "path": "class-validator",
+      "revision": "2e1a5c27dbd65b80e27fe96b49bd6e6641fa3603"
+    },
+    "tsyringe": {
+      "path": "tsyringe",
+      "revision": "78222334f49265ea2874fac2c73284345c1124d9"
+    },
+    "rayon": {
+      "path": "rayon",
+      "revision": "ee0a00bdb1ab039e178a215ad5712fb7fa58e58f"
+    },
+    "viper": {
+      "path": "viper",
+      "revision": "528f7416c4b56a4948673984b190bf8713f0c3c4"
+    }
+  },
+  "tasks": [
+    {
+      "id": "fv-rulefor-property",
+      "repository": "fluentvalidation",
+      "query": "where does AbstractValidator RuleFor<TProperty> create a rule for a property expression",
+      "files": [
+        "src/FluentValidation/AbstractValidator.cs"
+      ],
+      "symbols": [
+        "RuleFor"
+      ],
+      "qualified_symbols": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.RuleFor"
+      ],
+      "symbol_identities": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.RuleFor@210"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fv-ruleforeach-collection",
+      "repository": "fluentvalidation",
+      "query": "where does AbstractValidator RuleForEach<TElement> create a validation rule for each element in an IEnumerable property expression",
+      "files": [
+        "src/FluentValidation/AbstractValidator.cs"
+      ],
+      "symbols": [
+        "RuleForEach"
+      ],
+      "qualified_symbols": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.RuleForEach"
+      ],
+      "symbol_identities": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.RuleForEach@224"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fv-when-simple",
+      "repository": "fluentvalidation",
+      "query": "which AbstractValidator When overload accepts Func<T, bool> predicate plus an Action",
+      "files": [
+        "src/FluentValidation/AbstractValidator.cs"
+      ],
+      "symbols": [
+        "When"
+      ],
+      "qualified_symbols": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.When"
+      ],
+      "symbol_identities": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.When@256"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fv-when-context",
+      "repository": "fluentvalidation",
+      "query": "which AbstractValidator When overload accepts Func<T, ValidationContext<T>, bool> predicate plus an Action",
+      "files": [
+        "src/FluentValidation/AbstractValidator.cs"
+      ],
+      "symbols": [
+        "When"
+      ],
+      "qualified_symbols": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.When"
+      ],
+      "symbol_identities": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.When@268"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fv-include-validator",
+      "repository": "fluentvalidation",
+      "query": "which AbstractValidator Include overload directly accepts an IValidator<T> instance",
+      "files": [
+        "src/FluentValidation/AbstractValidator.cs"
+      ],
+      "symbols": [
+        "Include"
+      ],
+      "qualified_symbols": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.Include"
+      ],
+      "symbol_identities": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.Include@345"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fv-include-factory",
+      "repository": "fluentvalidation",
+      "query": "which generic AbstractValidator Include<TValidator> overload accepts Func<T, TValidator> to select rules dynamically",
+      "files": [
+        "src/FluentValidation/AbstractValidator.cs"
+      ],
+      "symbols": [
+        "Include"
+      ],
+      "qualified_symbols": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.Include"
+      ],
+      "symbol_identities": [
+        "src/FluentValidation/AbstractValidator.cs:AbstractValidator.Include@355"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "polly-execute-context-state",
+      "repository": "polly",
+      "query": "which ResiliencePipeline Execute<TState> overload accepts Action<ResilienceContext, TState>, an explicit ResilienceContext, and state",
+      "files": [
+        "src/Polly.Core/ResiliencePipeline.Sync.cs"
+      ],
+      "symbols": [
+        "Execute"
+      ],
+      "qualified_symbols": [
+        "src/Polly.Core/ResiliencePipeline.Sync.cs:ResiliencePipeline.Execute"
+      ],
+      "symbol_identities": [
+        "src/Polly.Core/ResiliencePipeline.Sync.cs:ResiliencePipeline.Execute@16"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "polly-execute-cancellation-action",
+      "repository": "polly",
+      "query": "which ResiliencePipeline Execute overload accepts Action<CancellationToken> and an optional CancellationToken",
+      "files": [
+        "src/Polly.Core/ResiliencePipeline.Sync.cs"
+      ],
+      "symbols": [
+        "Execute"
+      ],
+      "qualified_symbols": [
+        "src/Polly.Core/ResiliencePipeline.Sync.cs:ResiliencePipeline.Execute"
+      ],
+      "symbol_identities": [
+        "src/Polly.Core/ResiliencePipeline.Sync.cs:ResiliencePipeline.Execute@82"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "polly-execute-result-context-state",
+      "repository": "polly",
+      "query": "which ResiliencePipeline Execute<TResult, TState> overload returns TResult from Func<ResilienceContext, TState, TResult> with explicit context and state",
+      "files": [
+        "src/Polly.Core/ResiliencePipeline.SyncT.cs"
+      ],
+      "symbols": [
+        "Execute"
+      ],
+      "qualified_symbols": [
+        "src/Polly.Core/ResiliencePipeline.SyncT.cs:ResiliencePipeline.Execute"
+      ],
+      "symbol_identities": [
+        "src/Polly.Core/ResiliencePipeline.SyncT.cs:ResiliencePipeline.Execute@18"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "polly-executeasync-context-state",
+      "repository": "polly",
+      "query": "which ResiliencePipeline ExecuteAsync<TState> overload accepts Func<ResilienceContext, TState, ValueTask> with explicit context and state",
+      "files": [
+        "src/Polly.Core/ResiliencePipeline.Async.cs"
+      ],
+      "symbols": [
+        "ExecuteAsync"
+      ],
+      "qualified_symbols": [
+        "src/Polly.Core/ResiliencePipeline.Async.cs:ResiliencePipeline.ExecuteAsync"
+      ],
+      "symbol_identities": [
+        "src/Polly.Core/ResiliencePipeline.Async.cs:ResiliencePipeline.ExecuteAsync@17"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "polly-executeasync-cancellation",
+      "repository": "polly",
+      "query": "which ResiliencePipeline ExecuteAsync overload accepts Func<CancellationToken, ValueTask> and an optional CancellationToken",
+      "files": [
+        "src/Polly.Core/ResiliencePipeline.Async.cs"
+      ],
+      "symbols": [
+        "ExecuteAsync"
+      ],
+      "qualified_symbols": [
+        "src/Polly.Core/ResiliencePipeline.Async.cs:ResiliencePipeline.ExecuteAsync"
+      ],
+      "symbol_identities": [
+        "src/Polly.Core/ResiliencePipeline.Async.cs:ResiliencePipeline.ExecuteAsync@132"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "polly-executeasync-result-context-state",
+      "repository": "polly",
+      "query": "which ResiliencePipeline ExecuteAsync<TResult, TState> overload returns ValueTask<TResult> from Func<ResilienceContext, TState, ValueTask<TResult>> with context and state",
+      "files": [
+        "src/Polly.Core/ResiliencePipeline.AsyncT.cs"
+      ],
+      "symbols": [
+        "ExecuteAsync"
+      ],
+      "qualified_symbols": [
+        "src/Polly.Core/ResiliencePipeline.AsyncT.cs:ResiliencePipeline.ExecuteAsync"
+      ],
+      "symbol_identities": [
+        "src/Polly.Core/ResiliencePipeline.AsyncT.cs:ResiliencePipeline.ExecuteAsync@48"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "guice-bind-key",
+      "repository": "guice",
+      "query": "which AbstractModule bind overload accepts a Key<T> and returns LinkedBindingBuilder<T>",
+      "files": [
+        "core/src/com/google/inject/AbstractModule.java"
+      ],
+      "symbols": [
+        "bind"
+      ],
+      "qualified_symbols": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.bind"
+      ],
+      "symbol_identities": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.bind@85"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "guice-bind-typeliteral",
+      "repository": "guice",
+      "query": "which AbstractModule bind overload accepts a TypeLiteral<T> and returns AnnotatedBindingBuilder<T>",
+      "files": [
+        "core/src/com/google/inject/AbstractModule.java"
+      ],
+      "symbols": [
+        "bind"
+      ],
+      "qualified_symbols": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.bind"
+      ],
+      "symbol_identities": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.bind@90"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "guice-bind-class",
+      "repository": "guice",
+      "query": "which AbstractModule bind overload accepts a Class<T> and returns AnnotatedBindingBuilder<T>",
+      "files": [
+        "core/src/com/google/inject/AbstractModule.java"
+      ],
+      "symbols": [
+        "bind"
+      ],
+      "qualified_symbols": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.bind"
+      ],
+      "symbol_identities": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.bind@95"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "guice-requestinjection-object",
+      "repository": "guice",
+      "query": "which AbstractModule requestInjection overload accepts only an Object instance",
+      "files": [
+        "core/src/com/google/inject/AbstractModule.java"
+      ],
+      "symbols": [
+        "requestInjection"
+      ],
+      "qualified_symbols": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.requestInjection"
+      ],
+      "symbol_identities": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.requestInjection@131"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "guice-requestinjection-typeliteral",
+      "repository": "guice",
+      "query": "which generic AbstractModule requestInjection overload accepts TypeLiteral<T> plus a T instance",
+      "files": [
+        "core/src/com/google/inject/AbstractModule.java"
+      ],
+      "symbols": [
+        "requestInjection"
+      ],
+      "qualified_symbols": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.requestInjection"
+      ],
+      "symbol_identities": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.requestInjection@139"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "guice-getprovider-class",
+      "repository": "guice",
+      "query": "which AbstractModule getProvider overload accepts Class<T> rather than Key<T>",
+      "files": [
+        "core/src/com/google/inject/AbstractModule.java"
+      ],
+      "symbols": [
+        "getProvider"
+      ],
+      "qualified_symbols": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.getProvider"
+      ],
+      "symbol_identities": [
+        "core/src/com/google/inject/AbstractModule.java:AbstractModule.getProvider@190"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "retrofit-builder-client",
+      "repository": "retrofit",
+      "query": "where does Retrofit Builder client accept an OkHttpClient and delegate it as the call factory",
+      "files": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java"
+      ],
+      "symbols": [
+        "client"
+      ],
+      "qualified_symbols": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.client"
+      ],
+      "symbol_identities": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.client@523"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "retrofit-builder-callfactory",
+      "repository": "retrofit",
+      "query": "where does Retrofit Builder callFactory accept an okhttp3 Call.Factory",
+      "files": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java"
+      ],
+      "symbols": [
+        "callFactory"
+      ],
+      "qualified_symbols": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.callFactory"
+      ],
+      "symbol_identities": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.callFactory@532"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "retrofit-builder-baseurl-url",
+      "repository": "retrofit",
+      "query": "which Retrofit Builder baseUrl overload accepts java.net.URL",
+      "files": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java"
+      ],
+      "symbols": [
+        "baseUrl"
+      ],
+      "qualified_symbols": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.baseUrl"
+      ],
+      "symbol_identities": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.baseUrl@542"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "retrofit-builder-baseurl-string",
+      "repository": "retrofit",
+      "query": "which Retrofit Builder baseUrl overload accepts a String URL",
+      "files": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java"
+      ],
+      "symbols": [
+        "baseUrl"
+      ],
+      "qualified_symbols": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.baseUrl"
+      ],
+      "symbol_identities": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.baseUrl@552"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "retrofit-builder-baseurl-httpurl",
+      "repository": "retrofit",
+      "query": "which Retrofit Builder baseUrl overload accepts an HttpUrl and validates that its path ends with a slash",
+      "files": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java"
+      ],
+      "symbols": [
+        "baseUrl"
+      ],
+      "qualified_symbols": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.baseUrl"
+      ],
+      "symbol_identities": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.baseUrl@607"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "retrofit-builder-build",
+      "repository": "retrofit",
+      "query": "where does Retrofit Builder build validate the base URL and construct the final Retrofit instance",
+      "files": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java"
+      ],
+      "symbols": [
+        "build"
+      ],
+      "qualified_symbols": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.build"
+      ],
+      "symbol_identities": [
+        "retrofit/src/main/java/retrofit2/Retrofit.java:Retrofit.Builder.build@669"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cv-validate-object",
+      "repository": "class-validator",
+      "query": "which Validator validate overload accepts an object and optional ValidatorOptions without a schema name",
+      "files": [
+        "src/validation/Validator.ts"
+      ],
+      "symbols": [
+        "validate"
+      ],
+      "qualified_symbols": [
+        "src/validation/Validator.ts:Validator.validate"
+      ],
+      "symbol_identities": [
+        "src/validation/Validator.ts:Validator.validate@17"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cv-validate-schema",
+      "repository": "class-validator",
+      "query": "which Validator validate overload accepts schemaName string, object, and optional ValidatorOptions",
+      "files": [
+        "src/validation/Validator.ts"
+      ],
+      "symbols": [
+        "validate"
+      ],
+      "qualified_symbols": [
+        "src/validation/Validator.ts:Validator.validate"
+      ],
+      "symbol_identities": [
+        "src/validation/Validator.ts:Validator.validate@22"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cv-reject-object",
+      "repository": "class-validator",
+      "query": "which Validator validateOrReject overload accepts an object and optional ValidatorOptions without a schema name",
+      "files": [
+        "src/validation/Validator.ts"
+      ],
+      "symbols": [
+        "validateOrReject"
+      ],
+      "qualified_symbols": [
+        "src/validation/Validator.ts:Validator.validateOrReject"
+      ],
+      "symbol_identities": [
+        "src/validation/Validator.ts:Validator.validateOrReject@38"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cv-reject-schema",
+      "repository": "class-validator",
+      "query": "which Validator validateOrReject overload accepts schemaName string, object, and optional ValidatorOptions",
+      "files": [
+        "src/validation/Validator.ts"
+      ],
+      "symbols": [
+        "validateOrReject"
+      ],
+      "qualified_symbols": [
+        "src/validation/Validator.ts:Validator.validateOrReject"
+      ],
+      "symbol_identities": [
+        "src/validation/Validator.ts:Validator.validateOrReject@43"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cv-sync-object",
+      "repository": "class-validator",
+      "query": "which Validator validateSync overload accepts an object and optional ValidatorOptions without a schema name",
+      "files": [
+        "src/validation/Validator.ts"
+      ],
+      "symbols": [
+        "validateSync"
+      ],
+      "qualified_symbols": [
+        "src/validation/Validator.ts:Validator.validateSync"
+      ],
+      "symbol_identities": [
+        "src/validation/Validator.ts:Validator.validateSync@61"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "cv-sync-schema",
+      "repository": "class-validator",
+      "query": "which Validator validateSync overload accepts schemaName string, object, and optional ValidatorOptions",
+      "files": [
+        "src/validation/Validator.ts"
+      ],
+      "symbols": [
+        "validateSync"
+      ],
+      "qualified_symbols": [
+        "src/validation/Validator.ts:Validator.validateSync"
+      ],
+      "symbol_identities": [
+        "src/validation/Validator.ts:Validator.validateSync@66"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tsyringe-register-value",
+      "repository": "tsyringe",
+      "query": "which InternalDependencyContainer register<T> overload accepts a ValueProvider<T> and no RegistrationOptions parameter",
+      "files": [
+        "src/dependency-container.ts"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/dependency-container.ts:InternalDependencyContainer.register"
+      ],
+      "symbol_identities": [
+        "src/dependency-container.ts:InternalDependencyContainer.register@59"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tsyringe-register-factory",
+      "repository": "tsyringe",
+      "query": "which InternalDependencyContainer register<T> overload accepts a FactoryProvider<T> and no RegistrationOptions parameter",
+      "files": [
+        "src/dependency-container.ts"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/dependency-container.ts:InternalDependencyContainer.register"
+      ],
+      "symbol_identities": [
+        "src/dependency-container.ts:InternalDependencyContainer.register@63"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tsyringe-register-token",
+      "repository": "tsyringe",
+      "query": "which InternalDependencyContainer register<T> overload accepts a TokenProvider<T> with optional RegistrationOptions",
+      "files": [
+        "src/dependency-container.ts"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/dependency-container.ts:InternalDependencyContainer.register"
+      ],
+      "symbol_identities": [
+        "src/dependency-container.ts:InternalDependencyContainer.register@67"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tsyringe-register-class",
+      "repository": "tsyringe",
+      "query": "which InternalDependencyContainer register<T> overload accepts a ClassProvider<T> with optional RegistrationOptions",
+      "files": [
+        "src/dependency-container.ts"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/dependency-container.ts:InternalDependencyContainer.register"
+      ],
+      "symbol_identities": [
+        "src/dependency-container.ts:InternalDependencyContainer.register@72"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tsyringe-register-constructor",
+      "repository": "tsyringe",
+      "query": "which InternalDependencyContainer register<T> overload accepts a constructor<T> with optional RegistrationOptions",
+      "files": [
+        "src/dependency-container.ts"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/dependency-container.ts:InternalDependencyContainer.register"
+      ],
+      "symbol_identities": [
+        "src/dependency-container.ts:InternalDependencyContainer.register@77"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tsyringe-register-implementation",
+      "repository": "tsyringe",
+      "query": "where is the InternalDependencyContainer register<T> implementation that accepts Provider<T> or constructor<T> and defaults lifecycle to Transient",
+      "files": [
+        "src/dependency-container.ts"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/dependency-container.ts:InternalDependencyContainer.register"
+      ],
+      "symbol_identities": [
+        "src/dependency-container.ts:InternalDependencyContainer.register@82"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rayon-find-any",
+      "repository": "rayon",
+      "query": "which ParallelIterator find_any method may return any matching item without preserving order",
+      "files": [
+        "src/iter/mod.rs"
+      ],
+      "symbols": [
+        "find_any"
+      ],
+      "qualified_symbols": [
+        "src/iter/mod.rs:ParallelIterator.find_any"
+      ],
+      "symbol_identities": [
+        "src/iter/mod.rs:ParallelIterator.find_any@1668"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rayon-find-first",
+      "repository": "rayon",
+      "query": "which ParallelIterator find_first method returns the earliest matching item in iterator order",
+      "files": [
+        "src/iter/mod.rs"
+      ],
+      "symbols": [
+        "find_first"
+      ],
+      "qualified_symbols": [
+        "src/iter/mod.rs:ParallelIterator.find_first"
+      ],
+      "symbol_identities": [
+        "src/iter/mod.rs:ParallelIterator.find_first@1701"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rayon-find-last",
+      "repository": "rayon",
+      "query": "which ParallelIterator find_last method returns the latest matching item in iterator order",
+      "files": [
+        "src/iter/mod.rs"
+      ],
+      "symbols": [
+        "find_last"
+      ],
+      "qualified_symbols": [
+        "src/iter/mod.rs:ParallelIterator.find_last"
+      ],
+      "symbol_identities": [
+        "src/iter/mod.rs:ParallelIterator.find_last@1730"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rayon-position-any",
+      "repository": "rayon",
+      "query": "which IndexedParallelIterator position_any method returns an index for any matching item",
+      "files": [
+        "src/iter/mod.rs"
+      ],
+      "symbols": [
+        "position_any"
+      ],
+      "qualified_symbols": [
+        "src/iter/mod.rs:IndexedParallelIterator.position_any"
+      ],
+      "symbol_identities": [
+        "src/iter/mod.rs:IndexedParallelIterator.position_any@3009"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rayon-position-first",
+      "repository": "rayon",
+      "query": "which IndexedParallelIterator position_first method returns the first matching index",
+      "files": [
+        "src/iter/mod.rs"
+      ],
+      "symbols": [
+        "position_first"
+      ],
+      "qualified_symbols": [
+        "src/iter/mod.rs:IndexedParallelIterator.position_first"
+      ],
+      "symbol_identities": [
+        "src/iter/mod.rs:IndexedParallelIterator.position_first@3046"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rayon-position-last",
+      "repository": "rayon",
+      "query": "which IndexedParallelIterator position_last method returns the last matching index",
+      "files": [
+        "src/iter/mod.rs"
+      ],
+      "symbols": [
+        "position_last"
+      ],
+      "qualified_symbols": [
+        "src/iter/mod.rs:IndexedParallelIterator.position_last"
+      ],
+      "symbol_identities": [
+        "src/iter/mod.rs:IndexedParallelIterator.position_last@3083"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "viper-global-get",
+      "repository": "viper",
+      "query": "where is the package-level Get function that forwards a key lookup to the global Viper instance",
+      "files": [
+        "viper.go"
+      ],
+      "symbols": [
+        "Get"
+      ],
+      "qualified_symbols": [
+        "viper.go:Get"
+      ],
+      "symbol_identities": [
+        "viper.go:Get@706"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "viper-method-get",
+      "repository": "viper",
+      "query": "where is the Viper Get receiver method that resolves a key from the instance rather than the global forwarding function",
+      "files": [
+        "viper.go"
+      ],
+      "symbols": [
+        "Get"
+      ],
+      "qualified_symbols": [
+        "viper.go:Viper.Get"
+      ],
+      "symbol_identities": [
+        "viper.go:Viper.Get@715"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "viper-global-unmarshal",
+      "repository": "viper",
+      "query": "where is the package-level Unmarshal function that forwards decoding to the global Viper instance",
+      "files": [
+        "viper.go"
+      ],
+      "symbols": [
+        "Unmarshal"
+      ],
+      "qualified_symbols": [
+        "viper.go:Unmarshal"
+      ],
+      "symbol_identities": [
+        "viper.go:Unmarshal@957"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "viper-method-unmarshal",
+      "repository": "viper",
+      "query": "where is the Viper Unmarshal receiver method that decodes settings into a value on this instance",
+      "files": [
+        "viper.go"
+      ],
+      "symbols": [
+        "Unmarshal"
+      ],
+      "qualified_symbols": [
+        "viper.go:Viper.Unmarshal"
+      ],
+      "symbol_identities": [
+        "viper.go:Viper.Unmarshal@963"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "viper-global-bindpflag",
+      "repository": "viper",
+      "query": "where is the package-level BindPFlag function that forwards a key and pflag Flag to the global Viper instance",
+      "files": [
+        "viper.go"
+      ],
+      "symbols": [
+        "BindPFlag"
+      ],
+      "qualified_symbols": [
+        "viper.go:BindPFlag"
+      ],
+      "symbol_identities": [
+        "viper.go:BindPFlag@1100"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "viper-method-bindpflag",
+      "repository": "viper",
+      "query": "where is the Viper BindPFlag receiver method that binds one pflag Flag to a key on this instance",
+      "files": [
+        "viper.go"
+      ],
+      "symbols": [
+        "BindPFlag"
+      ],
+      "qualified_symbols": [
+        "viper.go:Viper.BindPFlag"
+      ],
+      "symbol_identities": [
+        "viper.go:Viper.BindPFlag@1107"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}
