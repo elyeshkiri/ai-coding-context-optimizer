@@ -1,5 +1,37 @@
 # Unreleased
 
+- **Built and first-ran a tenth frozen external holdout after callable-identity v5.**
+  `benchmarks/holdout-external-10.json` contains **48 source-grounded tasks
+  across 8 previously-unused repositories**: RestSharp and Shouldly (C#),
+  Mockito and Apache Commons Collections (Java), the MongoDB Node.js driver and
+  TanStack Query (TypeScript), futures-rs (Rust), and GORM (Go). The suite
+  stresses overload parameter shapes, TypeScript overload signatures versus
+  implementations, lower-case container members, trait methods, and a single
+  Go receiver type split across multiple source files. All repositories are
+  pinned to exact revisions. Ground truth was committed before evaluation and
+  frozen at SHA
+  `685ac9b9ca60fa02ea2ad797c7b768ee47790b015b9baaff447a74d37c1209f7`.
+  A separate hash-only workflow computed and verified the freeze hash without
+  cloning benchmark repositories or performing any evaluation.
+
+  **First-ever result: 100% file recall, 89.6% bare symbol recall, 87.5% symbol
+  recall in expected files, 87.5% qualified-symbol recall, 87.5% exact
+  symbol-identity recall, and ~98.98% estimated context reduction.** Seven of
+  eight repositories scored 100% on every retrieval/identity metric:
+  Shouldly, Mockito, Commons Collections, MongoDB, TanStack Query, futures-rs,
+  and GORM. RestSharp scored 100% file recall but 16.7% bare symbol recall and
+  0% scoped/qualified/exact recall on its six C# extension-member tasks.
+
+  Holdout #10 therefore provides fresh evidence that the callable-identity v5
+  work generalizes across Java overload families, TypeScript overload
+  declarations/implementations, Rust trait members, and Go receiver methods.
+  It also exposes a sharply isolated remaining frontier around the modern
+  RestSharp C# extension-block source shape: the correct source file is found,
+  but the expected extension members are not retained as parser-backed callable
+  evidence. The exact untouched first-run output is preserved in
+  `benchmarks/holdout-external-10.result.json`. Holdout #10 is now burned for
+  tuning.
+
 - **Hardened exact callable identity after holdout #9 exposed lower-case
   member and overload-shape blind spots.** Container/member detection now treats
   member casing as language-specific, so structural hints such as
