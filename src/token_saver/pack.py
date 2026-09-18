@@ -452,7 +452,8 @@ def _symbol_windows(
             # Parser-derived calls are stronger than incidental body vocabulary:
             # if the task names an operation this definition structurally calls,
             # add a bounded bonus without turning call names into a global ranker.
-            call_hits = symbol_query_terms & set(symbol.calls or [])
+            call_terms = set(terms(" ".join(symbol.calls or [])))
+            call_hits = symbol_query_terms & call_terms
             if call_hits:
                 score += min(
                     12.0,
