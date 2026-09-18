@@ -18,7 +18,7 @@ from .budget import RetrievalPlan, plan_retrieval
 from .closure import authoritative_providers, dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
-from .lexical import document_counts, terms
+from .lexical import document_counts, symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
 from .skeleton import file_priority
@@ -335,6 +335,37 @@ def _source_window(text: str, start: int, end: int) -> str:
     return f"#### lines {start}-{end}\n```\n" + "\n".join(body) + "\n```\n"
 
 
+def _prioritized_ranges(
+    primary: list[tuple[int, int]],
+    secondary: list[tuple[int, int]],
+    total: int,
+) -> list[tuple[int, int]]:
+    """Deduplicate source windows without destroying relevance order.
+
+    ``primary`` is already ordered by symbol score. Sorting every window by
+    source line lets an earlier-but-weaker definition consume a clipped section
+    before a later, higher-scoring symbol. Preserve primary order and append
+    lexical navigation windows only when they add source not already covered.
+    """
+    result: list[tuple[int, int]] = []
+
+    def add(window: tuple[int, int]) -> None:
+        start, end = max(1, window[0]), min(total, window[1])
+        if start > end:
+            return
+        for idx, (existing_start, existing_end) in enumerate(result):
+            if start <= existing_end + 1 and end >= existing_start - 1:
+                result[idx] = (min(start, existing_start), max(end, existing_end))
+                return
+        result.append((start, end))
+
+    for window in primary:
+        add(window)
+    for window in secondary:
+        add(window)
+    return result
+
+
 def _symbol_windows(
     item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
 ) -> tuple[list[tuple[int, int]], list[str]]:
@@ -344,6 +375,11 @@ def _symbol_windows(
     wanted = (target_symbol or "").lower()
     definitions = record.definitions or []
     source_lines = item.text.splitlines()
+    # File retrieval stays on the conservative global tokenizer. Once a file
+    # has already won retrieval, symbol selection can safely normalize nearby
+    # inflections (connection/connect, equality/equal, completion/complete)
+    # without perturbing repository-wide ranking.
+    symbol_query_terms = set(symbol_terms(" ".join(sorted(query_terms))))
 
     term_weight: dict[str, float] = {}
     if not wanted and definitions:
@@ -365,8 +401,8 @@ def _symbol_windows(
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
         if not wanted:
-            name_hits = query_terms & name_terms
-            body_hits = query_terms & body_terms
+            name_hits = symbol_query_terms & name_terms
+            body_hits = symbol_query_terms & body_terms
             score = (
                 20 * sum(term_weight.get(t, 1.0) for t in name_hits)
                 + sum(term_weight.get(t, 1.0) for t in body_hits)
@@ -422,16 +458,20 @@ def _file_section(
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
-    windows = _merge_ranges(symbol_windows + lexical, len(lines))
-    pieces = [
-        f"## {item.rel}",
-        f"# relevance={item.score:.2f} ({', '.join(item.reasons)})",
-        "### outline",
-        item.outline.rstrip(),
-    ]
+    windows = _prioritized_ranges(symbol_windows, lexical, len(lines))
+    # Exact implementation evidence is the primary payload. Put it before the
+    # navigation outline so a tight per-file budget clips optional structure
+    # rather than silently dropping the symbol source that caused the file to
+    # be selected in the first place.
+    pieces = [f"## {item.rel}"]
     if windows:
         pieces.append("### exact source windows")
         pieces.extend(_source_window(item.text, start, end).rstrip() for start, end in windows)
+    pieces.extend([
+        f"# relevance={item.score:.2f} ({', '.join(item.reasons)})",
+        "### outline",
+        item.outline.rstrip(),
+    ])
     section, redactions = redact_secrets("\n".join(pieces).rstrip() + "\n")
     return section, symbol_labels, redactions
 
@@ -439,6 +479,23 @@ def _file_section(
 def _fingerprint(section: str) -> str:
     normal = re.sub(r"\s+", " ", section).strip().encode("utf-8", "replace")
     return hashlib.sha256(normal).hexdigest()
+
+
+def _visible_symbol_labels(section: str, labels: list[str]) -> list[str]:
+    """Keep only labels whose exact source line survived section fitting."""
+    marker = "### exact source windows"
+    if marker not in section:
+        return []
+    source = section.split(marker, 1)[1]
+    visible: list[str] = []
+    for label in labels:
+        try:
+            line = int(label.rsplit("@", 1)[1])
+        except (ValueError, IndexError):
+            continue
+        if re.search(rf"^\s*{line}\|", source, re.MULTILINE):
+            visible.append(label)
+    return visible
 
 
 def _fit_section(section: str, budget: int) -> str:
@@ -653,7 +710,7 @@ def build_context_pack(
             continue
         blocks.append(fitted)
         selected.append(item.rel)
-        selected_symbols.extend(symbols)
+        selected_symbols.extend(_visible_symbol_labels(fitted, symbols))
         redactions.update(section_redactions)
         seen.add(fingerprint)
         if record is not None:

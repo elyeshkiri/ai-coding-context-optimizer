@@ -478,3 +478,172 @@ def test_semantic_graph_boost_recovers_terse_dependency_file(tmp_path):
     )
 
     assert "src/regexes.ts" in {item.rel for item in ranked[:3]}
+
+
+def test_symbol_window_matches_connection_to_connect_identifier(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "exceptions.py").write_text(textwrap.dedent("""
+        class ConnectionError(Exception):
+            pass
+
+        class Timeout(Exception):
+            pass
+
+        class ReadTimeout(Exception):
+            pass
+
+        class ConnectTimeout(Exception):
+            pass
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "what exception is raised when a connection attempt times out",
+        max_tokens=900,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/exceptions.py:ConnectTimeout@") for label in pack.selected_symbols)
+
+
+def test_symbol_window_matches_equality_to_equal_identifier(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "equal.js").write_text(textwrap.dedent("""
+        function compareDeepValues(left, right) {
+          return left === right;
+        }
+
+        function compareObjectProperties(left, right) {
+          return Object.keys(left).length === Object.keys(right).length;
+        }
+
+        function isEqual(value, other) {
+          return baseIsEqual(value, other);
+        }
+    """), encoding="utf-8")
+
+    pack = build_context_pack(
+        tmp_path,
+        "perform a deep equality comparison between two values",
+        max_tokens=900,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/equal.js:isEqual@") for label in pack.selected_symbols)
+
+
+def test_symbol_window_matches_first_to_start_identifier(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "week.ts").write_text(textwrap.dedent("""
+        export function getWeek(date: Date) {
+          return 1;
+        }
+
+        export function getWeekYear(date: Date) {
+          return date.getFullYear();
+        }
+
+        export function startOfWeek(date: Date) {
+          return date;
+        }
+    """), encoding="utf-8")
+
+    pack = build_context_pack(
+        tmp_path,
+        "get the first day of the week for a date",
+        max_tokens=900,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/week.ts:startOfWeek@") for label in pack.selected_symbols)
+
+
+def test_symbol_window_matches_completion_to_complete_identifier(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "completion.py").write_text(textwrap.dedent("""
+        def completion_arguments(shell):
+            return [shell]
+
+        def render_completion_script(shell):
+            return shell
+
+        class ShellComplete:
+            pass
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "where is shell tab completion implemented",
+        max_tokens=900,
+        changed_boost=False,
+    )
+
+    assert any(label.startswith("src/completion.py:ShellComplete@") for label in pack.selected_symbols)
+
+
+def test_tight_budget_keeps_exact_symbol_source_before_large_outline(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    lines = []
+    for n in range(80):
+        lines.extend([
+            f"def helper_{n}(value):",
+            f"    return value + {n}",
+            "",
+        ])
+    lines.extend([
+        "def target_refresh_session(token):",
+        "    return rotate_token(token)",
+        "",
+    ])
+    (src / "large_service.py").write_text("\n".join(lines), encoding="utf-8")
+
+    pack = build_context_pack(
+        tmp_path,
+        "refresh session rotate token",
+        max_tokens=500,
+        changed_boost=False,
+    )
+
+    assert "return rotate_token(token)" in pack.text
+    assert any(
+        label.startswith("src/large_service.py:target_refresh_session@")
+        for label in pack.selected_symbols
+    )
+
+
+def test_tight_budget_preserves_symbol_score_order_not_source_line_order(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "timeouts.py").write_text(textwrap.dedent("""
+        def timeout_helper(value):
+            # Generic timeout handling.
+            return value
+
+        def unrelated_middle_1(value):
+            return value
+
+        def unrelated_middle_2(value):
+            return value
+
+        def connect_request_timeout(request):
+            # Handle a connection attempt timing out for this request.
+            return request
+    """))
+
+    pack = build_context_pack(
+        tmp_path,
+        "connection attempt timeout request",
+        max_tokens=170,
+        changed_boost=False,
+    )
+
+    assert "def connect_request_timeout(request):" in pack.text
+    assert any(
+        label.startswith("src/timeouts.py:connect_request_timeout@")
+        for label in pack.selected_symbols
+    )
