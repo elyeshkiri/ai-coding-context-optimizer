@@ -49,3 +49,43 @@ jobs:
           echo "===== DAPPER_DEV_RESULT_BEGIN ====="
           token-saver evaluate /tmp/dapper-dev.json --path . --max-tokens 6000
           echo "===== DAPPER_DEV_RESULT_END ====="
+
+      - name: Inspect failing Dapper rankings
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from token_saver.pack import build_context_pack, rank_files
+          from token_saver.repo_index import build_index
+
+          frozen = json.loads(Path("benchmarks/holdout-external-7.json").read_text())
+          tasks = [t for t in frozen["tasks"] if t["repository"] == "dapper"]
+          root = Path("/tmp/dapper")
+          index = build_index(root, persist=False)
+          for task in tasks:
+              if task["id"] not in {
+                  "dapper-execute-sql",
+                  "dapper-query-dynamic",
+                  "dapper-queryfirst-generic",
+                  "dapper-querysingle-type",
+                  "dapper-queryasync-generic",
+                  "dapper-executeasync-command",
+                  "dapper-queryasync-multimap-two",
+                  "dapper-queryasync-type-array",
+              }:
+                  continue
+              print("\nTASK", task["id"], task["query"])
+              ranked = rank_files(
+                  root, task["query"], index=index, changed_boost=False,
+                  feedback_boost=False,
+              )
+              for item in ranked[:8]:
+                  print("RANK", round(item.score, 2), item.rel, item.reasons)
+              pack = build_context_pack(
+                  root, task["query"], max_tokens=6000,
+                  changed_boost=False, feedback_boost=False,
+                  persist_index=False, index=index,
+              )
+              print("FILES", pack.selected_files)
+              print("IDENTITIES", pack.selected_symbol_identities)
+          PY
