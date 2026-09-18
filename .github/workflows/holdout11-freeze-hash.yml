@@ -1,0 +1,32 @@
+name: Holdout 11 Freeze Hash
+
+on:
+  push:
+    branches:
+      - test/holdout-external-11
+    paths:
+      - benchmarks/holdout-external-11.json
+      - .github/workflows/holdout11-freeze-hash.yml
+
+jobs:
+  hash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/holdout-external-11
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Token Saver
+        run: python -m pip install -e '.[dev]'
+      - name: Compute frozen ground truth hash only
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from token_saver.evaluate import ground_truth_hash
+          payload = json.loads(Path("benchmarks/holdout-external-11.json").read_text())
+          print("HOLDOUT11_GROUND_TRUTH_SHA256=" + ground_truth_hash(payload))
+          print("NO_EVALUATION_PERFORMED")
+          PY
