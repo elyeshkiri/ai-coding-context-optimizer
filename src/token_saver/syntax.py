@@ -14,6 +14,7 @@ class Symbol:
     end_byte: int
     signature: str
     kind: str = "symbol"
+    calls: tuple[str, ...] = ()
 
 @lru_cache(maxsize=3)
 def _language(suffix):
@@ -205,6 +206,113 @@ def _signature(source: bytes, extent, body=None) -> str:
     marker = " { … }" if "{" in body_text else " …"
     return (head + marker).strip()[:1000]
 
+
+def _rightmost_identifier(source: bytes, node) -> str | None:
+    if node is None:
+        return None
+    if node.type in {
+        "identifier", "field_identifier", "type_identifier",
+        "scoped_identifier", "namespace_identifier",
+    }:
+        raw = _text(source, node).strip()
+        if "::" in raw:
+            return raw.rsplit("::", 1)[-1]
+        if "." in raw:
+            return raw.rsplit(".", 1)[-1]
+        return raw
+    for field in ("method", "name", "field", "property", "function", "type"):
+        child = node.child_by_field_name(field)
+        value = _rightmost_identifier(source, child) if child is not None else None
+        if value:
+            return value
+    for child in reversed(node.named_children):
+        value = _rightmost_identifier(source, child)
+        if value:
+            return value
+    return None
+
+
+def _structured_call_sites(source: bytes, root, suffix: str) -> list[tuple[int, str]]:
+    sites: list[tuple[int, str]] = []
+    call_types = {
+        ".go": {"call_expression"},
+        ".rs": {"call_expression", "method_call_expression"},
+        ".java": {"method_invocation", "object_creation_expression"},
+        ".cs": {"invocation_expression", "object_creation_expression"},
+    }[suffix]
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        if node.type in call_types:
+            target = None
+            if node.type == "method_invocation":
+                target = node.child_by_field_name("name")
+            elif node.type == "method_call_expression":
+                target = node.child_by_field_name("method") or node.child_by_field_name("name")
+            elif node.type == "object_creation_expression":
+                target = node.child_by_field_name("type")
+            else:
+                target = node.child_by_field_name("function") or node.child_by_field_name("name")
+            name = _rightmost_identifier(source, target or node)
+            if name and name not in {"if", "for", "while", "match", "switch", "return"}:
+                sites.append((node.start_byte, name))
+        stack.extend(reversed(node.named_children))
+    return sites
+
+
+def _attach_structured_calls(source: bytes, root, suffix: str, found: list[Symbol]) -> list[Symbol]:
+    sites = _structured_call_sites(source, root, suffix)
+    callable_kinds = {"function", "method", "constructor"}
+    for symbol in found:
+        if symbol.kind not in callable_kinds:
+            continue
+        symbol.calls = tuple(sorted({
+            name for position, name in sites
+            if symbol.start_byte <= position < symbol.end_byte
+        }))
+    return found
+
+
+def structured_imports(text: str, suffix: str) -> set[str]:
+    """Return parser-backed import/use targets for non-JS structured languages."""
+    from tree_sitter import Parser
+
+    suffix = suffix.lower()
+    if suffix not in STRUCTURED_EXTRA:
+        return set()
+    source = text.encode("utf-8")
+    tree = Parser(_extra_language(suffix)).parse(source)
+    if tree.root_node.has_error:
+        return set()
+    node_types = {
+        ".go": {"import_spec"},
+        ".rs": {"use_declaration"},
+        ".java": {"import_declaration"},
+        ".cs": {"using_directive"},
+    }[suffix]
+    out: set[str] = set()
+    stack = [tree.root_node]
+    while stack:
+        node = stack.pop()
+        if node.type in node_types:
+            raw = " ".join(_text(source, node).split()).strip()
+            if suffix == ".go":
+                path = node.child_by_field_name("path")
+                raw = _text(source, path).strip("\"`") if path is not None else raw
+            elif suffix == ".rs":
+                raw = raw.removeprefix("use ").removesuffix(";").replace("::", ".")
+                raw = raw.split(" as ", 1)[0].strip()
+            elif suffix == ".java":
+                raw = raw.removeprefix("import ").removesuffix(";").strip()
+                raw = raw.removeprefix("static ").strip()
+            else:
+                raw = raw.removeprefix("global ").removeprefix("using ").removesuffix(";").strip()
+                if "=" in raw:
+                    raw = raw.split("=", 1)[1].strip()
+            if raw:
+                out.add(raw)
+        stack.extend(reversed(node.named_children))
+    return out
 
 def _append(found: list[Symbol], source: bytes, *, name: str, node, body=None,
             parents=(), kind: str = "symbol", extent=None) -> None:
@@ -465,12 +573,14 @@ def _symbols_extra(text: str, suffix: str) -> list[Symbol]:
         raise ValueError("Source has syntax errors; use an explicit source range instead")
 
     if suffix == ".go":
-        return _go_symbols(source, tree.root_node)
-    if suffix == ".rs":
-        return _rust_symbols(source, tree.root_node)
-    if suffix == ".java":
-        return _java_symbols(source, tree.root_node)
-    return _csharp_symbols(source, tree.root_node)
+        found = _go_symbols(source, tree.root_node)
+    elif suffix == ".rs":
+        found = _rust_symbols(source, tree.root_node)
+    elif suffix == ".java":
+        found = _java_symbols(source, tree.root_node)
+    else:
+        found = _csharp_symbols(source, tree.root_node)
+    return _attach_structured_calls(source, tree.root_node, suffix, found)
 
 def symbols(text: str, suffix: str) -> list[Symbol]:
     """Return exact structural symbols for any parser-backed language."""
