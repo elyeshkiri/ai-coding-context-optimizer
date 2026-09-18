@@ -273,9 +273,14 @@ def _structural_file_authority(
             continue
         parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
         name_lower = symbol.name.lower()
-        signature_terms = _callable_signature_terms(symbol)
+        # File authority only needs identifier-level shape evidence.
+        # Avoid symbol_terms() here: this loop runs once per candidate symbol
+        # and query tokenization must remain O(1) per repository query.
+        authority_signature_terms = set(
+            identifier_terms(symbol.signature or "")
+        )
         non_leaf_signature_hits = len(
-            (query_terms - leaf_terms) & signature_terms
+            (query_terms - leaf_terms) & authority_signature_terms
         )
         signature_bonus = min(48.0, 12.0 * non_leaf_signature_hits)
         wants_top_level = _query_wants_top_level(query)
@@ -286,7 +291,7 @@ def _structural_file_authority(
                 # matches the query; an exported API gets a small bounded edge
                 # over an otherwise-equivalent file-local helper.
                 export_bonus = (
-                    20.0
+                    80.0
                     if re.search(r"\bexport\b", symbol.signature or "", re.I)
                     else 0.0
                 )
@@ -310,7 +315,7 @@ def _structural_file_authority(
         if parent_terms and not parent_hits:
             score *= 0.45
         best = max(best, score)
-    return min(260.0, best)
+    return min(320.0, best)
 
 
 @dataclass
