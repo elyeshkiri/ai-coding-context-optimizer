@@ -1,5 +1,28 @@
 # Unreleased
 
+- **Added compatibility extraction for C# 14 extension blocks.**
+  The published `tree-sitter-c-sharp 0.23.x` grammar predates
+  `extension_declaration`, so modern source shaped as
+  `extension(Receiver receiver) { ... }` could preserve the outer class while
+  dropping every inner method from Token Saver's callable index. Token Saver
+  now performs a narrow balanced-source recovery pass for those blocks: it
+  masks comments and string/character/raw literals, finds only top-level
+  extension members, preserves the enclosing class as the qualified parent,
+  carries the receiver text into the structural signature, and records exact
+  declaration identity lines. Recovered symbols are deduplicated against
+  parser-native symbols so a future grammar release can supersede the
+  compatibility path without duplicate callables. The repository index version
+  is bumped to invalidate stale C# records. Synthetic regressions cover
+  overload identity, generic methods, expression-bodied methods, receiver
+  evidence, and false-positive protection inside comments/strings. Holdout #10
+  remains burned and any rerun is development evidence only. A development-only
+  rerun of that burned suite moved bare recall from 89.6% to 100%, scoped recall
+  from 87.5% to 100%, qualified recall from 87.5% to 100%, and exact identity
+  from 87.5% to 100%; file recall remained 100% and context reduction remained
+  ~98.98%. RestSharp specifically moved from 16.7% bare and 0%
+  scoped/qualified/exact to 100% on all retrieval and identity metrics. These
+  numbers are regression diagnostics, not independent generalization evidence.
+
 - **Built and first-ran a tenth frozen external holdout after callable-identity v5.**
   `benchmarks/holdout-external-10.json` contains **48 source-grounded tasks
   across 8 previously-unused repositories**: RestSharp and Shouldly (C#),

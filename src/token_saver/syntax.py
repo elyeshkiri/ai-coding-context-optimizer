@@ -1,6 +1,7 @@
 """Syntax-aware JS/TS symbols and exact byte spans, using maintained grammars."""
 from dataclasses import dataclass
 from functools import lru_cache
+import re
 
 JS_TS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 
@@ -556,6 +557,245 @@ _CSHARP_MEMBERS = {
 }
 
 
+
+_CSHARP_EXTENSION_START = re.compile(
+    rb"\bextension\s*(?:<[^{}()]*>\s*)?\("
+)
+_CSHARP_EXTENSION_METHOD = re.compile(
+    rb"(?m)^[ \t]*"
+    rb"(?P<header>"
+    rb"(?:(?:public|private|protected|internal|static|virtual|abstract|sealed|new|unsafe|extern|partial|async|readonly)\s+)*"
+    rb"(?:[A-Za-z_][A-Za-z0-9_:.?<>\[\],]*\s+)+"
+    rb")"
+    rb"(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
+    rb"(?:\s*<[^{}();\r\n]*>)?\s*\("
+)
+
+
+def _mask_csharp_noncode(source: bytes) -> bytes:
+    """Blank comments and literals while preserving exact byte and line offsets."""
+    masked = bytearray(source)
+    size = len(source)
+
+    def blank(start: int, end: int) -> None:
+        for offset in range(start, min(end, size)):
+            if masked[offset] not in (10, 13):
+                masked[offset] = 32
+
+    i = 0
+    while i < size:
+        if source.startswith(b"//", i):
+            end = source.find(b"\n", i + 2)
+            end = size if end < 0 else end
+            blank(i, end)
+            i = end
+            continue
+        if source.startswith(b"/*", i):
+            end = source.find(b"*/", i + 2)
+            end = size if end < 0 else end + 2
+            blank(i, end)
+            i = end
+            continue
+
+        byte = source[i]
+        if byte == 34:
+            quote_count = 1
+            while i + quote_count < size and source[i + quote_count] == 34:
+                quote_count += 1
+
+            if quote_count >= 3:
+                delimiter = b'"' * quote_count
+                end = source.find(delimiter, i + quote_count)
+                end = size if end < 0 else end + quote_count
+                blank(i, end)
+                i = end
+                continue
+
+            verbatim = (
+                (i > 0 and source[i - 1] == 64)
+                or (
+                    i > 1
+                    and source[i - 2] == 64
+                    and source[i - 1] == 36
+                )
+            )
+            j = i + 1
+            while j < size:
+                if verbatim and source[j:j + 2] == b'""':
+                    j += 2
+                    continue
+                if not verbatim and source[j] == 92:
+                    j += 2
+                    continue
+                if source[j] == 34:
+                    j += 1
+                    break
+                j += 1
+            blank(i, j)
+            i = j
+            continue
+
+        if byte == 39:
+            j = i + 1
+            while j < size:
+                if source[j] == 92:
+                    j += 2
+                    continue
+                if source[j] == 39:
+                    j += 1
+                    break
+                j += 1
+            blank(i, j)
+            i = j
+            continue
+
+        i += 1
+    return bytes(masked)
+
+
+def _matching_byte(masked: bytes, start: int, opening: int, closing: int) -> int | None:
+    if start < 0 or start >= len(masked) or masked[start] != opening:
+        return None
+    depth = 0
+    for offset in range(start, len(masked)):
+        byte = masked[offset]
+        if byte == opening:
+            depth += 1
+        elif byte == closing:
+            depth -= 1
+            if depth == 0:
+                return offset
+    return None
+
+
+def _csharp_extension_symbols(source: bytes, found: list[Symbol]) -> list[Symbol]:
+    """Recover C# 14 extension-block methods for the published 0.23 grammar.
+
+    tree-sitter-c-sharp 0.23.x predates extension_declaration. Its error
+    recovery can preserve the outer class while dropping extension members.
+    This compatibility pass scans only top-level method declarations inside
+    balanced extension receiver blocks and deduplicates against native parser
+    symbols, so a future grammar can supersede it cleanly.
+    """
+    masked = _mask_csharp_noncode(source)
+    recovered: list[Symbol] = []
+    existing = {
+        (symbol.qualified, symbol.identity_line or symbol.start)
+        for symbol in found
+    }
+    containers = [
+        symbol for symbol in found
+        if symbol.kind in {"class", "struct", "record"}
+    ]
+
+    for extension_match in _CSHARP_EXTENSION_START.finditer(masked):
+        open_paren = masked.find(b"(", extension_match.start(), extension_match.end())
+        close_paren = _matching_byte(masked, open_paren, 40, 41)
+        if close_paren is None:
+            continue
+
+        body_start = masked.find(b"{", close_paren + 1)
+        if body_start < 0:
+            continue
+        body_end = _matching_byte(masked, body_start, 123, 125)
+        if body_end is None:
+            continue
+
+        enclosing = [
+            symbol for symbol in containers
+            if symbol.start_byte <= extension_match.start() < symbol.end_byte
+        ]
+        container = min(
+            enclosing,
+            key=lambda symbol: symbol.end_byte - symbol.start_byte,
+            default=None,
+        )
+        parents = (container.qualified,) if container is not None else ()
+        receiver = " ".join(
+            source[open_paren + 1:close_paren]
+            .decode("utf-8", "replace")
+            .split()
+        )
+
+        depth = 0
+        cursor = body_start + 1
+        for member_match in _CSHARP_EXTENSION_METHOD.finditer(
+            masked, body_start + 1, body_end
+        ):
+            while cursor < member_match.start():
+                byte = masked[cursor]
+                if byte == 123:
+                    depth += 1
+                elif byte == 125 and depth:
+                    depth -= 1
+                cursor += 1
+            if depth != 0:
+                continue
+
+            name = member_match.group("name").decode("utf-8", "replace")
+            name_start = member_match.start("name")
+            open_args = masked.find(b"(", name_start, member_match.end())
+            close_args = _matching_byte(masked, open_args, 40, 41)
+            if close_args is None or close_args > body_end:
+                continue
+
+            brace = masked.find(b"{", close_args + 1, body_end)
+            arrow = masked.find(b"=>", close_args + 1, body_end)
+            semi = masked.find(b";", close_args + 1, body_end)
+            terminators = [
+                (position, kind)
+                for position, kind in ((brace, "body"), (arrow, "arrow"), (semi, "semi"))
+                if position >= 0
+            ]
+            if not terminators:
+                continue
+            terminator, terminator_kind = min(terminators)
+
+            if terminator_kind == "body":
+                member_end = _matching_byte(masked, terminator, 123, 125)
+                if member_end is None or member_end > body_end:
+                    continue
+                member_end += 1
+                head_end = terminator
+                signature_marker = " { … }"
+            else:
+                member_end = masked.find(b";", terminator, body_end)
+                if member_end < 0:
+                    continue
+                member_end += 1
+                head_end = terminator
+                signature_marker = " …" if terminator_kind == "arrow" else ""
+
+            extent_start = member_match.start()
+            compact_head = " ".join(
+                source[extent_start:head_end].decode("utf-8", "replace").split()
+            )
+            receiver_prefix = f"extension({receiver}) " if receiver else "extension "
+            signature = (receiver_prefix + compact_head + signature_marker).strip()[:1000]
+            start_line = source.count(b"\n", 0, extent_start) + 1
+            end_line = source.count(b"\n", 0, member_end) + 1
+            identity_line = source.count(b"\n", 0, name_start) + 1
+            qualified = ".".join((*parents, name)) if parents else name
+            key = (qualified, identity_line)
+            if key in existing:
+                continue
+
+            recovered.append(Symbol(
+                name=name,
+                qualified=qualified,
+                start=start_line,
+                end=max(start_line, end_line),
+                start_byte=extent_start,
+                end_byte=member_end,
+                signature=signature,
+                kind="method",
+                identity_line=identity_line,
+            ))
+            existing.add(key)
+
+    return recovered
+
+
 def _csharp_symbols(source: bytes, root) -> list[Symbol]:
     found: list[Symbol] = []
 
@@ -592,6 +832,7 @@ def _csharp_symbols(source: bytes, root) -> list[Symbol]:
             walk(child, parents)
 
     walk(root)
+    found.extend(_csharp_extension_symbols(source, found))
     return found
 
 
