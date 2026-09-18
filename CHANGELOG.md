@@ -1,5 +1,31 @@
 # Unreleased
 
+- **Built and first-ran a seventh frozen external holdout after callable symbol
+  ranking v3, before any tuning against its repositories.**
+  `benchmarks/holdout-external-7.json` contains **48 source-grounded tasks
+  across 8 previously-unused repositories**: Rich (Python), NestJS
+  (TypeScript), Echo and Fx (Go), Hyper and Serde (Rust), Jackson Databind
+  (Java), and Dapper (C#). The suite deliberately stresses overloaded members,
+  same-name methods in different containers/files, builders, traits/interfaces,
+  constructors, and exact declaration identity. All repositories are pinned to
+  exact revisions. Ground truth was frozen before the first evaluation at SHA
+  `ebd45fda46047399cf3d68a494760e25002cbe0e384b3ae2913834be5afa1249`.
+
+  **First-ever result: 91.7% file recall, 85.4% bare source-visible symbol
+  recall, 72.9% qualified-symbol recall, 68.8% exact symbol-identity recall,
+  and ~98.71% estimated context reduction.** Per repository
+  file/bare/qualified/identity recall: Rich 100/83.3/83.3/83.3, NestJS
+  100/100/100/100, Echo 100/100/75/75, Fx 100/100/100/100, Hyper
+  100/100/100/100, Serde 100/75/75/75, Jackson Databind 100/100/70/70,
+  and Dapper 60/50/30/10.
+
+  This is the first untouched external suite to measure the post-#15 callable
+  ranking changes. It provides strong fresh evidence that precise symbol
+  selection generalized substantially beyond holdout #6, while exposing Dapper
+  as the dominant remaining file/member-selection outlier. The exact first-run
+  output is preserved in `benchmarks/holdout-external-7.result.json`.
+  Holdout #7 is now burned for tuning.
+
 - **Built and first-ran a sixth frozen external holdout after structural symbol
   graph v2, before any tuning against its repositories.**
   `benchmarks/holdout-external-6.json` contains **24 source-grounded tasks
