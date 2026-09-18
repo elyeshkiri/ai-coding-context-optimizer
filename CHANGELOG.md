@@ -14,7 +14,11 @@
   Explicit package/module/top-level requests now prefer top-level definitions
   over same-named receiver/class members. These changes are covered by new
   cross-language synthetic regressions; holdout #9 remains burned and is not
-  reused as fresh evidence.
+  reused as fresh evidence. A development-only rerun of that burned suite moved
+  scoped recall from 87.5% to 95.8%, qualified recall from 85.4% to 95.8%, and
+  exact identity from 70.8% to 93.75%, while file recall stayed at 100% and
+  context reduction stayed ~97.63%. These numbers are regression diagnostics,
+  not independent generalization evidence.
 
 - **Built and first-ran a ninth frozen external holdout under the stricter scoped-symbol metric.**
   `benchmarks/holdout-external-9.json` contains **48 source-grounded tasks
