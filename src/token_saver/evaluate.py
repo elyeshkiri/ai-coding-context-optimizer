@@ -80,7 +80,7 @@ def _ground_truth_payload(payload: dict[str, Any]) -> dict[str, Any]:
         for position, raw in enumerate(raw_tasks, start=1):
             if not isinstance(raw, dict):
                 continue
-            tasks.append({
+            normalized = {
                 "id": raw.get("id", position),
                 "repository": raw.get("repository"),
                 "query": str(raw.get("query", "")),
@@ -92,7 +92,23 @@ def _ground_truth_payload(payload: dict[str, Any]) -> dict[str, Any]:
                     str(value) for value in raw.get("symbols", []) if isinstance(value, str)
                 ),
                 "max_tokens": int(raw.get("max_tokens", payload.get("max_tokens", 6000))),
-            })
+            }
+            # Opt-in stricter identity: path + qualified symbol. Do not inject
+            # an empty field into legacy manifests, otherwise historical frozen
+            # ground-truth hashes would change merely by upgrading Token Saver.
+            if "qualified_symbols" in raw:
+                normalized["qualified_symbols"] = sorted(
+                    str(value)
+                    for value in raw.get("qualified_symbols", [])
+                    if isinstance(value, str)
+                )
+            if "symbol_identities" in raw:
+                normalized["symbol_identities"] = sorted(
+                    str(value)
+                    for value in raw.get("symbol_identities", [])
+                    if isinstance(value, str)
+                )
+            tasks.append(normalized)
     return {
         "suite_version": int(payload.get("suite_version", 1)),
         "repositories": repositories,
@@ -135,12 +151,27 @@ def _validate_holdout_protocol(payload: dict) -> str:
 
 
 def _summary(items: list[dict]) -> dict:
-    return {
+    out = {
         "task_count": len(items),
         "mean_file_recall": sum(item["file_recall"] for item in items) / len(items),
         "mean_symbol_recall": sum(item["symbol_recall"] for item in items) / len(items),
         "mean_token_reduction": sum(item["token_reduction"] for item in items) / len(items),
     }
+    strict = [
+        item["qualified_symbol_recall"]
+        for item in items
+        if item.get("qualified_symbol_recall") is not None
+    ]
+    if strict:
+        out["mean_qualified_symbol_recall"] = sum(strict) / len(strict)
+    exact = [
+        item["symbol_identity_recall"]
+        for item in items
+        if item.get("symbol_identity_recall") is not None
+    ]
+    if exact:
+        out["mean_symbol_identity_recall"] = sum(exact) / len(exact)
+    return out
 
 
 def evaluate_manifest(
@@ -212,6 +243,8 @@ def evaluate_manifest(
         query = str(task.get("query", ""))
         expected_files = set(task.get("files", []))
         expected_symbols = set(task.get("symbols", []))
+        expected_qualified_symbols = set(task.get("qualified_symbols", []))
+        expected_symbol_identities = set(task.get("symbol_identities", []))
         task_budget = int(task.get("max_tokens", max_tokens))
         if task_budget <= 0:
             raise ValueError(f"task {task.get('id', position)!r} max_tokens must be positive")
@@ -223,12 +256,27 @@ def evaluate_manifest(
             value.split(":", 1)[1].split("@", 1)[0]
             for value in pack.selected_symbols
         }
+        actual_qualified_symbols = {
+            value.rsplit("@", 1)[0]
+            for value in pack.selected_symbol_identities
+        }
         item = {
             "id": task.get("id", position),
             "repository": repo_name,
             "revision": revisions[repo_root],
             "file_recall": _recall(expected_files, set(pack.selected_files)),
             "symbol_recall": _recall(expected_symbols, actual_symbols),
+            "qualified_symbol_recall": (
+                _recall(expected_qualified_symbols, actual_qualified_symbols)
+                if expected_qualified_symbols else None
+            ),
+            "symbol_identity_recall": (
+                _recall(
+                    expected_symbol_identities,
+                    set(pack.selected_symbol_identities),
+                )
+                if expected_symbol_identities else None
+            ),
             "tokens": pack.estimated_tokens,
             "token_reduction": 1.0 - min(
                 1.0, pack.estimated_tokens / source_totals[repo_root]

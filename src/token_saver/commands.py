@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .evaluate import evaluate_manifest, ground_truth_hash
 from .context_browser import browse_context
+from .cost_report import Pricing, compare_cost_files, compare_paired_agent_file
 from .agent_eval import evaluate_agent_runs
 from .feedback import record_feedback
 from .host_validate import validate_host
@@ -344,4 +345,89 @@ def output_benchmark_main(argv: list[str]) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def cost_report_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver cost-report")
+    parser.add_argument("baseline")
+    parser.add_argument("optimized", nargs="?")
+    parser.add_argument("--input-per-million", type=float, default=0.0)
+    parser.add_argument("--output-per-million", type=float, default=0.0)
+    parser.add_argument("--cached-input-per-million", type=float, default=0.0)
+    parser.add_argument(
+        "--allow-unpaired", action="store_true",
+        help="compare only task_ids present in both files",
+    )
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        pricing = Pricing(
+            input_per_million=args.input_per_million,
+            output_per_million=args.output_per_million,
+            cached_input_per_million=args.cached_input_per_million,
+        )
+        if min(
+            pricing.input_per_million,
+            pricing.output_per_million,
+            pricing.cached_input_per_million,
+        ) < 0:
+            raise ValueError("pricing values must be nonnegative")
+        if args.optimized is None:
+            if args.allow_unpaired:
+                raise ValueError("--allow-unpaired is only valid in two-file mode")
+            result = compare_paired_agent_file(
+                Path(args.baseline),
+                pricing=pricing,
+            )
+        else:
+            result = compare_cost_files(
+                Path(args.baseline),
+                Path(args.optimized),
+                pricing=pricing,
+                require_same_tasks=not args.allow_unpaired,
+            )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+        return 0
+
+    b, o, d = result["baseline"], result["optimized"], result["delta"]
+    def pct(value):
+        return "n/a" if value is None else f"{value * 100:.1f}%"
+
+    print(f"PAIRED TASKS: {result['paired_task_count']}")
+    print(
+        f"success: {b['success_rate'] * 100:.1f}% -> "
+        f"{o['success_rate'] * 100:.1f}% "
+        f"({d['success_rate_change'] * 100:+.1f} pp)"
+    )
+    print(
+        f"tokens: {b['total_tokens']:,} -> {o['total_tokens']:,} "
+        f"({pct(d['total_token_reduction'])} reduction)"
+    )
+    print(
+        f"cost: ${b['total_cost_usd']:.4f} -> ${o['total_cost_usd']:.4f} "
+        f"({pct(d['cost_reduction'])} reduction)"
+    )
+    before_cps = b["cost_per_success_usd"]
+    after_cps = o["cost_per_success_usd"]
+    if before_cps is not None and after_cps is not None:
+        print(
+            f"cost/success: ${before_cps:.4f} -> ${after_cps:.4f} "
+            f"({pct(d['cost_per_success_reduction'])} reduction)"
+        )
+    print(
+        f"calls: model {b['model_calls']} -> {o['model_calls']}; "
+        f"tools {b['tool_calls']} -> {o['tool_calls']}"
+    )
+    print(
+        f"mean latency: {b['mean_latency_ms']:.0f} ms -> "
+        f"{o['mean_latency_ms']:.0f} ms"
+    )
+    if result["outcomes"]["regressed_tasks"]:
+        print("regressed tasks: " + ", ".join(result["outcomes"]["regressed_tasks"]))
     return 0

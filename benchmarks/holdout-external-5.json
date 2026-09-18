@@ -1,0 +1,368 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T12:30:00Z",
+    "ground_truth_sha256": "9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3"
+  },
+  "repositories": {
+    "chi": {
+      "path": "chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc"
+    },
+    "zap": {
+      "path": "zap",
+      "revision": "4892335e05f14bce8a98a69a577fcf3844a42623"
+    },
+    "clap": {
+      "path": "clap",
+      "revision": "7f26a2553eaaa40eccb896fc39002292fd0ab981"
+    },
+    "tower": {
+      "path": "tower",
+      "revision": "df06d70dbea345facbffb5881fe8647f53bf424d"
+    },
+    "guava": {
+      "path": "guava",
+      "revision": "5a7407d8f0bcccdf36c919b77991809c1bced828"
+    },
+    "serilog": {
+      "path": "serilog",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070"
+    }
+  },
+  "tasks": [
+    {
+      "id": "chi-new-router",
+      "repository": "chi",
+      "query": "where does chi create a new HTTP router instance",
+      "files": [
+        "chi.go"
+      ],
+      "symbols": [
+        "NewRouter"
+      ]
+    },
+    {
+      "id": "chi-serve-http",
+      "repository": "chi",
+      "query": "how does a chi Mux serve an incoming HTTP request and reuse routing context state",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "ServeHTTP"
+      ]
+    },
+    {
+      "id": "chi-mount-subrouter",
+      "repository": "chi",
+      "query": "how does chi mount another handler or subrouter under a URL pattern",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Mount"
+      ]
+    },
+    {
+      "id": "chi-route-subrouter",
+      "repository": "chi",
+      "query": "how does chi create and mount a sub-router for a route pattern",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Route"
+      ]
+    },
+    {
+      "id": "chi-url-param",
+      "repository": "chi",
+      "query": "how does chi read a named URL parameter from an HTTP request",
+      "files": [
+        "context.go"
+      ],
+      "symbols": [
+        "URLParam"
+      ]
+    },
+    {
+      "id": "zap-new-production",
+      "repository": "zap",
+      "query": "where does zap construct its production logger preset",
+      "files": [
+        "logger.go"
+      ],
+      "symbols": [
+        "NewProduction"
+      ]
+    },
+    {
+      "id": "zap-new-development",
+      "repository": "zap",
+      "query": "where does zap construct its development logger preset",
+      "files": [
+        "logger.go"
+      ],
+      "symbols": [
+        "NewDevelopment"
+      ]
+    },
+    {
+      "id": "zap-new-nop",
+      "repository": "zap",
+      "query": "how does zap create a no-op logger that discards log entries",
+      "files": [
+        "logger.go"
+      ],
+      "symbols": [
+        "NewNop"
+      ]
+    },
+    {
+      "id": "zap-config-build",
+      "repository": "zap",
+      "query": "how does a zap Config validate settings, open sinks, and build a Logger",
+      "files": [
+        "config.go"
+      ],
+      "symbols": [
+        "Build"
+      ]
+    },
+    {
+      "id": "zap-logger-info",
+      "repository": "zap",
+      "query": "how does Logger.Info check the info level and write fields",
+      "files": [
+        "logger.go"
+      ],
+      "symbols": [
+        "Info"
+      ]
+    },
+    {
+      "id": "clap-command-new",
+      "repository": "clap",
+      "query": "where does clap Command create a new command from its name",
+      "files": [
+        "clap_builder/src/builder/command.rs"
+      ],
+      "symbols": [
+        "new"
+      ]
+    },
+    {
+      "id": "clap-command-arg",
+      "repository": "clap",
+      "query": "how does clap add an argument definition to a Command builder",
+      "files": [
+        "clap_builder/src/builder/command.rs"
+      ],
+      "symbols": [
+        "arg"
+      ]
+    },
+    {
+      "id": "clap-command-subcommand",
+      "repository": "clap",
+      "query": "how does clap attach a nested subcommand to a Command",
+      "files": [
+        "clap_builder/src/builder/command.rs"
+      ],
+      "symbols": [
+        "subcommand"
+      ]
+    },
+    {
+      "id": "clap-get-matches",
+      "repository": "clap",
+      "query": "how does clap parse process arguments into ArgMatches using environment arguments",
+      "files": [
+        "clap_builder/src/builder/command.rs"
+      ],
+      "symbols": [
+        "get_matches"
+      ]
+    },
+    {
+      "id": "clap-try-get-matches-from",
+      "repository": "clap",
+      "query": "how does clap try to parse a supplied iterator of arguments without exiting on an error",
+      "files": [
+        "clap_builder/src/builder/command.rs"
+      ],
+      "symbols": [
+        "try_get_matches_from"
+      ]
+    },
+    {
+      "id": "tower-service-fn",
+      "repository": "tower",
+      "query": "where does tower wrap an async function or closure as a Service",
+      "files": [
+        "tower/src/util/service_fn.rs"
+      ],
+      "symbols": [
+        "service_fn"
+      ]
+    },
+    {
+      "id": "tower-balance-new",
+      "repository": "tower",
+      "query": "how does the p2c Balance constructor create a load balancer from discovery using OS entropy",
+      "files": [
+        "tower/src/balance/p2c/service.rs"
+      ],
+      "symbols": [
+        "new"
+      ]
+    },
+    {
+      "id": "tower-timeout-call",
+      "repository": "tower",
+      "query": "how does Timeout call the inner service and wrap its response future with a deadline",
+      "files": [
+        "tower/src/timeout/mod.rs"
+      ],
+      "symbols": [
+        "call"
+      ]
+    },
+    {
+      "id": "tower-timeout-layer",
+      "repository": "tower",
+      "query": "how does TimeoutLayer wrap an inner service with timeout middleware",
+      "files": [
+        "tower/src/timeout/layer.rs"
+      ],
+      "symbols": [
+        "layer"
+      ]
+    },
+    {
+      "id": "tower-builder-timeout",
+      "repository": "tower",
+      "query": "how does ServiceBuilder add timeout middleware with a duration",
+      "files": [
+        "tower/src/builder/mod.rs"
+      ],
+      "symbols": [
+        "timeout"
+      ]
+    },
+    {
+      "id": "guava-check-not-null",
+      "repository": "guava",
+      "query": "where does Guava validate that an object reference is not null and return it",
+      "files": [
+        "guava/src/com/google/common/base/Preconditions.java"
+      ],
+      "symbols": [
+        "checkNotNull"
+      ]
+    },
+    {
+      "id": "guava-immutable-list-copy",
+      "repository": "guava",
+      "query": "how does ImmutableList copy elements from an iterable into an immutable list",
+      "files": [
+        "guava/src/com/google/common/collect/ImmutableList.java"
+      ],
+      "symbols": [
+        "copyOf"
+      ]
+    },
+    {
+      "id": "guava-immutable-map-empty",
+      "repository": "guava",
+      "query": "how does ImmutableMap create the empty immutable map singleton",
+      "files": [
+        "guava/src/com/google/common/collect/ImmutableMap.java"
+      ],
+      "symbols": [
+        "of"
+      ]
+    },
+    {
+      "id": "guava-optional-of",
+      "repository": "guava",
+      "query": "how does Guava Optional create a present value while rejecting null",
+      "files": [
+        "guava/src/com/google/common/base/Optional.java"
+      ],
+      "symbols": [
+        "of"
+      ]
+    },
+    {
+      "id": "guava-immediate-future",
+      "repository": "guava",
+      "query": "how does Futures create an already-completed ListenableFuture for a value",
+      "files": [
+        "guava/src/com/google/common/util/concurrent/Futures.java"
+      ],
+      "symbols": [
+        "immediateFuture"
+      ]
+    },
+    {
+      "id": "serilog-create-logger",
+      "repository": "serilog",
+      "query": "how does LoggerConfiguration create the final Logger from configured sinks filters enrichers and levels",
+      "files": [
+        "src/Serilog/LoggerConfiguration.cs"
+      ],
+      "symbols": [
+        "CreateLogger"
+      ]
+    },
+    {
+      "id": "serilog-logger-information",
+      "repository": "serilog",
+      "query": "how does the core Serilog Logger write an information-level message template",
+      "files": [
+        "src/Serilog/Core/Logger.cs"
+      ],
+      "symbols": [
+        "Information"
+      ]
+    },
+    {
+      "id": "serilog-static-information",
+      "repository": "serilog",
+      "query": "where does the static Log facade forward an information message to the configured logger",
+      "files": [
+        "src/Serilog/Log.cs"
+      ],
+      "symbols": [
+        "Information"
+      ]
+    },
+    {
+      "id": "serilog-message-template-parse",
+      "repository": "serilog",
+      "query": "how does Serilog parse a message templete string into message template tokens",
+      "files": [
+        "src/Serilog/Parsing/MessageTemplateParser.cs"
+      ],
+      "symbols": [
+        "Parse"
+      ]
+    },
+    {
+      "id": "serilog-sink-config",
+      "repository": "serilog",
+      "query": "how does LoggerSinkConfiguration register an ILogEventSink with a minimum level or level switch",
+      "files": [
+        "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
+      ],
+      "symbols": [
+        "Sink"
+      ]
+    }
+  ]
+}

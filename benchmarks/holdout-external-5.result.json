@@ -1,0 +1,320 @@
+{
+  "tasks": [
+    {
+      "id": "chi-new-router",
+      "repository": "chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5993,
+      "token_reduction": 0.942698971201285
+    },
+    {
+      "id": "chi-serve-http",
+      "repository": "chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9426320419168547
+    },
+    {
+      "id": "chi-mount-subrouter",
+      "repository": "chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5998,
+      "token_reduction": 0.9426511645695491
+    },
+    {
+      "id": "chi-route-subrouter",
+      "repository": "chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5977,
+      "token_reduction": 0.9428519524228401
+    },
+    {
+      "id": "chi-url-param",
+      "repository": "chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9426320419168547
+    },
+    {
+      "id": "zap-new-production",
+      "repository": "zap",
+      "revision": "4892335e05f14bce8a98a69a577fcf3844a42623",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9704968867669136
+    },
+    {
+      "id": "zap-new-development",
+      "repository": "zap",
+      "revision": "4892335e05f14bce8a98a69a577fcf3844a42623",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5999,
+      "token_reduction": 0.9704722762286812
+    },
+    {
+      "id": "zap-new-nop",
+      "repository": "zap",
+      "revision": "4892335e05f14bce8a98a69a577fcf3844a42623",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5997,
+      "token_reduction": 0.9704821204439741
+    },
+    {
+      "id": "zap-config-build",
+      "repository": "zap",
+      "revision": "4892335e05f14bce8a98a69a577fcf3844a42623",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5983,
+      "token_reduction": 0.970551029951025
+    },
+    {
+      "id": "zap-logger-info",
+      "repository": "zap",
+      "revision": "4892335e05f14bce8a98a69a577fcf3844a42623",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5987,
+      "token_reduction": 0.9705313415204391
+    },
+    {
+      "id": "clap-command-new",
+      "repository": "clap",
+      "revision": "7f26a2553eaaa40eccb896fc39002292fd0ab981",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9919479731706466
+    },
+    {
+      "id": "clap-command-arg",
+      "repository": "clap",
+      "revision": "7f26a2553eaaa40eccb896fc39002292fd0ab981",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9919506571795897
+    },
+    {
+      "id": "clap-command-subcommand",
+      "repository": "clap",
+      "revision": "7f26a2553eaaa40eccb896fc39002292fd0ab981",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5991,
+      "token_reduction": 0.9919600512108906
+    },
+    {
+      "id": "clap-get-matches",
+      "repository": "clap",
+      "revision": "7f26a2553eaaa40eccb896fc39002292fd0ab981",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.9919479731706466
+    },
+    {
+      "id": "clap-try-get-matches-from",
+      "repository": "clap",
+      "revision": "7f26a2553eaaa40eccb896fc39002292fd0ab981",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9919479731706466
+    },
+    {
+      "id": "tower-service-fn",
+      "repository": "tower",
+      "revision": "df06d70dbea345facbffb5881fe8647f53bf424d",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "tokens": 5989,
+      "token_reduction": 0.956766238828812
+    },
+    {
+      "id": "tower-balance-new",
+      "repository": "tower",
+      "revision": "df06d70dbea345facbffb5881fe8647f53bf424d",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5990,
+      "token_reduction": 0.9567590199673708
+    },
+    {
+      "id": "tower-timeout-call",
+      "repository": "tower",
+      "revision": "df06d70dbea345facbffb5881fe8647f53bf424d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5993,
+      "token_reduction": 0.9567373633830473
+    },
+    {
+      "id": "tower-timeout-layer",
+      "repository": "tower",
+      "revision": "df06d70dbea345facbffb5881fe8647f53bf424d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 6000,
+      "token_reduction": 0.9566868313529591
+    },
+    {
+      "id": "tower-builder-timeout",
+      "repository": "tower",
+      "revision": "df06d70dbea345facbffb5881fe8647f53bf424d",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9567301445216061
+    },
+    {
+      "id": "guava-check-not-null",
+      "repository": "guava",
+      "revision": "5a7407d8f0bcccdf36c919b77991809c1bced828",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "tokens": 5998,
+      "token_reduction": 0.9991818214308221
+    },
+    {
+      "id": "guava-immutable-list-copy",
+      "repository": "guava",
+      "revision": "5a7407d8f0bcccdf36c919b77991809c1bced828",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5999,
+      "token_reduction": 0.9991816850222578
+    },
+    {
+      "id": "guava-immutable-map-empty",
+      "repository": "guava",
+      "revision": "5a7407d8f0bcccdf36c919b77991809c1bced828",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5980,
+      "token_reduction": 0.9991842767849811
+    },
+    {
+      "id": "guava-optional-of",
+      "repository": "guava",
+      "revision": "5a7407d8f0bcccdf36c919b77991809c1bced828",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 6000,
+      "token_reduction": 0.9991815486136933
+    },
+    {
+      "id": "guava-immediate-future",
+      "repository": "guava",
+      "revision": "5a7407d8f0bcccdf36c919b77991809c1bced828",
+      "file_recall": 0,
+      "symbol_recall": 0,
+      "tokens": 5988,
+      "token_reduction": 0.999183185516466
+    },
+    {
+      "id": "serilog-create-logger",
+      "repository": "serilog",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5994,
+      "token_reduction": 0.9755451745170437
+    },
+    {
+      "id": "serilog-logger-information",
+      "repository": "serilog",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5999,
+      "token_reduction": 0.9755247750963872
+    },
+    {
+      "id": "serilog-static-information",
+      "repository": "serilog",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5994,
+      "token_reduction": 0.9755451745170437
+    },
+    {
+      "id": "serilog-message-template-parse",
+      "repository": "serilog",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070",
+      "file_recall": 1,
+      "symbol_recall": 0,
+      "tokens": 5978,
+      "token_reduction": 0.9756104526631444
+    },
+    {
+      "id": "serilog-sink-config",
+      "repository": "serilog",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070",
+      "file_recall": 1,
+      "symbol_recall": 1,
+      "tokens": 5980,
+      "token_reduction": 0.9756022928948818
+    }
+  ],
+  "repositories": {
+    "chi": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 1,
+      "mean_token_reduction": 0.9426932344054768
+    },
+    "clap": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.4,
+      "mean_token_reduction": 0.991950925580484
+    },
+    "guava": {
+      "task_count": 5,
+      "mean_file_recall": 0.6,
+      "mean_symbol_recall": 0.4,
+      "mean_token_reduction": 0.999182503473644
+    },
+    "serilog": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.4,
+      "mean_token_reduction": 0.9755655739377002
+    },
+    "tower": {
+      "task_count": 5,
+      "mean_file_recall": 0.8,
+      "mean_symbol_recall": 0.6,
+      "mean_token_reduction": 0.956735919610759
+    },
+    "zap": {
+      "task_count": 5,
+      "mean_file_recall": 1,
+      "mean_symbol_recall": 0.6,
+      "mean_token_reduction": 0.9705067309822066
+    }
+  },
+  "summary": {
+    "task_count": 30,
+    "mean_file_recall": 0.9,
+    "mean_symbol_recall": 0.5666666666666667,
+    "mean_token_reduction": 0.9727724813317118
+  },
+  "holdout_protocol_enforced": true,
+  "ground_truth_sha256": "9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3"
+}
