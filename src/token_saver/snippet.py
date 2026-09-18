@@ -65,20 +65,24 @@ def _pattern_span(text: str, name: str) -> tuple[int, int] | None:
 
 def extract_symbol(text: str, suffix: str, name: str) -> tuple[str, int, int] | None:
     """Return (snippet, start_line, end_line) or None if the symbol is missing."""
-    from .syntax import JS_TS, extract
-    if suffix.lower() in JS_TS:
-        return extract(text, suffix.lower(), name)
+    from .syntax import JS_TS, STRUCTURED_EXTRA, extract
+
+    lowered = suffix.lower()
+    if lowered in JS_TS:
+        return extract(text, lowered, name)
+    if lowered in STRUCTURED_EXTRA:
+        return extract(text, lowered, name)
     span = None
-    if suffix.lower() in PYTHON_SUFFIXES:
+    if lowered in PYTHON_SUFFIXES:
         span = _python_span(text, name)
-    if span is None and suffix.lower() not in PYTHON_SUFFIXES:
+    if span is None and lowered not in PYTHON_SUFFIXES:
         span = _pattern_span(text, name)
     if span is None:
         return None
     start, end = span
     lines = text.splitlines()
     body = "\n".join(lines[start - 1 : end]) + "\n"
-    label = "" if suffix.lower() in PYTHON_SUFFIXES else " (approximate boundaries; verify source)"
+    label = "" if lowered in PYTHON_SUFFIXES else " (approximate boundaries; verify source)"
     header = f"# {name}  lines {start}-{end}{label}\n"
     return header + body, start, end
 
