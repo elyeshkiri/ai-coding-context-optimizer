@@ -1,0 +1,910 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T18:52:00Z",
+    "ground_truth_sha256": "5c07f59e7a96bb7b6c97764c02aecae2e7597afe6be25b84f95a8154617d7ecf"
+  },
+  "repositories": {
+    "nlog": {
+      "path": "NLog",
+      "revision": "5e60d28d428c044ae5d6b36bf8875ec7370cf046"
+    },
+    "fluentassertions": {
+      "path": "FluentAssertions",
+      "revision": "e5349243870e70b36945af6bf10ab3b64e768a13"
+    },
+    "caffeine": {
+      "path": "caffeine",
+      "revision": "c0edd00bb6063e59ee1e7a7db5588fac7a6524f5"
+    },
+    "commons-lang": {
+      "path": "commons-lang",
+      "revision": "8c730822620f2e5a9e7e64443483127f438e51b7"
+    },
+    "typeorm": {
+      "path": "typeorm",
+      "revision": "b1eafc23d8d695a2e2f4ebe9063d9a0c92415d1d"
+    },
+    "class-transformer": {
+      "path": "class-transformer",
+      "revision": "a2734a5d154c9b0beb9a10555a04416bc371de06"
+    },
+    "tokio": {
+      "path": "tokio",
+      "revision": "cf782c5b917b7ea21b6f97f07104ebf16d35f5f8"
+    },
+    "logrus": {
+      "path": "logrus",
+      "revision": "6d6a132bc03324d4ceb78e1b927f995d014cda20"
+    }
+  },
+  "tasks": [
+    {
+      "id": "nlog-log-event",
+      "repository": "nlog",
+      "query": "which Logger Log overload accepts only a LogEventInfo event",
+      "files": [
+        "src/NLog/Logger.cs"
+      ],
+      "symbols": [
+        "Log"
+      ],
+      "qualified_symbols": [
+        "src/NLog/Logger.cs:Logger.Log"
+      ],
+      "symbol_identities": [
+        "src/NLog/Logger.cs:Logger.Log@268"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nlog-log-wrapper-event",
+      "repository": "nlog",
+      "query": "which Logger Log overload accepts a Type wrapperType followed by LogEventInfo",
+      "files": [
+        "src/NLog/Logger.cs"
+      ],
+      "symbols": [
+        "Log"
+      ],
+      "qualified_symbols": [
+        "src/NLog/Logger.cs:Logger.Log"
+      ],
+      "symbol_identities": [
+        "src/NLog/Logger.cs:Logger.Log@286"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nlog-log-generic-value",
+      "repository": "nlog",
+      "query": "which generic Logger Log<T> overload accepts LogLevel and a T value without an IFormatProvider",
+      "files": [
+        "src/NLog/Logger.cs"
+      ],
+      "symbols": [
+        "Log"
+      ],
+      "qualified_symbols": [
+        "src/NLog/Logger.cs:Logger.Log"
+      ],
+      "symbol_identities": [
+        "src/NLog/Logger.cs:Logger.Log@310"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nlog-log-generic-provider-value",
+      "repository": "nlog",
+      "query": "which generic Logger Log<T> overload accepts LogLevel, IFormatProvider, and a T value",
+      "files": [
+        "src/NLog/Logger.cs"
+      ],
+      "symbols": [
+        "Log"
+      ],
+      "qualified_symbols": [
+        "src/NLog/Logger.cs:Logger.Log"
+      ],
+      "symbol_identities": [
+        "src/NLog/Logger.cs:Logger.Log@325"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nlog-log-exception-message-args",
+      "repository": "nlog",
+      "query": "which Logger Log overload accepts LogLevel, Exception, structured string message, and params object array",
+      "files": [
+        "src/NLog/Logger.cs"
+      ],
+      "symbols": [
+        "Log"
+      ],
+      "qualified_symbols": [
+        "src/NLog/Logger.cs:Logger.Log"
+      ],
+      "symbol_identities": [
+        "src/NLog/Logger.cs:Logger.Log@403"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "nlog-log-three-generic-args",
+      "repository": "nlog",
+      "query": "which Logger Log<TArgument1, TArgument2, TArgument3> overload accepts LogLevel, structured message, and three typed arguments without a format provider",
+      "files": [
+        "src/NLog/Logger.cs"
+      ],
+      "symbols": [
+        "Log"
+      ],
+      "qualified_symbols": [
+        "src/NLog/Logger.cs:Logger.Log"
+      ],
+      "symbol_identities": [
+        "src/NLog/Logger.cs:Logger.Log@558"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fa-be-string",
+      "repository": "fluentassertions",
+      "query": "where does StringAssertions Be compare the subject to an expected string with optional because text and arguments",
+      "files": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs"
+      ],
+      "symbols": [
+        "Be"
+      ],
+      "qualified_symbols": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.Be"
+      ],
+      "symbol_identities": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.Be@58"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fa-notbe-string",
+      "repository": "fluentassertions",
+      "query": "where does StringAssertions NotBe reject an unexpected string with optional because text and arguments",
+      "files": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs"
+      ],
+      "symbols": [
+        "NotBe"
+      ],
+      "qualified_symbols": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.NotBe"
+      ],
+      "symbol_identities": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.NotBe@252"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fa-matchregex-string-occurrence",
+      "repository": "fluentassertions",
+      "query": "which StringAssertions MatchRegex overload accepts a regex pattern string plus OccurrenceConstraint",
+      "files": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs"
+      ],
+      "symbols": [
+        "MatchRegex"
+      ],
+      "qualified_symbols": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.MatchRegex"
+      ],
+      "symbol_identities": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.MatchRegex@642"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fa-matchregex-regex-occurrence",
+      "repository": "fluentassertions",
+      "query": "which StringAssertions MatchRegex overload accepts a Regex object plus OccurrenceConstraint",
+      "files": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs"
+      ],
+      "symbols": [
+        "MatchRegex"
+      ],
+      "qualified_symbols": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.MatchRegex"
+      ],
+      "symbol_identities": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.MatchRegex@724"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fa-contain-string",
+      "repository": "fluentassertions",
+      "query": "which StringAssertions Contain overload accepts only the expected substring plus optional because text",
+      "files": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs"
+      ],
+      "symbols": [
+        "Contain"
+      ],
+      "qualified_symbols": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.Contain"
+      ],
+      "symbol_identities": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.Contain@1288"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fa-contain-occurrence",
+      "repository": "fluentassertions",
+      "query": "which StringAssertions Contain overload accepts expected substring plus an OccurrenceConstraint",
+      "files": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs"
+      ],
+      "symbols": [
+        "Contain"
+      ],
+      "qualified_symbols": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.Contain"
+      ],
+      "symbol_identities": [
+        "Src/FluentAssertions/Primitives/StringAssertions.cs:StringAssertions.Contain@1323"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "caffeine-expire-write-duration",
+      "repository": "caffeine",
+      "query": "which Caffeine expireAfterWrite overload accepts a java.time Duration",
+      "files": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java"
+      ],
+      "symbols": [
+        "expireAfterWrite"
+      ],
+      "qualified_symbols": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterWrite"
+      ],
+      "symbol_identities": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterWrite@669"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "caffeine-expire-write-timeunit",
+      "repository": "caffeine",
+      "query": "which Caffeine expireAfterWrite overload accepts long duration and TimeUnit",
+      "files": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java"
+      ],
+      "symbols": [
+        "expireAfterWrite"
+      ],
+      "qualified_symbols": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterWrite"
+      ],
+      "symbol_identities": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterWrite@694"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "caffeine-expire-access-duration",
+      "repository": "caffeine",
+      "query": "which Caffeine expireAfterAccess overload accepts a java.time Duration",
+      "files": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java"
+      ],
+      "symbols": [
+        "expireAfterAccess"
+      ],
+      "qualified_symbols": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterAccess"
+      ],
+      "symbol_identities": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterAccess@731"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "caffeine-expire-access-timeunit",
+      "repository": "caffeine",
+      "query": "which Caffeine expireAfterAccess overload accepts long duration and TimeUnit",
+      "files": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java"
+      ],
+      "symbols": [
+        "expireAfterAccess"
+      ],
+      "qualified_symbols": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterAccess"
+      ],
+      "symbol_identities": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.expireAfterAccess@759"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "caffeine-refresh-write-duration",
+      "repository": "caffeine",
+      "query": "which Caffeine refreshAfterWrite overload accepts a java.time Duration",
+      "files": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java"
+      ],
+      "symbols": [
+        "refreshAfterWrite"
+      ],
+      "qualified_symbols": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.refreshAfterWrite"
+      ],
+      "symbol_identities": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.refreshAfterWrite@851"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "caffeine-refresh-write-timeunit",
+      "repository": "caffeine",
+      "query": "which Caffeine refreshAfterWrite overload accepts long duration and TimeUnit",
+      "files": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java"
+      ],
+      "symbols": [
+        "refreshAfterWrite"
+      ],
+      "qualified_symbols": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.refreshAfterWrite"
+      ],
+      "symbol_identities": [
+        "caffeine/src/main/java/com/github/benmanes/caffeine/cache/Caffeine.java:Caffeine.refreshAfterWrite@879"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-split-string",
+      "repository": "commons-lang",
+      "query": "which StringUtils split overload accepts only a String input and splits on whitespace",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "split"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split@7159"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-split-char",
+      "repository": "commons-lang",
+      "query": "which StringUtils split overload accepts a String and a char separatorChar",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "split"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split@7189"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-split-string-separators",
+      "repository": "commons-lang",
+      "query": "which StringUtils split overload accepts a String plus String separatorChars",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "split"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split@7218"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-split-string-separators-max",
+      "repository": "commons-lang",
+      "query": "which StringUtils split overload accepts String, String separatorChars, and int max",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "split"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.split@7252"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-substring-start",
+      "repository": "commons-lang",
+      "query": "which StringUtils substring overload accepts String and start index without an end index",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "substring"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.substring"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.substring@8258"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-substring-start-end",
+      "repository": "commons-lang",
+      "query": "which StringUtils substring overload accepts String, start index, and end index",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "substring"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.substring"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.substring@8309"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "typeorm-select-empty",
+      "repository": "typeorm",
+      "query": "which SelectQueryBuilder select overload takes no arguments and replaces previous selections",
+      "files": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts"
+      ],
+      "symbols": [
+        "select"
+      ],
+      "qualified_symbols": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select"
+      ],
+      "symbol_identities": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select@127"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "typeorm-select-subquery",
+      "repository": "typeorm",
+      "query": "which SelectQueryBuilder select overload accepts a callback from SelectQueryBuilder<any> to SelectQueryBuilder<any> plus optional alias",
+      "files": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts"
+      ],
+      "symbols": [
+        "select"
+      ],
+      "qualified_symbols": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select"
+      ],
+      "symbol_identities": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select@133"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "typeorm-select-string",
+      "repository": "typeorm",
+      "query": "which SelectQueryBuilder select overload accepts a string selection plus optional selectionAliasName",
+      "files": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts"
+      ],
+      "symbols": [
+        "select"
+      ],
+      "qualified_symbols": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select"
+      ],
+      "symbol_identities": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select@142"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "typeorm-select-array",
+      "repository": "typeorm",
+      "query": "which SelectQueryBuilder select overload accepts an array of string selections",
+      "files": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts"
+      ],
+      "symbols": [
+        "select"
+      ],
+      "qualified_symbols": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select"
+      ],
+      "symbol_identities": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select@148"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "typeorm-select-implementation",
+      "repository": "typeorm",
+      "query": "where is the SelectQueryBuilder select implementation accepting optional string, string array, or subquery callback union",
+      "files": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts"
+      ],
+      "symbols": [
+        "select"
+      ],
+      "qualified_symbols": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select"
+      ],
+      "symbol_identities": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.select@157"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "typeorm-orderby-condition",
+      "repository": "typeorm",
+      "query": "which SelectQueryBuilder orderBy overload accepts an OrderByCondition object",
+      "files": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts"
+      ],
+      "symbols": [
+        "orderBy"
+      ],
+      "qualified_symbols": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.orderBy"
+      ],
+      "symbol_identities": [
+        "packages/typeorm/src/query-builder/SelectQueryBuilder.ts:SelectQueryBuilder.orderBy@1424"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "ct-method-instance-plain-object",
+      "repository": "class-transformer",
+      "query": "which ClassTransformer instanceToPlain overload accepts one object T rather than an array",
+      "files": [
+        "src/ClassTransformer.ts"
+      ],
+      "symbols": [
+        "instanceToPlain"
+      ],
+      "qualified_symbols": [
+        "src/ClassTransformer.ts:ClassTransformer.instanceToPlain"
+      ],
+      "symbol_identities": [
+        "src/ClassTransformer.ts:ClassTransformer.instanceToPlain@15"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "ct-function-instance-plain-object",
+      "repository": "class-transformer",
+      "query": "which package-level instanceToPlain overload in src/index.ts accepts one object T rather than an array",
+      "files": [
+        "src/index.ts"
+      ],
+      "symbols": [
+        "instanceToPlain"
+      ],
+      "qualified_symbols": [
+        "src/index.ts:instanceToPlain"
+      ],
+      "symbol_identities": [
+        "src/index.ts:instanceToPlain@29"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "ct-method-plain-instance-array",
+      "repository": "class-transformer",
+      "query": "which ClassTransformer plainToInstance overload accepts ClassConstructor<T> and an array V extends Array<any>",
+      "files": [
+        "src/ClassTransformer.ts"
+      ],
+      "symbols": [
+        "plainToInstance"
+      ],
+      "qualified_symbols": [
+        "src/ClassTransformer.ts:ClassTransformer.plainToInstance"
+      ],
+      "symbol_identities": [
+        "src/ClassTransformer.ts:ClassTransformer.plainToInstance@58"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "ct-function-plain-instance-array",
+      "repository": "class-transformer",
+      "query": "which package-level plainToInstance overload in src/index.ts accepts ClassConstructor<T> and V array",
+      "files": [
+        "src/index.ts"
+      ],
+      "symbols": [
+        "plainToInstance"
+      ],
+      "qualified_symbols": [
+        "src/index.ts:plainToInstance"
+      ],
+      "symbol_identities": [
+        "src/index.ts:plainToInstance@77"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "ct-method-instance-instance-impl",
+      "repository": "class-transformer",
+      "query": "where is the ClassTransformer instanceToInstance implementation accepting T or T array and returning T or T array",
+      "files": [
+        "src/ClassTransformer.ts"
+      ],
+      "symbols": [
+        "instanceToInstance"
+      ],
+      "qualified_symbols": [
+        "src/ClassTransformer.ts:ClassTransformer.instanceToInstance"
+      ],
+      "symbol_identities": [
+        "src/ClassTransformer.ts:ClassTransformer.instanceToInstance@108"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "ct-function-instance-instance-impl",
+      "repository": "class-transformer",
+      "query": "where is the package-level instanceToInstance implementation in src/index.ts accepting T or T array",
+      "files": [
+        "src/index.ts"
+      ],
+      "symbols": [
+        "instanceToInstance"
+      ],
+      "qualified_symbols": [
+        "src/index.ts:instanceToInstance"
+      ],
+      "symbol_identities": [
+        "src/index.ts:instanceToInstance@105"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tokio-receiver-recv",
+      "repository": "tokio",
+      "query": "where does mpsc Receiver recv asynchronously return the next Option<T>",
+      "files": [
+        "tokio/src/sync/mpsc/bounded.rs"
+      ],
+      "symbols": [
+        "recv"
+      ],
+      "qualified_symbols": [
+        "tokio/src/sync/mpsc/bounded.rs:Receiver.recv"
+      ],
+      "symbol_identities": [
+        "tokio/src/sync/mpsc/bounded.rs:Receiver.recv@243"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tokio-receiver-try-recv",
+      "repository": "tokio",
+      "query": "where does mpsc Receiver try_recv immediately return Result<T, TryRecvError>",
+      "files": [
+        "tokio/src/sync/mpsc/bounded.rs"
+      ],
+      "symbols": [
+        "try_recv"
+      ],
+      "qualified_symbols": [
+        "tokio/src/sync/mpsc/bounded.rs:Receiver.try_recv"
+      ],
+      "symbol_identities": [
+        "tokio/src/sync/mpsc/bounded.rs:Receiver.try_recv@364"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tokio-sender-send",
+      "repository": "tokio",
+      "query": "where does mpsc Sender send asynchronously send a T and return Result<(), SendError<T>>",
+      "files": [
+        "tokio/src/sync/mpsc/bounded.rs"
+      ],
+      "symbols": [
+        "send"
+      ],
+      "qualified_symbols": [
+        "tokio/src/sync/mpsc/bounded.rs:Sender.send"
+      ],
+      "symbol_identities": [
+        "tokio/src/sync/mpsc/bounded.rs:Sender.send@816"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tokio-sender-reserve",
+      "repository": "tokio",
+      "query": "where does mpsc Sender reserve asynchronously wait for one slot and return Permit",
+      "files": [
+        "tokio/src/sync/mpsc/bounded.rs"
+      ],
+      "symbols": [
+        "reserve"
+      ],
+      "qualified_symbols": [
+        "tokio/src/sync/mpsc/bounded.rs:Sender.reserve"
+      ],
+      "symbol_identities": [
+        "tokio/src/sync/mpsc/bounded.rs:Sender.reserve@1116"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tokio-permit-send",
+      "repository": "tokio",
+      "query": "where does mpsc Permit send consume a borrowed permit and send T without returning Sender",
+      "files": [
+        "tokio/src/sync/mpsc/bounded.rs"
+      ],
+      "symbols": [
+        "send"
+      ],
+      "qualified_symbols": [
+        "tokio/src/sync/mpsc/bounded.rs:Permit.send"
+      ],
+      "symbol_identities": [
+        "tokio/src/sync/mpsc/bounded.rs:Permit.send@1721"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tokio-ownedpermit-send",
+      "repository": "tokio",
+      "query": "where does mpsc OwnedPermit send consume the owned permit and return the Sender<T>",
+      "files": [
+        "tokio/src/sync/mpsc/bounded.rs"
+      ],
+      "symbols": [
+        "send"
+      ],
+      "qualified_symbols": [
+        "tokio/src/sync/mpsc/bounded.rs:OwnedPermit.send"
+      ],
+      "symbol_identities": [
+        "tokio/src/sync/mpsc/bounded.rs:OwnedPermit.send@1845"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "logrus-entry-withfield",
+      "repository": "logrus",
+      "query": "where is the Entry WithField receiver method that adds one key and value",
+      "files": [
+        "entry.go"
+      ],
+      "symbols": [
+        "WithField"
+      ],
+      "qualified_symbols": [
+        "entry.go:Entry.WithField"
+      ],
+      "symbol_identities": [
+        "entry.go:Entry.WithField@174"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "logrus-logger-withfield",
+      "repository": "logrus",
+      "query": "where is the Logger WithField receiver method that creates an Entry from one key and value",
+      "files": [
+        "logger.go"
+      ],
+      "symbols": [
+        "WithField"
+      ],
+      "qualified_symbols": [
+        "logger.go:Logger.WithField"
+      ],
+      "symbol_identities": [
+        "logger.go:Logger.WithField@124"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "logrus-package-withfield",
+      "repository": "logrus",
+      "query": "where is the package-level WithField function that forwards one key and value through the standard logger",
+      "files": [
+        "exported.go"
+      ],
+      "symbols": [
+        "WithField"
+      ],
+      "qualified_symbols": [
+        "exported.go:WithField"
+      ],
+      "symbol_identities": [
+        "exported.go:WithField@68"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "logrus-entry-print",
+      "repository": "logrus",
+      "query": "where is the Entry Print receiver method that logs args at Info level",
+      "files": [
+        "entry.go"
+      ],
+      "symbols": [
+        "Print"
+      ],
+      "qualified_symbols": [
+        "entry.go:Entry.Print"
+      ],
+      "symbol_identities": [
+        "entry.go:Entry.Print@416"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "logrus-logger-print",
+      "repository": "logrus",
+      "query": "where is the Logger Print receiver method that logs args at Info level",
+      "files": [
+        "logger.go"
+      ],
+      "symbols": [
+        "Print"
+      ],
+      "qualified_symbols": [
+        "logger.go:Logger.Print"
+      ],
+      "symbol_identities": [
+        "logger.go:Logger.Print@254"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "logrus-package-print",
+      "repository": "logrus",
+      "query": "where is the package-level Print function that forwards args through the standard logger",
+      "files": [
+        "exported.go"
+      ],
+      "symbols": [
+        "Print"
+      ],
+      "qualified_symbols": [
+        "exported.go:Print"
+      ],
+      "symbol_identities": [
+        "exported.go:Print@94"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}

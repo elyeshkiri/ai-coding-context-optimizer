@@ -1,5 +1,42 @@
 # Unreleased
 
+- **Built and first-ran a ninth frozen external holdout under the stricter scoped-symbol metric.**
+  `benchmarks/holdout-external-9.json` contains **48 source-grounded tasks
+  across 8 previously-unused repositories**: NLog and FluentAssertions (C#),
+  Caffeine and Apache Commons Lang (Java), TypeORM and class-transformer
+  (TypeScript), Tokio (Rust), and Logrus (Go). The suite targets dense overload
+  families, giant source files, declaration-vs-implementation overloads,
+  same-name members in different containers, and same-name symbols in different
+  files. All repositories are pinned to exact revisions. Ground truth was
+  committed before any evaluation and frozen at SHA
+  `5c07f59e7a96bb7b6c97764c02aecae2e7597afe6be25b84f95a8154617d7ecf`.
+
+  The initial workflow attempt stopped before evaluating any task because the
+  repositories were cloned one directory above the manifest-relative paths.
+  Only the workflow clone destinations were corrected; the frozen manifest and
+  hash were unchanged. Run `35385165759` is therefore the **first actual
+  evaluation** of the frozen ground truth.
+
+  **First actual result: 100% file recall, 95.8% bare source-visible symbol
+  recall, 87.5% symbol recall in expected files, 85.4% qualified-symbol recall,
+  70.8% exact symbol-identity recall, and ~97.63% estimated context reduction.**
+  Per repository file/bare/scoped/qualified/identity recall:
+  NLog 100/100/100/100/100, FluentAssertions 100/100/100/100/100,
+  Caffeine 100/100/100/100/100, Commons Lang 100/83.3/66.7/66.7/50,
+  TypeORM 100/100/83.3/83.3/33.3, class-transformer
+  100/83.3/83.3/83.3/33.3, Tokio 100/100/83.3/66.7/66.7, and Logrus
+  100/100/83.3/83.3/83.3.
+
+  This is the first untouched external suite created after
+  `symbol_recall_in_expected_files` was added. It confirms why the scoped
+  metric matters: bare-name recall can remain high when a same-named symbol is
+  selected from the wrong file or container. File retrieval remains perfect on
+  this suite; the exposed frontier is exact overload/declaration identity,
+  especially TypeScript overload declarations/implementations, very large Java
+  overload families, and same-leaf container resolution in Rust. The first-run
+  result is preserved in `benchmarks/holdout-external-9.result.json`.
+  Holdout #9 is now burned for tuning.
+
 - **Built and first-ran an eighth frozen external holdout focused on adversarial callable resolution.**
   `benchmarks/holdout-external-8.json` contains **48 source-grounded tasks
   across 8 previously-unused repositories**: FluentValidation and Polly (C#),
