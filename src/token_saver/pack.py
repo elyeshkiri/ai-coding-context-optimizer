@@ -231,6 +231,23 @@ def _leaf_identifier_terms(name: str) -> frozenset[str]:
     return frozenset(identifier_terms(name))
 
 
+@lru_cache(maxsize=65536)
+def _authority_leaf_terms(name: str) -> frozenset[str]:
+    """Leaf terms comparable with repository/query tokenization.
+
+    File authority consumes symbol_terms(query), which intentionally drops prose
+    stopwords such as "is" and "with". Requiring every raw identifier component
+    made isPrimitive and WithTimeout impossible to recognize structurally.
+    Mirror repository tokenization for the gate, while preserving the small set
+    of API verbs that symbol matching deliberately restores.
+    """
+    out = set(terms(name))
+    out.update(
+        set(identifier_terms(name)) & {"add", "build", "create", "use"}
+    )
+    return frozenset(out)
+
+
 def _callable_file_counts(index: RepositoryIndex) -> Counter[str]:
     """How many files define a callable with each (lowercased) bare name."""
     counts: Counter[str] = Counter()
@@ -268,7 +285,7 @@ def _structural_file_authority(
     for symbol in record.definitions:
         if symbol.kind not in _AUTHORITY_CALLABLE_KINDS:
             continue
-        leaf_terms = _leaf_identifier_terms(symbol.name)
+        leaf_terms = _authority_leaf_terms(symbol.name)
         if not leaf_terms or not leaf_terms <= query_terms:
             continue
         parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
