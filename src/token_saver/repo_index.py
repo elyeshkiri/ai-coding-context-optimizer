@@ -19,8 +19,7 @@ from .lexical import document_counts
 from .security import ENV_TEMPLATE_NAMES, inspect_path
 from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
-from .syntax import JS_TS, symbols as syntax_symbols
-from .syntax_multilang import STRUCTURED_EXTRA, symbols as multilang_symbols
+from .syntax import JS_TS, STRUCTURED_EXTRA, symbols as syntax_symbols
 
 INDEX_VERSION = 6
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
@@ -294,11 +293,7 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
 
 def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
     try:
-        parsed = (
-            syntax_symbols(text, suffix)
-            if suffix in JS_TS
-            else multilang_symbols(text, suffix)
-        )
+        parsed = syntax_symbols(text, suffix)
     except (ImportError, ValueError, OSError):
         return _extract_generic_definitions(text)
     lines = text.splitlines()
