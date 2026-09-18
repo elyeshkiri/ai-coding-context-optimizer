@@ -484,13 +484,11 @@ def _symbol_windows(
             }
             if leaf_hits:
                 n_symbols = max(1, len(definitions))
-                score += min(
-                    36.0,
-                    18.0 * sum(
-                        math.log((n_symbols + 1) / (leaf_doc_freq[t] + 1)) + 1
-                        for t in leaf_hits
-                    ),
+                strongest_leaf = max(
+                    math.log((n_symbols + 1) / (leaf_doc_freq[t] + 1)) + 1
+                    for t in leaf_hits
                 )
+                score += min(30.0, 18.0 * strongest_leaf)
 
             # Fuzzy similarity is a bounded *fallback* for identifier typos.
             # It is gated twice: the file has already survived structural/file
@@ -509,8 +507,8 @@ def _symbol_windows(
             call_hits = symbol_query_terms & call_terms
             if call_hits:
                 score += min(
-                    12.0,
-                    4.0 * sum(term_weight.get(t, 1.0) for t in call_hits),
+                    24.0,
+                    6.0 * sum(term_weight.get(t, 1.0) for t in call_hits),
                 )
         if score:
             matches.append((score, symbol))
