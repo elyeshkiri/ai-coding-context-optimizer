@@ -1,0 +1,488 @@
+{
+  "suite_version": 1,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T11:20:00Z",
+    "ground_truth_sha256": "73b66da6cc5b5595ee956154b8c05242a44b011e2d0bd22b3c86faa0278edb38"
+  },
+  "repositories": {
+    "jinja": {
+      "path": "jinja",
+      "revision": "5ef70112a1ff19c05324ff889dd30405b1002044"
+    },
+    "werkzeug": {
+      "path": "werkzeug",
+      "revision": "6a604e005d95af8129ee314863be8ad6b240dead"
+    },
+    "eslint": {
+      "path": "eslint",
+      "revision": "92086c87e042413a3d0363d8fc3fbb11db98d06a"
+    },
+    "undici": {
+      "path": "undici",
+      "revision": "4fb32a0eaf62e27fac3087abae9663696294043b"
+    },
+    "mux": {
+      "path": "mux",
+      "revision": "db9d1d0073d27a0a2d9a8c1bc52aa0af4374d265"
+    },
+    "gin": {
+      "path": "gin",
+      "revision": "5c6a15f8f9566612076bd209e623861bf92a6283"
+    },
+    "axum": {
+      "path": "axum",
+      "revision": "3f46d25e9274d485a99905d3734d37828112bc31"
+    },
+    "serde-json": {
+      "path": "serde-json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e"
+    }
+  },
+  "tasks": [
+    {
+      "id": "jinja-load-template-cache",
+      "repository": "jinja",
+      "query": "how does jinja load a named template and reuse a cached template when possible",
+      "files": [
+        "src/jinja2/environment.py"
+      ],
+      "symbols": [
+        "_load_template",
+        "get_template"
+      ]
+    },
+    {
+      "id": "jinja-template-from-string",
+      "repository": "jinja",
+      "query": "how does jinja compile a templete directly from a source string",
+      "files": [
+        "src/jinja2/environment.py"
+      ],
+      "symbols": [
+        "from_string"
+      ]
+    },
+    {
+      "id": "jinja-context-variable-resolution",
+      "repository": "jinja",
+      "query": "how does a template context resolve a variable name or return the missing sentinel",
+      "files": [
+        "src/jinja2/runtime.py"
+      ],
+      "symbols": [
+        "resolve_or_missing"
+      ]
+    },
+    {
+      "id": "jinja-filesystem-loader-source",
+      "repository": "jinja",
+      "query": "how does the filesystem template loader read template source from its search paths",
+      "files": [
+        "src/jinja2/loaders.py"
+      ],
+      "symbols": [
+        "FileSystemLoader",
+        "get_source"
+      ]
+    },
+    {
+      "id": "jinja-select-filter",
+      "repository": "jinja",
+      "query": "how do select and reject style filters decide which iterable items to yield",
+      "files": [
+        "src/jinja2/filters.py"
+      ],
+      "symbols": [
+        "select_or_reject"
+      ]
+    },
+    {
+      "id": "werkzeug-generate-password-hash",
+      "repository": "werkzeug",
+      "query": "how does werkzeug securely hash a password for storage",
+      "files": [
+        "src/werkzeug/security.py"
+      ],
+      "symbols": [
+        "generate_password_hash"
+      ]
+    },
+    {
+      "id": "werkzeug-check-password-hash",
+      "repository": "werkzeug",
+      "query": "how does werkzeug check a passwrod against a stored password hash",
+      "files": [
+        "src/werkzeug/security.py"
+      ],
+      "symbols": [
+        "check_password_hash"
+      ]
+    },
+    {
+      "id": "werkzeug-http-redirect-response",
+      "repository": "werkzeug",
+      "query": "how does werkzeug create an HTTP redirect response for a target URL",
+      "files": [
+        "src/werkzeug/utils.py"
+      ],
+      "symbols": [
+        "redirect"
+      ]
+    },
+    {
+      "id": "werkzeug-route-adapter-match",
+      "repository": "werkzeug",
+      "query": "how does a bound URL map match an incoming path and HTTP method to an endpoint",
+      "files": [
+        "src/werkzeug/routing/map.py"
+      ],
+      "symbols": [
+        "match"
+      ]
+    },
+    {
+      "id": "werkzeug-response-set-cookie",
+      "repository": "werkzeug",
+      "query": "how does a werkzeug response build and add a Set-Cookie header",
+      "files": [
+        "src/werkzeug/sansio/response.py"
+      ],
+      "symbols": [
+        "set_cookie"
+      ]
+    },
+    {
+      "id": "eslint-lint-files",
+      "repository": "eslint",
+      "query": "how does ESLint resolve file patterns and lint all matching files",
+      "files": [
+        "lib/eslint/eslint.js"
+      ],
+      "symbols": [
+        "lintFiles"
+      ]
+    },
+    {
+      "id": "eslint-linter-verify",
+      "repository": "eslint",
+      "query": "how does ESLint verfy source text and run configured rules to produce lint messages",
+      "files": [
+        "lib/linter/linter.js"
+      ],
+      "symbols": [
+        "verify"
+      ]
+    },
+    {
+      "id": "eslint-rule-tester-run",
+      "repository": "eslint",
+      "query": "how does ESLint RuleTester execute valid and invalid cases for a rule",
+      "files": [
+        "lib/rule-tester/rule-tester.js"
+      ],
+      "symbols": [
+        "RuleTester",
+        "run"
+      ]
+    },
+    {
+      "id": "eslint-load-api-constructor",
+      "repository": "eslint",
+      "query": "where does ESLint public API load and return the ESLint constructor",
+      "files": [
+        "lib/api.js"
+      ],
+      "symbols": [
+        "loadESLint"
+      ]
+    },
+    {
+      "id": "eslint-cli-execute",
+      "repository": "eslint",
+      "query": "how does the ESLint CLI execute linting for stdin or file arguments and determine the exit result",
+      "files": [
+        "lib/cli.js"
+      ],
+      "symbols": [
+        "execute"
+      ]
+    },
+    {
+      "id": "undici-redirect-handler",
+      "repository": "undici",
+      "query": "how does undici follow an HTTP redirct and dispatch the redirected request",
+      "files": [
+        "lib/handler/redirect-handler.js"
+      ],
+      "symbols": [
+        "RedirectHandler"
+      ]
+    },
+    {
+      "id": "undici-client-dispatch",
+      "repository": "undici",
+      "query": "how does undici create a per-origin client that manages and dispatches HTTP requests",
+      "files": [
+        "lib/dispatcher/client.js"
+      ],
+      "symbols": [
+        "Client"
+      ]
+    },
+    {
+      "id": "undici-build-connector",
+      "repository": "undici",
+      "query": "where does undici build the socket connector used for new HTTP or TLS connections",
+      "files": [
+        "lib/core/connect.js"
+      ],
+      "symbols": [
+        "buildConnector"
+      ]
+    },
+    {
+      "id": "undici-websocket-api",
+      "repository": "undici",
+      "query": "where is undici's WHATWG WebSocket object implemented",
+      "files": [
+        "lib/web/websocket/websocket.js"
+      ],
+      "symbols": [
+        "WebSocket"
+      ]
+    },
+    {
+      "id": "undici-fetch-entry",
+      "repository": "undici",
+      "query": "how does undici implement the top-level WHATWG fetch call from input and init to a promise",
+      "files": [
+        "lib/web/fetch/index.js"
+      ],
+      "symbols": [
+        "fetch"
+      ]
+    },
+    {
+      "id": "mux-new-router",
+      "repository": "mux",
+      "query": "where does gorilla mux create a new Router instance",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "NewRouter"
+      ]
+    },
+    {
+      "id": "mux-serve-http",
+      "repository": "mux",
+      "query": "how does the router serv HTTP requests by matching a route and invoking its handler",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "ServeHTTP"
+      ]
+    },
+    {
+      "id": "mux-handle-func",
+      "repository": "mux",
+      "query": "how does a router register a handler function for a URL path",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "HandleFunc"
+      ]
+    },
+    {
+      "id": "mux-walk-routes",
+      "repository": "mux",
+      "query": "how does gorilla mux walk every route and nested sub-router depth first",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Walk"
+      ]
+    },
+    {
+      "id": "mux-get-path-template",
+      "repository": "mux",
+      "query": "how does a route expose the path template it was configured with",
+      "files": [
+        "route.go"
+      ],
+      "symbols": [
+        "GetPathTemplate"
+      ]
+    },
+    {
+      "id": "gin-serve-http",
+      "repository": "gin",
+      "query": "how does a Gin engine receive an HTTP request and start routing it",
+      "files": [
+        "gin.go"
+      ],
+      "symbols": [
+        "ServeHTTP"
+      ]
+    },
+    {
+      "id": "gin-run-server",
+      "repository": "gin",
+      "query": "where does a Gin engine start listening and serving HTTP requests",
+      "files": [
+        "gin.go"
+      ],
+      "symbols": [
+        "Run"
+      ]
+    },
+    {
+      "id": "gin-client-ip",
+      "repository": "gin",
+      "query": "how does gin determine the cliet IP address when trusted proxies and forwarding headers are involved",
+      "files": [
+        "context.go"
+      ],
+      "symbols": [
+        "ClientIP"
+      ]
+    },
+    {
+      "id": "gin-json-response",
+      "repository": "gin",
+      "query": "how does a Gin context render an object as a JSON HTTP response",
+      "files": [
+        "context.go"
+      ],
+      "symbols": [
+        "JSON"
+      ]
+    },
+    {
+      "id": "gin-bind-json-request",
+      "repository": "gin",
+      "query": "how does Gin bind a request body as JSON without automatically aborting on a binding error",
+      "files": [
+        "context.go"
+      ],
+      "symbols": [
+        "ShouldBindJSON"
+      ]
+    },
+    {
+      "id": "axum-serve-listener",
+      "repository": "axum",
+      "query": "where does axum serve a service using a listener for incoming connections",
+      "files": [
+        "axum/src/serve/mod.rs"
+      ],
+      "symbols": [
+        "serve"
+      ]
+    },
+    {
+      "id": "axum-router-route",
+      "repository": "axum",
+      "query": "how does an axum Router add a rouet path with a MethodRouter",
+      "files": [
+        "axum/src/routing/mod.rs"
+      ],
+      "symbols": [
+        "route"
+      ]
+    },
+    {
+      "id": "axum-json-response",
+      "repository": "axum",
+      "query": "how does axum serialize Json into an HTTP response and handle serialization errors",
+      "files": [
+        "axum/src/json.rs"
+      ],
+      "symbols": [
+        "into_response"
+      ]
+    },
+    {
+      "id": "axum-path-extractor",
+      "repository": "axum",
+      "query": "where is the Path extractor type that deserializes URL path parameters",
+      "files": [
+        "axum/src/extract/path/mod.rs"
+      ],
+      "symbols": [
+        "Path"
+      ]
+    },
+    {
+      "id": "axum-extension-extractor",
+      "repository": "axum",
+      "query": "where is the Extension extractor and response wrapper type defined",
+      "files": [
+        "axum/src/extension.rs"
+      ],
+      "symbols": [
+        "Extension"
+      ]
+    },
+    {
+      "id": "serde-json-from-str",
+      "repository": "serde-json",
+      "query": "how does serde_json create a JSON deserializer from a string slice",
+      "files": [
+        "src/de.rs"
+      ],
+      "symbols": [
+        "from_str"
+      ]
+    },
+    {
+      "id": "serde-json-to-string",
+      "repository": "serde-json",
+      "query": "how does serde_json serialize a value into a JSON String",
+      "files": [
+        "src/ser.rs"
+      ],
+      "symbols": [
+        "to_string"
+      ]
+    },
+    {
+      "id": "serde-json-pointer",
+      "repository": "serde-json",
+      "query": "how does a Value navigate a JSON pointr path to return a nested value",
+      "files": [
+        "src/value/mod.rs"
+      ],
+      "symbols": [
+        "pointer"
+      ]
+    },
+    {
+      "id": "serde-json-map-insert",
+      "repository": "serde-json",
+      "query": "how does serde_json insert or replace a key-value pair in its Map type",
+      "files": [
+        "src/map.rs"
+      ],
+      "symbols": [
+        "insert"
+      ]
+    },
+    {
+      "id": "serde-json-number-from-f64",
+      "repository": "serde-json",
+      "query": "how does serde_json create a Number from a finite f64 while rejecting NaN and infinity",
+      "files": [
+        "src/number.rs"
+      ],
+      "symbols": [
+        "from_f64"
+      ]
+    }
+  ]
+}
