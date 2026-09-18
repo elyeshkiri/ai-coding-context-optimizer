@@ -481,6 +481,12 @@ def _symbol_windows(
                     & leaf_terms_by_symbol[(symbol.name, symbol.start_line)]
                 )
                 if leaf_doc_freq.get(term, 0) == 1
+                # These are deliberately restored at symbol scope because they
+                # are common API verbs, but in natural-language tasks they are
+                # also ordinary imperatives ("build a compact outline"). Let
+                # the normal qualified-name score use them; reserve the extra
+                # unique-leaf bonus for more discriminating identifier terms.
+                and term not in {"add", "build", "create", "use"}
             }
             if leaf_hits:
                 n_symbols = max(1, len(definitions))
