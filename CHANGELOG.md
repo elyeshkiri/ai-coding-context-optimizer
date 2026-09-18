@@ -17,7 +17,11 @@
   same-name top-level TypeScript functions, and Go receiver/member authority
   under many `context.WithTimeout` call sites. The repository index version is
   bumped so persisted indexes cannot retain the old JS/TS fallback records.
-  Holdout #11 remains burned; any rerun is development evidence only.
+  Holdout #11 remains burned. A single development-only rerun of the
+  frozen suite (run 35399929752) reached **100% file, bare, scoped, qualified,
+  and exact identity recall across all 60 tasks**, with **99.71% mean context
+  reduction** and zero remaining misses. This is regression confirmation only
+  and does not replace the preserved 88.33% exact fresh first-run evidence.
 
 - **Built and first-ran an eleventh frozen external holdout after C# 14 extension-block support.**
   `benchmarks/holdout-external-11.json` contains **60 source-grounded tasks
