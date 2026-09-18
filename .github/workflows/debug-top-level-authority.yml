@@ -1,0 +1,50 @@
+name: Debug top-level authority
+
+on:
+  push:
+    branches:
+      - fix/holdout11-failure-classes
+    paths:
+      - .github/workflows/debug-top-level-authority.yml
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/holdout11-failure-classes
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Print rank details
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from token_saver.pack import rank_files
+          with TemporaryDirectory() as td:
+              root=Path(td)
+              target=root/"packages"/"utils"/"src"; target.mkdir(parents=True)
+              (target/"helpers.ts").write_text("""
+          export function isPrimitive(value: unknown): boolean {
+            return value === null
+          }
+          """)
+              runtime=root/"packages"/"runtime"/"src"; runtime.mkdir(parents=True)
+              (runtime/"utils.ts").write_text("""
+          export function isPrimitive(v: any): boolean {
+            return v == null
+          }
+          """)
+              ui=root/"packages"/"ui"/"src"; ui.mkdir(parents=True)
+              (ui/"error.ts").write_text("""
+          function isPrimitive(value: unknown): boolean {
+            return typeof value !== 'object'
+          }
+          """)
+              ranked=rank_files(root,"where is top-level isPrimitive accepting unknown value",changed_boost=False)
+              for r in ranked:
+                  print(r.rel, r.score, r.reasons)
+          PY
