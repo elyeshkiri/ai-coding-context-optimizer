@@ -75,3 +75,27 @@ def test_dispatcher_exposes_cost_report(tmp_path, capsys):
     assert "PAIRED TASKS: 1" in out
     assert "cost/success:" in out
     assert "60.0% reduction" in out
+
+
+
+def test_cost_report_accepts_single_paired_agent_manifest(tmp_path, capsys):
+    manifest = tmp_path / "agent-runs.json"
+    manifest.write_text(json.dumps({
+        "runs": [
+            {
+                "task": "task", "condition": "baseline", "success": True,
+                "input_tokens": 1000, "output_tokens": 200,
+                "seconds": 2.0, "cost_usd": 1.0,
+            },
+            {
+                "task": "task", "condition": "token-saver", "success": True,
+                "input_tokens": 400, "output_tokens": 100,
+                "seconds": 1.0, "cost_usd": 0.4,
+            },
+        ]
+    }), encoding="utf-8")
+
+    assert main(["cost-report", str(manifest)]) == 0
+    out = capsys.readouterr().out
+    assert "PAIRED TASKS: 1" in out
+    assert "60.0% reduction" in out
