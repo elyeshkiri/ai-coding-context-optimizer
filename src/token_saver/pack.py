@@ -18,7 +18,7 @@ from .budget import RetrievalPlan, plan_retrieval
 from .closure import authoritative_providers, dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
-from .lexical import document_counts, fuzzy_symbol_terms, symbol_terms, terms
+from .lexical import document_counts, fuzzy_symbol_terms, identifier_terms, symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
 from .skeleton import file_priority
@@ -411,9 +411,12 @@ def _symbol_windows(
         for symbol in definitions
     }
     leaf_terms_by_symbol = {
-        (symbol.name, symbol.start_line): set(symbol_terms(symbol.name))
+        (symbol.name, symbol.start_line): set(identifier_terms(symbol.name))
         for symbol in definitions
     }
+    leaf_doc_freq: Counter[str] = Counter()
+    for leaf_terms in leaf_terms_by_symbol.values():
+        leaf_doc_freq.update(leaf_terms)
     all_symbol_name_terms = set().union(*name_terms_by_symbol.values()) if definitions else set()
     fuzzy_query_terms = (
         fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
@@ -428,9 +431,8 @@ def _symbol_windows(
         for symbol in definitions:
             name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-            body_terms = (
-                set() if symbol.name in container_names else set(terms(body))
-            )
+            is_container = (symbol.qualified or symbol.name) in container_names
+            body_terms = set() if is_container else set(terms(body))
             for term in name_terms | body_terms:
                 doc_freq[term] += 1
         n = len(definitions)
@@ -440,9 +442,8 @@ def _symbol_windows(
     for symbol in definitions:
         name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-        body_terms = (
-            set() if symbol.name in container_names else set(terms(body))
-        )
+        is_container = (symbol.qualified or symbol.name) in container_names
+        body_terms = set() if is_container else set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
@@ -458,14 +459,22 @@ def _symbol_windows(
             # stronger evidence than the same word merely occurring in a
             # sibling signature or container. Keep the bonus local, bounded,
             # and IDF-weighted so generic names do not dominate by themselves.
-            leaf_hits = (
-                symbol_query_terms
-                & leaf_terms_by_symbol[(symbol.name, symbol.start_line)]
-            )
+            leaf_hits = {
+                term
+                for term in (
+                    symbol_query_terms
+                    & leaf_terms_by_symbol[(symbol.name, symbol.start_line)]
+                )
+                if leaf_doc_freq.get(term, 0) == 1
+            }
             if leaf_hits:
+                n_symbols = max(1, len(definitions))
                 score += min(
                     36.0,
-                    18.0 * sum(term_weight.get(t, 1.0) for t in leaf_hits),
+                    18.0 * sum(
+                        math.log((n_symbols + 1) / (leaf_doc_freq[t] + 1)) + 1
+                        for t in leaf_hits
+                    ),
                 )
 
             # Fuzzy similarity is a bounded *fallback* for identifier typos.
@@ -491,28 +500,62 @@ def _symbol_windows(
         if score:
             matches.append((score, symbol))
 
+    def symbol_key(symbol) -> tuple[str, int, int]:
+        return (
+            symbol.qualified or symbol.name,
+            symbol.start_line,
+            symbol.end_line,
+        )
+
     if not wanted:
-        # A container is any symbol that structurally has at least one
-        # other symbol recorded as its child in this file -- not just
-        # kind == "class" (Python's ast.ClassDef), which excludes every
-        # JS/TS container (tree-sitter extraction tags all JS/TS symbols
-        # "symbol" regardless of shape) even though a JS/TS class or a
-        # pre-ES6 `X.prototype.method = ...` constructor-function has the
-        # exact same "one member outscoring its own container" failure
-        # shape as a Python class does.
-        own_score = {symbol.name: score for score, symbol in matches}
-        best_child_score: dict[str, float] = {}
-        best_child_symbol: dict[str, object] = {}
+        # Container relevance comes from explicit containment, not from
+        # re-reading all descendant body vocabulary as if it belonged to the
+        # class/type declaration itself. This preserves parent-credit behavior
+        # without making large containers lexical hubs.
+        containers_by_qualified: dict[str, list[object]] = {}
+        for candidate in definitions:
+            qualified = candidate.qualified or candidate.name
+            if qualified in container_names:
+                containers_by_qualified.setdefault(qualified, []).append(candidate)
+
+        score_by_key = {symbol_key(symbol): score for score, symbol in matches}
+        best_child_score: dict[tuple[str, int, int], float] = {}
+        best_child_symbol: dict[tuple[str, int, int], object] = {}
+
         for score, symbol in matches:
-            if symbol.parent and symbol.parent in own_score and symbol.parent in container_names:
-                if score > best_child_score.get(symbol.parent, 0):
-                    best_child_score[symbol.parent] = score
-                    best_child_symbol[symbol.parent] = symbol
-        boosted = {
-            name: max(score, best_child_score.get(name, 0))
-            for name, score in own_score.items()
-        }
-        matches = [(boosted.get(symbol.name, score), symbol) for score, symbol in matches]
+            if not symbol.parent:
+                continue
+            for parent in containers_by_qualified.get(symbol.parent, []):
+                # Only synthesize parent relevance when the member is actually
+                # nested in the parent's source extent. Go/Rust impl methods
+                # are siblings of their type declaration and should remain
+                # independent candidates.
+                if not (
+                    parent.start_line <= symbol.start_line
+                    and symbol.end_line <= parent.end_line
+                ):
+                    continue
+                key = symbol_key(parent)
+                if score > best_child_score.get(key, 0):
+                    best_child_score[key] = score
+                    best_child_symbol[key] = symbol
+
+        boosted_matches: list[tuple[float, object]] = []
+        seen_keys: set[tuple[str, int, int]] = set()
+        for score, symbol in matches:
+            key = symbol_key(symbol)
+            boosted_matches.append((max(score, best_child_score.get(key, 0)), symbol))
+            seen_keys.add(key)
+
+        for qualified, parents in containers_by_qualified.items():
+            for parent in parents:
+                key = symbol_key(parent)
+                child_score = best_child_score.get(key, 0)
+                if child_score and key not in seen_keys:
+                    boosted_matches.append((child_score, parent))
+                    seen_keys.add(key)
+
+        matches = boosted_matches
     else:
         best_child_symbol = {}
 
@@ -522,7 +565,7 @@ def _symbol_windows(
     labels: list[str] = []
     identities: list[str] = []
     for symbol in selected:
-        child = best_child_symbol.get(symbol.name)
+        child = best_child_symbol.get(symbol_key(symbol))
         has_child = (
             child is not None and child not in selected
             and child.start_line >= symbol.start_line and child.end_line <= symbol.end_line
