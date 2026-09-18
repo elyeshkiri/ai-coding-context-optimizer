@@ -1,0 +1,1134 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T21:08:00Z",
+    "ground_truth_sha256": "011dffedad4fe5ea99400cc58655850dcf43f38b3664b9219b4f5cf92a7f94ec"
+  },
+  "repositories": {
+    "runtime": {
+      "path": "runtime",
+      "revision": "a530ff2cdc5b7e8a50d49bd8b9d661db0155a2fc"
+    },
+    "efcore": {
+      "path": "efcore",
+      "revision": "be5ef4a52d88cabacdea656dac85024a2558482f"
+    },
+    "spring": {
+      "path": "spring-framework",
+      "revision": "b9fa06291846aa5ca5324e275c3ab263b30f02c2"
+    },
+    "httpcore": {
+      "path": "httpcomponents-core",
+      "revision": "e99e07816e96e2b6d1d8bb49f7baa9b36d86c873"
+    },
+    "redux": {
+      "path": "redux-toolkit",
+      "revision": "70c8c630f3d5b45d77d18c3de417b96292759104"
+    },
+    "vitest": {
+      "path": "vitest",
+      "revision": "a0a939653bc8441848579bb6ac18706372242cd6"
+    },
+    "tracing": {
+      "path": "tracing",
+      "revision": "d9d4c542de10f5d3a711b7a45ffe450fd0666437"
+    },
+    "redis": {
+      "path": "go-redis",
+      "revision": "7f3b3dffde59329db9fa7a71d650ef373affb599"
+    },
+    "grpc": {
+      "path": "grpc-go",
+      "revision": "dd51b1c90aaf9b7ee0b07b1d14fa8e3a89132bef"
+    },
+    "sqlalchemy": {
+      "path": "sqlalchemy",
+      "revision": "4883307858ea3def775b5a1cc1c01a5be6dfe213"
+    }
+  },
+  "tasks": [
+    {
+      "id": "runtime-guid-trywrite",
+      "repository": "runtime",
+      "query": "where is GuidPolyfills TryWriteBytes extension member on Guid accepting Span<byte> destination",
+      "files": [
+        "src/libraries/Common/src/Polyfills/GuidPolyfills.cs"
+      ],
+      "symbols": [
+        "TryWriteBytes"
+      ],
+      "qualified_symbols": [
+        "src/libraries/Common/src/Polyfills/GuidPolyfills.cs:GuidPolyfills.TryWriteBytes"
+      ],
+      "symbol_identities": [
+        "src/libraries/Common/src/Polyfills/GuidPolyfills.cs:GuidPolyfills.TryWriteBytes@14"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "runtime-stream-readexactly",
+      "repository": "runtime",
+      "query": "where is StreamPolyfills ReadExactly extension member on Stream accepting byte array buffer",
+      "files": [
+        "src/libraries/Common/src/Polyfills/StreamPolyfills.cs"
+      ],
+      "symbols": [
+        "ReadExactly"
+      ],
+      "qualified_symbols": [
+        "src/libraries/Common/src/Polyfills/StreamPolyfills.cs:StreamPolyfills.ReadExactly"
+      ],
+      "symbol_identities": [
+        "src/libraries/Common/src/Polyfills/StreamPolyfills.cs:StreamPolyfills.ReadExactly@14"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "runtime-stream-copytoasync",
+      "repository": "runtime",
+      "query": "where is StreamPolyfills CopyToAsync extension member on Stream accepting destination Stream and CancellationToken",
+      "files": [
+        "src/libraries/Common/src/Polyfills/StreamPolyfills.cs"
+      ],
+      "symbols": [
+        "CopyToAsync"
+      ],
+      "qualified_symbols": [
+        "src/libraries/Common/src/Polyfills/StreamPolyfills.cs:StreamPolyfills.CopyToAsync"
+      ],
+      "symbol_identities": [
+        "src/libraries/Common/src/Polyfills/StreamPolyfills.cs:StreamPolyfills.CopyToAsync@29"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "runtime-stringbuilder-append",
+      "repository": "runtime",
+      "query": "where is StringBuilderPolyfills Append extension member on StringBuilder accepting ReadOnlySpan<char> span",
+      "files": [
+        "src/libraries/Common/src/Polyfills/StringBuilderPolyfills.cs"
+      ],
+      "symbols": [
+        "Append"
+      ],
+      "qualified_symbols": [
+        "src/libraries/Common/src/Polyfills/StringBuilderPolyfills.cs:StringBuilderPolyfills.Append"
+      ],
+      "symbol_identities": [
+        "src/libraries/Common/src/Polyfills/StringBuilderPolyfills.cs:StringBuilderPolyfills.Append@14"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "runtime-bitarray-hasallset",
+      "repository": "runtime",
+      "query": "where is BitArrayPolyfills HasAllSet extension member on BitArray",
+      "files": [
+        "src/libraries/Common/src/Polyfills/BitArrayPolyfills.cs"
+      ],
+      "symbols": [
+        "HasAllSet"
+      ],
+      "qualified_symbols": [
+        "src/libraries/Common/src/Polyfills/BitArrayPolyfills.cs:BitArrayPolyfills.HasAllSet"
+      ],
+      "symbol_identities": [
+        "src/libraries/Common/src/Polyfills/BitArrayPolyfills.cs:BitArrayPolyfills.HasAllSet@13"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "runtime-reflection-createdelegate-target",
+      "repository": "runtime",
+      "query": "which ReflectionPolyfills CreateDelegate<T> extension overload on MethodInfo accepts object target",
+      "files": [
+        "src/libraries/Common/src/Polyfills/ReflectionPolyfills.cs"
+      ],
+      "symbols": [
+        "CreateDelegate"
+      ],
+      "qualified_symbols": [
+        "src/libraries/Common/src/Polyfills/ReflectionPolyfills.cs:ReflectionPolyfills.CreateDelegate"
+      ],
+      "symbol_identities": [
+        "src/libraries/Common/src/Polyfills/ReflectionPolyfills.cs:ReflectionPolyfills.CreateDelegate@14"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "efcore-extension-multipleparameters",
+      "repository": "efcore",
+      "query": "where is EFExtensions MultipleParameters<TSource> C# extension-block member on EF accepting TSource argument",
+      "files": [
+        "src/EFCore.Relational/EFExtensions.cs"
+      ],
+      "symbols": [
+        "MultipleParameters"
+      ],
+      "qualified_symbols": [
+        "src/EFCore.Relational/EFExtensions.cs:EFExtensions.MultipleParameters"
+      ],
+      "symbol_identities": [
+        "src/EFCore.Relational/EFExtensions.cs:EFExtensions.MultipleParameters@33"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "efcore-any-no-predicate",
+      "repository": "efcore",
+      "query": "which EntityFrameworkQueryableExtensions AnyAsync<TSource> overload accepts IQueryable source plus optional CancellationToken without predicate",
+      "files": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs"
+      ],
+      "symbols": [
+        "AnyAsync"
+      ],
+      "qualified_symbols": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.AnyAsync"
+      ],
+      "symbol_identities": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.AnyAsync@60"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "efcore-any-predicate",
+      "repository": "efcore",
+      "query": "which EntityFrameworkQueryableExtensions AnyAsync<TSource> overload accepts IQueryable source, Expression predicate, and optional CancellationToken",
+      "files": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs"
+      ],
+      "symbols": [
+        "AnyAsync"
+      ],
+      "qualified_symbols": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.AnyAsync"
+      ],
+      "symbol_identities": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.AnyAsync@94"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "efcore-count-no-predicate",
+      "repository": "efcore",
+      "query": "which EntityFrameworkQueryableExtensions CountAsync<TSource> overload accepts IQueryable source plus optional CancellationToken without predicate",
+      "files": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs"
+      ],
+      "symbols": [
+        "CountAsync"
+      ],
+      "qualified_symbols": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.CountAsync"
+      ],
+      "symbol_identities": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.CountAsync@174"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "efcore-count-predicate",
+      "repository": "efcore",
+      "query": "which EntityFrameworkQueryableExtensions CountAsync<TSource> overload accepts IQueryable source, Expression predicate, and optional CancellationToken",
+      "files": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs"
+      ],
+      "symbols": [
+        "CountAsync"
+      ],
+      "qualified_symbols": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.CountAsync"
+      ],
+      "symbol_identities": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.CountAsync@208"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "efcore-first-predicate",
+      "repository": "efcore",
+      "query": "which EntityFrameworkQueryableExtensions FirstAsync<TSource> overload accepts IQueryable source, Expression predicate, and optional CancellationToken",
+      "files": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs"
+      ],
+      "symbols": [
+        "FirstAsync"
+      ],
+      "qualified_symbols": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.FirstAsync"
+      ],
+      "symbol_identities": [
+        "src/EFCore/Extensions/EntityFrameworkQueryableExtensions.cs:EntityFrameworkQueryableExtensions.FirstAsync@452"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "spring-tokenize-simple",
+      "repository": "spring",
+      "query": "which StringUtils tokenizeToStringArray overload accepts nullable String str and String delimiters only",
+      "files": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java"
+      ],
+      "symbols": [
+        "tokenizeToStringArray"
+      ],
+      "qualified_symbols": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.tokenizeToStringArray"
+      ],
+      "symbol_identities": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.tokenizeToStringArray@1200"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "spring-tokenize-flags",
+      "repository": "spring",
+      "query": "which StringUtils tokenizeToStringArray overload accepts str, delimiters, boolean trimTokens and boolean ignoreEmptyTokens",
+      "files": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java"
+      ],
+      "symbols": [
+        "tokenizeToStringArray"
+      ],
+      "qualified_symbols": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.tokenizeToStringArray"
+      ],
+      "symbol_identities": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.tokenizeToStringArray@1223"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "spring-delimited-simple",
+      "repository": "spring",
+      "query": "which StringUtils delimitedListToStringArray overload accepts nullable str and nullable delimiter only",
+      "files": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java"
+      ],
+      "symbols": [
+        "delimitedListToStringArray"
+      ],
+      "qualified_symbols": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.delimitedListToStringArray"
+      ],
+      "symbol_identities": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.delimitedListToStringArray@1257"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "spring-delimited-delete",
+      "repository": "spring",
+      "query": "which StringUtils delimitedListToStringArray overload accepts str, delimiter and charsToDelete",
+      "files": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java"
+      ],
+      "symbols": [
+        "delimitedListToStringArray"
+      ],
+      "qualified_symbols": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.delimitedListToStringArray"
+      ],
+      "symbol_identities": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.delimitedListToStringArray@1276"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "spring-collection-four",
+      "repository": "spring",
+      "query": "which StringUtils collectionToDelimitedString overload accepts Collection coll, delim, prefix and suffix",
+      "files": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java"
+      ],
+      "symbols": [
+        "collectionToDelimitedString"
+      ],
+      "qualified_symbols": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.collectionToDelimitedString"
+      ],
+      "symbol_identities": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.collectionToDelimitedString@1339"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "spring-collection-two",
+      "repository": "spring",
+      "query": "which StringUtils collectionToDelimitedString overload accepts Collection coll and delim only",
+      "files": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java"
+      ],
+      "symbols": [
+        "collectionToDelimitedString"
+      ],
+      "qualified_symbols": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.collectionToDelimitedString"
+      ],
+      "symbol_identities": [
+        "spring-core/src/main/java/org/springframework/util/StringUtils.java:StringUtils.collectionToDelimitedString@1369"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpcore-bytes-basic",
+      "repository": "httpcore",
+      "query": "which EntityUtils toByteArray overload accepts only HttpEntity entity",
+      "files": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java"
+      ],
+      "symbols": [
+        "toByteArray"
+      ],
+      "qualified_symbols": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toByteArray"
+      ],
+      "symbol_identities": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toByteArray@134"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpcore-bytes-max",
+      "repository": "httpcore",
+      "query": "which EntityUtils toByteArray overload accepts HttpEntity entity and int maxResultLength",
+      "files": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java"
+      ],
+      "symbols": [
+        "toByteArray"
+      ],
+      "qualified_symbols": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toByteArray"
+      ],
+      "symbol_identities": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toByteArray@162"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpcore-string-charset",
+      "repository": "httpcore",
+      "query": "which EntityUtils toString overload accepts HttpEntity and Charset defaultCharset without maxResultLength",
+      "files": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java"
+      ],
+      "symbols": [
+        "toString"
+      ],
+      "qualified_symbols": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString"
+      ],
+      "symbol_identities": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString@256"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpcore-string-charset-max",
+      "repository": "httpcore",
+      "query": "which EntityUtils toString overload accepts HttpEntity, Charset defaultCharset and int maxResultLength",
+      "files": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java"
+      ],
+      "symbols": [
+        "toString"
+      ],
+      "qualified_symbols": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString"
+      ],
+      "symbol_identities": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString@279"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpcore-string-name",
+      "repository": "httpcore",
+      "query": "which EntityUtils toString overload accepts HttpEntity and String defaultCharset",
+      "files": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java"
+      ],
+      "symbols": [
+        "toString"
+      ],
+      "qualified_symbols": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString"
+      ],
+      "symbol_identities": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString@315"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpcore-string-max",
+      "repository": "httpcore",
+      "query": "which EntityUtils toString overload accepts HttpEntity and int maxResultLength without defaultCharset",
+      "files": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java"
+      ],
+      "symbols": [
+        "toString"
+      ],
+      "qualified_symbols": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString"
+      ],
+      "symbol_identities": [
+        "httpcore5/src/main/java/org/apache/hc/core5/http/io/entity/EntityUtils.java:EntityUtils.toString@380"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redux-createaction-type",
+      "repository": "redux",
+      "query": "which createAction overload declaration accepts only type T and returns PayloadActionCreator<P,T>",
+      "files": [
+        "packages/toolkit/src/createAction.ts"
+      ],
+      "symbols": [
+        "createAction"
+      ],
+      "qualified_symbols": [
+        "packages/toolkit/src/createAction.ts:createAction"
+      ],
+      "symbol_identities": [
+        "packages/toolkit/src/createAction.ts:createAction@241"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redux-createaction-prepare",
+      "repository": "redux",
+      "query": "which createAction overload declaration accepts type T plus prepareAction PA",
+      "files": [
+        "packages/toolkit/src/createAction.ts"
+      ],
+      "symbols": [
+        "createAction"
+      ],
+      "qualified_symbols": [
+        "packages/toolkit/src/createAction.ts:createAction"
+      ],
+      "symbol_identities": [
+        "packages/toolkit/src/createAction.ts:createAction@257"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redux-createaction-implementation",
+      "repository": "redux",
+      "query": "where is the createAction implementation accepting string type and optional Function prepareAction",
+      "files": [
+        "packages/toolkit/src/createAction.ts"
+      ],
+      "symbols": [
+        "createAction"
+      ],
+      "qualified_symbols": [
+        "packages/toolkit/src/createAction.ts:createAction"
+      ],
+      "symbol_identities": [
+        "packages/toolkit/src/createAction.ts:createAction@265"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redux-slice-getselectors-local",
+      "repository": "redux",
+      "query": "which Slice getSelectors overload takes no arguments and returns selectors rooted at State",
+      "files": [
+        "packages/toolkit/src/createSlice.ts"
+      ],
+      "symbols": [
+        "getSelectors"
+      ],
+      "qualified_symbols": [
+        "packages/toolkit/src/createSlice.ts:Slice.getSelectors"
+      ],
+      "symbol_identities": [
+        "packages/toolkit/src/createSlice.ts:Slice.getSelectors@97"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redux-slice-getselectors-root",
+      "repository": "redux",
+      "query": "which generic Slice getSelectors<RootState> overload accepts selectState callback",
+      "files": [
+        "packages/toolkit/src/createSlice.ts"
+      ],
+      "symbols": [
+        "getSelectors"
+      ],
+      "qualified_symbols": [
+        "packages/toolkit/src/createSlice.ts:Slice.getSelectors"
+      ],
+      "symbol_identities": [
+        "packages/toolkit/src/createSlice.ts:Slice.getSelectors@102"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redux-slice-injectinto",
+      "repository": "redux",
+      "query": "where is Slice injectInto<NewReducerPath> accepting injectable reducer and optional config",
+      "files": [
+        "packages/toolkit/src/createSlice.ts"
+      ],
+      "symbols": [
+        "injectInto"
+      ],
+      "qualified_symbols": [
+        "packages/toolkit/src/createSlice.ts:Slice.injectInto"
+      ],
+      "symbol_identities": [
+        "packages/toolkit/src/createSlice.ts:Slice.injectInto@118"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vitest-stacktrace",
+      "repository": "vitest",
+      "query": "where is top-level createSimpleStackTrace accepting optional ErrorOptions",
+      "files": [
+        "packages/utils/src/helpers.ts"
+      ],
+      "symbols": [
+        "createSimpleStackTrace"
+      ],
+      "qualified_symbols": [
+        "packages/utils/src/helpers.ts:createSimpleStackTrace"
+      ],
+      "symbol_identities": [
+        "packages/utils/src/helpers.ts:createSimpleStackTrace@21"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vitest-notnullish",
+      "repository": "vitest",
+      "query": "where is generic top-level notNullish<T> type guard",
+      "files": [
+        "packages/utils/src/helpers.ts"
+      ],
+      "symbols": [
+        "notNullish"
+      ],
+      "qualified_symbols": [
+        "packages/utils/src/helpers.ts:notNullish"
+      ],
+      "symbol_identities": [
+        "packages/utils/src/helpers.ts:notNullish@35"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vitest-isprimitive",
+      "repository": "vitest",
+      "query": "where is top-level isPrimitive accepting unknown value",
+      "files": [
+        "packages/utils/src/helpers.ts"
+      ],
+      "symbols": [
+        "isPrimitive"
+      ],
+      "qualified_symbols": [
+        "packages/utils/src/helpers.ts:isPrimitive"
+      ],
+      "symbol_identities": [
+        "packages/utils/src/helpers.ts:isPrimitive@53"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vitest-slash",
+      "repository": "vitest",
+      "query": "where is top-level slash accepting path string",
+      "files": [
+        "packages/utils/src/helpers.ts"
+      ],
+      "symbols": [
+        "slash"
+      ],
+      "qualified_symbols": [
+        "packages/utils/src/helpers.ts:slash"
+      ],
+      "symbol_identities": [
+        "packages/utils/src/helpers.ts:slash@59"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vitest-cleanurl",
+      "repository": "vitest",
+      "query": "where is top-level cleanUrl accepting url string",
+      "files": [
+        "packages/utils/src/helpers.ts"
+      ],
+      "symbols": [
+        "cleanUrl"
+      ],
+      "qualified_symbols": [
+        "packages/utils/src/helpers.ts:cleanUrl"
+      ],
+      "symbol_identities": [
+        "packages/utils/src/helpers.ts:cleanUrl@64"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vitest-toarray",
+      "repository": "vitest",
+      "query": "where is generic top-level toArray<T> accepting optional Nullable Arrayable T",
+      "files": [
+        "packages/utils/src/helpers.ts"
+      ],
+      "symbols": [
+        "toArray"
+      ],
+      "qualified_symbols": [
+        "packages/utils/src/helpers.ts:toArray"
+      ],
+      "symbol_identities": [
+        "packages/utils/src/helpers.ts:toArray@142"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tracing-span-new",
+      "repository": "tracing",
+      "query": "where is Span new accepting static Metadata and field ValueSet",
+      "files": [
+        "tracing/src/span.rs"
+      ],
+      "symbols": [
+        "new"
+      ],
+      "qualified_symbols": [
+        "tracing/src/span.rs:Span.new"
+      ],
+      "symbol_identities": [
+        "tracing/src/span.rs:Span.new@437"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tracing-span-current",
+      "repository": "tracing",
+      "query": "where is Span current returning the currently entered Span",
+      "files": [
+        "tracing/src/span.rs"
+      ],
+      "symbols": [
+        "current"
+      ],
+      "qualified_symbols": [
+        "tracing/src/span.rs:Span.current"
+      ],
+      "symbol_identities": [
+        "tracing/src/span.rs:Span.current@550"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tracing-span-enter",
+      "repository": "tracing",
+      "query": "where is Span enter borrowing self and returning Entered guard",
+      "files": [
+        "tracing/src/span.rs"
+      ],
+      "symbols": [
+        "enter"
+      ],
+      "qualified_symbols": [
+        "tracing/src/span.rs:Span.enter"
+      ],
+      "symbol_identities": [
+        "tracing/src/span.rs:Span.enter@800"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tracing-span-entered",
+      "repository": "tracing",
+      "query": "where is Span entered consuming self and returning EnteredSpan",
+      "files": [
+        "tracing/src/span.rs"
+      ],
+      "symbols": [
+        "entered"
+      ],
+      "qualified_symbols": [
+        "tracing/src/span.rs:Span.entered"
+      ],
+      "symbol_identities": [
+        "tracing/src/span.rs:Span.entered@910"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tracing-span-inscope",
+      "repository": "tracing",
+      "query": "where is Span in_scope accepting FnOnce closure F and returning T",
+      "files": [
+        "tracing/src/span.rs"
+      ],
+      "symbols": [
+        "in_scope"
+      ],
+      "qualified_symbols": [
+        "tracing/src/span.rs:Span.in_scope"
+      ],
+      "symbol_identities": [
+        "tracing/src/span.rs:Span.in_scope@1114"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tracing-span-record",
+      "repository": "tracing",
+      "query": "where is Span record generic over AsField Q and Value V",
+      "files": [
+        "tracing/src/span.rs"
+      ],
+      "symbols": [
+        "record"
+      ],
+      "qualified_symbols": [
+        "tracing/src/span.rs:Span.record"
+      ],
+      "symbol_identities": [
+        "tracing/src/span.rs:Span.record@1207"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redis-client-timeout",
+      "repository": "redis",
+      "query": "where is Client WithTimeout accepting time.Duration and returning Client",
+      "files": [
+        "redis.go"
+      ],
+      "symbols": [
+        "WithTimeout"
+      ],
+      "qualified_symbols": [
+        "redis.go:Client.WithTimeout"
+      ],
+      "symbol_identities": [
+        "redis.go:Client.WithTimeout@2569"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redis-client-close",
+      "repository": "redis",
+      "query": "where is Client Close receiver method rather than baseClient Close",
+      "files": [
+        "redis.go"
+      ],
+      "symbols": [
+        "Close"
+      ],
+      "qualified_symbols": [
+        "redis.go:Client.Close"
+      ],
+      "symbol_identities": [
+        "redis.go:Client.Close@2604"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redis-client-poolstats",
+      "repository": "redis",
+      "query": "where is Client PoolStats returning PoolStats pointer",
+      "files": [
+        "redis.go"
+      ],
+      "symbols": [
+        "PoolStats"
+      ],
+      "qualified_symbols": [
+        "redis.go:Client.PoolStats"
+      ],
+      "symbol_identities": [
+        "redis.go:Client.PoolStats@2725"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redis-client-pipelined",
+      "repository": "redis",
+      "query": "where is Client Pipelined accepting context and Pipeliner callback",
+      "files": [
+        "redis.go"
+      ],
+      "symbols": [
+        "Pipelined"
+      ],
+      "qualified_symbols": [
+        "redis.go:Client.Pipelined"
+      ],
+      "symbol_identities": [
+        "redis.go:Client.Pipelined@2734"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redis-client-pipeline",
+      "repository": "redis",
+      "query": "where is Client Pipeline returning Pipeliner rather than Conn Pipeline",
+      "files": [
+        "redis.go"
+      ],
+      "symbols": [
+        "Pipeline"
+      ],
+      "qualified_symbols": [
+        "redis.go:Client.Pipeline"
+      ],
+      "symbol_identities": [
+        "redis.go:Client.Pipeline@2738"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "redis-client-txpipeline",
+      "repository": "redis",
+      "query": "where is Client TxPipeline returning Pipeliner rather than Conn TxPipeline",
+      "files": [
+        "redis.go"
+      ],
+      "symbols": [
+        "TxPipeline"
+      ],
+      "qualified_symbols": [
+        "redis.go:Client.TxPipeline"
+      ],
+      "symbol_identities": [
+        "redis.go:Client.TxPipeline@2830"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "grpc-newclient",
+      "repository": "grpc",
+      "query": "where is package-level NewClient accepting target string and variadic DialOption",
+      "files": [
+        "clientconn.go"
+      ],
+      "symbols": [
+        "NewClient"
+      ],
+      "qualified_symbols": [
+        "clientconn.go:NewClient"
+      ],
+      "symbol_identities": [
+        "clientconn.go:NewClient@183"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "grpc-waitstate",
+      "repository": "grpc",
+      "query": "where is ClientConn WaitForStateChange accepting context and source connectivity state",
+      "files": [
+        "clientconn.go"
+      ],
+      "symbols": [
+        "WaitForStateChange"
+      ],
+      "qualified_symbols": [
+        "clientconn.go:ClientConn.WaitForStateChange"
+      ],
+      "symbol_identities": [
+        "clientconn.go:ClientConn.WaitForStateChange@710"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "grpc-getstate",
+      "repository": "grpc",
+      "query": "where is ClientConn GetState returning connectivity State",
+      "files": [
+        "clientconn.go"
+      ],
+      "symbols": [
+        "GetState"
+      ],
+      "qualified_symbols": [
+        "clientconn.go:ClientConn.GetState"
+      ],
+      "symbol_identities": [
+        "clientconn.go:ClientConn.GetState@724"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "grpc-connect",
+      "repository": "grpc",
+      "query": "where is ClientConn Connect with no arguments",
+      "files": [
+        "clientconn.go"
+      ],
+      "symbols": [
+        "Connect"
+      ],
+      "qualified_symbols": [
+        "clientconn.go:ClientConn.Connect"
+      ],
+      "symbol_identities": [
+        "clientconn.go:ClientConn.Connect@736"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "grpc-resetbackoff",
+      "repository": "grpc",
+      "query": "where is ClientConn ResetConnectBackoff with no arguments",
+      "files": [
+        "clientconn.go"
+      ],
+      "symbols": [
+        "ResetConnectBackoff"
+      ],
+      "qualified_symbols": [
+        "clientconn.go:ClientConn.ResetConnectBackoff"
+      ],
+      "symbol_identities": [
+        "clientconn.go:ClientConn.ResetConnectBackoff@1179"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "grpc-close",
+      "repository": "grpc",
+      "query": "where is ClientConn Close returning error",
+      "files": [
+        "clientconn.go"
+      ],
+      "symbols": [
+        "Close"
+      ],
+      "qualified_symbols": [
+        "clientconn.go:ClientConn.Close"
+      ],
+      "symbol_identities": [
+        "clientconn.go:ClientConn.Close@1189"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "sqlalchemy-select-join",
+      "repository": "sqlalchemy",
+      "query": "where is Select join method adding a JOIN to the statement FROM clause",
+      "files": [
+        "lib/sqlalchemy/sql/selectable.py"
+      ],
+      "symbols": [
+        "join"
+      ],
+      "qualified_symbols": [
+        "lib/sqlalchemy/sql/selectable.py:Select.join"
+      ],
+      "symbol_identities": [
+        "lib/sqlalchemy/sql/selectable.py:Select.join@5791"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "sqlalchemy-select-outerjoin",
+      "repository": "sqlalchemy",
+      "query": "where is Select outerjoin method adding an OUTER JOIN",
+      "files": [
+        "lib/sqlalchemy/sql/selectable.py"
+      ],
+      "symbols": [
+        "outerjoin"
+      ],
+      "qualified_symbols": [
+        "lib/sqlalchemy/sql/selectable.py:Select.outerjoin"
+      ],
+      "symbol_identities": [
+        "lib/sqlalchemy/sql/selectable.py:Select.outerjoin@5977"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "sqlalchemy-select-onlycols-impl",
+      "repository": "sqlalchemy",
+      "query": "where is Select with_only_columns implementation accepting variadic entities and maintain_column_froms after its overload declarations",
+      "files": [
+        "lib/sqlalchemy/sql/selectable.py"
+      ],
+      "symbols": [
+        "with_only_columns"
+      ],
+      "qualified_symbols": [
+        "lib/sqlalchemy/sql/selectable.py:Select.with_only_columns"
+      ],
+      "symbol_identities": [
+        "lib/sqlalchemy/sql/selectable.py:Select.with_only_columns@6404"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "sqlalchemy-select-where",
+      "repository": "sqlalchemy",
+      "query": "where is Select where accepting variadic boolean column expressions",
+      "files": [
+        "lib/sqlalchemy/sql/selectable.py"
+      ],
+      "symbols": [
+        "where"
+      ],
+      "qualified_symbols": [
+        "lib/sqlalchemy/sql/selectable.py:Select.where"
+      ],
+      "symbol_identities": [
+        "lib/sqlalchemy/sql/selectable.py:Select.where@6503"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "sqlalchemy-select-having",
+      "repository": "sqlalchemy",
+      "query": "where is Select having accepting variadic boolean column expressions",
+      "files": [
+        "lib/sqlalchemy/sql/selectable.py"
+      ],
+      "symbols": [
+        "having"
+      ],
+      "qualified_symbols": [
+        "lib/sqlalchemy/sql/selectable.py:Select.having"
+      ],
+      "symbol_identities": [
+        "lib/sqlalchemy/sql/selectable.py:Select.having@6520"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "sqlalchemy-select-distinct",
+      "repository": "sqlalchemy",
+      "query": "where is Select distinct accepting variadic column expressions",
+      "files": [
+        "lib/sqlalchemy/sql/selectable.py"
+      ],
+      "symbols": [
+        "distinct"
+      ],
+      "qualified_symbols": [
+        "lib/sqlalchemy/sql/selectable.py:Select.distinct"
+      ],
+      "symbol_identities": [
+        "lib/sqlalchemy/sql/selectable.py:Select.distinct@6535"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}

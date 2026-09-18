@@ -1,5 +1,39 @@
 # Unreleased
 
+- **Built and first-ran an eleventh frozen external holdout after C# 14 extension-block support.**
+  `benchmarks/holdout-external-11.json` contains **60 source-grounded tasks
+  across 10 previously-unused repositories**: .NET Runtime and EF Core (C#),
+  Spring Framework and Apache HttpComponents Core (Java), Redux Toolkit and
+  Vitest (TypeScript), tracing (Rust), go-redis and gRPC-Go (Go), and SQLAlchemy
+  (Python). The suite deliberately includes real C# 14 `extension(...)` blocks
+  outside RestSharp, dense Java overload families, TypeScript overloads and
+  implementation signatures, Rust same-name span members, Go receiver methods,
+  and Python class methods in very large source files. All repositories are
+  pinned to exact revisions. Ground truth was committed before evaluation and
+  frozen at SHA
+  `011dffedad4fe5ea99400cc58655850dcf43f38b3664b9219b4f5cf92a7f94ec`.
+
+  Run `35395304893` is the **first and only fresh evaluation** of that frozen
+  manifest. It completed successfully with the holdout protocol enforced.
+
+  **First-ever result: 96.67% file recall, 96.67% bare symbol recall, 93.33%
+  symbol recall in expected files, 91.67% qualified-symbol recall, 88.33% exact
+  symbol-identity recall, and ~99.71% estimated context reduction.** Six
+  repositories scored 100% across file/bare/scoped/qualified/exact: .NET
+  Runtime, EF Core, Spring Framework, tracing, gRPC-Go, and SQLAlchemy. The two
+  fresh C# repositories therefore provide independent confirmation that C# 14
+  extension-block extraction generalizes beyond the RestSharp development case.
+
+  The remaining misses are concentrated rather than broad: HttpComponents Core
+  has 100% file/bare/scoped/qualified recall but 66.7% exact identity inside a
+  dense `EntityUtils.toString` overload family; Redux Toolkit reaches 100%
+  file but 83.3% bare, 66.7% scoped and 50% qualified/exact on its selected
+  TypeScript callable families; go-redis misses one of six Client tasks at the
+  file-selection stage; and Vitest misses one expected file while still
+  retaining 100% bare-name recall. The exact untouched result is preserved in
+  `benchmarks/holdout-external-11.result.json`. Holdout #11 is now burned for
+  tuning.
+
 - **Added compatibility extraction for C# 14 extension blocks.**
   The published `tree-sitter-c-sharp 0.23.x` grammar predates
   `extension_declaration`, so modern source shaped as
