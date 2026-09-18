@@ -88,6 +88,14 @@ def load_runs(path: Path, pricing: Pricing | None = None) -> list[Run]:
         if "cost_usd" in item:
             cost = float(_number(item["cost_usd"], "cost_usd"))
         else:
+            if (
+                pricing.input_per_million == 0
+                and pricing.output_per_million == 0
+                and pricing.cached_input_per_million == 0
+            ):
+                raise ValueError(
+                    f"{path}: run {task_id!r} has no cost_usd and no token pricing was supplied"
+                )
             cost = pricing.cost(input_tokens, output_tokens, cached)
         runs.append(Run(
             task_id=task_id,
