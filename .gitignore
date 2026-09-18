@@ -8,3 +8,6 @@ dist/
 .venv/
 venv/
 CODEMAP.md
+.coverage
+htmlcov/
+coverage.xml
