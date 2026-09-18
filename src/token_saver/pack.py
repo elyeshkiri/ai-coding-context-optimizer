@@ -130,6 +130,21 @@ def rank_files(
     index = index or build_index(root, use_gitignore=use_gitignore)
     q_terms = list(dict.fromkeys(terms(query)))
 
+    # Conservative typo normalization at repository scope. Only identifier
+    # vocabulary participates, and the global thresholds are intentionally
+    # stricter than the within-file fallback below. Original query terms are
+    # always retained; corrected terms are additive evidence, never rewrites.
+    symbol_vocabulary: set[str] = set()
+    for record in index.records.values():
+        for symbol_name in record.symbols:
+            symbol_vocabulary.update(terms(symbol_name))
+    typo_corrections = fuzzy_symbol_terms(
+        set(q_terms), symbol_vocabulary, min_ratio=0.88, min_margin=0.08,
+    )
+    for _source_term, (corrected, _ratio) in typo_corrections.items():
+        if corrected not in q_terms:
+            q_terms.append(corrected)
+
     if not changed_boost:
         changed = set()
     elif changed_files is not None:
