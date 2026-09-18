@@ -22,6 +22,33 @@
   and validated by another untouched external suite before being claimed as
   fresh generalization evidence.
 
+- **Added parser-backed symbol extraction for Go, Rust, Java, and C#.**
+  These languages no longer rely on the generic one-line declaration regex:
+  the shared Tree-sitter syntax layer now records exact source spans, compact
+  signatures, symbol kinds, container/receiver relationships, and method-local
+  calls. Qualified names preserve ownership across language idioms, including
+  Go receiver methods (`Engine.ServeHTTP`), Rust `impl`/trait methods
+  (`Json.into_response`, `Handler.call`), Java members, and C# methods,
+  constructors, properties, events, and delegates.
+
+  The same structural information now powers repository indexing, code maps,
+  and exact named-symbol snippets. The persisted index format was bumped to
+  version 6 so older regex-only records are rebuilt automatically. Unsupported
+  or malformed source retains the existing conservative generic fallback.
+
+  A first implementation placed the new parsers in a separate generic
+  `syntax_multilang.py` module. The self-benchmark immediately caught that
+  module becoming an artificial lexical hub and displacing the real
+  `snippet.py` target (100/100 -> 96/96). Rather than special-case ranking,
+  the language registry was folded into the existing syntax module; the
+  temporary diagnostic was removed and the benchmark returned to **100% file /
+  100% source-visible symbol recall** at **~96.4% estimated context reduction**.
+  Validation: **374 tests passing** and CI green on Python 3.10/3.12/3.13.
+
+  Development used generic synthetic fixtures rather than holdout #4 task IDs.
+  Holdout #4 remains burned/diagnostic; it is not re-run here as fresh
+  generalization evidence.
+
 - **Added conservative typo-tolerant retrieval and an inspectable context browser.**
   Repository-scope typo normalization now compares query words only against
   indexed identifier vocabulary, requires a high similarity score plus a clear
