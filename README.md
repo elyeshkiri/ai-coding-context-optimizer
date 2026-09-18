@@ -76,6 +76,24 @@ human or agent can see why a typo matched an identifier.
 The same inspection surface is available through MCP as `browse_context`.
 
 
+## Benchmark Output Saver compaction
+
+Measure the deterministic post-generation layer with a reusable manifest:
+
+```bash
+token-saver output-benchmark benchmarks/output-saver.json
+```
+
+Each case can provide inline `text` or a response `path`, plus its response
+mode, token budget, budget enforcement setting, and strings that must survive
+compaction. The report measures original/output tokens, weighted reduction,
+code-fence preservation, required-content preservation, and budget overflow.
+
+This benchmark deliberately measures only deterministic **post-generation**
+compaction. Generation-time policy savings must be measured from actual model
+runs and can be compared with `token-saver cost-report`.
+
+
 ## What is new in 1.2
 
 Retrieval ranking got a full correctness pass, driven by a frozen,
