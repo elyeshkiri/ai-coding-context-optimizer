@@ -1,5 +1,7 @@
 # Unreleased
 
+# 1.3.0 - 2026-09-19
+
 - **Hardened the four failure classes exposed by frozen holdout #11.**
   JS/TS parsing now keeps structurally valid declarations around isolated
   Tree-sitter `ERROR` nodes instead of degrading an entire file to generic

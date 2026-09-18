@@ -1,34 +1,76 @@
-# Validation for 1.2.0
+# Validation for 1.3.0
 
-Release validation executed locally on Linux with Python 3.14. The
-repository CI matrix targets Python 3.10, Python 3.12, and Python 3.13.
+Release validation is anchored to GitHub CI on Linux across Python 3.10,
+3.12, and 3.13. The release candidate is based on the post-PR #24 mainline.
 
-Observed dependency versions in the release environment:
+Observed CI dependency versions include:
 
 - pytest 9.1.1
 - tree-sitter 0.25.2
 - tree-sitter-javascript 0.25.0
 - tree-sitter-typescript 0.23.2
+- tree-sitter-c-sharp 0.23.5
 
 ## Test suite and self-benchmark
 
-- Full test suite: **334 passed** (320 at 1.1.0; +14 from PR #1-#4's
-  index-backed retrieval, TypeScript compiler semantics, graph-aware/
-  authoritative-file ranking, and this release's own symbol-window and
-  CI fixes described below).
-- Package build and isolated installation succeeded from `pyproject.toml`
-  as token-saver 1.2.0 (`python -m build`, then `pip install` the built
-  wheel into a fresh virtualenv and run `token-saver --help`).
-- The included deterministic selector benchmark at a 6,000-token cap,
-  run with a fresh cache directory (`TOKEN_SAVER_STATE_DIR`) to avoid
-  stale-index contamination, measured **92% mean relevant-file recall,
-  96% mean relevant-symbol recall, and ~95.3% mean estimated context
-  reduction** on this repository at this commit (88%/92%/93.8% at
-  1.1.0). These are repository-specific selection metrics, not proof of
-  end-to-end agent task success, and move slightly release to release as
-  the tool's own source -- part of the benchmark corpus -- changes.
+- Full test suite: **456 passed** on the Python 3.10/3.12/3.13 CI matrix.
+- The included deterministic 25-task selector benchmark at a 6,000-token cap
+  currently measures **100% mean relevant-file recall, 100% mean
+  relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
+  mean estimated context reduction**.
+- The self-benchmark is now saturated and should be treated as a regression
+  floor, not as the main evidence of generalization. The frozen external
+  holdouts below are deliberately stronger evidence.
+- Package metadata for this release is **token-saver 1.3.0**.
 
-## Frozen external holdout benchmark
+## Frozen external holdout program
+
+Token Saver now maintains eleven frozen external holdout suites. Ground truth is
+written before evaluation, normalized into a path-independent payload, sealed
+with SHA-256, and enforced with `--require-holdout`. Once a suite is evaluated,
+it is considered burned for tuning.
+
+### Holdout #11 — latest fresh external evidence
+
+Holdout #11 contains **60 source-grounded tasks across 10 repositories never
+used in holdouts #1-#10**, spanning C#, Java, TypeScript, Rust, Go, and Python.
+
+Frozen ground-truth SHA-256:
+
+`011dffedad4fe5ea99400cc58655850dcf43f38b3664b9219b4f5cf92a7f94ec`
+
+First and only fresh evaluation: GitHub Actions run **35395304893**.
+
+| Metric | Fresh first run |
+| --- | ---: |
+| File recall | **96.67%** |
+| Bare symbol recall | **96.67%** |
+| Symbol recall in expected files | **93.33%** |
+| Qualified-symbol recall | **91.67%** |
+| Exact symbol-identity recall | **88.33%** |
+| Mean estimated context reduction | **99.71%** |
+
+Six repositories were perfect through exact identity: .NET Runtime, EF Core,
+Spring Framework, tracing, gRPC-Go, and SQLAlchemy. The fresh C# results are
+especially important because .NET Runtime and EF Core independently validate
+the C# 14 extension-block recovery introduced after holdout #10.
+
+The seven non-perfect tasks were concentrated in four general classes: dense
+Java overload identity, TypeScript interface/generic-member identity, a
+same-name TypeScript function in the wrong file, and a Go receiver/member query
+overwhelmed by common call-site noise.
+
+After those classes were fixed generically, frozen #11 was rerun **once** as a
+burned development diagnostic (run **35399929752**). That diagnostic reached
+**100% file, bare, scoped, qualified, and exact identity recall across all
+60 tasks**, with **99.71% mean context reduction** and zero misses. This is
+regression confirmation only; it does **not** replace the fresh 88.33% exact
+first-run result above.
+
+The exact untouched first-run artifact is checked in as
+`benchmarks/holdout-external-11.result.json`.
+
+## Historical first external holdout (1.2-era)
 
 A 6-task suite against independently-authored public repositories at
 pinned revisions -- [encode/httpx](https://github.com/encode/httpx)
