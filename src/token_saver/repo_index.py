@@ -21,7 +21,7 @@ from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, STRUCTURED_EXTRA, symbols as syntax_symbols
 
-INDEX_VERSION = 6
+INDEX_VERSION = 7
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -52,6 +52,7 @@ class SymbolRecord:
     signature: str = ""
     parent: str | None = None
     calls: list[str] | None = None
+    qualified: str | None = None
 
 
 @dataclass
@@ -96,16 +97,23 @@ class RepositoryIndex:
 
     def find_symbols(self, name: str) -> list[tuple[str, SymbolRecord]]:
         needle = name.lower()
+        qualified_exact: list[tuple[str, SymbolRecord]] = []
         exact: list[tuple[str, SymbolRecord]] = []
         partial: list[tuple[str, SymbolRecord]] = []
         for rel, record in self.records.items():
             for symbol in record.definitions or []:
+                qualified = (symbol.qualified or symbol.name).lower()
                 target = symbol.name.lower()
-                if target == needle:
+                if qualified == needle:
+                    qualified_exact.append((rel, symbol))
+                elif target == needle:
                     exact.append((rel, symbol))
-                elif needle in target:
+                elif needle in qualified or needle in target:
                     partial.append((rel, symbol))
-        return sorted(exact or partial, key=lambda item: (item[0], item[1].start_line))
+        return sorted(
+            qualified_exact or exact or partial,
+            key=lambda item: (item[0], item[1].start_line),
+        )
 
     def _callers_by_name(self) -> dict[str, list[tuple[str, SymbolRecord]]]:
         if self._caller_index is None:
@@ -266,6 +274,7 @@ def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[Symbo
                 signature=_python_signature(node),
                 parent=parent,
                 calls=sorted(local_calls),
+                qualified=f"{parent}.{node.name}" if parent else node.name,
             ))
         elif isinstance(node, ast.Import):
             imports.update(alias.name for alias in node.names)
@@ -287,7 +296,10 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
         name = match.group(1) or match.group(2)
         start = text.count("\n", 0, match.start()) + 1
         signature = lines[start - 1].strip() if start <= len(lines) else name
-        found.append(SymbolRecord(name, "symbol", start, start, signature[:300], calls=[]))
+        found.append(SymbolRecord(
+            name, "symbol", start, start, signature[:300],
+            calls=[], qualified=name,
+        ))
     return found
 
 
@@ -304,7 +316,9 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
         parent = symbol.qualified.rsplit(".", 1)[0] if "." in symbol.qualified else None
         out.append(SymbolRecord(
             symbol.name, symbol.kind, symbol.start, symbol.end,
-            symbol.signature[:500], parent, calls,
+            symbol.signature[:500], parent,
+            list(symbol.calls) if symbol.calls else calls,
+            symbol.qualified,
         ))
     return out
 
