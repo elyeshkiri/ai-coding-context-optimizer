@@ -1,0 +1,53 @@
+name: Holdout External 6 First Run
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  frozen-holdout-6:
+    if: github.event.pull_request.head.ref == 'test/holdout-external-6'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/holdout-external-6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Verify frozen ground-truth hash before cloning
+        run: |
+          expected="6c069bc6ef9fcaffd19f6960b9da5e45797a1cbc6f30f9938b937dd2ac7f0535"
+          actual="$(token-saver evaluate benchmarks/holdout-external-6.json --print-ground-truth-hash)"
+          test "$actual" = "$expected"
+      - name: Clone pinned unseen repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          clone_at() {
+            local url="$1"; local dir="$2"; local sha="$3"
+            git init -q "$dir"
+            git -C "$dir" remote add origin "$url"
+            git -C "$dir" fetch -q --depth 1 origin "$sha"
+            git -C "$dir" checkout -q --detach FETCH_HEAD
+            test "$(git -C "$dir" rev-parse HEAD)" = "$sha"
+          }
+          clone_at https://github.com/go-playground/validator.git benchmarks/validator c7f3d2c8ade7c045456c263e8b98938e8e23ef81
+          clone_at https://github.com/spf13/cobra.git benchmarks/cobra adbc8813901bba65827259daa8e22ff94ec1f30e
+          clone_at https://github.com/seanmonstar/reqwest.git benchmarks/reqwest a7abe639aed1949259739121067f89f315b629a5
+          clone_at https://github.com/tokio-rs/bytes.git benchmarks/bytes 7930d93d583757e922014312d4aa3e58a415131f
+          clone_at https://github.com/google/gson.git benchmarks/gson 854c8255b625cf1e13c701a83ea9ccb4caaa576a
+          clone_at https://github.com/LuckyPennySoftware/AutoMapper.git benchmarks/automapper 6e8697bc44f02fb54ef6a556a7d134e63485299e
+      - name: Run frozen holdout exactly once
+        run: |
+          token-saver evaluate benchmarks/holdout-external-6.json \
+            --path benchmarks \
+            --max-tokens 6000 \
+            --require-holdout | tee /tmp/holdout-external-6.result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holdout-external-6-first-run
+          path: /tmp/holdout-external-6.result.json
