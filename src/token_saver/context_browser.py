@@ -57,13 +57,13 @@ def browse_context(
             continue
         item.text = source
         section, labels, identities, redactions = _file_section(
-            item, query_terms, 4, index, None,
+            item, query_terms, 4, index, None, symbol_query_text=query,
         )
         record = index.records.get(item.rel)
         vocabulary: set[str] = set()
         if record is not None:
             for symbol in record.definitions or []:
-                vocabulary.update(terms(symbol.name + " " + symbol.signature))
+                vocabulary.update(symbol_terms(symbol.name + " " + symbol.signature))
         fuzzy = fuzzy_symbol_terms(symbol_query, vocabulary)
         preview = _fit_section(section, preview_tokens)
         detail = _fit_section(section, detail_tokens)

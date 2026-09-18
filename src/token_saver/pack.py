@@ -18,7 +18,7 @@ from .budget import RetrievalPlan, plan_retrieval
 from .closure import authoritative_providers, dependency_closure
 from .estimate import estimate_tokens
 from .feedback import load_feedback
-from .lexical import document_counts, fuzzy_symbol_terms, symbol_terms, terms
+from .lexical import document_counts, fuzzy_symbol_terms, identifier_terms, symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .security import redact_secrets
 from .skeleton import file_priority
@@ -387,7 +387,8 @@ def _prioritized_ranges(
 
 
 def _symbol_windows(
-    item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
+    item: RankedFile, index: RepositoryIndex, query_terms: set[str],
+    target_symbol: str | None, symbol_query_text: str | None = None,
 ) -> tuple[list[tuple[int, int]], list[str], list[str]]:
     record = index.records.get(item.rel)
     if record is None:
@@ -399,14 +400,33 @@ def _symbol_windows(
     # has already won retrieval, symbol selection can safely normalize nearby
     # inflections (connection/connect, equality/equal, completion/complete)
     # without perturbing repository-wide ranking.
-    symbol_query_terms = set(symbol_terms(" ".join(sorted(query_terms))))
-    name_terms_by_symbol = {
-        (symbol.name, symbol.start_line): set(terms(
-            (symbol.qualified or symbol.name) + " " + symbol.signature
+    symbol_query_terms = set(symbol_terms(
+        symbol_query_text if symbol_query_text is not None
+        else " ".join(sorted(query_terms))
+    ))
+    identifier_terms_by_symbol = {
+        (symbol.name, symbol.start_line): set(identifier_terms(
+            symbol.qualified or symbol.name
         ))
         for symbol in definitions
     }
-    all_symbol_name_terms = set().union(*name_terms_by_symbol.values()) if definitions else set()
+    signature_terms_by_symbol = {
+        (symbol.name, symbol.start_line): (
+            set(symbol_terms(symbol.signature))
+            - identifier_terms_by_symbol[(symbol.name, symbol.start_line)]
+        )
+        for symbol in definitions
+    }
+    leaf_terms_by_symbol = {
+        (symbol.name, symbol.start_line): set(identifier_terms(symbol.name))
+        for symbol in definitions
+    }
+    leaf_doc_freq: Counter[str] = Counter()
+    for leaf_terms in leaf_terms_by_symbol.values():
+        leaf_doc_freq.update(leaf_terms)
+    all_symbol_name_terms = (
+        set().union(*identifier_terms_by_symbol.values()) if definitions else set()
+    )
     fuzzy_query_terms = (
         fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
         if not wanted else {}
@@ -418,28 +438,74 @@ def _symbol_windows(
     if not wanted and definitions:
         doc_freq: Counter[str] = Counter()
         for symbol in definitions:
-            name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
+            key = (symbol.name, symbol.start_line)
+            identifier_name_terms = identifier_terms_by_symbol[key]
+            signature_name_terms = signature_terms_by_symbol[key]
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-            for term in name_terms | set(terms(body)):
+            is_container = (symbol.qualified or symbol.name) in container_names
+            body_terms = set() if is_container else set(terms(body))
+            for term in identifier_name_terms | signature_name_terms | body_terms:
                 doc_freq[term] += 1
         n = len(definitions)
         term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
 
     matches: list[tuple[float, object]] = []
     for symbol in definitions:
-        name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
+        key = (symbol.name, symbol.start_line)
+        identifier_name_terms = identifier_terms_by_symbol[key]
+        signature_name_terms = signature_terms_by_symbol[key]
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-        body_terms = set(terms(body))
+        is_container = (symbol.qualified or symbol.name) in container_names
+        body_terms = set() if is_container else set(terms(body))
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
         if not wanted:
-            name_hits = symbol_query_terms & name_terms
+            identifier_hits = symbol_query_terms & identifier_name_terms
+            signature_hits = symbol_query_terms & signature_name_terms
             body_hits = symbol_query_terms & body_terms
+            action_terms = {"add", "build", "create", "use"}
+            specific_identifier_hits = identifier_hits - action_terms
+            action_identifier_hits = identifier_hits & action_terms
+            action_weight = 20 if specific_identifier_hits else 4
             score = (
-                20 * sum(term_weight.get(t, 1.0) for t in name_hits)
+                20 * sum(
+                    term_weight.get(t, 1.0)
+                    for t in specific_identifier_hits
+                )
+                + action_weight * sum(
+                    term_weight.get(t, 1.0)
+                    for t in action_identifier_hits
+                )
+                + 8 * sum(term_weight.get(t, 1.0) for t in signature_hits)
                 + 3 * sum(term_weight.get(t, 1.0) for t in body_hits)
             )
+
+            # A query that literally names this symbol's leaf identifier is
+            # stronger evidence than the same word merely occurring in a
+            # sibling signature or container. Keep the bonus local, bounded,
+            # and IDF-weighted so generic names do not dominate by themselves.
+            leaf_hits = {
+                term
+                for term in (
+                    symbol_query_terms
+                    & leaf_terms_by_symbol[(symbol.name, symbol.start_line)]
+                )
+                if leaf_doc_freq.get(term, 0) == 1
+                # These are deliberately restored at symbol scope because they
+                # are common API verbs, but in natural-language tasks they are
+                # also ordinary imperatives ("build a compact outline"). Let
+                # the normal qualified-name score use them; reserve the extra
+                # unique-leaf bonus for more discriminating identifier terms.
+                and term not in {"add", "build", "create", "use"}
+            }
+            if leaf_hits:
+                n_symbols = max(1, len(definitions))
+                strongest_leaf = max(
+                    math.log((n_symbols + 1) / (leaf_doc_freq[t] + 1)) + 1
+                    for t in leaf_hits
+                )
+                score += min(30.0, 18.0 * strongest_leaf)
 
             # Fuzzy similarity is a bounded *fallback* for identifier typos.
             # It is gated twice: the file has already survived structural/file
@@ -447,7 +513,7 @@ def _symbol_windows(
             # anywhere in this file are eligible for correction.
             fuzzy_bonus = 0.0
             for _query_term, (candidate, ratio) in fuzzy_query_terms.items():
-                if candidate in name_terms:
+                if candidate in identifier_name_terms:
                     fuzzy_bonus += 10.0 * ratio
             score += min(12.0, fuzzy_bonus)
 
@@ -458,49 +524,106 @@ def _symbol_windows(
             call_hits = symbol_query_terms & call_terms
             if call_hits:
                 score += min(
-                    12.0,
-                    4.0 * sum(term_weight.get(t, 1.0) for t in call_hits),
+                    24.0,
+                    6.0 * sum(term_weight.get(t, 1.0) for t in call_hits),
                 )
         if score:
             matches.append((score, symbol))
 
+    def symbol_key(symbol) -> tuple[str, int, int]:
+        return (
+            symbol.qualified or symbol.name,
+            symbol.start_line,
+            symbol.end_line,
+        )
+
     if not wanted:
-        # A container is any symbol that structurally has at least one
-        # other symbol recorded as its child in this file -- not just
-        # kind == "class" (Python's ast.ClassDef), which excludes every
-        # JS/TS container (tree-sitter extraction tags all JS/TS symbols
-        # "symbol" regardless of shape) even though a JS/TS class or a
-        # pre-ES6 `X.prototype.method = ...` constructor-function has the
-        # exact same "one member outscoring its own container" failure
-        # shape as a Python class does.
-        own_score = {symbol.name: score for score, symbol in matches}
-        best_child_score: dict[str, float] = {}
-        best_child_symbol: dict[str, object] = {}
+        # Container relevance comes from explicit containment, not from
+        # re-reading all descendant body vocabulary as if it belonged to the
+        # class/type declaration itself. This preserves parent-credit behavior
+        # without making large containers lexical hubs.
+        containers_by_qualified: dict[str, list[object]] = {}
+        for candidate in definitions:
+            qualified = candidate.qualified or candidate.name
+            if qualified in container_names:
+                containers_by_qualified.setdefault(qualified, []).append(candidate)
+
+        score_by_key = {symbol_key(symbol): score for score, symbol in matches}
+        best_child_score: dict[tuple[str, int, int], float] = {}
+        best_child_symbol: dict[tuple[str, int, int], object] = {}
+
         for score, symbol in matches:
-            if symbol.parent and symbol.parent in own_score and symbol.parent in container_names:
-                if score > best_child_score.get(symbol.parent, 0):
-                    best_child_score[symbol.parent] = score
-                    best_child_symbol[symbol.parent] = symbol
-        boosted = {
-            name: max(score, best_child_score.get(name, 0))
-            for name, score in own_score.items()
-        }
-        matches = [(boosted.get(symbol.name, score), symbol) for score, symbol in matches]
+            if not symbol.parent:
+                continue
+            for parent in containers_by_qualified.get(symbol.parent, []):
+                # Only synthesize parent relevance when the member is actually
+                # nested in the parent's source extent. Go/Rust impl methods
+                # are siblings of their type declaration and should remain
+                # independent candidates.
+                contained = (
+                    parent.start_line <= symbol.start_line
+                    and symbol.end_line <= parent.end_line
+                )
+                prototype_family = (
+                    not contained
+                    and parent.signature.lstrip().startswith(
+                        ("function ", "export function ", "async function ")
+                    )
+                )
+                if not contained and not prototype_family:
+                    continue
+                key = symbol_key(parent)
+                if score > best_child_score.get(key, 0):
+                    best_child_score[key] = score
+                    best_child_symbol[key] = symbol
+
+        boosted_matches: list[tuple[float, object]] = []
+        seen_keys: set[tuple[str, int, int]] = set()
+        for score, symbol in matches:
+            key = symbol_key(symbol)
+            boosted_matches.append((max(score, best_child_score.get(key, 0)), symbol))
+            seen_keys.add(key)
+
+        for qualified, parents in containers_by_qualified.items():
+            for parent in parents:
+                key = symbol_key(parent)
+                child_score = best_child_score.get(key, 0)
+                if child_score and key not in seen_keys:
+                    boosted_matches.append((child_score, parent))
+                    seen_keys.add(key)
+
+        matches = boosted_matches
     else:
         best_child_symbol = {}
 
     matches.sort(key=lambda pair: (-pair[0], pair[1].start_line, pair[1].name))
     selected = [symbol for _, symbol in matches[:2]]
+    relevant_children_by_parent: dict[tuple[str, int, int], list[object]] = {}
+    if not wanted:
+        for _score, candidate in matches:
+            if not candidate.parent:
+                continue
+            for parent in containers_by_qualified.get(candidate.parent, []):
+                contained = (
+                    parent.start_line <= candidate.start_line
+                    and candidate.end_line <= parent.end_line
+                )
+                if contained:
+                    relevant_children_by_parent.setdefault(
+                        symbol_key(parent), []
+                    ).append(candidate)
     windows: list[tuple[int, int]] = []
     labels: list[str] = []
     identities: list[str] = []
     for symbol in selected:
-        child = best_child_symbol.get(symbol.name)
-        has_child = (
-            child is not None and child not in selected
-            and child.start_line >= symbol.start_line and child.end_line <= symbol.end_line
+        child = best_child_symbol.get(symbol_key(symbol))
+        child_contained = (
+            child is not None
+            and child.start_line >= symbol.start_line
+            and child.end_line <= symbol.end_line
         )
-        if has_child and symbol.end_line - symbol.start_line > _LARGE_CONTAINER_LINES:
+        credit_child_label = child_contained and child not in selected
+        if child_contained and symbol.end_line - symbol.start_line > _LARGE_CONTAINER_LINES:
             # A container large enough that rendering it in full risks
             # being clipped by a tight per-file budget before ever
             # reaching the specific member that earned it the boost --
@@ -522,13 +645,35 @@ def _symbol_windows(
         else:
             windows.append((max(1, symbol.start_line - 1), symbol.end_line + 1))
         labels.append(f"{item.rel}:{symbol.name}@{symbol.start_line}")
+        identity_line = symbol.identity_line or symbol.start_line
         identities.append(
-            f"{item.rel}:{symbol.qualified or symbol.name}@{symbol.start_line}"
+            f"{item.rel}:{symbol.qualified or symbol.name}@{identity_line}"
         )
-        if has_child:
-            labels.append(f"{item.rel}:{child.name}@{child.start_line}")
+
+        # selected_symbols is an evidence ledger, not a strict 1:1 list of
+        # rendered windows. When a selected container renders the exact source
+        # of multiple relevant members, credit those members too; the downstream
+        # visibility filter still drops any label whose declaration line was
+        # clipped from the final section. This avoids losing a relevant sibling
+        # merely because another member supplied the container's max parent
+        # score.
+        credited_children = list(
+            relevant_children_by_parent.get(symbol_key(symbol), [])
+        )
+        if credit_child_label and child not in credited_children:
+            credited_children.insert(0, child)
+        for credited in credited_children[:3]:
+            if credited in selected:
+                continue
+            labels.append(
+                f"{item.rel}:{credited.name}@{credited.start_line}"
+            )
+            credited_identity_line = (
+                credited.identity_line or credited.start_line
+            )
             identities.append(
-                f"{item.rel}:{child.qualified or child.name}@{child.start_line}"
+                f"{item.rel}:{credited.qualified or credited.name}"
+                f"@{credited_identity_line}"
             )
     return windows, labels, identities
 
@@ -536,10 +681,11 @@ def _symbol_windows(
 def _file_section(
     item: RankedFile, query_terms: set[str], context_lines: int,
     index: RepositoryIndex, target_symbol: str | None = None,
+    symbol_query_text: str | None = None,
 ) -> tuple[str, list[str], list[str], list[str]]:
     lines = item.text.splitlines()
     symbol_windows, symbol_labels, symbol_identities = _symbol_windows(
-        item, index, query_terms, target_symbol
+        item, index, query_terms, target_symbol, symbol_query_text
     )
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
@@ -791,7 +937,8 @@ def build_context_pack(
             continue
 
         section, symbols, identities, section_redactions = _file_section(
-            item, q_terms, plan.context_lines, index, target_symbol
+            item, q_terms, plan.context_lines, index, target_symbol,
+            symbol_query_text=effective_query,
         )
         fingerprint = _fingerprint(section)
         if fingerprint in seen:

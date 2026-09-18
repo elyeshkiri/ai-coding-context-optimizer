@@ -15,6 +15,7 @@ class Symbol:
     signature: str
     kind: str = "symbol"
     calls: tuple[str, ...] = ()
+    identity_line: int | None = None
 
 @lru_cache(maxsize=3)
 def _language(suffix):
@@ -38,6 +39,7 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
     containers = {"class_declaration", "abstract_class_declaration", "interface_declaration", "enum_declaration"}
     def walk(node, parents=()):
         name_node = node.child_by_field_name("name")
+        identity_node = name_node
         name = source[name_node.start_byte:name_node.end_byte].decode() if name_node else None
         value = node.child_by_field_name("value")
         is_variable = node.type in {"variable_declarator", "public_field_definition", "field_definition"}
@@ -53,7 +55,9 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
             )
         if node.type == "pair":
             key = node.child_by_field_name("key")
-            if key: name = source[key.start_byte:key.end_byte].decode().strip("\"'")
+            if key:
+                name = source[key.start_byte:key.end_byte].decode().strip("\"'")
+                identity_node = key
             is_function = value is not None and value.type in {"arrow_function", "function_expression"}
             is_object = value is not None and value.type == "object"
         # `res.cookie = function (...) {...}` / `exports.foo = () => {...}`:
@@ -73,6 +77,7 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
                 prop = left.child_by_field_name("property")
                 if prop is not None:
                     name = source[prop.start_byte:prop.end_byte].decode()
+                    identity_node = prop
                 # `View.prototype.lookup = function () {...}`: the classic
                 # pre-ES6 constructor-function pattern, where `View` and its
                 # prototype methods are siblings in the AST rather than
@@ -123,8 +128,16 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
             if body: signature += " { … }" if body.type in {"statement_block", "class_body", "interface_body", "object_type", "mapped_type"} else " …"
             end_line = extent.end_point.row + (1 if extent.end_point.column else 0)
             qualifier = (*parents, prototype_owner, name) if prototype_owner else (*parents, name)
-            found.append(Symbol(name, ".".join(qualifier), extent.start_point.row + 1,
-                                max(extent.start_point.row + 1, end_line), extent.start_byte, extent.end_byte, signature))
+            identity_line = (
+                identity_node.start_point.row + 1
+                if identity_node is not None else extent.start_point.row + 1
+            )
+            found.append(Symbol(
+                name, ".".join(qualifier), extent.start_point.row + 1,
+                max(extent.start_point.row + 1, end_line),
+                extent.start_byte, extent.end_byte, signature,
+                identity_line=identity_line,
+            ))
             # Only a genuine container (class/interface/enum) prefixes its
             # descendants' qualified names -- an ordinary function or method
             # does not, even though it may itself contain a nested helper
@@ -318,6 +331,11 @@ def _append(found: list[Symbol], source: bytes, *, name: str, node, body=None,
             parents=(), kind: str = "symbol", extent=None) -> None:
     extent = extent or node
     qualified = ".".join((*parents, name)) if parents else name
+    name_node = node.child_by_field_name("name")
+    identity_line = (
+        name_node.start_point.row + 1
+        if name_node is not None else node.start_point.row + 1
+    )
     found.append(Symbol(
         name=name,
         qualified=qualified,
@@ -327,6 +345,7 @@ def _append(found: list[Symbol], source: bytes, *, name: str, node, body=None,
         end_byte=extent.end_byte,
         signature=_signature(source, extent, body),
         kind=kind,
+        identity_line=identity_line,
     ))
 
 
