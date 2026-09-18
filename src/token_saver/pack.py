@@ -404,10 +404,17 @@ def _symbol_windows(
         symbol_query_text if symbol_query_text is not None
         else " ".join(sorted(query_terms))
     ))
-    name_terms_by_symbol = {
-        (symbol.name, symbol.start_line): set(symbol_terms(
-            (symbol.qualified or symbol.name) + " " + symbol.signature
+    identifier_terms_by_symbol = {
+        (symbol.name, symbol.start_line): set(identifier_terms(
+            symbol.qualified or symbol.name
         ))
+        for symbol in definitions
+    }
+    signature_terms_by_symbol = {
+        (symbol.name, symbol.start_line): (
+            set(symbol_terms(symbol.signature))
+            - identifier_terms_by_symbol[(symbol.name, symbol.start_line)]
+        )
         for symbol in definitions
     }
     leaf_terms_by_symbol = {
@@ -417,7 +424,9 @@ def _symbol_windows(
     leaf_doc_freq: Counter[str] = Counter()
     for leaf_terms in leaf_terms_by_symbol.values():
         leaf_doc_freq.update(leaf_terms)
-    all_symbol_name_terms = set().union(*name_terms_by_symbol.values()) if definitions else set()
+    all_symbol_name_terms = (
+        set().union(*identifier_terms_by_symbol.values()) if definitions else set()
+    )
     fuzzy_query_terms = (
         fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
         if not wanted else {}
@@ -429,18 +438,22 @@ def _symbol_windows(
     if not wanted and definitions:
         doc_freq: Counter[str] = Counter()
         for symbol in definitions:
-            name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
+            key = (symbol.name, symbol.start_line)
+            identifier_name_terms = identifier_terms_by_symbol[key]
+            signature_name_terms = signature_terms_by_symbol[key]
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
             is_container = (symbol.qualified or symbol.name) in container_names
             body_terms = set() if is_container else set(terms(body))
-            for term in name_terms | body_terms:
+            for term in identifier_name_terms | signature_name_terms | body_terms:
                 doc_freq[term] += 1
         n = len(definitions)
         term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
 
     matches: list[tuple[float, object]] = []
     for symbol in definitions:
-        name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
+        key = (symbol.name, symbol.start_line)
+        identifier_name_terms = identifier_terms_by_symbol[key]
+        signature_name_terms = signature_terms_by_symbol[key]
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
         is_container = (symbol.qualified or symbol.name) in container_names
         body_terms = set() if is_container else set(terms(body))
@@ -448,10 +461,12 @@ def _symbol_windows(
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
         if not wanted:
-            name_hits = symbol_query_terms & name_terms
+            identifier_hits = symbol_query_terms & identifier_name_terms
+            signature_hits = symbol_query_terms & signature_name_terms
             body_hits = symbol_query_terms & body_terms
             score = (
-                20 * sum(term_weight.get(t, 1.0) for t in name_hits)
+                20 * sum(term_weight.get(t, 1.0) for t in identifier_hits)
+                + 8 * sum(term_weight.get(t, 1.0) for t in signature_hits)
                 + 3 * sum(term_weight.get(t, 1.0) for t in body_hits)
             )
 
@@ -483,7 +498,7 @@ def _symbol_windows(
             # anywhere in this file are eligible for correction.
             fuzzy_bonus = 0.0
             for _query_term, (candidate, ratio) in fuzzy_query_terms.items():
-                if candidate in name_terms:
+                if candidate in identifier_name_terms:
                     fuzzy_bonus += 10.0 * ratio
             score += min(12.0, fuzzy_bonus)
 
@@ -530,10 +545,17 @@ def _symbol_windows(
                 # nested in the parent's source extent. Go/Rust impl methods
                 # are siblings of their type declaration and should remain
                 # independent candidates.
-                if not (
+                contained = (
                     parent.start_line <= symbol.start_line
                     and symbol.end_line <= parent.end_line
-                ):
+                )
+                prototype_family = (
+                    not contained
+                    and parent.signature.lstrip().startswith(
+                        ("function ", "export function ", "async function ")
+                    )
+                )
+                if not contained and not prototype_family:
                     continue
                 key = symbol_key(parent)
                 if score > best_child_score.get(key, 0):
@@ -566,11 +588,13 @@ def _symbol_windows(
     identities: list[str] = []
     for symbol in selected:
         child = best_child_symbol.get(symbol_key(symbol))
-        has_child = (
-            child is not None and child not in selected
-            and child.start_line >= symbol.start_line and child.end_line <= symbol.end_line
+        child_contained = (
+            child is not None
+            and child.start_line >= symbol.start_line
+            and child.end_line <= symbol.end_line
         )
-        if has_child and symbol.end_line - symbol.start_line > _LARGE_CONTAINER_LINES:
+        credit_child_label = child_contained and child not in selected
+        if child_contained and symbol.end_line - symbol.start_line > _LARGE_CONTAINER_LINES:
             # A container large enough that rendering it in full risks
             # being clipped by a tight per-file budget before ever
             # reaching the specific member that earned it the boost --
@@ -596,7 +620,7 @@ def _symbol_windows(
         identities.append(
             f"{item.rel}:{symbol.qualified or symbol.name}@{identity_line}"
         )
-        if has_child:
+        if credit_child_label:
             labels.append(f"{item.rel}:{child.name}@{child.start_line}")
             child_identity_line = child.identity_line or child.start_line
             identities.append(
