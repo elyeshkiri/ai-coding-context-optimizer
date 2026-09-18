@@ -1,0 +1,910 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-18T20:15:00Z",
+    "ground_truth_sha256": "PENDING"
+  },
+  "repositories": {
+    "restsharp": {
+      "path": "RestSharp",
+      "revision": "64ee12995b8d7409a5863da7b71cddfa526ffb7a"
+    },
+    "shouldly": {
+      "path": "shouldly",
+      "revision": "c6dd8686c544454cebc19f88f83c4887e5a5a398"
+    },
+    "mockito": {
+      "path": "mockito",
+      "revision": "9c5f36fb9f2ad89fbaab828d33d144cd398a4079"
+    },
+    "commons-collections": {
+      "path": "commons-collections",
+      "revision": "21d6821190e0325022510393f41faa8ec95b6397"
+    },
+    "mongodb": {
+      "path": "mongodb",
+      "revision": "7e953ed5c5d02af5d732e0be6980ad6c5692a08c"
+    },
+    "tanstack": {
+      "path": "tanstack-query",
+      "revision": "d346e85f0144eb9b991e6e1665b22f4574de9751"
+    },
+    "futures": {
+      "path": "futures-rs",
+      "revision": "f4f4fa3a3673ca13b4c9b21252fb49fb1e4fe3c5"
+    },
+    "gorm": {
+      "path": "gorm",
+      "revision": "b3d3bf219f0283f8e2e985bac509cb643170f729"
+    }
+  },
+  "tasks": [
+    {
+      "id": "restsharp-addbody-object",
+      "repository": "restsharp",
+      "query": "which RestRequestExtensions AddBody overload accepts an object plus optional ContentType",
+      "files": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs"
+      ],
+      "symbols": [
+        "AddBody"
+      ],
+      "qualified_symbols": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddBody"
+      ],
+      "symbol_identities": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddBody@28"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "restsharp-addstring-dataformat",
+      "repository": "restsharp",
+      "query": "which RestRequestExtensions AddStringBody overload accepts string body and DataFormat",
+      "files": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs"
+      ],
+      "symbols": [
+        "AddStringBody"
+      ],
+      "qualified_symbols": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddStringBody"
+      ],
+      "symbol_identities": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddStringBody@53"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "restsharp-addstring-contenttype",
+      "repository": "restsharp",
+      "query": "which RestRequestExtensions AddStringBody overload accepts string body and ContentType",
+      "files": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs"
+      ],
+      "symbols": [
+        "AddStringBody"
+      ],
+      "qualified_symbols": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddStringBody"
+      ],
+      "symbol_identities": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddStringBody@65"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "restsharp-addjson-string-force",
+      "repository": "restsharp",
+      "query": "which RestRequestExtensions AddJsonBody overload accepts a JSON string, bool forceSerialize, and optional ContentType",
+      "files": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs"
+      ],
+      "symbols": [
+        "AddJsonBody"
+      ],
+      "qualified_symbols": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddJsonBody"
+      ],
+      "symbol_identities": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddJsonBody@75"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "restsharp-addjson-generic-object",
+      "repository": "restsharp",
+      "query": "which generic RestRequestExtensions AddJsonBody<T> overload accepts a T object and optional ContentType where T is a class",
+      "files": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs"
+      ],
+      "symbols": [
+        "AddJsonBody"
+      ],
+      "qualified_symbols": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddJsonBody"
+      ],
+      "symbol_identities": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddJsonBody@89"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "restsharp-addxml-generic-namespace",
+      "repository": "restsharp",
+      "query": "which generic RestRequestExtensions AddXmlBody<T> overload accepts T object, optional ContentType, and xmlNamespace string",
+      "files": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs"
+      ],
+      "symbols": [
+        "AddXmlBody"
+      ],
+      "qualified_symbols": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddXmlBody"
+      ],
+      "symbol_identities": [
+        "src/RestSharp/Request/RestRequestExtensions.Body.cs:RestRequestExtensions.AddXmlBody@104"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "shouldly-scalar",
+      "repository": "shouldly",
+      "query": "which ShouldBeTestExtensions ShouldBe<T> overload compares nullable scalar T actual and expected with optional customMessage",
+      "files": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs"
+      ],
+      "symbols": [
+        "ShouldBe"
+      ],
+      "qualified_symbols": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe"
+      ],
+      "symbol_identities": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe@16"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "shouldly-scalar-comparer",
+      "repository": "shouldly",
+      "query": "which ShouldBeTestExtensions ShouldBe<T> overload compares scalar T actual and expected using IEqualityComparer<T>",
+      "files": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs"
+      ],
+      "symbols": [
+        "ShouldBe"
+      ],
+      "qualified_symbols": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe"
+      ],
+      "symbol_identities": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe@28"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "shouldly-enumerable",
+      "repository": "shouldly",
+      "query": "which ShouldBeTestExtensions ShouldBe<T> overload compares IEnumerable<T> actual and expected without an ignoreOrder parameter",
+      "files": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs"
+      ],
+      "symbols": [
+        "ShouldBe"
+      ],
+      "qualified_symbols": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe"
+      ],
+      "symbol_identities": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe@68"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "shouldly-enumerable-ignoreorder",
+      "repository": "shouldly",
+      "query": "which ShouldBeTestExtensions ShouldBe<T> overload compares IEnumerable<T> actual and expected with bool ignoreOrder",
+      "files": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs"
+      ],
+      "symbols": [
+        "ShouldBe"
+      ],
+      "qualified_symbols": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe"
+      ],
+      "symbol_identities": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe@81"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "shouldly-enumerable-comparer-ignoreorder",
+      "repository": "shouldly",
+      "query": "which ShouldBeTestExtensions ShouldBe<T> overload accepts IEnumerable<T>, IEqualityComparer<T>, and optional bool ignoreOrder",
+      "files": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs"
+      ],
+      "symbols": [
+        "ShouldBe"
+      ],
+      "qualified_symbols": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe"
+      ],
+      "symbol_identities": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe@111"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "shouldly-decimal-tolerance",
+      "repository": "shouldly",
+      "query": "which ShouldBeTestExtensions ShouldBe overload compares IEnumerable<decimal> values with a decimal tolerance",
+      "files": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs"
+      ],
+      "symbols": [
+        "ShouldBe"
+      ],
+      "qualified_symbols": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe"
+      ],
+      "symbol_identities": [
+        "src/Shouldly/ShouldlyExtensionMethods/ShouldBe/GenericShouldBeTestExtensions.cs:ShouldBeTestExtensions.ShouldBe@132"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mockito-reified",
+      "repository": "mockito",
+      "query": "which Mockito mock<T> overload takes only varargs reified values",
+      "files": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java"
+      ],
+      "symbols": [
+        "mock"
+      ],
+      "qualified_symbols": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock"
+      ],
+      "symbol_identities": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock@2148"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mockito-answer-reified",
+      "repository": "mockito",
+      "query": "which Mockito mock<T> overload accepts Answer defaultAnswer followed by varargs reified",
+      "files": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java"
+      ],
+      "symbols": [
+        "mock"
+      ],
+      "qualified_symbols": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock"
+      ],
+      "symbol_identities": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock@2164"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mockito-name-reified",
+      "repository": "mockito",
+      "query": "which Mockito mock<T> overload accepts String name followed by varargs reified",
+      "files": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java"
+      ],
+      "symbols": [
+        "mock"
+      ],
+      "qualified_symbols": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock"
+      ],
+      "symbol_identities": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock@2180"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mockito-settings-reified",
+      "repository": "mockito",
+      "query": "which Mockito mock<T> overload accepts MockSettings settings followed by varargs reified",
+      "files": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java"
+      ],
+      "symbols": [
+        "mock"
+      ],
+      "qualified_symbols": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock"
+      ],
+      "symbol_identities": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock@2196"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mockito-class-only",
+      "repository": "mockito",
+      "query": "which Mockito mock<T> overload accepts only Class<T> classToMock",
+      "files": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java"
+      ],
+      "symbols": [
+        "mock"
+      ],
+      "qualified_symbols": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock"
+      ],
+      "symbol_identities": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock@2213"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mockito-class-name",
+      "repository": "mockito",
+      "query": "which Mockito mock<T> overload accepts Class<T> classToMock and String name",
+      "files": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java"
+      ],
+      "symbols": [
+        "mock"
+      ],
+      "qualified_symbols": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock"
+      ],
+      "symbol_identities": [
+        "mockito-core/src/main/java/org/mockito/Mockito.java:Mockito.mock@2232"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "collections-addall-varargs",
+      "repository": "commons-collections",
+      "query": "which CollectionUtils addAll overload accepts Collection<C> plus C varargs elements",
+      "files": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java"
+      ],
+      "symbols": [
+        "addAll"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll@277"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "collections-addall-enumeration",
+      "repository": "commons-collections",
+      "query": "which CollectionUtils addAll overload accepts Collection<C> plus Enumeration<? extends C>",
+      "files": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java"
+      ],
+      "symbols": [
+        "addAll"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll@296"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "collections-addall-iterable",
+      "repository": "commons-collections",
+      "query": "which CollectionUtils addAll overload accepts Collection<C> plus Iterable<? extends C>",
+      "files": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java"
+      ],
+      "symbols": [
+        "addAll"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll@316"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "collections-addall-iterator",
+      "repository": "commons-collections",
+      "query": "which CollectionUtils addAll overload accepts Collection<C> plus Iterator<? extends C>",
+      "files": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java"
+      ],
+      "symbols": [
+        "addAll"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.addAll@334"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "collections-get-iterable",
+      "repository": "commons-collections",
+      "query": "which CollectionUtils get overload accepts Iterable<T> and int index",
+      "files": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.get"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.get@940"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "collections-get-iterator",
+      "repository": "commons-collections",
+      "query": "which CollectionUtils get overload accepts Iterator<T> and int index",
+      "files": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.get"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/collections4/CollectionUtils.java:CollectionUtils.get@961"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mongodb-findone-empty",
+      "repository": "mongodb",
+      "query": "which Collection findOne overload takes no arguments and returns WithId<TSchema> or null",
+      "files": [
+        "src/collection.ts"
+      ],
+      "symbols": [
+        "findOne"
+      ],
+      "qualified_symbols": [
+        "src/collection.ts:Collection.findOne"
+      ],
+      "symbol_identities": [
+        "src/collection.ts:Collection.findOne@527"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mongodb-findone-filter",
+      "repository": "mongodb",
+      "query": "which Collection findOne overload accepts only Filter<TSchema> and returns WithId<TSchema> or null",
+      "files": [
+        "src/collection.ts"
+      ],
+      "symbols": [
+        "findOne"
+      ],
+      "qualified_symbols": [
+        "src/collection.ts:Collection.findOne"
+      ],
+      "symbol_identities": [
+        "src/collection.ts:Collection.findOne@528"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mongodb-findone-filter-options",
+      "repository": "mongodb",
+      "query": "which Collection findOne overload accepts Filter<TSchema> plus required FindOneOptions Abortable options without a generic override",
+      "files": [
+        "src/collection.ts"
+      ],
+      "symbols": [
+        "findOne"
+      ],
+      "qualified_symbols": [
+        "src/collection.ts:Collection.findOne"
+      ],
+      "symbol_identities": [
+        "src/collection.ts:Collection.findOne@529"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mongodb-findone-generic-empty",
+      "repository": "mongodb",
+      "query": "which generic Collection findOne<T> overload takes no arguments and returns T or null",
+      "files": [
+        "src/collection.ts"
+      ],
+      "symbols": [
+        "findOne"
+      ],
+      "qualified_symbols": [
+        "src/collection.ts:Collection.findOne"
+      ],
+      "symbol_identities": [
+        "src/collection.ts:Collection.findOne@535"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mongodb-findone-generic-options",
+      "repository": "mongodb",
+      "query": "which generic Collection findOne<T> overload accepts Filter<TSchema> plus optional FindOneOptions Abortable options",
+      "files": [
+        "src/collection.ts"
+      ],
+      "symbols": [
+        "findOne"
+      ],
+      "qualified_symbols": [
+        "src/collection.ts:Collection.findOne"
+      ],
+      "symbol_identities": [
+        "src/collection.ts:Collection.findOne@537"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mongodb-findone-implementation",
+      "repository": "mongodb",
+      "query": "where is the Collection findOne implementation with default filter and default options values",
+      "files": [
+        "src/collection.ts"
+      ],
+      "symbols": [
+        "findOne"
+      ],
+      "qualified_symbols": [
+        "src/collection.ts:Collection.findOne"
+      ],
+      "symbol_identities": [
+        "src/collection.ts:Collection.findOne@542"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tanstack-getquerydata",
+      "repository": "tanstack",
+      "query": "where is QueryClient getQueryData that takes a tagged query key and returns inferred cached data or undefined",
+      "files": [
+        "packages/query-core/src/queryClient.ts"
+      ],
+      "symbols": [
+        "getQueryData"
+      ],
+      "qualified_symbols": [
+        "packages/query-core/src/queryClient.ts:QueryClient.getQueryData"
+      ],
+      "symbol_identities": [
+        "packages/query-core/src/queryClient.ts:QueryClient.getQueryData@183"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tanstack-ensurequerydata",
+      "repository": "tanstack",
+      "query": "where is QueryClient ensureQueryData that accepts EnsureQueryDataOptions and returns Promise<TData>",
+      "files": [
+        "packages/query-core/src/queryClient.ts"
+      ],
+      "symbols": [
+        "ensureQueryData"
+      ],
+      "qualified_symbols": [
+        "packages/query-core/src/queryClient.ts:QueryClient.ensureQueryData"
+      ],
+      "symbol_identities": [
+        "packages/query-core/src/queryClient.ts:QueryClient.ensureQueryData@197"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tanstack-setquerydata",
+      "repository": "tanstack",
+      "query": "where is QueryClient setQueryData that accepts queryKey, updater, and optional SetDataOptions",
+      "files": [
+        "packages/query-core/src/queryClient.ts"
+      ],
+      "symbols": [
+        "setQueryData"
+      ],
+      "qualified_symbols": [
+        "packages/query-core/src/queryClient.ts:QueryClient.setQueryData"
+      ],
+      "symbol_identities": [
+        "packages/query-core/src/queryClient.ts:QueryClient.setQueryData@273"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tanstack-cancelqueries",
+      "repository": "tanstack",
+      "query": "where is QueryClient cancelQueries that accepts optional QueryFilters and CancelOptions",
+      "files": [
+        "packages/query-core/src/queryClient.ts"
+      ],
+      "symbols": [
+        "cancelQueries"
+      ],
+      "qualified_symbols": [
+        "packages/query-core/src/queryClient.ts:QueryClient.cancelQueries"
+      ],
+      "symbol_identities": [
+        "packages/query-core/src/queryClient.ts:QueryClient.cancelQueries@434"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tanstack-invalidatequeries",
+      "repository": "tanstack",
+      "query": "where is QueryClient invalidateQueries that accepts InvalidateQueryFilters and InvalidateOptions",
+      "files": [
+        "packages/query-core/src/queryClient.ts"
+      ],
+      "symbols": [
+        "invalidateQueries"
+      ],
+      "qualified_symbols": [
+        "packages/query-core/src/queryClient.ts:QueryClient.invalidateQueries"
+      ],
+      "symbol_identities": [
+        "packages/query-core/src/queryClient.ts:QueryClient.invalidateQueries@462"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "tanstack-refetchqueries",
+      "repository": "tanstack",
+      "query": "where is QueryClient refetchQueries that accepts RefetchQueryFilters and RefetchOptions",
+      "files": [
+        "packages/query-core/src/queryClient.ts"
+      ],
+      "symbols": [
+        "refetchQueries"
+      ],
+      "qualified_symbols": [
+        "packages/query-core/src/queryClient.ts:QueryClient.refetchQueries"
+      ],
+      "symbol_identities": [
+        "packages/query-core/src/queryClient.ts:QueryClient.refetchQueries@499"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "futures-streamext-next",
+      "repository": "futures",
+      "query": "where is StreamExt next that borrows the stream mutably and returns Next",
+      "files": [
+        "futures-util/src/stream/stream/mod.rs"
+      ],
+      "symbols": [
+        "next"
+      ],
+      "qualified_symbols": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.next"
+      ],
+      "symbol_identities": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.next@252"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "futures-streamext-map",
+      "repository": "futures",
+      "query": "where is StreamExt map that consumes self and a mapping closure F and returns Map",
+      "files": [
+        "futures-util/src/stream/stream/mod.rs"
+      ],
+      "symbols": [
+        "map"
+      ],
+      "qualified_symbols": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.map"
+      ],
+      "symbol_identities": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.map@320"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "futures-streamext-filter",
+      "repository": "futures",
+      "query": "where is StreamExt filter that consumes self and an async predicate closure and returns Filter",
+      "files": [
+        "futures-util/src/stream/stream/mod.rs"
+      ],
+      "symbols": [
+        "filter"
+      ],
+      "qualified_symbols": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.filter"
+      ],
+      "symbol_identities": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.filter@399"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "futures-streamext-filter-map",
+      "repository": "futures",
+      "query": "where is StreamExt filter_map that consumes self and an async closure and returns FilterMap",
+      "files": [
+        "futures-util/src/stream/stream/mod.rs"
+      ],
+      "symbols": [
+        "filter_map"
+      ],
+      "qualified_symbols": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.filter_map"
+      ],
+      "symbol_identities": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.filter_map@433"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "futures-streamext-collect",
+      "repository": "futures",
+      "query": "where is StreamExt collect with generic C Default plus Extend<Self::Item> returning Collect",
+      "files": [
+        "futures-util/src/stream/stream/mod.rs"
+      ],
+      "symbols": [
+        "collect"
+      ],
+      "qualified_symbols": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.collect"
+      ],
+      "symbol_identities": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.collect@501"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "futures-streamext-for-each",
+      "repository": "futures",
+      "query": "where is StreamExt for_each that consumes self and async closure F and returns ForEach",
+      "files": [
+        "futures-util/src/stream/stream/mod.rs"
+      ],
+      "symbols": [
+        "for_each"
+      ],
+      "qualified_symbols": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.for_each"
+      ],
+      "symbol_identities": [
+        "futures-util/src/stream/stream/mod.rs:StreamExt.for_each@1076"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gorm-db-select",
+      "repository": "gorm",
+      "query": "where is DB Select in chainable_api.go accepting query interface and variadic args",
+      "files": [
+        "chainable_api.go"
+      ],
+      "symbols": [
+        "Select"
+      ],
+      "qualified_symbols": [
+        "chainable_api.go:DB.Select"
+      ],
+      "symbol_identities": [
+        "chainable_api.go:DB.Select@112"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gorm-db-where",
+      "repository": "gorm",
+      "query": "where is DB Where in chainable_api.go accepting query interface and variadic args",
+      "files": [
+        "chainable_api.go"
+      ],
+      "symbols": [
+        "Where"
+      ],
+      "qualified_symbols": [
+        "chainable_api.go:DB.Where"
+      ],
+      "symbol_identities": [
+        "chainable_api.go:DB.Where@207"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gorm-db-joins",
+      "repository": "gorm",
+      "query": "where is DB Joins in chainable_api.go accepting query string and variadic args",
+      "files": [
+        "chainable_api.go"
+      ],
+      "symbols": [
+        "Joins"
+      ],
+      "qualified_symbols": [
+        "chainable_api.go:DB.Joins"
+      ],
+      "symbol_identities": [
+        "chainable_api.go:DB.Joins@248"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gorm-db-first",
+      "repository": "gorm",
+      "query": "where is DB First in finisher_api.go accepting destination and optional conditions",
+      "files": [
+        "finisher_api.go"
+      ],
+      "symbols": [
+        "First"
+      ],
+      "qualified_symbols": [
+        "finisher_api.go:DB.First"
+      ],
+      "symbol_identities": [
+        "finisher_api.go:DB.First@130"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gorm-db-find",
+      "repository": "gorm",
+      "query": "where is DB Find in finisher_api.go accepting destination and optional conditions",
+      "files": [
+        "finisher_api.go"
+      ],
+      "symbols": [
+        "Find"
+      ],
+      "qualified_symbols": [
+        "finisher_api.go:DB.Find"
+      ],
+      "symbol_identities": [
+        "finisher_api.go:DB.Find@174"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "gorm-db-scan",
+      "repository": "gorm",
+      "query": "where is DB Scan in finisher_api.go accepting a destination",
+      "files": [
+        "finisher_api.go"
+      ],
+      "symbols": [
+        "Scan"
+      ],
+      "qualified_symbols": [
+        "finisher_api.go:DB.Scan"
+      ],
+      "symbol_identities": [
+        "finisher_api.go:DB.Scan@537"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}
