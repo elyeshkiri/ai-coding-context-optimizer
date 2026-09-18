@@ -412,6 +412,8 @@ def _symbol_windows(
         if not wanted else {}
     )
 
+    container_names = {symbol.parent for symbol in definitions if symbol.parent}
+
     term_weight: dict[str, float] = {}
     if not wanted and definitions:
         doc_freq: Counter[str] = Counter()
@@ -436,7 +438,7 @@ def _symbol_windows(
             body_hits = symbol_query_terms & body_terms
             score = (
                 20 * sum(term_weight.get(t, 1.0) for t in name_hits)
-                + sum(term_weight.get(t, 1.0) for t in body_hits)
+                + 3 * sum(term_weight.get(t, 1.0) for t in body_hits)
             )
 
             # Fuzzy similarity is a bounded *fallback* for identifier typos.
@@ -471,7 +473,6 @@ def _symbol_windows(
         # pre-ES6 `X.prototype.method = ...` constructor-function has the
         # exact same "one member outscoring its own container" failure
         # shape as a Python class does.
-        container_names = {symbol.parent for symbol in definitions if symbol.parent}
         own_score = {symbol.name: score for score, symbol in matches}
         best_child_score: dict[str, float] = {}
         best_child_symbol: dict[str, object] = {}
@@ -481,7 +482,7 @@ def _symbol_windows(
                     best_child_score[symbol.parent] = score
                     best_child_symbol[symbol.parent] = symbol
         boosted = {
-            name: score + best_child_score.get(name, 0)
+            name: max(score, best_child_score.get(name, 0))
             for name, score in own_score.items()
         }
         matches = [(boosted.get(symbol.name, score), symbol) for score, symbol in matches]
