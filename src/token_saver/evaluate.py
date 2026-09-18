@@ -157,6 +157,13 @@ def _summary(items: list[dict]) -> dict:
         "mean_symbol_recall": sum(item["symbol_recall"] for item in items) / len(items),
         "mean_token_reduction": sum(item["token_reduction"] for item in items) / len(items),
     }
+    scoped = [
+        item["symbol_recall_in_expected_files"]
+        for item in items
+        if item.get("symbol_recall_in_expected_files") is not None
+    ]
+    if scoped:
+        out["mean_symbol_recall_in_expected_files"] = sum(scoped) / len(scoped)
     strict = [
         item["qualified_symbol_recall"]
         for item in items
@@ -260,12 +267,25 @@ def evaluate_manifest(
             value.rsplit("@", 1)[0]
             for value in pack.selected_symbol_identities
         }
+        # `symbol_recall` matches bare names from *any* selected file, so a
+        # same-named symbol in an unrelated file (a test's own `generate`, an
+        # example's `resolve_command`) can satisfy it by coincidence. This
+        # variant only credits a symbol found in one of the task's expected
+        # files, and needs no extra ground-truth fields.
+        actual_symbols_in_expected_files = {
+            label.split(":", 1)[1].split("@", 1)[0]
+            for label in pack.selected_symbols
+            if label.split(":", 1)[0] in expected_files
+        }
         item = {
             "id": task.get("id", position),
             "repository": repo_name,
             "revision": revisions[repo_root],
             "file_recall": _recall(expected_files, set(pack.selected_files)),
             "symbol_recall": _recall(expected_symbols, actual_symbols),
+            "symbol_recall_in_expected_files": _recall(
+                expected_symbols, actual_symbols_in_expected_files
+            ),
             "qualified_symbol_recall": (
                 _recall(expected_qualified_symbols, actual_qualified_symbols)
                 if expected_qualified_symbols else None

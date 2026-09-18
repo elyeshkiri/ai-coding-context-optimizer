@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import math
+import random
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -34,6 +36,31 @@ class Run:
     model_calls: int
     latency_ms: float
     cost_usd: float
+    # Distinguishes repeated attempts of the same task (variance runs). Runs are
+    # paired across conditions on (task_id, trial); empty means "the only run".
+    trial: str = ""
+
+
+def _trial(value: Any, where: str) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
+        raise ValueError(f"{where}: trial must be a string or integer")
+    return str(value).strip()
+
+
+def _label(task_id: str, trial: str) -> str:
+    return f"{task_id}#{trial}" if trial else task_id
+
+
+def _duplicate_message(where: str, task_id: str, trial: str, extra: str = "") -> str:
+    if trial:
+        return f"{where}: duplicate {extra}task_id {task_id!r} trial {trial!r}"
+    return (
+        f"{where}: duplicate {extra}task_id {task_id!r}; give repeated attempts "
+        "of one task a distinct 'trial' so they can be paired and their "
+        "variance measured"
+    )
 
 
 def _number(value: Any, field: str, *, integer: bool = False) -> float | int:
@@ -65,15 +92,16 @@ def _runs_payload(path: Path) -> list[dict]:
 
 def load_runs(path: Path, pricing: Pricing | None = None) -> list[Run]:
     pricing = pricing or Pricing()
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
     runs: list[Run] = []
     for position, item in enumerate(_runs_payload(path), start=1):
         task_id = str(item.get("task_id", "")).strip()
         if not task_id:
             raise ValueError(f"{path}: run {position} requires task_id")
-        if task_id in seen:
-            raise ValueError(f"{path}: duplicate task_id {task_id!r}")
-        seen.add(task_id)
+        trial = _trial(item.get("trial"), f"{path}: run {task_id!r}")
+        if (task_id, trial) in seen:
+            raise ValueError(_duplicate_message(str(path), task_id, trial))
+        seen.add((task_id, trial))
         success = item.get("success")
         if not isinstance(success, bool):
             raise ValueError(f"{path}: run {task_id!r} success must be boolean")
@@ -107,6 +135,7 @@ def load_runs(path: Path, pricing: Pricing | None = None) -> list[Run]:
             model_calls=model_calls,
             latency_ms=latency,
             cost_usd=cost,
+            trial=trial,
         ))
     return runs
 
@@ -142,19 +171,105 @@ def _summary(runs: list[Run]) -> dict:
     }
 
 
+def _index_runs(runs: list[Run], side: str) -> dict[tuple[str, str], Run]:
+    indexed: dict[tuple[str, str], Run] = {}
+    for run in runs:
+        key = (run.task_id, run.trial)
+        if key in indexed:
+            # Never let a repeated (task_id, trial) silently collapse to the
+            # last run: it would misstate success rate and cost with no signal.
+            raise ValueError(_duplicate_message(side, run.task_id, run.trial))
+        indexed[key] = run
+    return indexed
+
+
+_BOOTSTRAP_RESAMPLES = 2000
+_BOOTSTRAP_SEED = 0
+
+
+def _cluster_totals(members: list[tuple[Run, Run]]) -> tuple[float, ...]:
+    return (
+        sum(b.input_tokens + b.output_tokens for b, _ in members),
+        sum(o.input_tokens + o.output_tokens for _, o in members),
+        sum(b.cost_usd for b, _ in members),
+        sum(o.cost_usd for _, o in members),
+        sum(b.success for b, _ in members),
+        sum(o.success for _, o in members),
+        len(members),
+    )
+
+
+def _bootstrap_metrics(t: tuple[float, ...]) -> dict[str, float | None]:
+    b_tok, o_tok, b_cost, o_cost, b_ok, o_ok, n = t
+    cps = None
+    if b_ok > 0 and o_ok > 0 and b_cost > 0:
+        cps = 1.0 - (o_cost / o_ok) / (b_cost / b_ok)
+    return {
+        "total_token_reduction": 1.0 - o_tok / b_tok if b_tok > 0 else None,
+        "cost_reduction": 1.0 - o_cost / b_cost if b_cost > 0 else None,
+        "success_rate_change": o_ok / n - b_ok / n,
+        "cost_per_success_reduction": cps,
+    }
+
+
+def _confidence(pairs: list[tuple[Run, Run]]) -> dict:
+    """95% percentile intervals from a cluster bootstrap over tasks.
+
+    Resampling whole tasks (not individual runs) keeps repeated trials of one
+    task from being treated as independent evidence. Deterministic (seeded).
+    """
+    clusters: dict[str, list[tuple[Run, Run]]] = {}
+    for baseline, optimized in pairs:
+        clusters.setdefault(baseline.task_id, []).append((baseline, optimized))
+    totals = [_cluster_totals(members) for members in clusters.values()]
+    names = (
+        "total_token_reduction", "cost_reduction",
+        "success_rate_change", "cost_per_success_reduction",
+    )
+    out: dict = {
+        "method": (
+            f"cluster bootstrap over tasks, {_BOOTSTRAP_RESAMPLES} resamples, "
+            f"seed {_BOOTSTRAP_SEED}, 95% percentile interval"
+        ),
+        "task_clusters": len(totals),
+        "intervals": {name: None for name in names},
+    }
+    if len(totals) < 2:
+        out["note"] = "at least 2 distinct tasks are required for an interval"
+        return out
+    rng = random.Random(_BOOTSTRAP_SEED)
+    samples: dict[str, list[float]] = {name: [] for name in names}
+    width = len(totals[0])
+    for _ in range(_BOOTSTRAP_RESAMPLES):
+        picked = [totals[rng.randrange(len(totals))] for _ in totals]
+        summed = tuple(sum(row[i] for row in picked) for i in range(width))
+        for name, value in _bootstrap_metrics(summed).items():
+            if value is not None:
+                samples[name].append(value)
+    for name, values in samples.items():
+        # Require most resamples to be defined (e.g. cost-per-success needs a
+        # success in both arms) before reporting an interval at all.
+        if len(values) >= 0.9 * _BOOTSTRAP_RESAMPLES:
+            values.sort()
+            low = values[int(0.025 * (len(values) - 1))]
+            high = values[math.ceil(0.975 * (len(values) - 1))]
+            out["intervals"][name] = [low, high]
+    return out
+
+
 def compare_costs(
     baseline: list[Run],
     optimized: list[Run],
     *,
     require_same_tasks: bool = True,
 ) -> dict:
-    baseline_by_id = {run.task_id: run for run in baseline}
-    optimized_by_id = {run.task_id: run for run in optimized}
+    baseline_by_id = _index_runs(baseline, "baseline")
+    optimized_by_id = _index_runs(optimized, "optimized")
     baseline_ids = set(baseline_by_id)
     optimized_ids = set(optimized_by_id)
     common = sorted(baseline_ids & optimized_ids)
-    missing_optimized = sorted(baseline_ids - optimized_ids)
-    missing_baseline = sorted(optimized_ids - baseline_ids)
+    missing_optimized = sorted(_label(*k) for k in baseline_ids - optimized_ids)
+    missing_baseline = sorted(_label(*k) for k in optimized_ids - baseline_ids)
     if require_same_tasks and (missing_optimized or missing_baseline):
         raise ValueError(
             "baseline and optimized runs must contain the same task_ids; "
@@ -170,15 +285,16 @@ def compare_costs(
         for task in common
     )
     improved = sorted(
-        task for task in common
+        _label(*task) for task in common
         if not baseline_by_id[task].success and optimized_by_id[task].success
     )
     regressed = sorted(
-        task for task in common
+        _label(*task) for task in common
         if baseline_by_id[task].success and not optimized_by_id[task].success
     )
     return {
         "paired_task_count": len(common),
+        "unique_task_count": len({task_id for task_id, _ in common}),
         "baseline": b,
         "optimized": o,
         "delta": {
@@ -196,6 +312,9 @@ def compare_costs(
             "tool_call_change": o["tool_calls"] - b["tool_calls"],
             "model_call_change": o["model_calls"] - b["model_calls"],
         },
+        "confidence": _confidence(
+            [(baseline_by_id[task], optimized_by_id[task]) for task in common]
+        ),
         "outcomes": {
             "both_success": both_success,
             "improved_tasks": improved,
@@ -218,8 +337,10 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
         raise ValueError(f"{path}: paired agent manifest requires a non-empty 'runs' list")
 
     by_condition: dict[str, list[Run]] = {"baseline": [], "token-saver": []}
-    seen: set[tuple[str, str]] = set()
-    tasks_by_condition: dict[str, set[str]] = {"baseline": set(), "token-saver": set()}
+    seen: set[tuple[str, str, str]] = set()
+    tasks_by_condition: dict[str, set[tuple[str, str]]] = {
+        "baseline": set(), "token-saver": set(),
+    }
 
     for position, item in enumerate(raw, start=1):
         if not isinstance(item, dict):
@@ -230,11 +351,12 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
             raise ValueError(
                 f"{path}: each paired run requires task and condition baseline|token-saver"
             )
-        key = (task_id, condition)
+        trial = _trial(item.get("trial"), f"{path}: run {task_id!r}/{condition}")
+        key = (task_id, trial, condition)
         if key in seen:
-            raise ValueError(f"{path}: duplicate {condition} run for task {task_id!r}")
+            raise ValueError(_duplicate_message(str(path), task_id, trial, f"{condition} run for "))
         seen.add(key)
-        tasks_by_condition[condition].add(task_id)
+        tasks_by_condition[condition].add((task_id, trial))
 
         success = item.get("success")
         if not isinstance(success, bool):
@@ -278,13 +400,14 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
             model_calls=model_calls,
             latency_ms=latency,
             cost_usd=cost,
+            trial=trial,
         ))
 
     baseline_tasks = tasks_by_condition["baseline"]
     optimized_tasks = tasks_by_condition["token-saver"]
     if baseline_tasks != optimized_tasks:
-        missing_optimized = sorted(baseline_tasks - optimized_tasks)
-        missing_baseline = sorted(optimized_tasks - baseline_tasks)
+        missing_optimized = sorted(_label(*k) for k in baseline_tasks - optimized_tasks)
+        missing_baseline = sorted(_label(*k) for k in optimized_tasks - baseline_tasks)
         raise ValueError(
             f"{path}: unpaired tasks; missing token-saver={missing_optimized}, "
             f"missing baseline={missing_baseline}"

@@ -10,6 +10,12 @@ reduction; selection metrics alone do not prove agent success.
 token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 ```
 
+Each item also reports `symbol_recall_in_expected_files`, which counts a
+symbol only when it was selected from one of the task's expected files. Bare
+`symbol_recall` can be satisfied by a same-named symbol in an unrelated file;
+prefer the scoped figure (or `qualified_symbols` / `symbol_identities`) when
+names are common.
+
 Add project-specific tasks using `query`, `files`, and `symbols`. Keep the
 manifest under version control so ranking changes can be compared reproducibly.
 

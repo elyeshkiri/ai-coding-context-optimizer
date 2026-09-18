@@ -610,10 +610,18 @@ def _symbols_extra(text: str, suffix: str) -> list[Symbol]:
 def symbols(text: str, suffix: str) -> list[Symbol]:
     """Return exact structural symbols for any parser-backed language."""
     suffix = suffix.lower()
-    if suffix in JS_TS:
-        return _symbols_js_ts(text, suffix)
-    if suffix in STRUCTURED_EXTRA:
-        return _symbols_extra(text, suffix)
+    try:
+        if suffix in JS_TS:
+            return _symbols_js_ts(text, suffix)
+        if suffix in STRUCTURED_EXTRA:
+            return _symbols_extra(text, suffix)
+    except RecursionError as exc:
+        # The per-language tree walkers are recursive, and generated code
+        # (a 3000-term chained expression, a deeply nested data literal) can
+        # be far deeper than Python's recursion limit. Report it as the same
+        # "cannot parse structurally" ValueError callers already degrade on,
+        # instead of letting one file abort indexing for the whole repository.
+        raise ValueError("Source is too deeply nested for structural parsing") from exc
     raise ValueError(f"unsupported structured language: {suffix}")
 
 def extract(text: str, suffix: str, name: str):

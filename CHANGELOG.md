@@ -29,6 +29,52 @@
   `benchmarks/holdout-external-8.result.json`. Holdout #8 is now burned for
   tuning.
 
+- **Fixed six issues found in review of the recent structural-ranking and
+  cost-report changes, each with a regression test that fails on the previous
+  source.**
+  1. *One pathological file no longer aborts indexing.* Deeply nested generated
+     sources (JS/Go/Rust/Java/C#, and Python via `ast`) raised `RecursionError`
+     from the recursive tree walkers and killed whole-repo indexing.
+     `syntax.symbols()` now converts it to a `ValueError`, the Python extractor,
+     outline and signature rendering tolerate it, and the file falls back to
+     generic extraction. A missing tree-sitter grammar likewise degrades import
+     extraction to the regex path instead of raising `ImportError`.
+  2. *Structural file authority is narrower and cheaper.* It no longer fires on
+     generic callable names defined in more than three files (`get`, `add`),
+     is applied before the low-value-directory dampening so tests/examples no
+     longer keep an undampened boost, and the query terms, explicit
+     container/member pairs and per-name file counts are computed once per
+     query instead of once per file.
+  3. *Explicit `Name<T>` generic arity now works.* The regex was double-escaped
+     inside an rf-string, so `QueryAsync<T>` in a query never set a requested
+     arity; only the "two input types ... return type" wording did.
+  4. *`cost-report` no longer keeps the last run for duplicate task ids.* Runs
+     pair on `(task_id, trial)`; an optional `trial` field supports repeated
+     attempts, true duplicates raise with a pointer to `trial`, and the report
+     prints a seeded 95% cluster-bootstrap interval over tasks (or `n/a` for
+     fewer than two tasks), so a handful of tasks is not read as a precise
+     saving.
+  5. *Bare-name symbol recall can be checked against the expected files.* The
+     evaluator adds `symbol_recall_in_expected_files` (and its mean in the
+     summary): a same-named symbol in an unrelated file no longer counts toward
+     it. The existing bare `symbol_recall` is unchanged, so frozen holdout
+     numbers stay comparable.
+  6. *Missing-grammar robustness only.* Tree-sitter grammars remain hard
+     dependencies and the version is not bumped; moving them to optional extras
+     and cutting a release are packaging decisions left to the maintainer.
+
+  Self-benchmark is unchanged at 100% file and symbol recall (~97.3% context
+  reduction). Any re-run of already-burned holdouts after these changes is a
+  non-regression diagnostic, not fresh evidence: on holdouts #1-#3 (77 tasks)
+  against the previous source, file recall rose on 3 tasks (holdout #2
+  87.8% vs 85.4%, #3 96.7% vs 90.0%, #1 unchanged at 100%) and symbol recall
+  moved by +1 task in #2, +1 in #3 and -1 in #3. The one loss,
+  `scrapy-scheduler-next-request`, comes from finding 2's narrowing: the old
+  authority boosted `scheduler.py` because `next_request` matched, but that
+  same generic-name boost also lifted unrelated test files. The file is still
+  retrieved; its `next_request` window is no longer selected. It was not
+  tuned around.
+
 - **Hardened partial-class and overload retrieval after holdout #7's Dapper failures.**
   Repository ranking now gives a bounded, length-independent boost to files that
   structurally define the requested container/member, preventing very large

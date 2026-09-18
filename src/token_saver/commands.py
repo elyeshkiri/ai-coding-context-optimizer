@@ -399,7 +399,11 @@ def cost_report_main(argv: list[str]) -> int:
     def pct(value):
         return "n/a" if value is None else f"{value * 100:.1f}%"
 
-    print(f"PAIRED TASKS: {result['paired_task_count']}")
+    unique = result.get("unique_task_count", result["paired_task_count"])
+    if unique != result["paired_task_count"]:
+        print(f"PAIRED RUNS: {result['paired_task_count']} across {unique} tasks")
+    else:
+        print(f"PAIRED TASKS: {result['paired_task_count']}")
     print(
         f"success: {b['success_rate'] * 100:.1f}% -> "
         f"{o['success_rate'] * 100:.1f}% "
@@ -428,6 +432,21 @@ def cost_report_main(argv: list[str]) -> int:
         f"mean latency: {b['mean_latency_ms']:.0f} ms -> "
         f"{o['mean_latency_ms']:.0f} ms"
     )
+    intervals = result["confidence"]["intervals"]
+    def ci(name: str) -> str:
+        interval = intervals.get(name)
+        return "n/a" if interval is None else f"{pct(interval[0])} to {pct(interval[1])}"
+
+    if any(value is not None for value in intervals.values()):
+        print(
+            f"95% CI over {result['confidence']['task_clusters']} tasks: "
+            f"tokens {ci('total_token_reduction')}; cost {ci('cost_reduction')}; "
+            f"cost/success {ci('cost_per_success_reduction')}"
+        )
+    else:
+        print(
+            f"95% CI: n/a ({result['confidence'].get('note', 'insufficient data')})"
+        )
     if result["outcomes"]["regressed_tasks"]:
         print("regressed tasks: " + ", ".join(result["outcomes"]["regressed_tasks"]))
     return 0

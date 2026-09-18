@@ -165,3 +165,39 @@ def test_csharp_partial_parse_recovery_keeps_valid_methods():
     qualified = {item.qualified for item in record.definitions or []}
     assert "SqlMapper.Execute" in qualified
     assert "SqlMapper.QueryFirst" in qualified
+
+
+def test_explicit_generic_syntax_in_query_sets_requested_arity():
+    # Regression: the explicit `Name<T>` branch used `\\b`/`\\s` inside an
+    # rf-string, i.e. a literal backslash, so it could never match and only the
+    # "two input types ... return type" wording path ever produced an arity.
+    from token_saver.pack import _query_generic_arity
+
+    assert _query_generic_arity("use QueryAsync<T> to map rows", "QueryAsync") == 1
+    assert _query_generic_arity("call Query<A, B> for two types", "Query") == 2
+    assert _query_generic_arity("QueryAsync<TFirst, TSecond, TReturn> joins", "QueryAsync") == 3
+    assert _query_generic_arity("Query<T> ignores an unrelated name", "Execute") is None
+    assert _query_generic_arity("no generic syntax here", "Query") is None
+    # The wording path must keep working alongside the explicit one.
+    assert _query_generic_arity(
+        "overload with two input types and a return type", "Query"
+    ) == 3
+
+
+def test_explicit_generic_query_prefers_generic_overload_over_nongeneric(tmp_path):
+    source = _dapper_async_fixture()
+    (tmp_path / "SqlMapper.Async.cs").write_text(source)
+
+    pack = build_context_pack(
+        tmp_path, "QueryAsync<T> rows", max_tokens=3000,
+        changed_boost=False, persist_index=False,
+    )
+
+    generic_lines = {
+        _line(source, "QueryAsync<T>("),
+        _line(source, "QuerySingleAsync<T>("),
+        _line(source, "QueryAsync<TReturn>("),
+    }
+    # identities[0] is the container; [1] is the best-ranked member after it.
+    best_member_line = int(pack.selected_symbol_identities[1].rsplit("@", 1)[1])
+    assert best_member_line in generic_lines

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
+from functools import lru_cache
 import hashlib
 import math
 import re
@@ -57,7 +58,7 @@ def _generic_arity(signature: str, name: str) -> int:
 def _query_generic_arity(query: str, name: str) -> int | None:
     """Infer requested generic arity only from explicit or strongly-worded evidence."""
     explicit_match = re.search(
-        rf"\\b{re.escape(name)}\\s*<([^<>]+)>", query,
+        rf"\b{re.escape(name)}\s*<([^<>]+)>", query,
         re.IGNORECASE,
     )
     if explicit_match:
@@ -112,27 +113,71 @@ def _query_member_hints(query: str) -> set[tuple[str, str]]:
     return pairs
 
 
-def _structural_file_authority(record, query: str) -> float:
-    """Length-independent authority for files that define a requested callable."""
+# A callable whose bare name is defined in more than this many files (get, add,
+# run, route, ...) is generic API vocabulary, not evidence that any one of those
+# files is the answer to a query that happens to contain the same common word.
+_GENERIC_CALLABLE_MAX_FILES = 3
+_AUTHORITY_CALLABLE_KINDS = frozenset({"method", "function", "constructor"})
+
+
+@lru_cache(maxsize=65536)
+def _leaf_identifier_terms(name: str) -> frozenset[str]:
+    return frozenset(identifier_terms(name))
+
+
+def _callable_file_counts(index: RepositoryIndex) -> Counter[str]:
+    """How many files define a callable with each (lowercased) bare name."""
+    counts: Counter[str] = Counter()
+    for record in index.records.values():
+        names = {
+            symbol.name.lower()
+            for symbol in record.definitions or []
+            if symbol.kind in _AUTHORITY_CALLABLE_KINDS
+        }
+        counts.update(names)
+    return counts
+
+
+def _structural_file_authority(
+    record,
+    query: str,
+    *,
+    query_terms: set[str] | None = None,
+    explicit_pairs: set[tuple[str, str]] | None = None,
+    callable_file_counts: Counter[str] | None = None,
+) -> float:
+    """Length-independent authority for files that define a requested callable.
+
+    ``query_terms``/``explicit_pairs``/``callable_file_counts`` are per-query,
+    per-repository values; ``rank_files`` computes them once instead of once per
+    file. When omitted, no generic-name filtering is applied.
+    """
     if record is None or not record.definitions:
         return 0.0
-    query_terms = set(symbol_terms(query))
-    explicit_pairs = _query_member_hints(query)
-    callable_kinds = {"method", "function", "constructor"}
+    if query_terms is None:
+        query_terms = set(symbol_terms(query))
+    if explicit_pairs is None:
+        explicit_pairs = _query_member_hints(query)
     best = 0.0
     for symbol in record.definitions:
-        if symbol.kind not in callable_kinds:
+        if symbol.kind not in _AUTHORITY_CALLABLE_KINDS:
             continue
-        leaf_terms = set(identifier_terms(symbol.name))
+        leaf_terms = _leaf_identifier_terms(symbol.name)
         if not leaf_terms or not leaf_terms <= query_terms:
             continue
         parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
-        if parent and (parent, symbol.name.lower()) in explicit_pairs:
+        name_lower = symbol.name.lower()
+        if parent and (parent, name_lower) in explicit_pairs:
             # An explicit parser-backed Container Member pair is authoritative
             # enough to overcome BM25 length normalisation in huge partial files.
             best = max(best, 120.0)
             continue
-        qualified_terms = set(identifier_terms(symbol.qualified or symbol.name))
+        if (
+            callable_file_counts is not None
+            and callable_file_counts.get(name_lower, 0) > _GENERIC_CALLABLE_MAX_FILES
+        ):
+            continue
+        qualified_terms = _leaf_identifier_terms(symbol.qualified or symbol.name)
         parent_terms = qualified_terms - leaf_terms
         parent_hits = len(parent_terms & query_terms)
         score = 38.0 + 8.0 * len(leaf_terms) + min(24.0, 8.0 * parent_hits)
@@ -140,6 +185,7 @@ def _structural_file_authority(record, query: str) -> float:
             score *= 0.45
         best = max(best, score)
     return min(120.0, best)
+
 
 @dataclass
 class RankedFile:
@@ -294,6 +340,10 @@ def rank_files(
         for term in q_terms
     })
 
+    authority_terms = set(symbol_terms(query))
+    authority_pairs = _query_member_hints(query)
+    callable_file_counts = _callable_file_counts(index)
+
     ranked: list[RankedFile] = []
     for (path, rel, outline, counts), length in zip(docs, lengths):
         score = 0.0
@@ -321,6 +371,22 @@ def rank_files(
             score += 5.0 * symbol_hits
             reasons.append(f"symbols:{symbol_hits}")
 
+        # Parser-backed declaration authority must survive BM25 document-length
+        # normalisation. This especially matters for partial-class APIs split
+        # across large implementation files: exact container+member evidence is
+        # stronger than incidental prose/body overlap in smaller neighbors. It is
+        # added *before* the low-value-directory dampening below so a test or
+        # example file that merely defines a same-named helper is not exempt
+        # from that penalty.
+        authority = _structural_file_authority(
+            index.records.get(rel), query,
+            query_terms=authority_terms, explicit_pairs=authority_pairs,
+            callable_file_counts=callable_file_counts,
+        )
+        if authority:
+            score += authority
+            reasons.append(f"structural-symbol:{authority:.1f}")
+
         priority = file_priority(rel)
         score += max(0.0, 1.2 - 0.3 * priority)
         if priority == 3:
@@ -335,15 +401,6 @@ def rank_files(
             # of adding a fixed amount, so it scales with however large the
             # underlying (possibly very large) score actually is.
             score *= 0.35
-
-        # Parser-backed declaration authority must survive BM25 document-length
-        # normalisation. This especially matters for partial-class APIs split
-        # across large implementation files: exact container+member evidence is
-        # stronger than incidental prose/body overlap in smaller neighbors.
-        authority = _structural_file_authority(index.records.get(rel), query)
-        if authority:
-            score += authority
-            reasons.append(f"structural-symbol:{authority:.1f}")
         if rel in changed:
             score += 4.0
             reasons.append("changed")

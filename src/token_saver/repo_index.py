@@ -234,15 +234,20 @@ def _python_name(node: ast.AST) -> str | None:
 
 
 def _python_signature(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> str:
+    # ast.unparse is recursive; a pathologically nested default/annotation/base
+    # expression must degrade to an elided signature, not abort the whole index.
     if isinstance(node, ast.ClassDef):
-        bases = ", ".join(ast.unparse(base) for base in node.bases)
+        try:
+            bases = ", ".join(ast.unparse(base) for base in node.bases)
+        except (ValueError, TypeError, RecursionError):
+            return f"class {node.name}(...)"
         return f"class {node.name}({bases})" if bases else f"class {node.name}"
     prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
     try:
         args = ast.unparse(node.args)
         returns = f" -> {ast.unparse(node.returns)}" if node.returns else ""
         return f"{prefix} {node.name}({args}){returns}"
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, RecursionError):
         return f"{prefix} {node.name}(...)"
 
 
@@ -253,7 +258,9 @@ def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[Symbo
     definitions: list[SymbolRecord] = []
     try:
         tree = ast.parse(text)
-    except SyntaxError:
+    except (SyntaxError, ValueError, RecursionError):
+        # RecursionError: generated code such as a very long chained
+        # expression exceeds the parser's nesting limit.
         return symbols, imports, calls, definitions
     for node in ast.walk(tree):
         if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -430,7 +437,16 @@ def _extract(
         if lowered in STRUCTURED_EXTRA:
             definitions = _extract_javascript_definitions(text, lowered)
             symbols = {definition.name for definition in definitions}
-            imports = structured_imports(text, lowered)
+            try:
+                imports = structured_imports(text, lowered)
+            except (ImportError, ValueError, OSError):
+                # Same degradation as symbol extraction: a missing or
+                # unloadable grammar must lose precision for that language,
+                # not abort indexing of the whole repository.
+                imports = {
+                    next(value for value in groups if value)
+                    for groups in _IMPORT.findall(text)
+                }
             calls = {
                 call
                 for definition in definitions
@@ -452,7 +468,7 @@ def _extract(
 def _outline(text: str, suffix: str) -> str:
     try:
         return skeletonize(text, suffix, line_numbers=True)
-    except (SyntaxError, ValueError):
+    except (SyntaxError, ValueError, RecursionError):
         return ""
 
 
