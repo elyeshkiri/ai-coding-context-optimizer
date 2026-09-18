@@ -19,9 +19,9 @@ from .lexical import document_counts
 from .security import ENV_TEMPLATE_NAMES, inspect_path
 from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
-from .syntax import JS_TS, symbols as syntax_symbols
+from .syntax import JS_TS, STRUCTURED_EXTRA, symbols as syntax_symbols
 
-INDEX_VERSION = 5
+INDEX_VERSION = 6
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
@@ -303,7 +303,7 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
         calls = sorted({match.group(1).split(".")[-1] for match in _CALL.finditer(body)} - _CALL_STOP)
         parent = symbol.qualified.rsplit(".", 1)[0] if "." in symbol.qualified else None
         out.append(SymbolRecord(
-            symbol.name, "symbol", symbol.start, symbol.end,
+            symbol.name, symbol.kind, symbol.start, symbol.end,
             symbol.signature[:500], parent, calls,
         ))
     return out
@@ -409,13 +409,14 @@ def _extract(
     elif suffix.lower() in {".json", ".yaml", ".yml"}:
         symbols, imports, calls, definitions = set(), set(), set(), []
     else:
-        symbols = {a or b for a, b in _DECL.findall(text)}
         imports = {next(value for value in groups if value) for groups in _IMPORT.findall(text)}
         calls = {match.group(1).split(".")[-1] for match in _CALL.finditer(text)} - _CALL_STOP
-        definitions = (
-            _extract_javascript_definitions(text, suffix.lower())
-            if suffix.lower() in JS_TS else _extract_generic_definitions(text)
-        )
+        if suffix.lower() in JS_TS | STRUCTURED_EXTRA:
+            definitions = _extract_javascript_definitions(text, suffix.lower())
+            symbols = {definition.name for definition in definitions}
+        else:
+            symbols = {a or b for a, b in _DECL.findall(text)}
+            definitions = _extract_generic_definitions(text)
     tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
 
