@@ -56,14 +56,14 @@ jobs:
             git -C "$dest" checkout -q --detach FETCH_HEAD
             test "$(git -C "$dest" rev-parse HEAD)" = "$sha"
           }
-          clone_at NLog/NLog 5e60d28d428c044ae5d6b36bf8875ec7370cf046 NLog
-          clone_at FluentAssertions/FluentAssertions e5349243870e70b36945af6bf10ab3b64e768a13 FluentAssertions
-          clone_at ben-manes/caffeine c0edd00bb6063e59ee1e7a7db5588fac7a6524f5 caffeine
-          clone_at apache/commons-lang 8c730822620f2e5a9e7e64443483127f438e51b7 commons-lang
-          clone_at typeorm/typeorm b1eafc23d8d695a2e2f4ebe9063d9a0c92415d1d typeorm
-          clone_at typestack/class-transformer a2734a5d154c9b0beb9a10555a04416bc371de06 class-transformer
-          clone_at tokio-rs/tokio cf782c5b917b7ea21b6f97f07104ebf16d35f5f8 tokio
-          clone_at sirupsen/logrus 6d6a132bc03324d4ceb78e1b927f995d014cda20 logrus
+          clone_at NLog/NLog 5e60d28d428c044ae5d6b36bf8875ec7370cf046 benchmarks/NLog
+          clone_at FluentAssertions/FluentAssertions e5349243870e70b36945af6bf10ab3b64e768a13 benchmarks/FluentAssertions
+          clone_at ben-manes/caffeine c0edd00bb6063e59ee1e7a7db5588fac7a6524f5 benchmarks/caffeine
+          clone_at apache/commons-lang 8c730822620f2e5a9e7e64443483127f438e51b7 benchmarks/commons-lang
+          clone_at typeorm/typeorm b1eafc23d8d695a2e2f4ebe9063d9a0c92415d1d benchmarks/typeorm
+          clone_at typestack/class-transformer a2734a5d154c9b0beb9a10555a04416bc371de06 benchmarks/class-transformer
+          clone_at tokio-rs/tokio cf782c5b917b7ea21b6f97f07104ebf16d35f5f8 benchmarks/tokio
+          clone_at sirupsen/logrus 6d6a132bc03324d4ceb78e1b927f995d014cda20 benchmarks/logrus
 
       - name: Run holdout exactly once
         run: |
