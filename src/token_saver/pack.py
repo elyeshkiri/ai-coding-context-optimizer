@@ -95,32 +95,46 @@ def _callable_signature_terms(symbol) -> set[str]:
     return out
 
 
-def _structural_file_authority(record, query: str) -> float:
-    """Length-independent authority for files that *define* a named callable.
+def _query_member_hints(query: str) -> set[tuple[str, str]]:
+    """Return explicit adjacent Pascal/camel Container Member mentions."""
+    pairs: set[tuple[str, str]] = set()
+    for match in re.finditer(
+        r"\b([A-Z][A-Za-z0-9_]*)\s+"
+        r"([A-Z][A-Za-z0-9_]*)(?:<[^<>]+>)?",
+        query,
+    ):
+        pairs.add((match.group(1).lower(), match.group(2).lower()))
+    return pairs
 
-    BM25 length normalisation is correct for prose, but pathological for broad
-    partial-class implementation files (Dapper's SqlMapper.cs is a canonical
-    example): a 4k-line source file can lose to a much smaller consumer even
-    though it structurally defines the exact requested member. This bounded
-    boost uses only parser-backed declaration identity, never body mentions.
-    """
+
+def _structural_file_authority(record, query: str) -> float:
+    """Length-independent authority for files that define a requested callable."""
     if record is None or not record.definitions:
         return 0.0
     query_terms = set(symbol_terms(query))
+    explicit_pairs = _query_member_hints(query)
+    callable_kinds = {"method", "function", "constructor"}
     best = 0.0
     for symbol in record.definitions:
+        if symbol.kind not in callable_kinds:
+            continue
         leaf_terms = set(identifier_terms(symbol.name))
         if not leaf_terms or not leaf_terms <= query_terms:
+            continue
+        parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
+        if parent and (parent, symbol.name.lower()) in explicit_pairs:
+            # An explicit parser-backed Container Member pair is authoritative
+            # enough to overcome BM25 length normalisation in huge partial files.
+            best = max(best, 120.0)
             continue
         qualified_terms = set(identifier_terms(symbol.qualified or symbol.name))
         parent_terms = qualified_terms - leaf_terms
         parent_hits = len(parent_terms & query_terms)
-        score = 10.0 + 7.0 * len(leaf_terms) + min(18.0, 6.0 * parent_hits)
+        score = 38.0 + 8.0 * len(leaf_terms) + min(24.0, 8.0 * parent_hits)
         if parent_terms and not parent_hits:
-            score *= 0.55
+            score *= 0.45
         best = max(best, score)
-    return min(42.0, best)
-
+    return min(120.0, best)
 
 @dataclass
 class RankedFile:
