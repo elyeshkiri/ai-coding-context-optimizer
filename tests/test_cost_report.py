@@ -96,3 +96,16 @@ def test_cached_input_cannot_exceed_input_tokens(tmp_path):
     }])
     with pytest.raises(ValueError, match="cannot exceed"):
         load_runs(path)
+
+
+
+def test_cost_report_rejects_missing_cost_without_pricing(tmp_path):
+    path = tmp_path / "runs.json"
+    _write(path, [{
+        "task_id": "a",
+        "success": True,
+        "input_tokens": 100,
+        "output_tokens": 10,
+    }])
+    with pytest.raises(ValueError, match="no cost_usd and no token pricing"):
+        load_runs(path)
