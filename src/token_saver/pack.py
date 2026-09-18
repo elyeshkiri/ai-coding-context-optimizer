@@ -387,7 +387,8 @@ def _prioritized_ranges(
 
 
 def _symbol_windows(
-    item: RankedFile, index: RepositoryIndex, query_terms: set[str], target_symbol: str | None,
+    item: RankedFile, index: RepositoryIndex, query_terms: set[str],
+    target_symbol: str | None, symbol_query_text: str | None = None,
 ) -> tuple[list[tuple[int, int]], list[str], list[str]]:
     record = index.records.get(item.rel)
     if record is None:
@@ -399,11 +400,18 @@ def _symbol_windows(
     # has already won retrieval, symbol selection can safely normalize nearby
     # inflections (connection/connect, equality/equal, completion/complete)
     # without perturbing repository-wide ranking.
-    symbol_query_terms = set(symbol_terms(" ".join(sorted(query_terms))))
+    symbol_query_terms = set(symbol_terms(
+        symbol_query_text if symbol_query_text is not None
+        else " ".join(sorted(query_terms))
+    ))
     name_terms_by_symbol = {
-        (symbol.name, symbol.start_line): set(terms(
+        (symbol.name, symbol.start_line): set(symbol_terms(
             (symbol.qualified or symbol.name) + " " + symbol.signature
         ))
+        for symbol in definitions
+    }
+    leaf_terms_by_symbol = {
+        (symbol.name, symbol.start_line): set(symbol_terms(symbol.name))
         for symbol in definitions
     }
     all_symbol_name_terms = set().union(*name_terms_by_symbol.values()) if definitions else set()
@@ -420,7 +428,10 @@ def _symbol_windows(
         for symbol in definitions:
             name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
             body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-            for term in name_terms | set(terms(body)):
+            body_terms = (
+                set() if symbol.name in container_names else set(terms(body))
+            )
+            for term in name_terms | body_terms:
                 doc_freq[term] += 1
         n = len(definitions)
         term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
@@ -429,7 +440,9 @@ def _symbol_windows(
     for symbol in definitions:
         name_terms = name_terms_by_symbol[(symbol.name, symbol.start_line)]
         body = "\n".join(source_lines[max(0, symbol.start_line - 1):symbol.end_line])
-        body_terms = set(terms(body))
+        body_terms = (
+            set() if symbol.name in container_names else set(terms(body))
+        )
         exact = bool(wanted and symbol.name.lower() == wanted)
         partial = bool(wanted and wanted in symbol.name.lower())
         score = 100 if exact else 50 if partial else 0
@@ -440,6 +453,20 @@ def _symbol_windows(
                 20 * sum(term_weight.get(t, 1.0) for t in name_hits)
                 + 3 * sum(term_weight.get(t, 1.0) for t in body_hits)
             )
+
+            # A query that literally names this symbol's leaf identifier is
+            # stronger evidence than the same word merely occurring in a
+            # sibling signature or container. Keep the bonus local, bounded,
+            # and IDF-weighted so generic names do not dominate by themselves.
+            leaf_hits = (
+                symbol_query_terms
+                & leaf_terms_by_symbol[(symbol.name, symbol.start_line)]
+            )
+            if leaf_hits:
+                score += min(
+                    36.0,
+                    18.0 * sum(term_weight.get(t, 1.0) for t in leaf_hits),
+                )
 
             # Fuzzy similarity is a bounded *fallback* for identifier typos.
             # It is gated twice: the file has already survived structural/file
@@ -522,13 +549,15 @@ def _symbol_windows(
         else:
             windows.append((max(1, symbol.start_line - 1), symbol.end_line + 1))
         labels.append(f"{item.rel}:{symbol.name}@{symbol.start_line}")
+        identity_line = symbol.identity_line or symbol.start_line
         identities.append(
-            f"{item.rel}:{symbol.qualified or symbol.name}@{symbol.start_line}"
+            f"{item.rel}:{symbol.qualified or symbol.name}@{identity_line}"
         )
         if has_child:
             labels.append(f"{item.rel}:{child.name}@{child.start_line}")
+            child_identity_line = child.identity_line or child.start_line
             identities.append(
-                f"{item.rel}:{child.qualified or child.name}@{child.start_line}"
+                f"{item.rel}:{child.qualified or child.name}@{child_identity_line}"
             )
     return windows, labels, identities
 
@@ -536,10 +565,11 @@ def _symbol_windows(
 def _file_section(
     item: RankedFile, query_terms: set[str], context_lines: int,
     index: RepositoryIndex, target_symbol: str | None = None,
+    symbol_query_text: str | None = None,
 ) -> tuple[str, list[str], list[str], list[str]]:
     lines = item.text.splitlines()
     symbol_windows, symbol_labels, symbol_identities = _symbol_windows(
-        item, index, query_terms, target_symbol
+        item, index, query_terms, target_symbol, symbol_query_text
     )
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
@@ -791,7 +821,8 @@ def build_context_pack(
             continue
 
         section, symbols, identities, section_redactions = _file_section(
-            item, q_terms, plan.context_lines, index, target_symbol
+            item, q_terms, plan.context_lines, index, target_symbol,
+            symbol_query_text=effective_query,
         )
         fingerprint = _fingerprint(section)
         if fingerprint in seen:
