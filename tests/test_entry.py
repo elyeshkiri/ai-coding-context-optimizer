@@ -1,3 +1,4 @@
+import json
 import textwrap
 
 from token_saver.entry import main
@@ -54,3 +55,23 @@ def test_dispatcher_exposes_context_browser(tmp_path, capsys):
     assert "CONTEXT BROWSER" in out
     assert "views.py" in out
     assert "renderTemplate" in out
+
+
+
+def test_dispatcher_exposes_cost_report(tmp_path, capsys):
+    baseline = tmp_path / "baseline.json"
+    optimized = tmp_path / "optimized.json"
+    baseline.write_text(json.dumps([{
+        "task_id": "task", "success": True,
+        "input_tokens": 1000, "output_tokens": 200, "cost_usd": 1.0,
+    }]))
+    optimized.write_text(json.dumps([{
+        "task_id": "task", "success": True,
+        "input_tokens": 400, "output_tokens": 100, "cost_usd": 0.4,
+    }]))
+
+    assert main(["cost-report", str(baseline), str(optimized)]) == 0
+    out = capsys.readouterr().out
+    assert "PAIRED TASKS: 1" in out
+    assert "cost/success:" in out
+    assert "60.0% reduction" in out
