@@ -33,6 +33,114 @@ _DEFAULT_CONTEXT_LINES = 6
 _LARGE_CONTAINER_LINES = 200
 
 
+_NUMBER_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4,
+    "five": 5, "six": 6, "seven": 7, "eight": 8,
+}
+
+
+def _generic_parameter_names(signature: str, name: str) -> tuple[str, ...]:
+    """Return generic parameters declared directly on a callable name."""
+    match = re.search(
+        rf"\b{re.escape(name)}\s*<([^<>]+)>\s*\(", signature,
+        re.IGNORECASE,
+    )
+    if not match:
+        return ()
+    return tuple(part.strip() for part in match.group(1).split(",") if part.strip())
+
+
+def _generic_arity(signature: str, name: str) -> int:
+    return len(_generic_parameter_names(signature, name))
+
+
+def _query_generic_arity(query: str, name: str) -> int | None:
+    """Infer requested generic arity only from explicit or strongly-worded evidence."""
+    explicit_match = re.search(
+        rf"\\b{re.escape(name)}\\s*<([^<>]+)>", query,
+        re.IGNORECASE,
+    )
+    if explicit_match:
+        return len([
+            part for part in explicit_match.group(1).split(",") if part.strip()
+        ])
+
+    lowered = query.lower()
+    match = re.search(
+        r"\b(one|two|three|four|five|six|seven|eight)\s+"
+        r"(?:generic\s+)?input\s+types?\b",
+        lowered,
+    )
+    if match and re.search(r"\b(?:a\s+)?return\s+type\b", lowered):
+        # Multi-map APIs conventionally have N input generic types plus one
+        # return generic type. Keep this inference narrow to explicit wording.
+        return _NUMBER_WORDS[match.group(1)] + 1
+    return None
+
+
+def _callable_signature_terms(symbol) -> set[str]:
+    """Lexical + structural terms that distinguish overloads of one callable."""
+    raw = symbol.signature or ""
+    out = set(symbol_terms(raw)) | set(identifier_terms(raw))
+    generic_params = _generic_parameter_names(raw, symbol.name)
+    if generic_params:
+        out.add("generic")
+        for param in generic_params:
+            # C#/Java conventions such as TFirst/TSecond/TReturn carry useful
+            # semantic evidence that ordinary camel splitting intentionally
+            # keeps fused elsewhere.
+            if len(param) > 1 and param[0] == "T" and param[1].isupper():
+                out.update(identifier_terms(param[1:]))
+    if "[]" in raw:
+        out.add("array")
+    if "func" in out:
+        out.add("function")
+    if symbol.name.lower().endswith("async") or re.search(r"\basync\b", raw, re.I):
+        out.add("async")
+    return out
+
+
+def _query_member_hints(query: str) -> set[tuple[str, str]]:
+    """Return explicit adjacent Pascal/camel Container Member mentions."""
+    pairs: set[tuple[str, str]] = set()
+    for match in re.finditer(
+        r"\b([A-Z][A-Za-z0-9_]*)\s+"
+        r"([A-Z][A-Za-z0-9_]*)(?:<[^<>]+>)?",
+        query,
+    ):
+        pairs.add((match.group(1).lower(), match.group(2).lower()))
+    return pairs
+
+
+def _structural_file_authority(record, query: str) -> float:
+    """Length-independent authority for files that define a requested callable."""
+    if record is None or not record.definitions:
+        return 0.0
+    query_terms = set(symbol_terms(query))
+    explicit_pairs = _query_member_hints(query)
+    callable_kinds = {"method", "function", "constructor"}
+    best = 0.0
+    for symbol in record.definitions:
+        if symbol.kind not in callable_kinds:
+            continue
+        leaf_terms = set(identifier_terms(symbol.name))
+        if not leaf_terms or not leaf_terms <= query_terms:
+            continue
+        parent = (symbol.parent or "").rsplit(".", 1)[-1].lower()
+        if parent and (parent, symbol.name.lower()) in explicit_pairs:
+            # An explicit parser-backed Container Member pair is authoritative
+            # enough to overcome BM25 length normalisation in huge partial files.
+            best = max(best, 120.0)
+            continue
+        qualified_terms = set(identifier_terms(symbol.qualified or symbol.name))
+        parent_terms = qualified_terms - leaf_terms
+        parent_hits = len(parent_terms & query_terms)
+        score = 38.0 + 8.0 * len(leaf_terms) + min(24.0, 8.0 * parent_hits)
+        if parent_terms and not parent_hits:
+            score *= 0.45
+        best = max(best, score)
+    return min(120.0, best)
+
 @dataclass
 class RankedFile:
     path: Path
@@ -227,6 +335,15 @@ def rank_files(
             # of adding a fixed amount, so it scales with however large the
             # underlying (possibly very large) score actually is.
             score *= 0.35
+
+        # Parser-backed declaration authority must survive BM25 document-length
+        # normalisation. This especially matters for partial-class APIs split
+        # across large implementation files: exact container+member evidence is
+        # stronger than incidental prose/body overlap in smaller neighbors.
+        authority = _structural_file_authority(index.records.get(rel), query)
+        if authority:
+            score += authority
+            reasons.append(f"structural-symbol:{authority:.1f}")
         if rel in changed:
             score += 4.0
             reasons.append("changed")
@@ -412,7 +529,7 @@ def _symbol_windows(
     }
     signature_terms_by_symbol = {
         (symbol.name, symbol.start_line): (
-            set(symbol_terms(symbol.signature))
+            _callable_signature_terms(symbol)
             - identifier_terms_by_symbol[(symbol.name, symbol.start_line)]
         )
         for symbol in definitions
@@ -431,6 +548,7 @@ def _symbol_windows(
         fuzzy_symbol_terms(symbol_query_terms, all_symbol_name_terms)
         if not wanted else {}
     )
+    explicit_member_hints = _query_member_hints(symbol_query_text or "")
 
     container_names = {symbol.parent for symbol in definitions if symbol.parent}
 
@@ -448,6 +566,19 @@ def _symbol_windows(
                 doc_freq[term] += 1
         n = len(definitions)
         term_weight = {term: math.log((n + 1) / (df + 1)) + 1 for term, df in doc_freq.items()}
+
+    # A second IDF scope is intentionally local to an overload family. Terms
+    # such as CommandDefinition, Type[], TFirst/TSecond, or string may be common
+    # in a large partial class while still being highly discriminating among
+    # definitions that share the exact same qualified callable name.
+    family_sizes: Counter[str] = Counter()
+    family_term_freq: dict[str, Counter[str]] = {}
+    for symbol in definitions:
+        family = (symbol.qualified or symbol.name).lower()
+        family_sizes[family] += 1
+        bucket = family_term_freq.setdefault(family, Counter())
+        for term in signature_terms_by_symbol[(symbol.name, symbol.start_line)]:
+            bucket[term] += 1
 
     matches: list[tuple[float, object]] = []
     for symbol in definitions:
@@ -480,6 +611,65 @@ def _symbol_windows(
                 + 8 * sum(term_weight.get(t, 1.0) for t in signature_hits)
                 + 3 * sum(term_weight.get(t, 1.0) for t in body_hits)
             )
+
+            family = (symbol.qualified or symbol.name).lower()
+            family_size = family_sizes.get(family, 1)
+            parent_leaf = (symbol.parent or "").rsplit(".", 1)[-1].lower()
+            explicit_member = bool(
+                parent_leaf
+                and (parent_leaf, symbol.name.lower()) in explicit_member_hints
+            )
+            if explicit_member:
+                # A literal "Container Member" mention is the strongest
+                # within-file signal. It prevents QueryFirstAsync/ExecuteScalarAsync
+                # from beating QueryAsync/ExecuteAsync just because their bodies
+                # share more task vocabulary. Overloads of that exact member all
+                # receive the same bonus and are still separated below by signature.
+                score += 120.0
+
+            if family_size > 1 and signature_hits:
+                discriminating = [
+                    term for term in signature_hits
+                    if family_term_freq[family].get(term, 0) < family_size
+                ]
+                if discriminating:
+                    family_bonus = 12.0 * sum(
+                        math.log(
+                            (family_size + 1)
+                            / (family_term_freq[family][term] + 1)
+                        ) + 1.0
+                        for term in discriminating
+                    )
+                    score += min(72.0, family_bonus)
+
+            # Explicit generic syntax (QueryAsync<T>) and narrowly-worded
+            # multi-map requests ("two input types ... return type") are
+            # structural overload evidence, not ordinary lexical overlap.
+            desired_arity = _query_generic_arity(
+                symbol_query_text or "", symbol.name
+            )
+            if desired_arity is not None:
+                actual_arity = _generic_arity(symbol.signature or "", symbol.name)
+                if actual_arity == desired_arity:
+                    score += 72.0
+                elif family_size > 1:
+                    score -= 24.0
+
+            # Some overload dimensions are structural punctuation rather than
+            # normal words. Make them decisive inside an exact-name family.
+            if family_size > 1 and explicit_member:
+                wants_array = "array" in symbol_query_terms
+                has_array = "array" in signature_name_terms
+                if wants_array:
+                    score += 56.0 if has_array else -16.0
+                wants_command_definition = {
+                    "command", "definition"
+                } <= symbol_query_terms
+                has_command_definition = {
+                    "command", "definition"
+                } <= signature_name_terms
+                if wants_command_definition:
+                    score += 48.0 if has_command_definition else -12.0
 
             # A query that literally names this symbol's leaf identifier is
             # stronger evidence than the same word merely occurring in a
