@@ -148,3 +148,20 @@ def test_array_signature_features_select_runtime_type_array_overload(tmp_path):
 
     expected = _line(source, "public static Task<IEnumerable<TReturn>> QueryAsync<TReturn>(")
     assert f"SqlMapper.Async.cs:SqlMapper.QueryAsync@{expected}" in pack.selected_symbol_identities
+
+
+def test_csharp_partial_parse_recovery_keeps_valid_methods():
+    from token_saver.repo_index import record_for_text
+
+    source = textwrap.dedent("""
+        public static partial class SqlMapper {
+            public static int Execute(string sql) => 1;
+            public static T QueryFirst<T>(string sql) => default;
+        }
+
+        ??? unsupported_future_syntax
+    """)
+    record = record_for_text("SqlMapper.cs", source)
+    qualified = {item.qualified for item in record.definitions or []}
+    assert "SqlMapper.Execute" in qualified
+    assert "SqlMapper.QueryFirst" in qualified
