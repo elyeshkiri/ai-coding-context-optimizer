@@ -1,7 +1,7 @@
 # Output optimization, quality contracts, and diagnostic Delta
 
 Token Saver's output layer reduces command noise without treating all terminal
-text as disposable. Version 1.4.0 introduces three related capabilities:
+text as disposable. Version 1.5.0 introduces three related capabilities:
 
 1. a pluggable, failure-aware output processor registry;
 2. registry-wide critical-diagnostic recovery plus replayable quality contracts;
@@ -92,7 +92,7 @@ original.
 
 ## 3. Replayable output quality contracts
 
-Compression ratios alone are not a correctness guarantee. Version 1.4.0 adds
+Compression ratios alone are not a correctness guarantee. Version 1.5.0 adds
 `output-replay`, which evaluates captured command output against explicit
 preservation and savings requirements.
 
@@ -260,6 +260,11 @@ need exact source bytes, while terminal output can often be reduced safely.
 
 ## 6. Configuration
 
+Project defaults now live in the nearest `.token-saver.toml`; environment
+variables remain higher-priority overrides. See the canonical
+[configuration reference](docs/CONFIGURATION.md) for discovery, precedence,
+host-managed files, and all hook settings.
+
 | Variable | Default | Purpose |
 |---|---:|---|
 | `TOKEN_SAVER_DELTA` | `0` | Enable graph-aware repeated-diagnostic Delta |
@@ -271,7 +276,7 @@ need exact source bytes, while terminal output can often be reduced safely.
 
 ## 7. Extension boundary
 
-The registry is intentionally small in 1.4.0. The goal is not to duplicate every
+The registry remains intentionally conservative in 1.5.0. The goal is not to duplicate every
 possible CLI parser immediately.
 
 A processor supplies:
