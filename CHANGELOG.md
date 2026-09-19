@@ -1,5 +1,15 @@
 # Unreleased
 
+- **The large-file guard now covers `cat` through Bash.** A lone `cat <large source
+  file>` was a full dump that bypassed the Read guard (seen in a paired Sonnet 5 run,
+  +$0.04 per run). It is now denied with the same outline; pipes, redirects, chains,
+  globs and other commands are untouched. `token-saver install` registers the
+  PreToolUse hook for `Read|Bash`, so re-run it to pick this up.
+- **Added a large-output demo** (`examples/large_output_demo/`): a generated project
+  whose verbose test run and large module trigger both Token Saver savings paths
+  (98% and 86% fewer tokens, checked deterministically), plus a paired Claude Code
+  runner and an honest 3-trial write-up in which the saving depends on the model
+  running the noisy command untruncated.
 - **Fixed SWE-bench grading in the experiment harness.** Captured agent patches
   keep their trailing newline (previously stripped, so `git apply` rejected every
   patch as corrupt). Agent edits to files the hidden test patch modifies are

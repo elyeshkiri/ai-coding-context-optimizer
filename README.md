@@ -527,7 +527,7 @@ token-saver install . --user
 
 ### Bounded source reads
 
-A full `Read` of a large source file is denied before it enters context. The denial contains a capped structural outline with line-number gutters so the agent can request an exact range instead.
+A full `Read` of a large source file is denied before it enters context. So is a lone `cat <large source file>` through Bash, which is the same dump by another route; pipes, redirects, chains and globs are left alone. The denial contains a capped structural outline with line-number gutters so the agent can request an exact range instead.
 
 This happens before the read rather than rewriting its result: editing tools need the original source bytes.
 

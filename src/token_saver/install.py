@@ -7,7 +7,7 @@ from pathlib import Path
 HOOK_COMMAND = "token-saver hook"
 HOOK_TIMEOUT = 10
 
-PRE_MATCHER = "Read"
+PRE_MATCHER = "Read|Bash"
 POST_MATCHER = "Bash|Read"
 SESSION_MATCHER = "startup|resume|clear|compact"
 PROMPT_MATCHER = "*"
