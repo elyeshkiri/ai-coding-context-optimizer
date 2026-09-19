@@ -98,6 +98,31 @@ def _remove_mcp(current: dict) -> dict:
     return updated
 
 
+def _validate_json_object(path: Path) -> None:
+    """Reject unreadable/non-object JSON before any multi-host setup mutation."""
+    if not path.exists():
+        return
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"Refusing to overwrite invalid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected JSON object: {path}")
+
+
+def _validate_codex_manageable(path: Path) -> None:
+    """Reject a conflicting unmanaged Codex Token Saver section."""
+    if not path.exists():
+        return
+    existing = path.read_text(encoding="utf-8")
+    if "[mcp_servers.token-saver]" in existing and CODEX_START not in existing:
+        raise ValueError(
+            f"Refusing to replace unmanaged Token Saver Codex config: {path}"
+        )
+    if CODEX_START in existing and CODEX_END not in existing:
+        raise ValueError("Codex Token Saver managed block is incomplete")
+
+
 def _json_mcp_configured(path: Path) -> bool:
     """Return whether a JSON config contains Token Saver MCP."""
     try:
@@ -151,11 +176,7 @@ def _strip_codex_block(text: str) -> str:
 def _install_codex(path: Path) -> None:
     """Install or refresh the marked Codex MCP block."""
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    unmanaged = "[mcp_servers.token-saver]" in existing and CODEX_START not in existing
-    if unmanaged:
-        raise ValueError(
-            f"Refusing to replace unmanaged Token Saver Codex config: {path}"
-        )
+    _validate_codex_manageable(path)
     cleaned = _strip_codex_block(existing).rstrip()
     text = (cleaned + "\n\n" if cleaned else "") + _codex_block()
     _atomic_write(path, text)
@@ -281,6 +302,18 @@ def setup_integrations(
     unknown = sorted(set(requested) - set(HOSTS))
     if unknown:
         raise ValueError(f"Unsupported host(s): {', '.join(unknown)}")
+    if not root.is_dir():
+        raise ValueError(f"Project path is not a directory: {root}")
+
+    # Preflight all managed surfaces before the first mutation so a conflict in
+    # one host cannot leave earlier hosts partially configured.
+    if "claude" in requested:
+        _validate_json_object(claude_settings_path(root))
+        _validate_json_object(claude_mcp_path(root))
+    if "cursor" in requested:
+        _validate_json_object(cursor_mcp_path(root))
+    if "codex" in requested:
+        _validate_codex_manageable(codex_config_path(home))
 
     changed: list[str] = []
     config_path = write_default_config(root)
@@ -318,6 +351,14 @@ def uninstall_integrations(
     unknown = sorted(set(requested) - set(HOSTS))
     if unknown:
         raise ValueError(f"Unsupported host(s): {', '.join(unknown)}")
+    if not root.is_dir():
+        raise ValueError(f"Project path is not a directory: {root}")
+    if "claude" in requested:
+        _validate_json_object(claude_settings_path(root))
+        _validate_json_object(claude_mcp_path(root))
+    if "cursor" in requested:
+        _validate_json_object(cursor_mcp_path(root))
+
     removed: list[str] = []
     if "claude" in requested:
         uninstall_claude_hooks(root)
@@ -360,6 +401,8 @@ def doctor_report(
     """Build a consolidated health report for installation and integrations."""
     root = root.resolve()
     home = home or Path.home()
+    if not root.is_dir():
+        raise ValueError(f"Project path is not a directory: {root}")
     config_path = find_project_config(root)
     config_error = None
     try:
