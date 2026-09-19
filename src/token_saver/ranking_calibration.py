@@ -35,7 +35,7 @@ def load_ranking_history(path: Path) -> list[dict]:
     for candidate in sorted(path.rglob("*.json")):
         try:
             reports.append(_load_report(candidate))
-        except (json.JSONDecodeError, ValueError):
+        except ValueError:
             continue
     return reports
 
