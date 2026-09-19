@@ -11,11 +11,14 @@
     "          partially recovered to 0.833 at 3361bdb).",
     "  7acb0d8 'align structural leaf gates with query tokenization'",
     "          broke zod-email-regex file recall (1.000 -> 0.833).",
-    "Both landed while this suite ran nowhere, which is what this gate fixes.",
+    "Because zod-email-regex still finds a same-named symbol outside the expected",
+    "file, scoped symbol recall is 0.667 and is gated separately from bare recall.",
+    "Both regressions landed while this suite ran nowhere, which is what this gate fixes.",
     "",
-    "Raise the floor back to the target as those are fixed. Do NOT tune",
-    "ranking against this suite to move these numbers -- it is a burned",
-    "holdout and the project's protocol treats it as a regression floor only."
+    "Raise floors back toward the targets only when independent root-cause fixes",
+    "improve them. Do NOT tune ranking against this suite to move these numbers --",
+    "it is a burned holdout and the project's protocol treats it as a regression",
+    "floor only. --update-floor is monotonic and refuses to lower any threshold."
   ],
   "manifest": "benchmarks/holdout-external.json",
   "max_tokens": 6000,
@@ -31,10 +34,12 @@
   },
   "floor": {
     "mean_file_recall": 0.833,
-    "mean_symbol_recall": 0.833
+    "mean_symbol_recall": 0.833,
+    "mean_symbol_recall_in_expected_files": 0.667
   },
   "target": {
     "mean_file_recall": 1.0,
-    "mean_symbol_recall": 1.0
+    "mean_symbol_recall": 1.0,
+    "mean_symbol_recall_in_expected_files": 1.0
   }
 }
