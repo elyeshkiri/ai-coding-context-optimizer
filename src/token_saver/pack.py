@@ -123,6 +123,7 @@ def rank_files(
     restrict_files: set[str] | None = None,
     seed_limit: int = 6,
     stage_registry: RankingStageRegistry | None = None,
+    trace_scores: bool = False,
 ) -> list[RankedFile]:
     """Rank files through the extracted stage while preserving patch seams."""
     resolved_changed = changed_files
@@ -147,6 +148,7 @@ def rank_files(
         restrict_files=restrict_files,
         seed_limit=seed_limit,
         stage_registry=stage_registry,
+        trace_scores=trace_scores,
         _symbol_terms_fn=symbol_terms,
         _load_feedback_fn=load_feedback,
         _structural_authority_fn=_structural_file_authority,
