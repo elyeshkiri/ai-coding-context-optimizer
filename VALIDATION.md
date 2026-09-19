@@ -27,12 +27,50 @@ Observed CI dependency versions include:
 
 ## Frozen external holdout program
 
-Token Saver now maintains eleven frozen external holdout suites. Ground truth is
+Token Saver now maintains twelve frozen external holdout suites. Ground truth is
 written before evaluation, normalized into a path-independent payload, sealed
 with SHA-256, and enforced with `--require-holdout`. Once a suite is evaluated,
 it is considered burned for tuning.
 
-### Holdout #11 — latest fresh external evidence
+### Holdout #12 — latest fresh external evidence
+
+Holdout #12 contains **25 source-grounded tasks across 5 repositories never used
+in holdouts #1-#11**: Black, Testify, Mio, Apache Commons IO, and Vue core,
+spanning Python, Go, Rust, Java, and TypeScript.
+
+Frozen ground-truth SHA-256:
+
+`dde4a04244c567a2878876e0e7f212211b4ee3faa45d8c23ca9f6f441abaefc1`
+
+First and only fresh evaluation: GitHub Actions run **35441476809**.
+
+| Metric | Fresh first run |
+| --- | ---: |
+| File recall | **100.00%** |
+| Bare symbol recall | **100.00%** |
+| Symbol recall in expected files | **96.00%** |
+| Qualified-symbol recall | **96.00%** |
+| Exact symbol-identity recall | **92.00%** |
+| Mean estimated context reduction | **98.55%** |
+
+Black, Testify, and Vue core were perfect through exact identity. The two fresh
+gaps are deliberately left untouched: `mio-poll-new` found the expected file and
+a same-named symbol but missed the expected-file-scoped, qualified, and exact
+`Poll.new` identity; `commonsio-tostring-stream-charset` found the correct file,
+bare symbol, scoped symbol, and qualified `IOUtils.toString` member but missed
+the exact overload identity. Holdout #12 is now burned and must not be used to
+tune ranking while continuing to call later results fresh.
+
+The exact untouched first-run artifact is checked in as
+`benchmarks/holdout-external-12.result.json`.
+
+A preliminary candidate run (**35441174123**) was rejected before being accepted
+as holdout #12 because all five repositories had already appeared in holdouts
+#1-#11. Its frozen manifest and result are retained as
+`benchmarks/holdout-external-12-candidate-rejected*.json` for auditability, but
+its 100/100/100/100/96 scores are not counted as fresh evidence.
+
+### Holdout #11 — previous fresh external evidence
 
 Holdout #11 contains **60 source-grounded tasks across 10 repositories never
 used in holdouts #1-#10**, spanning C#, Java, TypeScript, Rust, Go, and Python.

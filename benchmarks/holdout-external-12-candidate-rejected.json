@@ -1,0 +1,484 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-19T11:47:00Z",
+    "ground_truth_sha256": "7762eabb7c9ec95a2daf166e23d8359935d6330daa88febeead4695df13595ff"
+  },
+  "repositories": {
+    "httpx": {
+      "path": "holdout12/httpx",
+      "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254"
+    },
+    "fastapi": {
+      "path": "holdout12/fastapi",
+      "revision": "50113da16fec53b66b80d75e80a89296de4fa5a5"
+    },
+    "chi": {
+      "path": "holdout12/chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc"
+    },
+    "axum": {
+      "path": "holdout12/axum",
+      "revision": "3ea7f31b8e43962053d5e45a8cea87097adb9ca0"
+    },
+    "commons-lang": {
+      "path": "holdout12/commons-lang",
+      "revision": "d235f1e997523d7a3d9d1c63e9a1853c2ab728fd"
+    }
+  },
+  "tasks": [
+    {
+      "id": "httpx-client-get",
+      "repository": "httpx",
+      "query": "which synchronous Client get method accepts URL or str plus optional params headers cookies auth redirects timeout and extensions",
+      "files": [
+        "httpx/_client.py"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "httpx/_client.py:Client.get"
+      ],
+      "symbol_identities": [
+        "httpx/_client.py:Client.get@1036"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpx-asyncclient-get",
+      "repository": "httpx",
+      "query": "which AsyncClient async get method accepts URL or str and returns Response",
+      "files": [
+        "httpx/_client.py"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "httpx/_client.py:AsyncClient.get"
+      ],
+      "symbol_identities": [
+        "httpx/_client.py:AsyncClient.get@1751"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpx-url-copy-with",
+      "repository": "httpx",
+      "query": "where is URL copy_with method accepting keyword component overrides and returning URL",
+      "files": [
+        "httpx/_urls.py"
+      ],
+      "symbols": [
+        "copy_with"
+      ],
+      "qualified_symbols": [
+        "httpx/_urls.py:URL.copy_with"
+      ],
+      "symbol_identities": [
+        "httpx/_urls.py:URL.copy_with@327"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpx-queryparams-get-list",
+      "repository": "httpx",
+      "query": "where is QueryParams get_list method accepting key str and returning all values list",
+      "files": [
+        "httpx/_urls.py"
+      ],
+      "symbols": [
+        "get_list"
+      ],
+      "qualified_symbols": [
+        "httpx/_urls.py:QueryParams.get_list"
+      ],
+      "symbol_identities": [
+        "httpx/_urls.py:QueryParams.get_list@526"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "httpx-headers-get-list",
+      "repository": "httpx",
+      "query": "where is Headers get_list method accepting key str plus split_commas boolean",
+      "files": [
+        "httpx/_models.py"
+      ],
+      "symbols": [
+        "get_list"
+      ],
+      "qualified_symbols": [
+        "httpx/_models.py:Headers.get_list"
+      ],
+      "symbol_identities": [
+        "httpx/_models.py:Headers.get_list@252"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fastapi-app-add-api-route",
+      "repository": "fastapi",
+      "query": "where is FastAPI add_api_route method for registering path endpoint with response model and routing options",
+      "files": [
+        "fastapi/applications.py"
+      ],
+      "symbols": [
+        "add_api_route"
+      ],
+      "qualified_symbols": [
+        "fastapi/applications.py:FastAPI.add_api_route"
+      ],
+      "symbol_identities": [
+        "fastapi/applications.py:FastAPI.add_api_route@1165"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fastapi-app-get",
+      "repository": "fastapi",
+      "query": "which FastAPI get decorator method registers a GET path operation",
+      "files": [
+        "fastapi/applications.py"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "fastapi/applications.py:FastAPI.get"
+      ],
+      "symbol_identities": [
+        "fastapi/applications.py:FastAPI.get@1646"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fastapi-app-post",
+      "repository": "fastapi",
+      "query": "which FastAPI post decorator method registers a POST path operation",
+      "files": [
+        "fastapi/applications.py"
+      ],
+      "symbols": [
+        "post"
+      ],
+      "qualified_symbols": [
+        "fastapi/applications.py:FastAPI.post"
+      ],
+      "symbol_identities": [
+        "fastapi/applications.py:FastAPI.post@2397"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fastapi-router-get",
+      "repository": "fastapi",
+      "query": "which APIRouter get decorator method registers a GET path operation on a router",
+      "files": [
+        "fastapi/routing.py"
+      ],
+      "symbols": [
+        "get"
+      ],
+      "qualified_symbols": [
+        "fastapi/routing.py:APIRouter.get"
+      ],
+      "symbol_identities": [
+        "fastapi/routing.py:APIRouter.get@3322"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "fastapi-router-post",
+      "repository": "fastapi",
+      "query": "which APIRouter post decorator method registers a POST path operation on a router",
+      "files": [
+        "fastapi/routing.py"
+      ],
+      "symbols": [
+        "post"
+      ],
+      "qualified_symbols": [
+        "fastapi/routing.py:APIRouter.post"
+      ],
+      "symbol_identities": [
+        "fastapi/routing.py:APIRouter.post@4081"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "chi-mux-get",
+      "repository": "chi",
+      "query": "where is Mux Get method accepting pattern string and http.HandlerFunc",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Get"
+      ],
+      "qualified_symbols": [
+        "mux.go:Mux.Get"
+      ],
+      "symbol_identities": [
+        "mux.go:Mux.Get@155"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "chi-mux-post",
+      "repository": "chi",
+      "query": "where is Mux Post method accepting pattern string and http.HandlerFunc",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Post"
+      ],
+      "qualified_symbols": [
+        "mux.go:Mux.Post"
+      ],
+      "symbol_identities": [
+        "mux.go:Mux.Post@179"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "chi-mux-with",
+      "repository": "chi",
+      "query": "where is Mux With method accepting middleware functions and returning Router",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "With"
+      ],
+      "qualified_symbols": [
+        "mux.go:Mux.With"
+      ],
+      "symbol_identities": [
+        "mux.go:Mux.With@242"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "chi-mux-route",
+      "repository": "chi",
+      "query": "where is Mux Route method accepting pattern and func taking Router then returning Router",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Route"
+      ],
+      "qualified_symbols": [
+        "mux.go:Mux.Route"
+      ],
+      "symbol_identities": [
+        "mux.go:Mux.Route@278"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "chi-mux-mount",
+      "repository": "chi",
+      "query": "where is Mux Mount method accepting pattern string and http.Handler",
+      "files": [
+        "mux.go"
+      ],
+      "symbols": [
+        "Mount"
+      ],
+      "qualified_symbols": [
+        "mux.go:Mux.Mount"
+      ],
+      "symbol_identities": [
+        "mux.go:Mux.Mount@295"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "axum-router-route",
+      "repository": "axum",
+      "query": "where is Router route method accepting path str and MethodRouter",
+      "files": [
+        "axum/src/routing/mod.rs"
+      ],
+      "symbols": [
+        "route"
+      ],
+      "qualified_symbols": [
+        "axum/src/routing/mod.rs:Router.route"
+      ],
+      "symbol_identities": [
+        "axum/src/routing/mod.rs:Router.route@192"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "axum-router-nest",
+      "repository": "axum",
+      "query": "where is Router nest method accepting path str and another Router",
+      "files": [
+        "axum/src/routing/mod.rs"
+      ],
+      "symbols": [
+        "nest"
+      ],
+      "qualified_symbols": [
+        "axum/src/routing/mod.rs:Router.nest"
+      ],
+      "symbol_identities": [
+        "axum/src/routing/mod.rs:Router.nest@220"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "axum-router-merge",
+      "repository": "axum",
+      "query": "where is Router merge generic method accepting another router-like value",
+      "files": [
+        "axum/src/routing/mod.rs"
+      ],
+      "symbols": [
+        "merge"
+      ],
+      "qualified_symbols": [
+        "axum/src/routing/mod.rs:Router.merge"
+      ],
+      "symbol_identities": [
+        "axum/src/routing/mod.rs:Router.merge@258"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "axum-router-fallback",
+      "repository": "axum",
+      "query": "where is Router fallback generic method accepting handler H",
+      "files": [
+        "axum/src/routing/mod.rs"
+      ],
+      "symbols": [
+        "fallback"
+      ],
+      "qualified_symbols": [
+        "axum/src/routing/mod.rs:Router.fallback"
+      ],
+      "symbol_identities": [
+        "axum/src/routing/mod.rs:Router.fallback@336"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "axum-router-with-state",
+      "repository": "axum",
+      "query": "where is Router with_state method consuming state S and returning Router with new missing state type",
+      "files": [
+        "axum/src/routing/mod.rs"
+      ],
+      "symbols": [
+        "with_state"
+      ],
+      "qualified_symbols": [
+        "axum/src/routing/mod.rs:Router.with_state"
+      ],
+      "symbol_identities": [
+        "axum/src/routing/mod.rs:Router.with_state@444"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-defaultstring-one",
+      "repository": "commons-lang",
+      "query": "which StringUtils defaultString overload accepts only String str",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "defaultString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.defaultString"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.defaultString@1614"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-defaultstring-two",
+      "repository": "commons-lang",
+      "query": "which StringUtils defaultString overload accepts String str and String nullDefault",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "defaultString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.defaultString"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.defaultString@1644"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-indexof-sequence",
+      "repository": "commons-lang",
+      "query": "which StringUtils indexOf overload accepts CharSequence seq and CharSequence searchSeq only",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "indexOf"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.indexOf"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.indexOf@2588"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-indexof-sequence-start",
+      "repository": "commons-lang",
+      "query": "which StringUtils indexOf overload accepts CharSequence seq, CharSequence searchSeq, and int startPos",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "indexOf"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.indexOf"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.indexOf@2624"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commons-substring-three",
+      "repository": "commons-lang",
+      "query": "which StringUtils substring overload accepts String str, int start, int end",
+      "files": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java"
+      ],
+      "symbols": [
+        "substring"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.substring"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/lang3/StringUtils.java:StringUtils.substring@8309"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}
