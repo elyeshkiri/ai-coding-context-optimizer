@@ -15,6 +15,7 @@ from .config import update_json
 from .install import HOOK_COMMAND, install as install_claude_hooks
 from .install import settings_path as claude_settings_path
 from .install import uninstall as uninstall_claude_hooks
+from .policy import SKILL_TEXT
 from .repository_service import RepositoryContextService
 from .runtime_config import CONFIG_NAME, find_project_config, settings_for
 from .sessions import transcript_paths
@@ -171,6 +172,25 @@ def _uninstall_codex(path: Path) -> None:
     _atomic_write(path, cleaned)
 
 
+def _remove_managed_claude_skill(root: Path) -> None:
+    """Remove the generated Claude skill only when it still matches our template."""
+    path = root / ".claude" / "skills" / "token-budget" / "SKILL.md"
+    if not path.exists():
+        return
+    try:
+        current = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    if current != SKILL_TEXT:
+        return
+    path.unlink()
+    for directory in (path.parent, path.parent.parent):
+        try:
+            directory.rmdir()
+        except OSError:
+            break
+
+
 def _claude_hooks_configured(root: Path) -> bool:
     """Return whether project Claude settings contain Token Saver hooks."""
     path = claude_settings_path(root)
@@ -301,6 +321,7 @@ def uninstall_integrations(
     removed: list[str] = []
     if "claude" in requested:
         uninstall_claude_hooks(root)
+        _remove_managed_claude_skill(root)
         path = claude_mcp_path(root)
         if path.exists():
             update_json(path, _remove_mcp)
