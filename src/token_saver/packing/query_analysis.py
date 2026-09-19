@@ -7,9 +7,6 @@ import re
 from ..lexical import fuzzy_symbol_terms, identifier_terms, symbol_terms, terms
 from ..repo_index import RepositoryIndex
 
-from .contracts import RankedFile
-
-_MAX_FILE_BYTES = 2_000_000
 _NUMBER_WORDS = {
     "one": 1,
     "two": 2,
