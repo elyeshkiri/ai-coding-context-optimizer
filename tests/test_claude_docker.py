@@ -69,7 +69,11 @@ def test_isolated_runner_cleans_home_when_transcript_is_missing(
     def fake_run(command, **_kwargs):
         claude_home = transcript.parent / "claude-home"
         (claude_home / "sessions").mkdir(parents=True)
-        return SimpleNamespace(returncode=1, stdout="", stderr="")
+        return SimpleNamespace(
+            returncode=0,
+            stdout='{"is_error":false,"usage":{"input_tokens":10,"output_tokens":2}}\n',
+            stderr="",
+        )
 
     monkeypatch.setattr("token_saver.claude_docker.subprocess.run", fake_run)
 
