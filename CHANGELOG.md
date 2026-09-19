@@ -1,5 +1,22 @@
 # Unreleased
 
+# 1.5.0 - 2026-09-20
+
+- **Made file reranking an explicit extension surface.** Ranking now composes
+  deterministic scoring with a validated ordered `RankingStageRegistry`; graph
+  closure, embeddings, and future/custom rerankers no longer require branches
+  inside `rank_files()`.
+- **Added ranking observability and causal regression analysis.** Optional
+  `RankingScoreEvent` traces expose exact score transitions without changing
+  default ranking cost or legacy reasons. `ranking-explain`,
+  `ranking-snapshot`, and `ranking-diff` provide stage-attributed diagnostics,
+  including expected files that fall below the ordinary top-N display window.
+- **Added PR ranking-regression evidence and empirical gate calibration.** Pull
+  requests compare immutable base/candidate snapshots, publish GitHub summaries,
+  and retain raw evidence. Weekly/manual calibration deduplicates reruns, selects
+  the newest artifact per PR, isolates frozen ground-truth cohorts, and reports
+  empirical rank-drop/disappearance distributions without inventing a blocking
+  threshold.
 - **Productized host onboarding and lifecycle management.** Added `token-saver
   setup`, `doctor`, `uninstall`, `commands`, and shell `completion`.
   Setup auto-detects Claude Code, Cursor, and Codex, merges only Token
