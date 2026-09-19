@@ -52,16 +52,16 @@ jobs:
             actual="$(git -C "$path" rev-parse HEAD)"
             test "$actual" = "$sha"
           }
-          clone_at https://github.com/encode/httpx.git \
-            b5addb64f0161ff6bfe94c124ef76f6a1fba5254 benchmarks/holdout12/httpx
-          clone_at https://github.com/fastapi/fastapi.git \
-            50113da16fec53b66b80d75e80a89296de4fa5a5 benchmarks/holdout12/fastapi
-          clone_at https://github.com/go-chi/chi.git \
-            3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc benchmarks/holdout12/chi
-          clone_at https://github.com/tokio-rs/axum.git \
-            3ea7f31b8e43962053d5e45a8cea87097adb9ca0 benchmarks/holdout12/axum
-          clone_at https://github.com/apache/commons-lang.git \
-            d235f1e997523d7a3d9d1c63e9a1853c2ab728fd benchmarks/holdout12/commons-lang
+          clone_at https://github.com/psf/black.git \
+            acd6198877ced2d8126b9b3958bb17f4a65ef0d1 benchmarks/holdout12/black
+          clone_at https://github.com/stretchr/testify.git \
+            435c07b5cb95c88b82cf35f49da0dde33d24ad46 benchmarks/holdout12/testify
+          clone_at https://github.com/tokio-rs/mio.git \
+            da425f909dd6b86d887da9eaefcb158099b5b165 benchmarks/holdout12/mio
+          clone_at https://github.com/apache/commons-io.git \
+            f720b24227eb6972d4281d330ddb64c1416f81a4 benchmarks/holdout12/commons-io
+          clone_at https://github.com/vuejs/core.git \
+            4ab865a848a1da3d10fb674f857e5fff13094644 benchmarks/holdout12/vue-core
 
       - name: Run fresh holdout exactly once
         run: |
