@@ -87,8 +87,15 @@ def _allowed(path: Path, cwd: Path | None = None) -> bool:
         return False
     name = path.name
     full = str(path)
+    relative = ""
+    try:
+        relative = str(path.resolve().relative_to((cwd or Path.cwd()).resolve()))
+    except ValueError:
+        pass
     return any(
-        fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(full, pattern)
+        fnmatch.fnmatch(name, pattern)
+        or fnmatch.fnmatch(full, pattern)
+        or bool(relative and fnmatch.fnmatch(relative, pattern))
         for pattern in patterns
     )
 
