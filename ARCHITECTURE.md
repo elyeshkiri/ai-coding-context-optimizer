@@ -39,7 +39,7 @@ Command implementations are grouped vertically under
 `token_saver.command_handlers`:
 
 - `context.py` — repository browsing, ranking explanations, impact, and feedback;
-- `evaluation.py` — context/agent evaluation plus ranking snapshot/diff workflows;
+- `evaluation.py` — context/agent evaluation plus ranking snapshot/diff/calibration workflows;
 - `experiment.py` — paired experiments and cost-per-success reporting;
 - `host.py` — host validation and MCP serving;
 - `output.py` — output policy, compaction, replay, explain, and benchmarks;
@@ -202,6 +202,21 @@ The first CI phase is informational for rank movement. Tooling failures remain
 hard failures, while ranking regressions are summarized but do not block merges
 until a regression allowance is calibrated from observed PR history.
 
+### Ranking gate calibration
+
+`ranking_calibration.py` consumes saved ranking-diff artifacts rather than
+repository state. It groups reports by frozen ground-truth hash, computes
+empirical positive rank-drop percentiles, disappearance/regression frequencies,
+and per-stage score activity, then reports whether the configured minimum
+history factually supports strict zero-drop or no-disappearance behavior.
+
+The scheduled/manual `ranking-calibration.yml` workflow collects the newest
+ranking artifact per PR, deduplicating workflow reruns before sampling. It
+selects the current benchmark hash explicitly, so reports from previous task
+definitions remain separate cohorts. The resulting JSON and Markdown are
+descriptive evidence only; calibration does not infer that a historical
+regression is harmless noise or silently change merge policy.
+
 ### Symbol scoring vs rendering
 
 Within-file relevance and source rendering are separate policies.
@@ -303,11 +318,16 @@ behavior or duplicating repository logic.
 15. **PR ranking baselines are immutable:** CI captures baseline evidence with
     base-commit code against the base checkout and uses the base manifest for
     both sides; candidate code cannot redefine the comparison ground truth.
+16. **Gate calibration is empirical:** PR reruns are deduplicated, ground-truth
+    cohorts remain separate, and calibration reports observed distributions
+    without automatically redefining regressions as allowed noise.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
 `tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
 `tests/test_ranking_pipeline_boundaries.py`, `tests/test_ranking_stage_registry.py`,
 `tests/test_ranking_observability.py`, `tests/test_ranking_regression.py`, and
-`tests/test_ranking_ci_workflow.py` lock in these extension seams so future
-features can grow by composition instead of by adding more central branching.
+`tests/test_ranking_ci_workflow.py`, `tests/test_ranking_calibration.py`, and
+`tests/test_ranking_calibration_workflow.py` lock in these extension seams so
+future features can grow by composition instead of by adding more central
+branching.

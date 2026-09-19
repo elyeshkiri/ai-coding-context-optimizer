@@ -14,6 +14,7 @@ from .command_handlers.context import (
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     evaluate_main,
+    ranking_calibrate_main,
     ranking_diff_main,
     ranking_snapshot_main,
 )
@@ -77,6 +78,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("agent-evaluate", agent_evaluate_main),
         CommandSpec("ranking-snapshot", ranking_snapshot_main),
         CommandSpec("ranking-diff", ranking_diff_main),
+        CommandSpec("ranking-calibrate", ranking_calibrate_main),
         CommandSpec("experiment", experiment_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("host-check", host_check_main),

@@ -9,6 +9,11 @@ from pathlib import Path
 
 from ..agent_eval import evaluate_agent_runs
 from ..evaluate import evaluate_manifest, ground_truth_hash
+from ..ranking_calibration import (
+    calibrate_ranking_history,
+    load_ranking_history,
+    render_ranking_calibration_markdown,
+)
 from ..ranking_regression import (
     build_ranking_snapshot,
     compare_ranking_snapshots,
@@ -177,4 +182,34 @@ def ranking_diff_main(argv: list[str]) -> int:
 
     if args.fail_on_regression and violations:
         return 1
+    return 0
+
+
+
+def ranking_calibrate_main(argv: list[str]) -> int:
+    """Aggregate ranking-diff history into empirical gate-calibration evidence."""
+    parser = argparse.ArgumentParser(prog="token-saver ranking-calibrate")
+    parser.add_argument("history")
+    parser.add_argument("--ground-truth-sha")
+    parser.add_argument("--min-reports", type=int, default=20)
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true")
+    output.add_argument("--markdown", action="store_true")
+    args = parser.parse_args(argv)
+
+    try:
+        reports = load_ranking_history(Path(args.history))
+        result = calibrate_ranking_history(
+            reports,
+            ground_truth_sha256=args.ground_truth_sha,
+            min_reports=args.min_reports,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.markdown:
+        print(render_ranking_calibration_markdown(result))
+    else:
+        print(json.dumps(result, indent=2))
     return 0
