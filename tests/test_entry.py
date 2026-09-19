@@ -157,3 +157,27 @@ def test_dispatcher_exposes_experiment_hash(tmp_path, capsys):
     value = capsys.readouterr().out.strip()
     assert len(value) == 64
     assert all(ch in "0123456789abcdef" for ch in value)
+
+
+def test_dispatcher_exposes_output_explain(capsys):
+    assert main(["output-explain", "npm install", "--exit-code", "1"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["processor"] == "generic"
+    assert "package-install" in payload["failure_skipped_processors"]
+
+
+def test_dispatcher_exposes_output_replay(tmp_path, capsys):
+    manifest = tmp_path / "quality.json"
+    manifest.write_text(json.dumps({
+        "cases": [{
+            "id": "git",
+            "command": "git log --oneline",
+            "text": "\n".join(f"{i:04x} change {i}" for i in range(80)),
+            "must_preserve": ["change 0"],
+            "min_reduction": 0.10,
+        }]
+    }), encoding="utf-8")
+    assert main(["output-replay", str(manifest)]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["summary"]["failed"] == 0
+    assert payload["cases"][0]["processor"] == "git-log"

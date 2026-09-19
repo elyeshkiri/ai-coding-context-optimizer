@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .estimate import estimate_tokens
 from .filter_output import filter_command_output
+from .delta_context import apply_delta
 from .guard import run as guard_run
 from .policy import user_nudge
 from .state import record_read, reset_session
@@ -72,6 +73,20 @@ def _is_filterable(tool_name: str) -> bool:
     return tool_name in FILTERABLE
 
 
+def _exit_code(response: dict) -> int | None:
+    for key in ("exit_code", "exitCode", "code"):
+        value = response.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
+
+
+def _delta_enabled() -> bool:
+    return os.environ.get("TOKEN_SAVER_DELTA", "0").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+
 def run_post(payload: dict) -> tuple[int, dict | None]:
     tool = payload.get("tool_name") or ""
     if tool == "Read" or tool == "Edit":
@@ -98,12 +113,36 @@ def run_post(payload: dict) -> tuple[int, dict | None]:
     original = response["stdout"]
     n_lines = len(original.splitlines())
     if n_lines < min_lines:
-        return 0, None
-    replacement["stdout"] = filter_command_output(
-        original, command=command,
-        max_lines=max(1, _env_int("TOKEN_SAVER_MAX_LINES", cap_for(n_lines))),
-        keep_tail=keep_tail,
-    )
+        if _delta_enabled():
+            # Even a short clean rerun must advance Delta state so failures
+            # that disappeared do not remain "current" forever. Only replace
+            # the tool output when the delta is actually smaller.
+            replacement["stdout"], _delta_meta = apply_delta(
+                _cwd(payload),
+                command,
+                original,
+                original,
+                session_id=payload.get("session_id"),
+            )
+            if replacement["stdout"] == original:
+                return 0, None
+        else:
+            return 0, None
+    else:
+        replacement["stdout"] = filter_command_output(
+            original, command=command,
+            max_lines=max(1, _env_int("TOKEN_SAVER_MAX_LINES", cap_for(n_lines))),
+            keep_tail=keep_tail,
+            exit_code=_exit_code(response),
+        )
+        if _delta_enabled():
+            replacement["stdout"], _delta_meta = apply_delta(
+                _cwd(payload),
+                command,
+                original,
+                replacement["stdout"],
+                session_id=payload.get("session_id"),
+            )
     note = ("\n[token-saver: filtered output; original saved. "
             "Retrieve: token-saver output {id} --stream stdout --offset 1 --limit 80]\n")
     candidate = replacement["stdout"] + note.format(id="0" * 32)

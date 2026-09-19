@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {
+      "id": "pytest-failure-preservation",
+      "command": "pytest -q",
+      "exit_code": 1,
+      "text": "collecting ...\n============================= FAILURES =============================\n____________________________ test_refresh ____________________________\nE   AssertionError: expected 200, got 401\n=========================== short test summary info ===========================\nFAILED tests/test_auth.py::test_refresh - AssertionError: expected 200, got 401\n======================= 1 failed, 40 passed in 1.2s =======================\n",
+      "must_preserve": [
+        "tests/test_auth.py::test_refresh",
+        "AssertionError: expected 200, got 401"
+      ],
+      "max_tokens": 180,
+      "min_reduction": 0.1
+    },
+    {
+      "id": "git-log-compaction",
+      "command": "git log --oneline",
+      "text": "0000 change 0\n0001 change 1\n0002 change 2\n0003 change 3\n0004 change 4\n0005 change 5\n0006 change 6\n0007 change 7\n0008 change 8\n0009 change 9\n0010 change 10\n0011 change 11\n0012 change 12\n0013 change 13\n0014 change 14\n0015 change 15\n0016 change 16\n0017 change 17\n0018 change 18\n0019 change 19\n0020 change 20\n0021 change 21\n0022 change 22\n0023 change 23\n0024 change 24\n0025 change 25\n0026 change 26\n0027 change 27\n0028 change 28\n0029 change 29\n0030 change 30\n0031 change 31\n0032 change 32\n0033 change 33\n0034 change 34\n0035 change 35\n0036 change 36\n0037 change 37\n0038 change 38\n0039 change 39\n0040 change 40\n0041 change 41\n0042 change 42\n0043 change 43\n0044 change 44\n0045 change 45\n0046 change 46\n0047 change 47\n0048 change 48\n0049 change 49\n",
+      "must_preserve": [
+        "change 0"
+      ],
+      "min_reduction": 0.2
+    }
+  ]
+}

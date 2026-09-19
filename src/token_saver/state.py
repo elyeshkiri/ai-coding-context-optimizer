@@ -8,7 +8,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA = 2
+SCHEMA = 3
 
 def state_dir() -> Path:
     return Path(os.environ.get("TOKEN_SAVER_STATE_DIR", str(Path.home() / ".claude" / "token-saver")))
@@ -26,7 +26,10 @@ def load(root: Path | None = None, session_id: str | None = None) -> dict:
         data = {}
     if not isinstance(data, dict):
         data = {}
-    for key, default in (("schema", SCHEMA), ("reads", {}), ("usage", {}), ("advice", [])):
+    for key, default in (
+        ("schema", SCHEMA), ("reads", {}), ("usage", {}), ("advice", []),
+        ("diagnostics", {}),
+    ):
         data.setdefault(key, default)
     return data
 
@@ -94,8 +97,29 @@ def record_usage(root: Path, usage: dict, session_id: str | None = None) -> None
         bucket["turns"] = int(bucket.get("turns", 0)) + 1
     update(root, mutate, session_id)
 
+def diagnostic_snapshot(
+    root: Path, command_key: str, session_id: str | None = None,
+) -> dict | None:
+    value = load(root, session_id).get("diagnostics", {}).get(command_key)
+    return value if isinstance(value, dict) else None
+
+
+def record_diagnostic_snapshot(
+    root: Path, command_key: str, snapshot: dict,
+    session_id: str | None = None,
+) -> None:
+    def mutate(data):
+        diagnostics = data.setdefault("diagnostics", {})
+        diagnostics.pop(command_key, None)
+        diagnostics[command_key] = snapshot
+        if len(diagnostics) > 30:
+            for key in list(diagnostics)[:-24]:
+                diagnostics.pop(key, None)
+    update(root, mutate, session_id)
+
+
 def reset_session(root: Path, *, reads: bool = True, reminder: bool = True, session_id: str | None = None) -> None:
     def mutate(data):
-        if reads: data.update(reads={}, usage={})
+        if reads: data.update(reads={}, usage={}, diagnostics={})
         if reminder: data["reminder"] = ""
     update(root, mutate, session_id)
