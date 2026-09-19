@@ -60,9 +60,8 @@ from .packing.render import (
     _static_plan as _static_plan,
     _visible_symbol_labels as _visible_symbol_labels,
 )
-from .packing.symbols import (
+from .packing.symbol_scoring import (
     _ACTION_TERMS as _ACTION_TERMS,
-    _LARGE_CONTAINER_LINES as _LARGE_CONTAINER_LINES,
     _SymbolScope as _SymbolScope,
     _apply_overload_dimensions as _apply_overload_dimensions,
     _apply_parent_credit as _apply_parent_credit,
@@ -70,27 +69,30 @@ from .packing.symbols import (
     _build_symbol_scope as _build_symbol_scope,
     _call_graph_bonus as _call_graph_bonus,
     _contained_children_by_parent as _contained_children_by_parent,
-    _container_windows as _container_windows,
     _containers_by_qualified as _containers_by_qualified,
     _corpus_term_weights as _corpus_term_weights,
     _explicit_member_bonus as _explicit_member_bonus,
     _family_signature_bonus as _family_signature_bonus,
-    _file_section as _file_section,
     _fuzzy_identifier_bonus as _fuzzy_identifier_bonus,
     _generic_arity_delta as _generic_arity_delta,
-    _hit_lines as _hit_lines,
     _lexical_symbol_score as _lexical_symbol_score,
-    _merge_ranges as _merge_ranges,
-    _merge_windows as _merge_windows,
     _overload_family_stats as _overload_family_stats,
-    _prioritized_ranges as _prioritized_ranges,
-    _render_symbol_windows as _render_symbol_windows,
     _score_symbol as _score_symbol,
-    _source_window as _source_window,
     _symbol_key as _symbol_key,
     _symbol_term_maps as _symbol_term_maps,
-    _symbol_windows as _symbol_windows,
     _unique_leaf_bonus as _unique_leaf_bonus,
+)
+from .packing.symbol_windows import (
+    _LARGE_CONTAINER_LINES as _LARGE_CONTAINER_LINES,
+    _container_windows as _container_windows,
+    _file_section as _file_section,
+    _hit_lines as _hit_lines,
+    _merge_ranges as _merge_ranges,
+    _merge_windows as _merge_windows,
+    _prioritized_ranges as _prioritized_ranges,
+    _render_symbol_windows as _render_symbol_windows,
+    _source_window as _source_window,
+    _symbol_windows as _symbol_windows,
 )
 
 _DEFAULT_MAX_FILES = 12
