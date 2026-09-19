@@ -351,3 +351,66 @@ def test_expand_command_substitutes_only_known_placeholders():
 def test_expand_command_does_not_reinterpret_braces_in_substituted_text():
     assert _expand(["{prompt}"], prompt="use {model} and {x}") == ["use {model} and {x}"]
     assert _expand(["{prompt}:{model}"], prompt="{model}") == ["{model}:m"]
+
+
+def test_agent_runner_failure_is_reported_before_missing_transcript(
+    tmp_path, monkeypatch
+):
+    repo, revision = _repo(tmp_path)
+    runner = tmp_path / "failing_runner.py"
+    runner.write_text(
+        "import sys\nprint('provider rejected request')\n"
+        "print('workspace header missing', file=sys.stderr)\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+    prompt = "Fix the fixture."
+    suite = {
+        "suite_version": 1,
+        "protocol": {
+            "task_definitions_frozen": True,
+            "condition_order_randomized": True,
+            "independent_verification": True,
+            "history_isolated": True,
+            "hidden_tests_after_agent": True,
+            "frozen_at": "2026-09-19T00:00:00Z",
+            "task_definition_sha256": "",
+        },
+        "design": {"trials_per_task": 1, "condition_order_seed": 1},
+        "repositories": {
+            "fixture": {"path": "source", "revision": revision},
+        },
+        "runner": {
+            "command": [sys.executable, str(runner)],
+            "model": "synthetic-test-model",
+            "transcript_mode": "path",
+            "timeout_seconds": 30,
+        },
+        "tasks": [{
+            "id": "runner-failure",
+            "repository": "fixture",
+            "revision": revision,
+            "prompt": prompt,
+            "prompt_sha256": prompt_sha256(prompt),
+            "verifier": [[sys.executable, "-c", "raise SystemExit(0)"]],
+        }],
+    }
+    suite["protocol"]["task_definition_sha256"] = task_definition_hash(suite)
+    path = tmp_path / "failure-suite.json"
+    path.write_text(json.dumps(suite, indent=2), encoding="utf-8")
+    monkeypatch.setattr(
+        "token_saver.experiment.user_token_saver_hook_configured",
+        lambda: False,
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        run_experiment(
+            path,
+            tmp_path / "failure-runs.json",
+            allow_development=True,
+        )
+    message = str(excinfo.value)
+    assert "agent runner exited 2" in message
+    assert "provider rejected request" in message
+    assert "workspace header missing" in message
+    assert "runner did not create transcript" not in message
