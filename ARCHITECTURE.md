@@ -34,6 +34,21 @@ commands are composed in `token_saver.command_registry` as `CommandSpec` values.
 `CommandRegistry` is independently testable and preserves fallback to the legacy
 CLI for existing commands.
 
+Command implementations are grouped vertically under
+`token_saver.command_handlers`:
+
+- `context.py` — repository browsing, impact, and feedback;
+- `evaluation.py` — context and agent evaluation;
+- `experiment.py` — paired experiments and cost-per-success reporting;
+- `host.py` — host validation and MCP serving;
+- `output.py` — output policy, compaction, replay, explain, and benchmarks;
+- `patch.py` — diff-context packing and patch review.
+
+The registry imports these handlers directly. `token_saver.commands` is retained
+only as a compatibility facade for older imports and contains no command
+implementation. This keeps command growth local to one user-facing capability
+instead of rebuilding a central CLI monolith.
+
 ## Output boundary
 
 The pre-1.4 `token_saver.output_processors` module remains as a compatibility
@@ -77,6 +92,8 @@ different adapter.
 5. **Host adapters do not define domain policy:** hooks translate host payloads
    into calls to application services; they should not accumulate processor- or
    command-family-specific logic.
+6. **Command handlers grow vertically:** registry composition and compatibility
+   facades must not accumulate command implementation logic.
 
 `tests/test_architecture_boundaries.py` and `tests/test_hook_runtime.py` lock in
 these extension seams so future features can grow by composition instead of by

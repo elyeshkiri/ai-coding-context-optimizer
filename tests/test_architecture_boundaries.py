@@ -1,6 +1,14 @@
 """Regression tests for the explicit architecture extension seams."""
 
-from token_saver.command_registry import CommandRegistry, CommandSpec
+import inspect
+
+import token_saver.commands as commands_facade
+from token_saver.command_handlers.context import browse_main as vertical_browse_main
+from token_saver.command_registry import (
+    DEFAULT_COMMAND_REGISTRY,
+    CommandRegistry,
+    CommandSpec,
+)
 from token_saver.output import OutputPipeline, ProcessorRegistry
 from token_saver.output_processors import OutputPipeline as CompatibilityPipeline
 
@@ -82,3 +90,21 @@ def test_output_pipeline_accepts_injected_processors_without_core_changes():
 def test_output_processors_module_remains_a_compatibility_facade():
     """Existing callers should receive the same pipeline type through the old module."""
     assert CompatibilityPipeline is OutputPipeline
+
+
+def test_commands_module_is_a_thin_compatibility_facade():
+    """Legacy command imports should delegate without reintroducing handler logic."""
+    source = inspect.getsource(commands_facade)
+    assert "\ndef " not in source
+    assert commands_facade.browse_main is vertical_browse_main
+
+
+def test_default_registry_bypasses_the_commands_compatibility_facade():
+    """Registered handlers should come from vertical modules, not the legacy facade."""
+    modules = {
+        handler.__module__
+        for name, handler in DEFAULT_COMMAND_REGISTRY._handlers.items()
+        if name != "pack"
+    }
+    assert modules
+    assert all(module.startswith("token_saver.command_handlers.") for module in modules)
