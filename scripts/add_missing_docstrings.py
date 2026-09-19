@@ -204,16 +204,19 @@ def insert_docstrings(path: Path) -> int:
         first = body[0]
         indent = indent_for_body(lines, node)
 
-        if first.lineno == node.lineno:
-            line_index = node.lineno - 1
-            line = lines[line_index]
-            start = getattr(first, "col_offset", 0)
-            header = line[:start].rstrip()
+        line_index = first.lineno - 1
+        line = lines[line_index]
+        start = getattr(first, "col_offset", 0)
+        header = line[:start].rstrip()
+        # A suite may be inline even when the function signature spans
+        # multiple physical lines, e.g. the Protocol form:
+        #     def f(
+        #         ...
+        #     ) -> T: ...
+        # Detect it from the text before the first body node, not by comparing
+        # the body's line number with the definition's first line.
+        if header.endswith(":"):
             statement = line[start:].lstrip()
-            if not header.endswith(":"):
-                # Unusual one-line syntax: leave it for manual review rather
-                # than risk changing executable semantics.
-                continue
             newline = "\n" if line.endswith("\n") else ""
             replacement = (
                 header + "\n"
