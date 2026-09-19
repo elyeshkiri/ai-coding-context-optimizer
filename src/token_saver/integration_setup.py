@@ -297,7 +297,7 @@ def uninstall_integrations(
     requested = HOSTS if not hosts or "all" in hosts else tuple(dict.fromkeys(hosts))
     unknown = sorted(set(requested) - set(HOSTS))
     if unknown:
-        raise ValueError(f"Unsupported host(s): {\', \'.join(unknown)}")
+        raise ValueError(f"Unsupported host(s): {', '.join(unknown)}")
     removed: list[str] = []
     if "claude" in requested:
         uninstall_claude_hooks(root)
