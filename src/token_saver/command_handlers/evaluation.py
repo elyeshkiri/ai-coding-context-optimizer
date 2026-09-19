@@ -95,7 +95,11 @@ def ranking_snapshot_main(argv: list[str]) -> int:
 
     rendered = json.dumps(snapshot, indent=2)
     if args.out:
-        Path(args.out).write_text(rendered + "\n", encoding="utf-8")
+        try:
+            Path(args.out).write_text(rendered + "\n", encoding="utf-8")
+        except OSError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
     else:
         print(rendered)
     return 0
