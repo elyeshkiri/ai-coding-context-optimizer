@@ -164,8 +164,10 @@ def test_main_emits_valid_json_for_a_big_payload(monkeypatch, capsys):
 
 def test_a_hook_crash_never_breaks_the_tool_call(monkeypatch, capsys):
     monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(_payload("x\n" * 500))))
-    monkeypatch.setattr("token_saver.hook.filter_command_output",
-                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        "token_saver.hook.OutputPipeline.process",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
     assert main() == 0
     assert capsys.readouterr().out == ""
 
