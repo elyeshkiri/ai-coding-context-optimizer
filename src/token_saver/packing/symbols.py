@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 import math
-import re
 
 from ..lexical import fuzzy_symbol_terms, identifier_terms, symbol_terms, terms
 from ..repo_index import RepositoryIndex
