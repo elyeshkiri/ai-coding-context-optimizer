@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -50,7 +51,7 @@ class RankingStage(Protocol):
 class RankingStageRegistry:
     """Validate and run post-score ranking extensions in deterministic order."""
 
-    def __init__(self, stages: list[RankingStage] | tuple[RankingStage, ...]):
+    def __init__(self, stages: Iterable[RankingStage]):
         """Register stages and reject ambiguous names or execution orders."""
         by_name: dict[str, RankingStage] = {}
         by_order: dict[int, RankingStage] = {}
