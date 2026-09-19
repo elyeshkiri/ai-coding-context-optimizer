@@ -6,6 +6,44 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+@dataclass(frozen=True)
+class RankingScoreEvent:
+    """Record one score transition produced by a ranking component or stage."""
+
+    stage: str
+    before: float
+    after: float
+    delta: float
+    evidence: tuple[str, ...] = ()
+
+    @classmethod
+    def from_scores(
+        cls,
+        stage: str,
+        before: float,
+        after: float,
+        evidence: tuple[str, ...] = (),
+    ) -> "RankingScoreEvent":
+        """Create an event while deriving its exact score delta."""
+        return cls(
+            stage=stage,
+            before=before,
+            after=after,
+            delta=after - before,
+            evidence=evidence,
+        )
+
+    def to_dict(self) -> dict:
+        """Return a JSON-serializable score-transition payload."""
+        return {
+            "stage": self.stage,
+            "before": self.before,
+            "after": self.after,
+            "delta": self.delta,
+            "evidence": list(self.evidence),
+        }
+
+
 @dataclass
 class RankedFile:
     """Represent one ranked repository file and its retrieval evidence."""
@@ -18,6 +56,7 @@ class RankedFile:
     reasons: list[str] = field(default_factory=list)
     term_hits: int = 0
     changed: bool = False
+    score_trace: list[RankingScoreEvent] = field(default_factory=list)
 
 
 @dataclass
