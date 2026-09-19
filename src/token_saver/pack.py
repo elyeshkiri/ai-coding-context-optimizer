@@ -11,7 +11,8 @@ from pathlib import Path
 
 from .budget import plan_retrieval
 from .estimate import estimate_tokens
-from .lexical import terms
+from .feedback import load_feedback as load_feedback
+from .lexical import symbol_terms as symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
 from .working_set import save_working_set
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
@@ -141,6 +142,9 @@ def rank_files(
         exclude_files=exclude_files,
         restrict_files=restrict_files,
         seed_limit=seed_limit,
+        _symbol_terms_fn=symbol_terms,
+        _load_feedback_fn=load_feedback,
+        _structural_authority_fn=_structural_file_authority,
     )
 
 
