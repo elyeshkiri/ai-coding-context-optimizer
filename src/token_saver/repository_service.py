@@ -139,6 +139,7 @@ class RepositoryContextService:
         exclude_files: set[str] | None = None,
         restrict_files: set[str] | None = None,
         stage_registry: RankingStageRegistry | None = None,
+        include_paths: set[str] | None = None,
     ) -> dict:
         """Explain file-ranking score contributions for one repository query."""
         ranked = rank_files(
@@ -158,7 +159,12 @@ class RepositoryContextService:
             stage_registry=stage_registry,
             trace_scores=True,
         )
-        return explain_ranked_files(query, ranked, max_files=max_files)
+        return explain_ranked_files(
+            query,
+            ranked,
+            max_files=max_files,
+            include_paths=include_paths,
+        )
 
     def browse(
         self,
