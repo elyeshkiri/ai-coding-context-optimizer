@@ -156,6 +156,7 @@ class RepositoryContextService:
             exclude_files=exclude_files,
             restrict_files=restrict_files,
             stage_registry=stage_registry,
+            trace_scores=True,
         )
         return explain_ranked_files(query, ranked, max_files=max_files)
 
