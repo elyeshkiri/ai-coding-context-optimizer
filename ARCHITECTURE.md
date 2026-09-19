@@ -77,8 +77,11 @@ stage. Retrieval algorithms are split under `token_saver.packing`:
 - `contracts.py` — `RankedFile` and `ContextPack` data contracts;
 - `ranking.py` — query interpretation, BM25/code-aware file scoring, graph
   expansion, changed/working-set/feedback boosts, and optional embeddings;
-- `symbols.py` — within-file symbol scoring, overload resolution,
-  parent/container credit, exact source windows, and file-section rendering;
+- `symbol_scoring.py` — within-file lexical/structural scoring, overload
+  resolution, fuzzy/call-graph evidence, and parent/container credit;
+- `symbol_windows.py` — selected-symbol source windows, evidence labels,
+  lexical navigation windows, and file-section rendering;
+- `symbols.py` — compatibility facade for the pre-split private import surface;
 - `render.py` — section fingerprints, visible-symbol accounting, hard-budget
   fitting, and static retrieval-plan construction.
 
@@ -91,6 +94,20 @@ seam while leaving the ranking implementation host-independent.
 The extraction is behavior-preserving: ranking policy and weights remain in the
 same order, and the frozen holdout remains the regression oracle for any future
 changes to these stages.
+
+### Symbol scoring vs rendering
+
+Within-file relevance and source rendering are separate policies.
+`symbol_scoring.py` has no repository-index or redaction dependency and does not
+format source windows. `symbol_windows.py` consumes the scoring stage to select
+symbols, then owns only source-range selection, evidence labels, and section
+formatting. `pack.py` imports both implementation stages directly, so the
+`symbols.py` compatibility facade is not on the production execution path.
+
+This boundary is intentional: scoring weights and overload policy can be
+benchmarked independently from changes to context-line radius, large-container
+windowing, source formatting, or redaction.
+
 
 ## Output boundary
 
@@ -158,11 +175,15 @@ behavior or duplicating repository logic.
    stdio, and protocol routing must consume tools through the registry contract.
 8. **Repository orchestration is single-sourced:** host-facing integrations use
    `RepositoryContextService` rather than rebuilding index/ranking/graph flows.
-9. **Packing stages stay behaviorally separable:** file ranking, symbol-window
-   selection, render/budget helpers, and final assembly may evolve independently
-   without moving policy back into the `pack.py` compatibility facade.
+9. **Packing stages stay behaviorally separable:** file ranking, symbol scoring,
+   source-window rendering, render/budget helpers, and final assembly may evolve
+   independently without moving policy back into compatibility facades.
+10. **Scoring does not render:** symbol relevance policy cannot depend on source
+    formatting/redaction, while window rendering consumes scoring through the
+    extracted scoring stage instead of duplicating its weights.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
-`tests/test_pack_pipeline_boundaries.py` lock in these extension seams so future
-features can grow by composition instead of by adding more central branching.
+`tests/test_pack_pipeline_boundaries.py` and `tests/test_symbol_pipeline_boundaries.py`
+lock in these extension seams so future features can grow by composition instead
+of by adding more central branching.
