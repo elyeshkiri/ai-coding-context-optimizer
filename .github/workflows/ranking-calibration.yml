@@ -41,7 +41,9 @@ jobs:
           limit="${ARTIFACT_LIMIT:-50}"
           mkdir -p ranking-history downloads
 
-          gh api --paginate             "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100"             --jq '.artifacts[]
+          gh api --paginate \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[]
               | select(.expired == false)
               | select(.name | startswith("ranking-regression-"))
               | [.id, .name, .workflow_run.id, .created_at]
@@ -90,8 +92,14 @@ jobs:
         env:
           GROUND_TRUTH_SHA: ${{ steps.benchmark.outputs.ground_truth_sha256 }}
         run: |
-          token-saver ranking-calibrate ranking-history             --ground-truth-sha "$GROUND_TRUTH_SHA"             --min-reports 20             --json > ranking-calibration.json
-          token-saver ranking-calibrate ranking-history             --ground-truth-sha "$GROUND_TRUTH_SHA"             --min-reports 20             --markdown >> "$GITHUB_STEP_SUMMARY"
+          token-saver ranking-calibrate ranking-history \
+            --ground-truth-sha "$GROUND_TRUTH_SHA" \
+            --min-reports 20 \
+            --json > ranking-calibration.json
+          token-saver ranking-calibrate ranking-history \
+            --ground-truth-sha "$GROUND_TRUTH_SHA" \
+            --min-reports 20 \
+            --markdown >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload calibration evidence
         uses: actions/upload-artifact@v4
