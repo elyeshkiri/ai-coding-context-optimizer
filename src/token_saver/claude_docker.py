@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -27,6 +28,10 @@ def run(
         raise ValueError("Docker is required for the isolated Claude runner")
     if not os.environ.get("ANTHROPIC_API_KEY"):
         raise ValueError("ANTHROPIC_API_KEY is required for Claude benchmark runs")
+    if not os.environ.get("ANTHROPIC_WORKSPACE_ID"):
+        raise ValueError(
+            "ANTHROPIC_WORKSPACE_ID is required for this frozen benchmark key"
+        )
     if condition not in {"baseline", "enabled"}:
         raise ValueError("condition must be baseline or enabled")
     if not worktree.is_dir() or not prompt_file.is_file():
@@ -65,7 +70,46 @@ def run(
         "--max-turns", "50",
         "--output-format", "json",
     ])
-    proc = subprocess.run(command, check=False)
+    proc = subprocess.run(
+        command,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.stdout:
+        print(proc.stdout, end="")
+    if proc.stderr:
+        print(proc.stderr, end="", file=os.sys.stderr)
+
+    if proc.returncode != 0:
+        return proc.returncode
+
+    try:
+        result = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "Claude Code returned exit 0 but no valid JSON result"
+        ) from exc
+    if not isinstance(result, dict):
+        raise ValueError("Claude Code JSON result must be an object")
+    if (
+        result.get("is_error") is True
+        or result.get("terminal_reason") == "api_error"
+        or result.get("api_error_status") is not None
+    ):
+        detail = str(result.get("result") or result.get("terminal_reason") or "API error")
+        raise ValueError(f"Claude Code API failure: {detail}")
+    usage = result.get("usage")
+    if not isinstance(usage, dict) or sum(
+        int(usage.get(key) or 0)
+        for key in (
+            "input_tokens",
+            "cache_creation_input_tokens",
+            "cache_read_input_tokens",
+            "output_tokens",
+        )
+    ) <= 0:
+        raise ValueError("Claude Code returned no billable model usage")
 
     try:
         paths = sorted((claude_home / "projects").rglob("*.jsonl"))
