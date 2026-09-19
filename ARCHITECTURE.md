@@ -41,7 +41,7 @@ Command implementations are grouped vertically under
 - `context.py` — repository browsing, ranking explanations, impact, and feedback;
 - `evaluation.py` — context/agent evaluation plus ranking snapshot/diff/calibration workflows;
 - `experiment.py` — paired experiments and cost-per-success reporting;
-- `host.py` — host validation and MCP serving;
+- `host.py` — host setup/doctor/uninstall, validation, completion, and MCP serving;
 - `output.py` — output policy, compaction, replay, explain, and benchmarks;
 - `patch.py` — diff-context packing and patch review.
 
@@ -49,6 +49,25 @@ The registry imports these handlers directly. `token_saver.commands` is retained
 only as a compatibility facade for older imports and contains no command
 implementation. This keeps command growth local to one user-facing capability
 instead of rebuilding a central CLI monolith.
+
+## Integration lifecycle boundary
+
+`integration_setup.py` owns host discovery and safe configuration mutation for
+Claude Code, Cursor, and Codex. It only creates/replaces Token Saver-owned
+entries: JSON MCP configuration is merged by key, Claude hook removal preserves
+unrelated commands, and Codex uses an explicit managed TOML block. Multi-host
+setup preflights all target files before the first write so one conflict cannot
+leave an earlier host partially configured.
+
+`runtime_config.py` resolves the nearest project `.token-saver.toml` and then
+applies `TOKEN_SAVER_*` environment overrides. Claude's adapter and read guard
+consume that shared resolver rather than maintaining independent configuration
+parsers. Setup is idempotent and therefore doubles as the upgrade/repair path;
+uninstall removes only managed integration state.
+
+`doctor` composes host status with `RepositoryContextService.status()` and
+available Claude transcript evidence. It diagnoses integration health without
+moving host-specific policy into the repository application layer.
 
 ## Repository application boundary
 
