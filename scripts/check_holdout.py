@@ -50,13 +50,36 @@ def ensure_clone(dest: Path, url: str, revision: str) -> None:
     print(f"  {dest.name}: checked out {revision[:7]}")
 
 
+def _floor_failures(summary: dict, floor: dict) -> list[str]:
+    """Return every metric that has fallen below its recorded regression floor."""
+    failures = []
+    for key, minimum in floor.items():
+        if key not in summary:
+            failures.append(f"{key}: missing from evaluation summary")
+            continue
+        actual = float(summary[key])
+        if actual < float(minimum):
+            failures.append(f"{key}: {actual:.3f} < floor {float(minimum):.3f}")
+    return failures
+
+
+def _ratcheted_floor(summary: dict, floor: dict) -> dict[str, float]:
+    """Raise improved floors without ever allowing an existing floor to decrease."""
+    failures = _floor_failures(summary, floor)
+    if failures:
+        raise ValueError("; ".join(failures))
+    return {
+        key: max(float(minimum), round(float(summary[key]), 3))
+        for key, minimum in floor.items()
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("spec", type=Path, help="holdout floor spec JSON")
     parser.add_argument(
         "--update-floor", action="store_true",
-        help="rewrite the floor to the measured result (use only when "
-             "deliberately ratcheting after a verified improvement)",
+        help="raise the floor to measured improvements; never lowers a floor",
     )
     args = parser.parse_args()
 
@@ -79,34 +102,44 @@ def main() -> int:
     print(f"\nHoldout: {manifest.name}  ({summary['task_count']} tasks)")
     print(f"  ground truth sha256: {result['ground_truth_sha256']}")
     for task in result["tasks"]:
-        mark = "ok  " if task["file_recall"] == 1.0 and task["symbol_recall"] == 1.0 else "MISS"
+        scoped = task.get("symbol_recall_in_expected_files")
+        mark = (
+            "ok  "
+            if task["file_recall"] == 1.0
+            and task["symbol_recall"] == 1.0
+            and (scoped is None or scoped == 1.0)
+            else "MISS"
+        )
+        scoped_text = "" if scoped is None else f" scoped={scoped:.3f}"
         print(
             f"  {mark} {task['id']:<22} file={task['file_recall']:.3f} "
-            f"symbol={task['symbol_recall']:.3f}"
+            f"symbol={task['symbol_recall']:.3f}{scoped_text}"
         )
 
+    failures = _floor_failures(summary, spec["floor"])
+
     if args.update_floor:
-        spec["floor"] = {
-            key: round(summary[key], 3) for key in spec["floor"]
-        }
+        if failures:
+            print("\nREFUSING TO LOWER FLOOR: " + "; ".join(failures))
+            return 1
+        spec["floor"] = _ratcheted_floor(summary, spec["floor"])
         args.spec.write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
-        print(f"\nfloor updated to {spec['floor']}")
+        print(f"\nfloor ratcheted to {spec['floor']}")
         return 0
 
-    failures = []
     print()
     for key, floor in spec["floor"].items():
-        actual = summary[key]
+        actual = float(summary[key])
         target = spec.get("target", {}).get(key)
-        status = "PASS" if actual >= floor else "FAIL"
+        status = "PASS" if actual >= float(floor) else "FAIL"
         suffix = ""
-        if target is not None and actual < target:
-            suffix = f"  (below target {target:.3f} — see spec _note)"
-        elif target is not None and actual > floor:
+        if target is not None and actual < float(target):
+            suffix = f"  (below target {float(target):.3f} — see spec _note)"
+        elif target is not None and actual > float(floor):
             suffix = "  (above floor — consider ratcheting with --update-floor)"
-        print(f"  {status} {key}: {actual:.3f} >= floor {floor:.3f}{suffix}")
-        if actual < floor:
-            failures.append(f"{key}: {actual:.3f} < floor {floor:.3f}")
+        print(
+            f"  {status} {key}: {actual:.3f} >= floor {float(floor):.3f}{suffix}"
+        )
 
     if failures:
         print("\nREGRESSION: " + "; ".join(failures))
