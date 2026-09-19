@@ -169,6 +169,10 @@ token-saver ranking-snapshot benchmarks/context-quality.json \
 # after checking out or configuring the candidate
 token-saver ranking-snapshot benchmarks/context-quality.json \
   --path . --max-files 20 --out candidate-ranking.json
+
+# configuration experiments are captured in snapshot metadata too
+token-saver ranking-snapshot benchmarks/context-quality.json \
+  --path . --graph-hops 2 --closure-items 30 --out graph-v2-ranking.json
 ```
 
 Then compare the artifacts:
