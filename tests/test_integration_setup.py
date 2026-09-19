@@ -266,3 +266,19 @@ def test_uninstall_preserves_modified_claude_skill(tmp_path):
 
     assert skill.exists()
     assert "# local note" in skill.read_text(encoding="utf-8")
+
+
+
+def test_guard_allow_supports_repository_relative_globs(tmp_path):
+    """Project allow patterns should match paths relative to the repository root."""
+    root = tmp_path / "repo"
+    generated = root / "generated"
+    generated.mkdir(parents=True)
+    source = generated / "large.py"
+    source.write_text("\n".join(f"x{i} = {i}" for i in range(30)), encoding="utf-8")
+    (root / ".token-saver.toml").write_text(
+        '[hooks]\nguard = true\nread_max_lines = 5\nallow = ["generated/*"]\n',
+        encoding="utf-8",
+    )
+
+    assert decide_read({"file_path": str(source)}, cwd=root) is None
