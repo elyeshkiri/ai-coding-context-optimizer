@@ -199,6 +199,16 @@ This workflow intentionally separates snapshot capture from comparison, so the
 same diff engine works across Git commits, feature flags, plugin registries,
 model/embedding availability, or CI artifacts without managing hidden worktrees.
 
+Pull requests run this comparison automatically against the protected base SHA.
+CI checks out the base and candidate separately, uses the **base manifest for
+both snapshots**, writes the Markdown comparison to the GitHub Actions job
+summary, and uploads `baseline-ranking.json`, `candidate-ranking.json`, and
+`ranking-diff.json` as a 14-day artifact.
+
+Rank movement is intentionally informational for now: broken snapshot/diff
+execution fails CI, but ranking regressions do not block merges until a
+data-backed rank-drop threshold has been calibrated from real PR history.
+
 
 ## Benchmark Output Saver compaction
 

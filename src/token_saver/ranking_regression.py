@@ -420,3 +420,136 @@ def regression_violations(
                     }
                 )
     return violations
+
+
+def _markdown_rank(value: int | None) -> str:
+    """Render one optional rank for a Markdown table."""
+    return "missing" if value is None else str(value)
+
+
+def render_ranking_diff_markdown(report: dict, *, max_items: int = 20) -> str:
+    """Render a compact GitHub-friendly ranking regression summary."""
+    if max_items <= 0:
+        raise ValueError("max_items must be positive")
+    summary = report.get("summary")
+    if not isinstance(summary, dict):
+        raise ValueError("ranking diff report is missing summary")
+
+    lines = [
+        "## Token Saver ranking regression report",
+        "",
+        (
+            f"Compared **{summary.get('task_count', 0)} tasks** / "
+            f"**{summary.get('expected_files_compared', 0)} expected files**: "
+            f"**{summary.get('regressed_files', 0)} regressed**, "
+            f"**{summary.get('improved_files', 0)} improved**, "
+            f"**{summary.get('missing_in_candidate', 0)} missing**."
+        ),
+        "",
+    ]
+
+    baseline_repos = report.get("baseline_repositories", {})
+    candidate_repos = report.get("candidate_repositories", {})
+    if baseline_repos or candidate_repos:
+        lines.extend(
+            [
+                "<details>",
+                "<summary>Snapshot provenance</summary>",
+                "",
+                "```json",
+                json.dumps(
+                    {
+                        "baseline_repositories": baseline_repos,
+                        "candidate_repositories": candidate_repos,
+                        "baseline_config": report.get("baseline_config", {}),
+                        "candidate_config": report.get("candidate_config", {}),
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                "```",
+                "",
+                "</details>",
+                "",
+            ]
+        )
+
+    movements = [
+        (task, item)
+        for task in report.get("tasks", [])
+        if isinstance(task, dict)
+        for item in task.get("files", [])
+        if isinstance(item, dict)
+        and (item.get("regression") or item.get("improvement"))
+    ]
+    movements.sort(
+        key=lambda pair: (
+            not bool(pair[1].get("regression")),
+            -abs(pair[1].get("rank_delta") or 10**9),
+            str(pair[0].get("id", "")),
+            str(pair[1].get("path", "")),
+        )
+    )
+
+    if not movements:
+        lines.extend(["No expected-file rank movement was detected.", ""])
+    else:
+        lines.extend(
+            [
+                "| Task | File | Movement | Score Δ | Strongest stage changes |",
+                "|---|---|---:|---:|---|",
+            ]
+        )
+        for task, item in movements[:max_items]:
+            before = _markdown_rank(item.get("baseline_rank"))
+            after = _markdown_rank(item.get("candidate_rank"))
+            direction = "↓" if item.get("regression") else "↑"
+            rank_delta = item.get("rank_delta")
+            movement = (
+                f"{before} → {after} {direction}"
+                if rank_delta is None
+                else f"{before} → {after} ({rank_delta:+d})"
+            )
+            score_delta = item.get("score_delta")
+            score_text = "n/a" if score_delta is None else f"{score_delta:+.3f}"
+            stage_changes = [
+                change
+                for change in item.get("stage_changes", [])
+                if abs(float(change.get("delta", 0.0))) > 1e-12
+            ][:3]
+            stage_text = "<br>".join(
+                f"<code>{change['stage']}</code> {float(change['delta']):+.3f}"
+                for change in stage_changes
+            ) or "—"
+            lines.append(
+                f"| {task.get('id', '')} | <code>{item.get('path', '')}</code> | "
+                f"{movement} | {score_text} | {stage_text} |"
+            )
+        lines.append("")
+
+    stage_totals = summary.get("stage_delta_totals", {})
+    if isinstance(stage_totals, dict) and stage_totals:
+        strongest = sorted(
+            stage_totals.items(),
+            key=lambda pair: (-abs(float(pair[1])), pair[0]),
+        )[:8]
+        lines.extend(
+            [
+                "**Largest aggregate stage changes**",
+                "",
+                ", ".join(
+                    f"<code>{stage}</code> {float(delta):+.3f}"
+                    for stage, delta in strongest
+                ),
+                "",
+            ]
+        )
+
+    if len(movements) > max_items:
+        lines.append(
+            f"_Showing {max_items} of {len(movements)} moved expected files; "
+            "download the ranking-diff artifact for the complete report._"
+        )
+        lines.append("")
+
+    return "\n".join(lines)
