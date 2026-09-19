@@ -1,1 +1,280 @@
-"""Host-neutral runtime for coding-agent hook events.\n\nThe runtime owns event policy but depends only on injected callables. Host adapters\ntranslate their payload/configuration into :class:`HookConfig` and compose concrete\nservices at the edge.\n"""\n\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass\nfrom pathlib import Path\nfrom typing import Callable, Protocol\n\nfrom .output.contracts import OutputPolicy, OutputResult\n\nHookResponse = tuple[int, dict | None]\nGuardService = Callable[[dict], HookResponse]\nDeltaService = Callable[..., tuple[str, dict]]\nStoreOutputService = Callable[[dict], str]\nUserNudgeService = Callable[[Path, str], str | None]\nResetSessionService = Callable[..., None]\nRecordReadService = Callable[..., None]\nDigestService = Callable[[str], str]\nEstimateTokensService = Callable[[str], int]\n\n\nclass OutputPipelineService(Protocol):\n    \"\"\"Process captured command output behind the hook runtime boundary.\"\"\"\n\n    def process(\n        self,\n        text: str,\n        command: str = \"\",\n        *,\n        exit_code: int | None = None,\n        policy: OutputPolicy | None = None,\n    ) -> OutputResult:\n        \"\"\"Return the optimized output result for one captured command.\"\"\"\n        ...\n\n\nDEFAULT_MIN_LINES = 40\nDEFAULT_KEEP_TAIL = 15\nMIN_NET_TOKENS = 50\nDEFAULT_FILTERABLE_TOOLS = frozenset({\"Bash\"})\n\n\n@dataclass(frozen=True)\nclass HookConfig:\n    \"\"\"Configure host-independent hook behavior for one invocation.\"\"\"\n\n    disabled: bool = False\n    delta_enabled: bool = False\n    min_lines: int = DEFAULT_MIN_LINES\n    keep_tail: int = DEFAULT_KEEP_TAIL\n    max_lines: int | None = None\n    min_net_tokens: int = MIN_NET_TOKENS\n    filterable_tools: frozenset[str] = DEFAULT_FILTERABLE_TOOLS\n\n\n@dataclass(frozen=True)\nclass HookServices:\n    \"\"\"Provide side-effecting services required by :class:`HookRuntime`.\"\"\"\n\n    guard: GuardService\n    output_pipeline: OutputPipelineService\n    apply_delta: DeltaService\n    store_output: StoreOutputService\n    user_nudge: UserNudgeService\n    reset_session: ResetSessionService\n    record_read: RecordReadService\n    digest: DigestService\n    estimate_tokens: EstimateTokensService\n\n\ndef cap_for(n_lines: int) -> int:\n    \"\"\"Return the default retained-line cap for an output of ``n_lines``.\"\"\"\n\n    if n_lines >= 1000:\n        return 90\n    if n_lines >= 300:\n        return 60\n    return 30\n\n\nclass HookRuntime:\n    \"\"\"Route hook events through injected application services.\"\"\"\n\n    def __init__(self, services: HookServices, config: HookConfig | None = None):\n        \"\"\"Create a runtime from explicit services and optional configuration.\"\"\"\n\n        self.services = services\n        self.config = config or HookConfig()\n\n    @staticmethod\n    def cwd(payload: dict) -> Path:\n        \"\"\"Resolve the working directory carried by a host payload.\"\"\"\n\n        raw = payload.get(\"cwd\") or payload.get(\"cwd_path\") or \".\"\n        return Path(str(raw))\n\n    @staticmethod\n    def exit_code(response: dict) -> int | None:\n        \"\"\"Extract an integer exit code from supported host response fields.\"\"\"\n\n        for key in (\"exit_code\", \"exitCode\", \"code\"):\n            value = response.get(key)\n            if isinstance(value, int) and not isinstance(value, bool):\n                return value\n        return None\n\n    def run_post(self, payload: dict) -> HookResponse:\n        \"\"\"Process a post-tool event, replacing only beneficial Bash stdout.\"\"\"\n\n        tool = str(payload.get(\"tool_name\") or \"\")\n        if tool in {\"Read\", \"Edit\"} or tool not in self.config.filterable_tools:\n            return 0, None\n\n        response = payload.get(\"tool_response\")\n        if not isinstance(response, dict):\n            return 0, None\n        if response.get(\"isImage\") or response.get(\"interrupted\"):\n            return 0, None\n        if not isinstance(response.get(\"stdout\"), str) or not isinstance(\n            response.get(\"stderr\"), str\n        ):\n            return 0, None\n        if not isinstance(response.get(\"interrupted\"), bool) or not isinstance(\n            response.get(\"isImage\"), bool\n        ):\n            return 0, None\n\n        command = str((payload.get(\"tool_input\") or {}).get(\"command\", \"\"))\n        replacement = dict(response)\n        original = response[\"stdout\"]\n        n_lines = len(original.splitlines())\n        min_lines = max(1, self.config.min_lines)\n        keep_tail = max(0, self.config.keep_tail)\n\n        if n_lines < min_lines:\n            if not self.config.delta_enabled:\n                return 0, None\n            replacement[\"stdout\"], _delta_meta = self.services.apply_delta(\n                self.cwd(payload),\n                command,\n                original,\n                original,\n                session_id=payload.get(\"session_id\"),\n            )\n            if replacement[\"stdout\"] == original:\n                return 0, None\n        else:\n            max_lines = self.config.max_lines\n            if max_lines is None:\n                max_lines = cap_for(n_lines)\n            output_result = self.services.output_pipeline.process(\n                original,\n                command,\n                exit_code=self.exit_code(response),\n                policy=OutputPolicy(\n                    max_lines=max(1, max_lines),\n                    keep_tail=keep_tail,\n                ),\n            )\n            replacement[\"stdout\"] = output_result.text\n            if self.config.delta_enabled:\n                replacement[\"stdout\"], _delta_meta = self.services.apply_delta(\n                    self.cwd(payload),\n                    command,\n                    original,\n                    replacement[\"stdout\"],\n                    session_id=payload.get(\"session_id\"),\n                )\n\n        note = (\n            \"\\n[token-saver: filtered output; original saved. \"\n            \"Retrieve: token-saver output {id} --stream stdout --offset 1 --limit 80]\\n\"\n        )\n        candidate = replacement[\"stdout\"] + note.format(id=\"0\" * 32)\n        if (\n            self.services.estimate_tokens(original)\n            - self.services.estimate_tokens(candidate)\n            < self.config.min_net_tokens\n        ):\n            return 0, None\n        if len(candidate.encode()) >= len(original.encode()):\n            return 0, None\n\n        output_id = self.services.store_output(response)\n        replacement[\"stdout\"] += note.format(id=output_id)\n        return 0, {\n            \"hookSpecificOutput\": {\n                \"hookEventName\": \"PostToolUse\",\n                \"updatedToolOutput\": replacement,\n            }\n        }\n\n    def run_session_start(self, payload: dict) -> HookResponse:\n        \"\"\"Reset session-scoped state without injecting model context.\"\"\"\n\n        root = self.cwd(payload)\n        source = str(payload.get(\"source\") or \"\").lower()\n        new_convo = source in {\"\", \"startup\", \"clear\", \"compact\"}\n        self.services.reset_session(\n            root,\n            reads=new_convo,\n            reminder=True,\n            session_id=payload.get(\"session_id\"),\n        )\n        return 0, None\n\n    def run_user_prompt(self, payload: dict) -> HookResponse:\n        \"\"\"Return a policy nudge for a user prompt when the service provides one.\"\"\"\n\n        root = self.cwd(payload)\n        prompt = str(payload.get(\"prompt\") or payload.get(\"user_prompt\") or \"\")\n        note = self.services.user_nudge(root, prompt)\n        return (0, {\"systemMessage\": note}) if note else (0, None)\n\n    def run_post_read(self, payload: dict) -> None:\n        \"\"\"Record a verified full-file read while ignoring ranged reads.\"\"\"\n\n        tool_input = payload.get(\"tool_input\") or {}\n        if not isinstance(tool_input, dict):\n            return\n        if any(\n            key in tool_input for key in (\"offset\", \"limit\", \"start_line\", \"end_line\")\n        ):\n            return\n        raw = (\n            tool_input.get(\"file_path\")\n            or tool_input.get(\"path\")\n            or tool_input.get(\"filePath\")\n        )\n        if not raw:\n            return\n\n        path = Path(str(raw))\n        if not path.is_absolute():\n            path = self.cwd(payload) / path\n        if not path.is_file():\n            return\n        try:\n            text = path.read_text(encoding=\"utf-8\", errors=\"replace\")\n        except OSError:\n            return\n\n        response = payload.get(\"tool_response\")\n        info = response.get(\"file\") if isinstance(response, dict) else None\n        if not isinstance(info, dict) or info.get(\"content\") != text:\n            return\n\n        self.services.record_read(\n            self.cwd(payload),\n            path,\n            self.services.digest(text),\n            session_id=payload.get(\"session_id\"),\n        )\n\n    def run(self, payload: dict) -> HookResponse:\n        \"\"\"Route one normalized hook payload to the appropriate service.\"\"\"\n\n        if self.config.disabled:\n            return 0, None\n\n        event = payload.get(\"hook_event_name\") or payload.get(\"hookEventName\") or \"\"\n        if event == \"SessionStart\":\n            return self.run_session_start(payload)\n        if event == \"UserPromptSubmit\":\n            return self.run_user_prompt(payload)\n        if event == \"PreToolUse\" or (\n            not event\n            and payload.get(\"tool_name\") == \"Read\"\n            and \"tool_response\" not in payload\n        ):\n            return self.services.guard(payload)\n        if event == \"PostToolUse\" and payload.get(\"tool_name\") == \"Read\":\n            self.run_post_read(payload)\n            return 0, None\n        return self.run_post(payload)\n
+"""Host-neutral runtime for coding-agent hook events.
+
+The runtime owns event policy but depends only on injected callables. Host adapters
+translate their payload/configuration into :class:`HookConfig` and compose concrete
+services at the edge.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Protocol
+
+from .output.contracts import OutputPolicy, OutputResult
+
+HookResponse = tuple[int, dict | None]
+GuardService = Callable[[dict], HookResponse]
+DeltaService = Callable[..., tuple[str, dict]]
+StoreOutputService = Callable[[dict], str]
+UserNudgeService = Callable[[Path, str], str | None]
+ResetSessionService = Callable[..., None]
+RecordReadService = Callable[..., None]
+DigestService = Callable[[str], str]
+EstimateTokensService = Callable[[str], int]
+
+
+class OutputPipelineService(Protocol):
+    """Process captured command output behind the hook runtime boundary."""
+
+    def process(
+        self,
+        text: str,
+        command: str = "",
+        *,
+        exit_code: int | None = None,
+        policy: OutputPolicy | None = None,
+    ) -> OutputResult:
+        """Return the optimized output result for one captured command."""
+        ...
+
+
+DEFAULT_MIN_LINES = 40
+DEFAULT_KEEP_TAIL = 15
+MIN_NET_TOKENS = 50
+DEFAULT_FILTERABLE_TOOLS = frozenset({"Bash"})
+
+
+@dataclass(frozen=True)
+class HookConfig:
+    """Configure host-independent hook behavior for one invocation."""
+
+    disabled: bool = False
+    delta_enabled: bool = False
+    min_lines: int = DEFAULT_MIN_LINES
+    keep_tail: int = DEFAULT_KEEP_TAIL
+    max_lines: int | None = None
+    min_net_tokens: int = MIN_NET_TOKENS
+    filterable_tools: frozenset[str] = DEFAULT_FILTERABLE_TOOLS
+
+
+@dataclass(frozen=True)
+class HookServices:
+    """Provide side-effecting services required by :class:`HookRuntime`."""
+
+    guard: GuardService
+    output_pipeline: OutputPipelineService
+    apply_delta: DeltaService
+    store_output: StoreOutputService
+    user_nudge: UserNudgeService
+    reset_session: ResetSessionService
+    record_read: RecordReadService
+    digest: DigestService
+    estimate_tokens: EstimateTokensService
+
+
+def cap_for(n_lines: int) -> int:
+    """Return the default retained-line cap for an output of ``n_lines``."""
+
+    if n_lines >= 1000:
+        return 90
+    if n_lines >= 300:
+        return 60
+    return 30
+
+
+class HookRuntime:
+    """Route hook events through injected application services."""
+
+    def __init__(self, services: HookServices, config: HookConfig | None = None):
+        """Create a runtime from explicit services and optional configuration."""
+
+        self.services = services
+        self.config = config or HookConfig()
+
+    @staticmethod
+    def cwd(payload: dict) -> Path:
+        """Resolve the working directory carried by a host payload."""
+
+        raw = payload.get("cwd") or payload.get("cwd_path") or "."
+        return Path(str(raw))
+
+    @staticmethod
+    def exit_code(response: dict) -> int | None:
+        """Extract an integer exit code from supported host response fields."""
+
+        for key in ("exit_code", "exitCode", "code"):
+            value = response.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                return value
+        return None
+
+    def run_post(self, payload: dict) -> HookResponse:
+        """Process a post-tool event, replacing only beneficial Bash stdout."""
+
+        tool = str(payload.get("tool_name") or "")
+        if tool in {"Read", "Edit"} or tool not in self.config.filterable_tools:
+            return 0, None
+
+        response = payload.get("tool_response")
+        if not isinstance(response, dict):
+            return 0, None
+        if response.get("isImage") or response.get("interrupted"):
+            return 0, None
+        if not isinstance(response.get("stdout"), str) or not isinstance(
+            response.get("stderr"), str
+        ):
+            return 0, None
+        if not isinstance(response.get("interrupted"), bool) or not isinstance(
+            response.get("isImage"), bool
+        ):
+            return 0, None
+
+        command = str((payload.get("tool_input") or {}).get("command", ""))
+        replacement = dict(response)
+        original = response["stdout"]
+        n_lines = len(original.splitlines())
+        min_lines = max(1, self.config.min_lines)
+        keep_tail = max(0, self.config.keep_tail)
+
+        if n_lines < min_lines:
+            if not self.config.delta_enabled:
+                return 0, None
+            replacement["stdout"], _delta_meta = self.services.apply_delta(
+                self.cwd(payload),
+                command,
+                original,
+                original,
+                session_id=payload.get("session_id"),
+            )
+            if replacement["stdout"] == original:
+                return 0, None
+        else:
+            max_lines = self.config.max_lines
+            if max_lines is None:
+                max_lines = cap_for(n_lines)
+            output_result = self.services.output_pipeline.process(
+                original,
+                command,
+                exit_code=self.exit_code(response),
+                policy=OutputPolicy(
+                    max_lines=max(1, max_lines),
+                    keep_tail=keep_tail,
+                ),
+            )
+            replacement["stdout"] = output_result.text
+            if self.config.delta_enabled:
+                replacement["stdout"], _delta_meta = self.services.apply_delta(
+                    self.cwd(payload),
+                    command,
+                    original,
+                    replacement["stdout"],
+                    session_id=payload.get("session_id"),
+                )
+
+        note = (
+            "\n[token-saver: filtered output; original saved. "
+            "Retrieve: token-saver output {id} --stream stdout --offset 1 --limit 80]\n"
+        )
+        candidate = replacement["stdout"] + note.format(id="0" * 32)
+        if (
+            self.services.estimate_tokens(original)
+            - self.services.estimate_tokens(candidate)
+            < self.config.min_net_tokens
+        ):
+            return 0, None
+        if len(candidate.encode()) >= len(original.encode()):
+            return 0, None
+
+        output_id = self.services.store_output(response)
+        replacement["stdout"] += note.format(id=output_id)
+        return 0, {
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "updatedToolOutput": replacement,
+            }
+        }
+
+    def run_session_start(self, payload: dict) -> HookResponse:
+        """Reset session-scoped state without injecting model context."""
+
+        root = self.cwd(payload)
+        source = str(payload.get("source") or "").lower()
+        new_convo = source in {"", "startup", "clear", "compact"}
+        self.services.reset_session(
+            root,
+            reads=new_convo,
+            reminder=True,
+            session_id=payload.get("session_id"),
+        )
+        return 0, None
+
+    def run_user_prompt(self, payload: dict) -> HookResponse:
+        """Return a policy nudge for a user prompt when the service provides one."""
+
+        root = self.cwd(payload)
+        prompt = str(payload.get("prompt") or payload.get("user_prompt") or "")
+        note = self.services.user_nudge(root, prompt)
+        return (0, {"systemMessage": note}) if note else (0, None)
+
+    def run_post_read(self, payload: dict) -> None:
+        """Record a verified full-file read while ignoring ranged reads."""
+
+        tool_input = payload.get("tool_input") or {}
+        if not isinstance(tool_input, dict):
+            return
+        if any(
+            key in tool_input for key in ("offset", "limit", "start_line", "end_line")
+        ):
+            return
+        raw = (
+            tool_input.get("file_path")
+            or tool_input.get("path")
+            or tool_input.get("filePath")
+        )
+        if not raw:
+            return
+
+        path = Path(str(raw))
+        if not path.is_absolute():
+            path = self.cwd(payload) / path
+        if not path.is_file():
+            return
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return
+
+        response = payload.get("tool_response")
+        info = response.get("file") if isinstance(response, dict) else None
+        if not isinstance(info, dict) or info.get("content") != text:
+            return
+
+        self.services.record_read(
+            self.cwd(payload),
+            path,
+            self.services.digest(text),
+            session_id=payload.get("session_id"),
+        )
+
+    def run(self, payload: dict) -> HookResponse:
+        """Route one normalized hook payload to the appropriate service."""
+
+        if self.config.disabled:
+            return 0, None
+
+        event = payload.get("hook_event_name") or payload.get("hookEventName") or ""
+        if event == "SessionStart":
+            return self.run_session_start(payload)
+        if event == "UserPromptSubmit":
+            return self.run_user_prompt(payload)
+        if event == "PreToolUse" or (
+            not event
+            and payload.get("tool_name") == "Read"
+            and "tool_response" not in payload
+        ):
+            return self.services.guard(payload)
+        if event == "PostToolUse" and payload.get("tool_name") == "Read":
+            self.run_post_read(payload)
+            return 0, None
+        return self.run_post(payload)
