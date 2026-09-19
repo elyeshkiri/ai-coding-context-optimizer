@@ -7,6 +7,7 @@ import textwrap
 import pytest
 
 from token_saver.pack import rank_files
+from token_saver.repository_service import RepositoryContextService
 from token_saver.packing import (
     DEFAULT_RANKING_STAGE_REGISTRY,
     RankingStageContext,
@@ -190,3 +191,24 @@ def test_custom_registry_runs_before_existing_final_sort(tmp_path):
 
     assert ranked[0].rel == original_last
     assert "custom:boost-last" in ranked[0].reasons
+
+
+def test_repository_service_forwards_custom_stage_registry(tmp_path):
+    """Application-service context builds should honor injected ranking stages."""
+    root = _repo(tmp_path)
+    service = RepositoryContextService(root, persist_index=False)
+    registry = RankingStageRegistry((_BoostLastStage(),))
+
+    pack = service.build_context(
+        "refresh session token",
+        max_tokens=800,
+        changed_boost=False,
+        feedback_boost=False,
+        adaptive_budget=False,
+        stage_registry=registry,
+    )
+
+    assert any(
+        "custom:boost-last" in item.reasons
+        for item in pack.ranked
+    )
