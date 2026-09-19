@@ -93,8 +93,20 @@ jobs:
       # then delete the PYPI_API_TOKEN secret, add `id-token: write` to this
       # job's permissions, and drop the `password:` line below. That removes
       # the stored credential entirely.
+      # Automatic publishing is disabled, not removed. PyPI rejects the
+      # distribution name `token-saver` with
+      #   400 The name 'token-saver' is too similar to an existing project
+      # because `tokensaver` is already registered (run 35431852349). The
+      # credential is fine -- a bad token returns 403, and this was a 400
+      # about the name. Until `project.name` in pyproject.toml becomes a name
+      # PyPI accepts, this step cannot succeed, and leaving it on every push
+      # would keep main permanently red.
+      #
+      # It still runs on workflow_dispatch, so a rename can be verified on
+      # demand before re-enabling. To re-enable: drop the github.event_name
+      # clause below.
       - name: Publish to PyPI
-        if: env.HAS_PYPI_TOKEN == 'true'
+        if: env.HAS_PYPI_TOKEN == 'true' && github.event_name == 'workflow_dispatch'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
