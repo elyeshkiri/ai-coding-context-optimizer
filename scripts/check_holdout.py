@@ -69,7 +69,7 @@ def _ratcheted_floor(summary: dict, floor: dict) -> dict[str, float]:
     if failures:
         raise ValueError("; ".join(failures))
     return {
-        key: max(float(minimum), round(float(summary[key]), 3))
+        key: max(float(minimum), float(summary[key]))
         for key, minimum in floor.items()
     }
 
