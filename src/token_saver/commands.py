@@ -13,6 +13,7 @@ from .command_handlers.context import (
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     evaluate_main,
+    ranking_calibrate_main,
     ranking_diff_main,
     ranking_snapshot_main,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "output_replay_main",
     "output_save_main",
     "pack_diff_main",
+    "ranking_calibrate_main",
     "ranking_diff_main",
     "ranking_explain_main",
     "ranking_snapshot_main",
