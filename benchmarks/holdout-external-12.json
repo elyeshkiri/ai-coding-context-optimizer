@@ -4,479 +4,1353 @@
   "protocol": {
     "ground_truth_frozen": true,
     "development_excluded": true,
-    "frozen_at": "2026-09-19T11:55:00Z",
-    "ground_truth_sha256": "dde4a04244c567a2878876e0e7f212211b4ee3faa45d8c23ca9f6f441abaefc1"
+    "frozen_at": "2026-09-19T12:20:00Z",
+    "ground_truth_sha256": "625de623c409f6e77ac695612533f722330db3fd329dfc4b0eb82a0bb6994f54"
   },
   "repositories": {
-    "black": {
-      "path": "holdout12/black",
-      "revision": "acd6198877ced2d8126b9b3958bb17f4a65ef0d1"
+    "itsdangerous": {
+      "path": "holdout12/itsdangerous",
+      "revision": "672971d66a2ef9f85151e53283113f33d642dabd"
     },
-    "testify": {
-      "path": "holdout12/testify",
-      "revision": "435c07b5cb95c88b82cf35f49da0dde33d24ad46"
+    "py-httpcore": {
+      "path": "holdout12/py-httpcore",
+      "revision": "10a658221deb38a4c5b16db55ab554b0bf731707"
     },
-    "mio": {
-      "path": "holdout12/mio",
-      "revision": "da425f909dd6b86d887da9eaefcb158099b5b165"
+    "websocket": {
+      "path": "holdout12/websocket",
+      "revision": "e064f32e3674d9d79a8fd417b5bc06fa5c6cad8f"
     },
-    "commons-io": {
-      "path": "holdout12/commons-io",
-      "revision": "f720b24227eb6972d4281d330ddb64c1416f81a4"
+    "zerolog": {
+      "path": "holdout12/zerolog",
+      "revision": "5eb5f3a76c09eeadc1f2464baf4a4e3f1037c830"
     },
-    "vue-core": {
-      "path": "holdout12/vue-core",
-      "revision": "4ab865a848a1da3d10fb674f857e5fff13094644"
+    "uuid": {
+      "path": "holdout12/uuid",
+      "revision": "9f927126c89892ddfed6cd2f92df16852f3f9aa6"
+    },
+    "crossbeam": {
+      "path": "holdout12/crossbeam",
+      "revision": "38dacb462261fcd64edcb308aed9cbf95c8c82c3"
+    },
+    "commons-text": {
+      "path": "holdout12/commons-text",
+      "revision": "ae3d36b8cea5d1fa5eaf3bd28f07bb111d1890e0"
+    },
+    "commons-codec": {
+      "path": "holdout12/commons-codec",
+      "revision": "089f90450fd1f8acafad3fe626b9e9425aff5a3c"
+    },
+    "zustand": {
+      "path": "holdout12/zustand",
+      "revision": "b57db4f86ef179285da216eeb291266da82c361c"
+    },
+    "react-hook-form": {
+      "path": "holdout12/react-hook-form",
+      "revision": "1747bde471b452d1223c1e7e6ec740fcd63400f5"
+    },
+    "humanizer": {
+      "path": "holdout12/humanizer",
+      "revision": "ffc2b77c0f30d2fb176875841424379319d0ae9b"
+    },
+    "newtonsoft": {
+      "path": "holdout12/newtonsoft",
+      "revision": "09bb545d72969ad7fb4ea07db0d5c34f4fc07877"
     }
   },
   "tasks": [
     {
-      "id": "black-line-short",
-      "repository": "black",
-      "query": "where is top-level is_line_short_enough accepting Line plus keyword Mode and optional line_str",
+      "id": "itsdangerous-signer-sign",
+      "repository": "itsdangerous",
+      "query": "where is Signer sign method accepting str or bytes value and returning signed bytes",
       "files": [
-        "src/black/lines.py"
+        "src/itsdangerous/signer.py"
       ],
       "symbols": [
-        "is_line_short_enough"
+        "sign"
       ],
       "qualified_symbols": [
-        "src/black/lines.py:is_line_short_enough"
+        "src/itsdangerous/signer.py:Signer.sign"
       ],
       "symbol_identities": [
-        "src/black/lines.py:is_line_short_enough@1366"
+        "src/itsdangerous/signer.py:Signer.sign@222"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "black-omit-parens",
-      "repository": "black",
-      "query": "where is top-level can_omit_invisible_parens for deciding whether invisible parentheses may be omitted",
+      "id": "itsdangerous-signer-verify",
+      "repository": "itsdangerous",
+      "query": "where is Signer verify_signature method accepting value plus signature as str or bytes",
       "files": [
-        "src/black/lines.py"
+        "src/itsdangerous/signer.py"
       ],
       "symbols": [
-        "can_omit_invisible_parens"
+        "verify_signature"
       ],
       "qualified_symbols": [
-        "src/black/lines.py:can_omit_invisible_parens"
+        "src/itsdangerous/signer.py:Signer.verify_signature"
       ],
       "symbol_identities": [
-        "src/black/lines.py:can_omit_invisible_parens@1523"
+        "src/itsdangerous/signer.py:Signer.verify_signature@227"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "black-normalize-quotes",
-      "repository": "black",
-      "query": "where is top-level normalize_string_quotes accepting string s and returning normalized string quotes",
+      "id": "itsdangerous-signer-unsign",
+      "repository": "itsdangerous",
+      "query": "where is Signer unsign method accepting signed_value as str or bytes and returning bytes",
       "files": [
-        "src/black/strings.py"
+        "src/itsdangerous/signer.py"
       ],
       "symbols": [
-        "normalize_string_quotes"
+        "unsign"
       ],
       "qualified_symbols": [
-        "src/black/strings.py:normalize_string_quotes"
+        "src/itsdangerous/signer.py:Signer.unsign"
       ],
       "symbol_identities": [
-        "src/black/strings.py:normalize_string_quotes@186"
+        "src/itsdangerous/signer.py:Signer.unsign@244"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "black-char-width",
-      "repository": "black",
-      "query": "where is top-level char_width accepting char string and returning display width",
+      "id": "itsdangerous-signer-validate",
+      "repository": "itsdangerous",
+      "query": "where is Signer validate method accepting signed_value as str or bytes and returning bool",
       "files": [
-        "src/black/strings.py"
+        "src/itsdangerous/signer.py"
       ],
       "symbols": [
-        "char_width"
+        "validate"
       ],
       "qualified_symbols": [
-        "src/black/strings.py:char_width"
+        "src/itsdangerous/signer.py:Signer.validate"
       ],
       "symbol_identities": [
-        "src/black/strings.py:char_width@358"
+        "src/itsdangerous/signer.py:Signer.validate@258"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "black-hug-power-op",
-      "repository": "black",
-      "query": "where is top-level hug_power_op transformer helper in trans.py",
+      "id": "itsdangerous-serializer-dump-payload",
+      "repository": "itsdangerous",
+      "query": "where is Serializer dump_payload method accepting object and returning bytes",
       "files": [
-        "src/black/trans.py"
+        "src/itsdangerous/serializer.py"
       ],
       "symbols": [
-        "hug_power_op"
+        "dump_payload"
       ],
       "qualified_symbols": [
-        "src/black/trans.py:hug_power_op"
+        "src/itsdangerous/serializer.py:Serializer.dump_payload"
       ],
       "symbol_identities": [
-        "src/black/trans.py:hug_power_op@70"
+        "src/itsdangerous/serializer.py:Serializer.dump_payload@271"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "testify-assert-equal",
-      "repository": "testify",
-      "query": "where is assert package Equal function accepting TestingT expected actual and optional message args",
+      "id": "itsdangerous-serializer-dumps",
+      "repository": "itsdangerous",
+      "query": "where is Serializer dumps method accepting object plus optional salt and returning serialized value",
       "files": [
-        "assert/assertions.go"
+        "src/itsdangerous/serializer.py"
       ],
       "symbols": [
-        "Equal"
+        "dumps"
       ],
       "qualified_symbols": [
-        "assert/assertions.go:Equal"
+        "src/itsdangerous/serializer.py:Serializer.dumps"
       ],
       "symbol_identities": [
-        "assert/assertions.go:Equal@496"
+        "src/itsdangerous/serializer.py:Serializer.dumps@309"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "testify-assert-len",
-      "repository": "testify",
-      "query": "where is assert package Len function accepting TestingT object length and optional message args",
+      "id": "httpcore-pool-create-connection",
+      "repository": "py-httpcore",
+      "query": "where is synchronous ConnectionPool create_connection method accepting Origin",
       "files": [
-        "assert/assertions.go"
+        "httpcore/_sync/connection_pool.py"
       ],
       "symbols": [
-        "Len"
+        "create_connection"
       ],
       "qualified_symbols": [
-        "assert/assertions.go:Len"
+        "httpcore/_sync/connection_pool.py:ConnectionPool.create_connection"
       ],
       "symbol_identities": [
-        "assert/assertions.go:Len@834"
+        "httpcore/_sync/connection_pool.py:ConnectionPool.create_connection@128"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "testify-assert-contains",
-      "repository": "testify",
-      "query": "where is assert package Contains function accepting TestingT s contains and optional message args",
+      "id": "httpcore-pool-handle-request",
+      "repository": "py-httpcore",
+      "query": "where is synchronous ConnectionPool handle_request method accepting Request and returning Response",
       "files": [
-        "assert/assertions.go"
+        "httpcore/_sync/connection_pool.py"
       ],
       "symbols": [
-        "Contains"
+        "handle_request"
       ],
       "qualified_symbols": [
-        "assert/assertions.go:Contains"
+        "httpcore/_sync/connection_pool.py:ConnectionPool.handle_request"
       ],
       "symbol_identities": [
-        "assert/assertions.go:Contains@961"
+        "httpcore/_sync/connection_pool.py:ConnectionPool.handle_request@199"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "testify-assert-elements-match",
-      "repository": "testify",
-      "query": "where is assert package ElementsMatch function accepting TestingT listA listB and optional message args",
+      "id": "httpcore-pool-close",
+      "repository": "py-httpcore",
+      "query": "where is ConnectionPool close method with no arguments returning None",
       "files": [
-        "assert/assertions.go"
+        "httpcore/_sync/connection_pool.py"
       ],
       "symbols": [
-        "ElementsMatch"
+        "close"
       ],
       "qualified_symbols": [
-        "assert/assertions.go:ElementsMatch"
+        "httpcore/_sync/connection_pool.py:ConnectionPool.close"
       ],
       "symbol_identities": [
-        "assert/assertions.go:ElementsMatch@1140"
+        "httpcore/_sync/connection_pool.py:ConnectionPool.close@347"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "testify-assert-no-error",
-      "repository": "testify",
-      "query": "where is assert package NoError function accepting TestingT err and optional message args",
+      "id": "httpcore-connection-can-handle",
+      "repository": "py-httpcore",
+      "query": "where is HTTPConnection can_handle_request method accepting Origin and returning bool",
       "files": [
-        "assert/assertions.go"
+        "httpcore/_sync/connection.py"
       ],
       "symbols": [
-        "NoError"
+        "can_handle_request"
       ],
       "qualified_symbols": [
-        "assert/assertions.go:NoError"
+        "httpcore/_sync/connection.py:HTTPConnection.can_handle_request"
       ],
       "symbol_identities": [
-        "assert/assertions.go:NoError@1640"
+        "httpcore/_sync/connection.py:HTTPConnection.can_handle_request@167"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "mio-poll-new",
-      "repository": "mio",
-      "query": "where is Poll new associated function creating a Poll and returning io Result Poll",
+      "id": "httpcore-connection-available",
+      "repository": "py-httpcore",
+      "query": "where is HTTPConnection is_available method returning bool",
       "files": [
-        "src/poll.rs"
+        "httpcore/_sync/connection.py"
       ],
       "symbols": [
-        "new"
+        "is_available"
       ],
       "qualified_symbols": [
-        "src/poll.rs:Poll.new"
+        "httpcore/_sync/connection.py:HTTPConnection.is_available"
       ],
       "symbol_identities": [
-        "src/poll.rs:Poll.new@321"
+        "httpcore/_sync/connection.py:HTTPConnection.is_available@175"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "mio-poll-registry",
-      "repository": "mio",
-      "query": "where is Poll registry method returning reference to Registry",
+      "id": "httpcore-connection-closed",
+      "repository": "py-httpcore",
+      "query": "where is HTTPConnection is_closed method returning bool",
       "files": [
-        "src/poll.rs"
+        "httpcore/_sync/connection.py"
       ],
       "symbols": [
-        "registry"
+        "is_closed"
       ],
       "qualified_symbols": [
-        "src/poll.rs:Poll.registry"
+        "httpcore/_sync/connection.py:HTTPConnection.is_closed"
       ],
       "symbol_identities": [
-        "src/poll.rs:Poll.registry@334"
+        "httpcore/_sync/connection.py:HTTPConnection.is_closed@197"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "mio-poll-poll",
-      "repository": "mio",
-      "query": "where is Poll poll method accepting mutable Events and optional Duration timeout",
+      "id": "websocket-conn-close",
+      "repository": "websocket",
+      "query": "where is Conn Close method returning error",
       "files": [
-        "src/poll.rs"
+        "conn.go"
       ],
       "symbols": [
-        "poll"
+        "Close"
       ],
       "qualified_symbols": [
-        "src/poll.rs:Poll.poll"
+        "conn.go:Conn.Close"
       ],
       "symbol_identities": [
-        "src/poll.rs:Poll.poll@438"
+        "conn.go:Conn.Close@343"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "mio-registry-register",
-      "repository": "mio",
-      "query": "where is Registry register generic method accepting mutable Source token and Interest",
+      "id": "websocket-conn-write-control",
+      "repository": "websocket",
+      "query": "where is Conn WriteControl method accepting messageType data bytes and deadline time",
       "files": [
-        "src/poll.rs"
+        "conn.go"
       ],
       "symbols": [
-        "register"
+        "WriteControl"
       ],
       "qualified_symbols": [
-        "src/poll.rs:Registry.register"
+        "conn.go:Conn.WriteControl"
       ],
       "symbol_identities": [
-        "src/poll.rs:Registry.register@572"
+        "conn.go:Conn.WriteControl@415"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "mio-registry-reregister",
-      "repository": "mio",
-      "query": "where is Registry reregister generic method accepting mutable Source token and Interest",
+      "id": "websocket-conn-next-writer",
+      "repository": "websocket",
+      "query": "where is Conn NextWriter method accepting messageType and returning io WriteCloser plus error",
       "files": [
-        "src/poll.rs"
+        "conn.go"
       ],
       "symbols": [
-        "reregister"
+        "NextWriter"
       ],
       "qualified_symbols": [
-        "src/poll.rs:Registry.reregister"
+        "conn.go:Conn.NextWriter"
       ],
       "symbol_identities": [
-        "src/poll.rs:Registry.reregister@640"
+        "conn.go:Conn.NextWriter@527"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "commonsio-copyfile-two",
-      "repository": "commons-io",
-      "query": "which FileUtils copyFile overload accepts File srcFile and File destFile only",
+      "id": "websocket-conn-write-message",
+      "repository": "websocket",
+      "query": "where is Conn WriteMessage method accepting messageType and byte slice data",
       "files": [
-        "src/main/java/org/apache/commons/io/FileUtils.java"
+        "conn.go"
       ],
       "symbols": [
-        "copyFile"
+        "WriteMessage"
       ],
       "qualified_symbols": [
-        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile"
+        "conn.go:Conn.WriteMessage"
       ],
       "symbol_identities": [
-        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile@810"
+        "conn.go:Conn.WriteMessage@767"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "commonsio-copyfile-preserve",
-      "repository": "commons-io",
-      "query": "which FileUtils copyFile overload accepts srcFile destFile and boolean preserveFileDate",
+      "id": "websocket-conn-next-reader",
+      "repository": "websocket",
+      "query": "where is Conn NextReader method returning messageType io Reader and error",
       "files": [
-        "src/main/java/org/apache/commons/io/FileUtils.java"
+        "conn.go"
       ],
       "symbols": [
-        "copyFile"
+        "NextReader"
       ],
       "qualified_symbols": [
-        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile"
+        "conn.go:Conn.NextReader"
       ],
       "symbol_identities": [
-        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile@837"
+        "conn.go:Conn.NextReader@1009"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "commonsio-readfile-charset",
-      "repository": "commons-io",
-      "query": "which FileUtils readFileToString overload accepts File file and Charset charsetName",
+      "id": "websocket-conn-read-message",
+      "repository": "websocket",
+      "query": "where is Conn ReadMessage method returning messageType byte slice and error",
       "files": [
-        "src/main/java/org/apache/commons/io/FileUtils.java"
+        "conn.go"
       ],
       "symbols": [
-        "readFileToString"
+        "ReadMessage"
       ],
       "qualified_symbols": [
-        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.readFileToString"
+        "conn.go:Conn.ReadMessage"
       ],
       "symbol_identities": [
-        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.readFileToString@2785"
+        "conn.go:Conn.ReadMessage@1102"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "commonsio-copy-buffer-size",
-      "repository": "commons-io",
-      "query": "which IOUtils copy overload accepts InputStream inputStream OutputStream outputStream and int bufferSize",
+      "id": "zerolog-logger-with",
+      "repository": "zerolog",
+      "query": "where is Logger With method returning Context",
       "files": [
-        "src/main/java/org/apache/commons/io/IOUtils.java"
+        "log.go"
       ],
       "symbols": [
-        "copy"
+        "With"
       ],
       "qualified_symbols": [
-        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.copy"
+        "log.go:Logger.With"
       ],
       "symbol_identities": [
-        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.copy@1394"
+        "log.go:Logger.With@280"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "commonsio-tostring-stream-charset",
-      "repository": "commons-io",
-      "query": "which IOUtils toString overload accepts InputStream input and Charset charset",
+      "id": "zerolog-logger-level",
+      "repository": "zerolog",
+      "query": "where is Logger Level method accepting zerolog Level and returning Logger",
       "files": [
-        "src/main/java/org/apache/commons/io/IOUtils.java"
+        "log.go"
       ],
       "symbols": [
-        "toString"
+        "Level"
       ],
       "qualified_symbols": [
-        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.toString"
+        "log.go:Logger.Level"
       ],
       "symbol_identities": [
-        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.toString@3308"
+        "log.go:Logger.Level@312"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "vue-ref-value-overload",
-      "repository": "vue-core",
-      "query": "which top-level ref generic overload accepts value T and returns Ref of UnwrapRef T",
+      "id": "zerolog-logger-debug",
+      "repository": "zerolog",
+      "query": "where is Logger Debug method returning Event pointer",
       "files": [
-        "packages/reactivity/src/ref.ts"
+        "log.go"
       ],
       "symbols": [
-        "ref"
+        "Debug"
       ],
       "qualified_symbols": [
-        "packages/reactivity/src/ref.ts:ref"
+        "log.go:Logger.Debug"
       ],
       "symbol_identities": [
-        "packages/reactivity/src/ref.ts:ref@59"
+        "log.go:Logger.Debug@349"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "vue-shallowref-value-overload",
-      "repository": "vue-core",
-      "query": "which top-level shallowRef generic overload accepts value T and returns ShallowRef",
+      "id": "zerolog-logger-info",
+      "repository": "zerolog",
+      "query": "where is Logger Info method returning Event pointer",
       "files": [
-        "packages/reactivity/src/ref.ts"
+        "log.go"
       ],
       "symbols": [
-        "shallowRef"
+        "Info"
       ],
       "qualified_symbols": [
-        "packages/reactivity/src/ref.ts:shallowRef"
+        "log.go:Logger.Info"
       ],
       "symbol_identities": [
-        "packages/reactivity/src/ref.ts:shallowRef@91"
+        "log.go:Logger.Info@356"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "vue-trigger-ref",
-      "repository": "vue-core",
-      "query": "where is top-level triggerRef accepting Ref and returning void",
+      "id": "zerolog-event-msg",
+      "repository": "zerolog",
+      "query": "where is Event Msg method accepting message string",
       "files": [
-        "packages/reactivity/src/ref.ts"
+        "event.go"
       ],
       "symbols": [
-        "triggerRef"
+        "Msg"
       ],
       "qualified_symbols": [
-        "packages/reactivity/src/ref.ts:triggerRef"
+        "event.go:Event.Msg"
       ],
       "symbol_identities": [
-        "packages/reactivity/src/ref.ts:triggerRef@192"
+        "event.go:Event.Msg@115"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "vue-custom-ref",
-      "repository": "vue-core",
-      "query": "where is top-level customRef generic function accepting CustomRefFactory track trigger and returning Ref",
+      "id": "zerolog-event-str",
+      "repository": "zerolog",
+      "query": "where is Event Str method accepting key and value strings and returning Event pointer",
       "files": [
-        "packages/reactivity/src/ref.ts"
+        "event.go"
       ],
       "symbols": [
-        "customRef"
+        "Str"
       ],
       "qualified_symbols": [
-        "packages/reactivity/src/ref.ts:customRef"
+        "event.go:Event.Str"
       ],
       "symbol_identities": [
-        "packages/reactivity/src/ref.ts:customRef@326"
+        "event.go:Event.Str@315"
       ],
       "max_tokens": 6000
     },
     {
-      "id": "vue-to-refs",
-      "repository": "vue-core",
-      "query": "where is top-level toRefs generic function accepting object T and returning ToRefs T",
+      "id": "uuid-parse-str",
+      "repository": "uuid",
+      "query": "where is Uuid parse_str associated function accepting input str and returning Result Uuid Error",
       "files": [
-        "packages/reactivity/src/ref.ts"
+        "src/parser.rs"
       ],
       "symbols": [
-        "toRefs"
+        "parse_str"
       ],
       "qualified_symbols": [
-        "packages/reactivity/src/ref.ts:toRefs"
+        "src/parser.rs:Uuid.parse_str"
       ],
       "symbol_identities": [
-        "packages/reactivity/src/ref.ts:toRefs@361"
+        "src/parser.rs:Uuid.parse_str@76"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "uuid-try-parse",
+      "repository": "uuid",
+      "query": "where is Uuid try_parse const function accepting input str and returning Result Uuid Error",
+      "files": [
+        "src/parser.rs"
+      ],
+      "symbols": [
+        "try_parse"
+      ],
+      "qualified_symbols": [
+        "src/parser.rs:Uuid.try_parse"
+      ],
+      "symbol_identities": [
+        "src/parser.rs:Uuid.try_parse@110"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "uuid-as-bytes",
+      "repository": "uuid",
+      "query": "where is Uuid as_bytes method returning reference to Bytes",
+      "files": [
+        "src/lib.rs"
+      ],
+      "symbols": [
+        "as_bytes"
+      ],
+      "qualified_symbols": [
+        "src/lib.rs:Uuid.as_bytes"
+      ],
+      "symbol_identities": [
+        "src/lib.rs:Uuid.as_bytes@799"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "uuid-hyphenated",
+      "repository": "uuid",
+      "query": "where is Uuid hyphenated method consuming self and returning Hyphenated formatter",
+      "files": [
+        "src/fmt.rs"
+      ],
+      "symbols": [
+        "hyphenated"
+      ],
+      "qualified_symbols": [
+        "src/fmt.rs:Uuid.hyphenated"
+      ],
+      "symbol_identities": [
+        "src/fmt.rs:Uuid.hyphenated@135"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "uuid-simple",
+      "repository": "uuid",
+      "query": "where is Uuid simple method consuming self and returning Simple formatter",
+      "files": [
+        "src/fmt.rs"
+      ],
+      "symbols": [
+        "simple"
+      ],
+      "qualified_symbols": [
+        "src/fmt.rs:Uuid.simple"
+      ],
+      "symbol_identities": [
+        "src/fmt.rs:Uuid.simple@147"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "uuid-urn",
+      "repository": "uuid",
+      "query": "where is Uuid urn method consuming self and returning Urn formatter",
+      "files": [
+        "src/fmt.rs"
+      ],
+      "symbols": [
+        "urn"
+      ],
+      "qualified_symbols": [
+        "src/fmt.rs:Uuid.urn"
+      ],
+      "symbol_identities": [
+        "src/fmt.rs:Uuid.urn@159"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "crossbeam-unbounded",
+      "repository": "crossbeam",
+      "query": "where is top-level unbounded generic channel constructor returning Sender and Receiver",
+      "files": [
+        "crossbeam-channel/src/channel.rs"
+      ],
+      "symbols": [
+        "unbounded"
+      ],
+      "qualified_symbols": [
+        "crossbeam-channel/src/channel.rs:unbounded"
+      ],
+      "symbol_identities": [
+        "crossbeam-channel/src/channel.rs:unbounded@50"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "crossbeam-bounded",
+      "repository": "crossbeam",
+      "query": "where is top-level bounded generic channel constructor accepting capacity usize",
+      "files": [
+        "crossbeam-channel/src/channel.rs"
+      ],
+      "symbols": [
+        "bounded"
+      ],
+      "qualified_symbols": [
+        "crossbeam-channel/src/channel.rs:bounded"
+      ],
+      "symbol_identities": [
+        "crossbeam-channel/src/channel.rs:bounded@116"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "crossbeam-sender-try-send",
+      "repository": "crossbeam",
+      "query": "where is Sender try_send method accepting message T and returning TrySendError on failure",
+      "files": [
+        "crossbeam-channel/src/channel.rs"
+      ],
+      "symbols": [
+        "try_send"
+      ],
+      "qualified_symbols": [
+        "crossbeam-channel/src/channel.rs:Sender.try_send"
+      ],
+      "symbol_identities": [
+        "crossbeam-channel/src/channel.rs:Sender.try_send@413"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "crossbeam-sender-send",
+      "repository": "crossbeam",
+      "query": "where is Sender send method accepting message T and returning SendError on failure",
+      "files": [
+        "crossbeam-channel/src/channel.rs"
+      ],
+      "symbols": [
+        "send"
+      ],
+      "qualified_symbols": [
+        "crossbeam-channel/src/channel.rs:Sender.send"
+      ],
+      "symbol_identities": [
+        "crossbeam-channel/src/channel.rs:Sender.send@449"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "crossbeam-receiver-try-recv",
+      "repository": "crossbeam",
+      "query": "where is Receiver try_recv method returning Result T TryRecvError",
+      "files": [
+        "crossbeam-channel/src/channel.rs"
+      ],
+      "symbols": [
+        "try_recv"
+      ],
+      "qualified_symbols": [
+        "crossbeam-channel/src/channel.rs:Receiver.try_recv"
+      ],
+      "symbol_identities": [
+        "crossbeam-channel/src/channel.rs:Receiver.try_recv@784"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "crossbeam-receiver-recv",
+      "repository": "crossbeam",
+      "query": "where is Receiver recv method returning Result T RecvError",
+      "files": [
+        "crossbeam-channel/src/channel.rs"
+      ],
+      "symbols": [
+        "recv"
+      ],
+      "qualified_symbols": [
+        "crossbeam-channel/src/channel.rs:Receiver.recv"
+      ],
+      "symbol_identities": [
+        "crossbeam-channel/src/channel.rs:Receiver.recv@837"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "text-escape-java",
+      "repository": "commons-text",
+      "query": "where is StringEscapeUtils escapeJava static method accepting String input",
+      "files": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java"
+      ],
+      "symbols": [
+        "escapeJava"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.escapeJava"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.escapeJava@622"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "text-escape-json",
+      "repository": "commons-text",
+      "query": "where is StringEscapeUtils escapeJson static method accepting String input",
+      "files": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java"
+      ],
+      "symbols": [
+        "escapeJson"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.escapeJson"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.escapeJson@657"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "text-escape-xml10",
+      "repository": "commons-text",
+      "query": "where is StringEscapeUtils escapeXml10 static method accepting String input",
+      "files": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java"
+      ],
+      "symbols": [
+        "escapeXml10"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.escapeXml10"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.escapeXml10@694"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "text-unescape-java",
+      "repository": "commons-text",
+      "query": "where is StringEscapeUtils unescapeJava static method accepting String input",
+      "files": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java"
+      ],
+      "symbols": [
+        "unescapeJava"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.unescapeJava"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.unescapeJava@835"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "text-unescape-json",
+      "repository": "commons-text",
+      "query": "where is StringEscapeUtils unescapeJson static method accepting String input",
+      "files": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java"
+      ],
+      "symbols": [
+        "unescapeJson"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.unescapeJson"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.unescapeJson@850"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "text-unescape-xml",
+      "repository": "commons-text",
+      "query": "where is StringEscapeUtils unescapeXml static method accepting String input",
+      "files": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java"
+      ],
+      "symbols": [
+        "unescapeXml"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.unescapeXml"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/text/StringEscapeUtils.java:StringEscapeUtils.unescapeXml@870"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "codec-md5hex-string",
+      "repository": "commons-codec",
+      "query": "which DigestUtils md5Hex overload accepts String data",
+      "files": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java"
+      ],
+      "symbols": [
+        "md5Hex"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.md5Hex"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.md5Hex@522"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "codec-sha1hex-string",
+      "repository": "commons-codec",
+      "query": "which DigestUtils sha1Hex overload accepts String data",
+      "files": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java"
+      ],
+      "symbols": [
+        "sha1Hex"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.sha1Hex"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.sha1Hex@627"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "codec-sha256hex-string",
+      "repository": "commons-codec",
+      "query": "which DigestUtils sha256Hex overload accepts String data",
+      "files": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java"
+      ],
+      "symbols": [
+        "sha256Hex"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.sha256Hex"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.sha256Hex@695"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "codec-sha512hex-string",
+      "repository": "commons-codec",
+      "query": "which DigestUtils sha512Hex overload accepts String data",
+      "files": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java"
+      ],
+      "symbols": [
+        "sha512Hex"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.sha512Hex"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/codec/digest/DigestUtils.java:DigestUtils.sha512Hex@1239"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "codec-decodehex-string",
+      "repository": "commons-codec",
+      "query": "which Hex decodeHex overload accepts String data and returns byte array",
+      "files": [
+        "src/main/java/org/apache/commons/codec/binary/Hex.java"
+      ],
+      "symbols": [
+        "decodeHex"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/codec/binary/Hex.java:Hex.decodeHex"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/codec/binary/Hex.java:Hex.decodeHex@128"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "codec-encodehexstring-bytes",
+      "repository": "commons-codec",
+      "query": "which Hex encodeHexString overload accepts byte array data",
+      "files": [
+        "src/main/java/org/apache/commons/codec/binary/Hex.java"
+      ],
+      "symbols": [
+        "encodeHexString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/codec/binary/Hex.java:Hex.encodeHexString"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/codec/binary/Hex.java:Hex.encodeHexString@283"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "zustand-create-store",
+      "repository": "zustand",
+      "query": "where is top-level createStore exported store creator in vanilla.ts",
+      "files": [
+        "src/vanilla.ts"
+      ],
+      "symbols": [
+        "createStore"
+      ],
+      "qualified_symbols": [
+        "src/vanilla.ts:createStore"
+      ],
+      "symbol_identities": [
+        "src/vanilla.ts:createStore@99"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "zustand-create",
+      "repository": "zustand",
+      "query": "where is top-level create exported React state hook creator",
+      "files": [
+        "src/react.ts"
+      ],
+      "symbols": [
+        "create"
+      ],
+      "qualified_symbols": [
+        "src/react.ts:create"
+      ],
+      "symbol_identities": [
+        "src/react.ts:create@63"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "zustand-redux",
+      "repository": "zustand",
+      "query": "where is top-level redux middleware export implementation binding",
+      "files": [
+        "src/middleware/redux.ts"
+      ],
+      "symbols": [
+        "redux"
+      ],
+      "qualified_symbols": [
+        "src/middleware/redux.ts:redux"
+      ],
+      "symbol_identities": [
+        "src/middleware/redux.ts:redux@50"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "zustand-subscribe-selector",
+      "repository": "zustand",
+      "query": "where is top-level subscribeWithSelector middleware export",
+      "files": [
+        "src/middleware/subscribeWithSelector.ts"
+      ],
+      "symbols": [
+        "subscribeWithSelector"
+      ],
+      "qualified_symbols": [
+        "src/middleware/subscribeWithSelector.ts:subscribeWithSelector"
+      ],
+      "symbol_identities": [
+        "src/middleware/subscribeWithSelector.ts:subscribeWithSelector@72"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "zustand-combine",
+      "repository": "zustand",
+      "query": "where is top-level generic combine middleware function",
+      "files": [
+        "src/middleware/combine.ts"
+      ],
+      "symbols": [
+        "combine"
+      ],
+      "qualified_symbols": [
+        "src/middleware/combine.ts:combine"
+      ],
+      "symbol_identities": [
+        "src/middleware/combine.ts:combine@5"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "zustand-persist",
+      "repository": "zustand",
+      "query": "where is top-level persist middleware export implementation binding",
+      "files": [
+        "src/middleware/persist.ts"
+      ],
+      "symbols": [
+        "persist"
+      ],
+      "qualified_symbols": [
+        "src/middleware/persist.ts:persist"
+      ],
+      "symbol_identities": [
+        "src/middleware/persist.ts:persist@403"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rhf-use-form",
+      "repository": "react-hook-form",
+      "query": "where is exported generic useForm hook function",
+      "files": [
+        "src/useForm.ts"
+      ],
+      "symbols": [
+        "useForm"
+      ],
+      "qualified_symbols": [
+        "src/useForm.ts:useForm"
+      ],
+      "symbol_identities": [
+        "src/useForm.ts:useForm@32"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rhf-use-controller",
+      "repository": "react-hook-form",
+      "query": "where is exported generic useController hook function",
+      "files": [
+        "src/useController.ts"
+      ],
+      "symbols": [
+        "useController"
+      ],
+      "qualified_symbols": [
+        "src/useController.ts:useController"
+      ],
+      "symbol_identities": [
+        "src/useController.ts:useController@39"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rhf-use-field-array",
+      "repository": "react-hook-form",
+      "query": "where is exported generic useFieldArray hook function",
+      "files": [
+        "src/useFieldArray.ts"
+      ],
+      "symbols": [
+        "useFieldArray"
+      ],
+      "qualified_symbols": [
+        "src/useFieldArray.ts:useFieldArray"
+      ],
+      "symbol_identities": [
+        "src/useFieldArray.ts:useFieldArray@62"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rhf-use-form-state",
+      "repository": "react-hook-form",
+      "query": "where is exported generic useFormState hook function",
+      "files": [
+        "src/useFormState.ts"
+      ],
+      "symbols": [
+        "useFormState"
+      ],
+      "qualified_symbols": [
+        "src/useFormState.ts:useFormState"
+      ],
+      "symbol_identities": [
+        "src/useFormState.ts:useFormState@25"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rhf-use-form-context",
+      "repository": "react-hook-form",
+      "query": "where is exported useFormContext generic hook constant",
+      "files": [
+        "src/useFormContext.tsx"
+      ],
+      "symbols": [
+        "useFormContext"
+      ],
+      "qualified_symbols": [
+        "src/useFormContext.tsx:useFormContext"
+      ],
+      "symbol_identities": [
+        "src/useFormContext.tsx:useFormContext@25"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "rhf-form-provider",
+      "repository": "react-hook-form",
+      "query": "where is exported FormProvider component constant",
+      "files": [
+        "src/useFormContext.tsx"
+      ],
+      "symbols": [
+        "FormProvider"
+      ],
+      "qualified_symbols": [
+        "src/useFormContext.tsx:FormProvider"
+      ],
+      "symbol_identities": [
+        "src/useFormContext.tsx:FormProvider@49"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "humanizer-humanize",
+      "repository": "humanizer",
+      "query": "which StringHumanizeExtensions Humanize extension overload accepts only string input",
+      "files": [
+        "src/Humanizer/StringHumanizeExtensions.cs"
+      ],
+      "symbols": [
+        "Humanize"
+      ],
+      "qualified_symbols": [
+        "src/Humanizer/StringHumanizeExtensions.cs:StringHumanizeExtensions.Humanize"
+      ],
+      "symbol_identities": [
+        "src/Humanizer/StringHumanizeExtensions.cs:StringHumanizeExtensions.Humanize@260"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "humanizer-dehumanize",
+      "repository": "humanizer",
+      "query": "where is StringDehumanizeExtensions Dehumanize extension accepting string input",
+      "files": [
+        "src/Humanizer/StringDehumanizeExtensions.cs"
+      ],
+      "symbols": [
+        "Dehumanize"
+      ],
+      "qualified_symbols": [
+        "src/Humanizer/StringDehumanizeExtensions.cs:StringDehumanizeExtensions.Dehumanize"
+      ],
+      "symbol_identities": [
+        "src/Humanizer/StringDehumanizeExtensions.cs:StringDehumanizeExtensions.Dehumanize@32"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "humanizer-pluralize",
+      "repository": "humanizer",
+      "query": "where is InflectorExtensions Pluralize extension accepting nullable string word and optional singular flag",
+      "files": [
+        "src/Humanizer/InflectorExtensions.cs"
+      ],
+      "symbols": [
+        "Pluralize"
+      ],
+      "qualified_symbols": [
+        "src/Humanizer/InflectorExtensions.cs:InflectorExtensions.Pluralize"
+      ],
+      "symbol_identities": [
+        "src/Humanizer/InflectorExtensions.cs:InflectorExtensions.Pluralize@96"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "humanizer-singularize",
+      "repository": "humanizer",
+      "query": "where is InflectorExtensions Singularize extension accepting word plus optional plural and skipSimpleWords flags",
+      "files": [
+        "src/Humanizer/InflectorExtensions.cs"
+      ],
+      "symbols": [
+        "Singularize"
+      ],
+      "qualified_symbols": [
+        "src/Humanizer/InflectorExtensions.cs:InflectorExtensions.Singularize"
+      ],
+      "symbol_identities": [
+        "src/Humanizer/InflectorExtensions.cs:InflectorExtensions.Singularize@131"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "humanizer-titleize",
+      "repository": "humanizer",
+      "query": "where is InflectorExtensions Titleize extension accepting string input",
+      "files": [
+        "src/Humanizer/InflectorExtensions.cs"
+      ],
+      "symbols": [
+        "Titleize"
+      ],
+      "qualified_symbols": [
+        "src/Humanizer/InflectorExtensions.cs:InflectorExtensions.Titleize"
+      ],
+      "symbol_identities": [
+        "src/Humanizer/InflectorExtensions.cs:InflectorExtensions.Titleize@153"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "humanizer-truncate-simple",
+      "repository": "humanizer",
+      "query": "which TruncateExtensions Truncate overload accepts string input and int length only",
+      "files": [
+        "src/Humanizer/TruncateExtensions.cs"
+      ],
+      "symbols": [
+        "Truncate"
+      ],
+      "qualified_symbols": [
+        "src/Humanizer/TruncateExtensions.cs:TruncateExtensions.Truncate"
+      ],
+      "symbol_identities": [
+        "src/Humanizer/TruncateExtensions.cs:TruncateExtensions.Truncate@29"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "newtonsoft-tostring-datetime",
+      "repository": "newtonsoft",
+      "query": "which JsonConvert ToString overload accepts DateTime value only",
+      "files": [
+        "Src/Newtonsoft.Json/JsonConvert.cs"
+      ],
+      "symbols": [
+        "ToString"
+      ],
+      "qualified_symbols": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.ToString"
+      ],
+      "symbol_identities": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.ToString@104"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "newtonsoft-serialize-object",
+      "repository": "newtonsoft",
+      "query": "which JsonConvert SerializeObject overload accepts object value only",
+      "files": [
+        "Src/Newtonsoft.Json/JsonConvert.cs"
+      ],
+      "symbols": [
+        "SerializeObject"
+      ],
+      "qualified_symbols": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.SerializeObject"
+      ],
+      "symbol_identities": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.SerializeObject@530"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "newtonsoft-serialize-formatting",
+      "repository": "newtonsoft",
+      "query": "which JsonConvert SerializeObject overload accepts object value and Formatting formatting",
+      "files": [
+        "Src/Newtonsoft.Json/JsonConvert.cs"
+      ],
+      "symbols": [
+        "SerializeObject"
+      ],
+      "qualified_symbols": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.SerializeObject"
+      ],
+      "symbol_identities": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.SerializeObject@546"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "newtonsoft-deserialize-string",
+      "repository": "newtonsoft",
+      "query": "which JsonConvert DeserializeObject overload accepts string value only",
+      "files": [
+        "Src/Newtonsoft.Json/JsonConvert.cs"
+      ],
+      "symbols": [
+        "DeserializeObject"
+      ],
+      "qualified_symbols": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.DeserializeObject"
+      ],
+      "symbol_identities": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.DeserializeObject@699"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "newtonsoft-populate-object",
+      "repository": "newtonsoft",
+      "query": "which JsonConvert PopulateObject overload accepts string value and object target only",
+      "files": [
+        "Src/Newtonsoft.Json/JsonConvert.cs"
+      ],
+      "symbols": [
+        "PopulateObject"
+      ],
+      "qualified_symbols": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.PopulateObject"
+      ],
+      "symbol_identities": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.PopulateObject@883"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "newtonsoft-tostring-string-escape",
+      "repository": "newtonsoft",
+      "query": "which JsonConvert ToString overload accepts nullable string value, char delimiter, and StringEscapeHandling",
+      "files": [
+        "Src/Newtonsoft.Json/JsonConvert.cs"
+      ],
+      "symbols": [
+        "ToString"
+      ],
+      "qualified_symbols": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.ToString"
+      ],
+      "symbol_identities": [
+        "Src/Newtonsoft.Json/JsonConvert.cs:JsonConvert.ToString@442"
       ],
       "max_tokens": 6000
     }

@@ -1,0 +1,484 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "frozen_at": "2026-09-19T11:55:00Z",
+    "ground_truth_sha256": "dde4a04244c567a2878876e0e7f212211b4ee3faa45d8c23ca9f6f441abaefc1"
+  },
+  "repositories": {
+    "black": {
+      "path": "holdout12/black",
+      "revision": "acd6198877ced2d8126b9b3958bb17f4a65ef0d1"
+    },
+    "testify": {
+      "path": "holdout12/testify",
+      "revision": "435c07b5cb95c88b82cf35f49da0dde33d24ad46"
+    },
+    "mio": {
+      "path": "holdout12/mio",
+      "revision": "da425f909dd6b86d887da9eaefcb158099b5b165"
+    },
+    "commons-io": {
+      "path": "holdout12/commons-io",
+      "revision": "f720b24227eb6972d4281d330ddb64c1416f81a4"
+    },
+    "vue-core": {
+      "path": "holdout12/vue-core",
+      "revision": "4ab865a848a1da3d10fb674f857e5fff13094644"
+    }
+  },
+  "tasks": [
+    {
+      "id": "black-line-short",
+      "repository": "black",
+      "query": "where is top-level is_line_short_enough accepting Line plus keyword Mode and optional line_str",
+      "files": [
+        "src/black/lines.py"
+      ],
+      "symbols": [
+        "is_line_short_enough"
+      ],
+      "qualified_symbols": [
+        "src/black/lines.py:is_line_short_enough"
+      ],
+      "symbol_identities": [
+        "src/black/lines.py:is_line_short_enough@1366"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "black-omit-parens",
+      "repository": "black",
+      "query": "where is top-level can_omit_invisible_parens for deciding whether invisible parentheses may be omitted",
+      "files": [
+        "src/black/lines.py"
+      ],
+      "symbols": [
+        "can_omit_invisible_parens"
+      ],
+      "qualified_symbols": [
+        "src/black/lines.py:can_omit_invisible_parens"
+      ],
+      "symbol_identities": [
+        "src/black/lines.py:can_omit_invisible_parens@1523"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "black-normalize-quotes",
+      "repository": "black",
+      "query": "where is top-level normalize_string_quotes accepting string s and returning normalized string quotes",
+      "files": [
+        "src/black/strings.py"
+      ],
+      "symbols": [
+        "normalize_string_quotes"
+      ],
+      "qualified_symbols": [
+        "src/black/strings.py:normalize_string_quotes"
+      ],
+      "symbol_identities": [
+        "src/black/strings.py:normalize_string_quotes@186"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "black-char-width",
+      "repository": "black",
+      "query": "where is top-level char_width accepting char string and returning display width",
+      "files": [
+        "src/black/strings.py"
+      ],
+      "symbols": [
+        "char_width"
+      ],
+      "qualified_symbols": [
+        "src/black/strings.py:char_width"
+      ],
+      "symbol_identities": [
+        "src/black/strings.py:char_width@358"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "black-hug-power-op",
+      "repository": "black",
+      "query": "where is top-level hug_power_op transformer helper in trans.py",
+      "files": [
+        "src/black/trans.py"
+      ],
+      "symbols": [
+        "hug_power_op"
+      ],
+      "qualified_symbols": [
+        "src/black/trans.py:hug_power_op"
+      ],
+      "symbol_identities": [
+        "src/black/trans.py:hug_power_op@70"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "testify-assert-equal",
+      "repository": "testify",
+      "query": "where is assert package Equal function accepting TestingT expected actual and optional message args",
+      "files": [
+        "assert/assertions.go"
+      ],
+      "symbols": [
+        "Equal"
+      ],
+      "qualified_symbols": [
+        "assert/assertions.go:Equal"
+      ],
+      "symbol_identities": [
+        "assert/assertions.go:Equal@496"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "testify-assert-len",
+      "repository": "testify",
+      "query": "where is assert package Len function accepting TestingT object length and optional message args",
+      "files": [
+        "assert/assertions.go"
+      ],
+      "symbols": [
+        "Len"
+      ],
+      "qualified_symbols": [
+        "assert/assertions.go:Len"
+      ],
+      "symbol_identities": [
+        "assert/assertions.go:Len@834"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "testify-assert-contains",
+      "repository": "testify",
+      "query": "where is assert package Contains function accepting TestingT s contains and optional message args",
+      "files": [
+        "assert/assertions.go"
+      ],
+      "symbols": [
+        "Contains"
+      ],
+      "qualified_symbols": [
+        "assert/assertions.go:Contains"
+      ],
+      "symbol_identities": [
+        "assert/assertions.go:Contains@961"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "testify-assert-elements-match",
+      "repository": "testify",
+      "query": "where is assert package ElementsMatch function accepting TestingT listA listB and optional message args",
+      "files": [
+        "assert/assertions.go"
+      ],
+      "symbols": [
+        "ElementsMatch"
+      ],
+      "qualified_symbols": [
+        "assert/assertions.go:ElementsMatch"
+      ],
+      "symbol_identities": [
+        "assert/assertions.go:ElementsMatch@1140"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "testify-assert-no-error",
+      "repository": "testify",
+      "query": "where is assert package NoError function accepting TestingT err and optional message args",
+      "files": [
+        "assert/assertions.go"
+      ],
+      "symbols": [
+        "NoError"
+      ],
+      "qualified_symbols": [
+        "assert/assertions.go:NoError"
+      ],
+      "symbol_identities": [
+        "assert/assertions.go:NoError@1640"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mio-poll-new",
+      "repository": "mio",
+      "query": "where is Poll new associated function creating a Poll and returning io Result Poll",
+      "files": [
+        "src/poll.rs"
+      ],
+      "symbols": [
+        "new"
+      ],
+      "qualified_symbols": [
+        "src/poll.rs:Poll.new"
+      ],
+      "symbol_identities": [
+        "src/poll.rs:Poll.new@321"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mio-poll-registry",
+      "repository": "mio",
+      "query": "where is Poll registry method returning reference to Registry",
+      "files": [
+        "src/poll.rs"
+      ],
+      "symbols": [
+        "registry"
+      ],
+      "qualified_symbols": [
+        "src/poll.rs:Poll.registry"
+      ],
+      "symbol_identities": [
+        "src/poll.rs:Poll.registry@334"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mio-poll-poll",
+      "repository": "mio",
+      "query": "where is Poll poll method accepting mutable Events and optional Duration timeout",
+      "files": [
+        "src/poll.rs"
+      ],
+      "symbols": [
+        "poll"
+      ],
+      "qualified_symbols": [
+        "src/poll.rs:Poll.poll"
+      ],
+      "symbol_identities": [
+        "src/poll.rs:Poll.poll@438"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mio-registry-register",
+      "repository": "mio",
+      "query": "where is Registry register generic method accepting mutable Source token and Interest",
+      "files": [
+        "src/poll.rs"
+      ],
+      "symbols": [
+        "register"
+      ],
+      "qualified_symbols": [
+        "src/poll.rs:Registry.register"
+      ],
+      "symbol_identities": [
+        "src/poll.rs:Registry.register@572"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "mio-registry-reregister",
+      "repository": "mio",
+      "query": "where is Registry reregister generic method accepting mutable Source token and Interest",
+      "files": [
+        "src/poll.rs"
+      ],
+      "symbols": [
+        "reregister"
+      ],
+      "qualified_symbols": [
+        "src/poll.rs:Registry.reregister"
+      ],
+      "symbol_identities": [
+        "src/poll.rs:Registry.reregister@640"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commonsio-copyfile-two",
+      "repository": "commons-io",
+      "query": "which FileUtils copyFile overload accepts File srcFile and File destFile only",
+      "files": [
+        "src/main/java/org/apache/commons/io/FileUtils.java"
+      ],
+      "symbols": [
+        "copyFile"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile@810"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commonsio-copyfile-preserve",
+      "repository": "commons-io",
+      "query": "which FileUtils copyFile overload accepts srcFile destFile and boolean preserveFileDate",
+      "files": [
+        "src/main/java/org/apache/commons/io/FileUtils.java"
+      ],
+      "symbols": [
+        "copyFile"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.copyFile@837"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commonsio-readfile-charset",
+      "repository": "commons-io",
+      "query": "which FileUtils readFileToString overload accepts File file and Charset charsetName",
+      "files": [
+        "src/main/java/org/apache/commons/io/FileUtils.java"
+      ],
+      "symbols": [
+        "readFileToString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.readFileToString"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/io/FileUtils.java:FileUtils.readFileToString@2785"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commonsio-copy-buffer-size",
+      "repository": "commons-io",
+      "query": "which IOUtils copy overload accepts InputStream inputStream OutputStream outputStream and int bufferSize",
+      "files": [
+        "src/main/java/org/apache/commons/io/IOUtils.java"
+      ],
+      "symbols": [
+        "copy"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.copy"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.copy@1394"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "commonsio-tostring-stream-charset",
+      "repository": "commons-io",
+      "query": "which IOUtils toString overload accepts InputStream input and Charset charset",
+      "files": [
+        "src/main/java/org/apache/commons/io/IOUtils.java"
+      ],
+      "symbols": [
+        "toString"
+      ],
+      "qualified_symbols": [
+        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.toString"
+      ],
+      "symbol_identities": [
+        "src/main/java/org/apache/commons/io/IOUtils.java:IOUtils.toString@3308"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vue-ref-value-overload",
+      "repository": "vue-core",
+      "query": "which top-level ref generic overload accepts value T and returns Ref of UnwrapRef T",
+      "files": [
+        "packages/reactivity/src/ref.ts"
+      ],
+      "symbols": [
+        "ref"
+      ],
+      "qualified_symbols": [
+        "packages/reactivity/src/ref.ts:ref"
+      ],
+      "symbol_identities": [
+        "packages/reactivity/src/ref.ts:ref@59"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vue-shallowref-value-overload",
+      "repository": "vue-core",
+      "query": "which top-level shallowRef generic overload accepts value T and returns ShallowRef",
+      "files": [
+        "packages/reactivity/src/ref.ts"
+      ],
+      "symbols": [
+        "shallowRef"
+      ],
+      "qualified_symbols": [
+        "packages/reactivity/src/ref.ts:shallowRef"
+      ],
+      "symbol_identities": [
+        "packages/reactivity/src/ref.ts:shallowRef@91"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vue-trigger-ref",
+      "repository": "vue-core",
+      "query": "where is top-level triggerRef accepting Ref and returning void",
+      "files": [
+        "packages/reactivity/src/ref.ts"
+      ],
+      "symbols": [
+        "triggerRef"
+      ],
+      "qualified_symbols": [
+        "packages/reactivity/src/ref.ts:triggerRef"
+      ],
+      "symbol_identities": [
+        "packages/reactivity/src/ref.ts:triggerRef@192"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vue-custom-ref",
+      "repository": "vue-core",
+      "query": "where is top-level customRef generic function accepting CustomRefFactory track trigger and returning Ref",
+      "files": [
+        "packages/reactivity/src/ref.ts"
+      ],
+      "symbols": [
+        "customRef"
+      ],
+      "qualified_symbols": [
+        "packages/reactivity/src/ref.ts:customRef"
+      ],
+      "symbol_identities": [
+        "packages/reactivity/src/ref.ts:customRef@326"
+      ],
+      "max_tokens": 6000
+    },
+    {
+      "id": "vue-to-refs",
+      "repository": "vue-core",
+      "query": "where is top-level toRefs generic function accepting object T and returning ToRefs T",
+      "files": [
+        "packages/reactivity/src/ref.ts"
+      ],
+      "symbols": [
+        "toRefs"
+      ],
+      "qualified_symbols": [
+        "packages/reactivity/src/ref.ts:toRefs"
+      ],
+      "symbol_identities": [
+        "packages/reactivity/src/ref.ts:toRefs@361"
+      ],
+      "max_tokens": 6000
+    }
+  ]
+}
