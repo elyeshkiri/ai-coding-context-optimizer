@@ -38,7 +38,7 @@ CLI for existing commands.
 Command implementations are grouped vertically under
 `token_saver.command_handlers`:
 
-- `context.py` — repository browsing, impact, and feedback;
+- `context.py` — repository browsing, ranking explanations, impact, and feedback;
 - `evaluation.py` — context and agent evaluation;
 - `experiment.py` — paired experiments and cost-per-success reporting;
 - `host.py` — host validation and MCP serving;
@@ -58,8 +58,8 @@ operations. Host-facing code should use it instead of composing
 enrichment, and ranking feedback independently.
 
 The service owns one repository scope and one reusable index lifecycle. It
-provides `build_context`, `browse`, `find_symbols`, `impact`,
-`feedback`, `enrich_typescript`, `get`, `refresh`, and `status`.
+provides `build_context`, `browse`, `explain_ranking`, `find_symbols`,
+`impact`, `feedback`, `enrich_typescript`, `get`, `refresh`, and `status`.
 
 The main pack CLI, context CLI commands, and repository-oriented MCP tools now
 consume this same boundary. `mcp_server.IndexService` remains as a compatibility
