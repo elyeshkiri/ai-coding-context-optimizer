@@ -29,7 +29,9 @@ def test_calibration_workflow_reads_ranking_artifacts_without_write_permissions(
     assert "contents: read" in workflow
     assert "actions: read" in workflow
     assert "ranking-regression-" in workflow
-    assert "gh run download" in workflow
+    assert "actions/artifacts/$artifact_id/zip" in workflow
+    assert "gh run download" not in workflow
+    assert "unzip -p" in workflow
     assert "ranking-history/$artifact_id.json" in workflow
 
 
@@ -74,3 +76,12 @@ def test_pr_workflow_annotates_diff_with_reproducible_provenance():
         '"candidate_sha": os.environ["CANDIDATE_SHA"]',
     ):
         assert field in workflow
+
+
+
+def test_calibration_workflow_parses_tab_separated_artifact_rows():
+    """Artifact rows should use Bash ANSI-C tab syntax rather than literal text."""
+    workflow = _workflow_text("ranking-calibration.yml")
+
+    assert "while IFS=$'\\t' read -r artifact_id artifact_name _created_at" in workflow
+    assert "printf '\\\\t'" not in workflow
