@@ -1,1 +1,157 @@
-"""Claude Code JSON hook adapter.\n\nThis module translates Claude's stdin/stdout protocol and environment settings\ninto the host-neutral :mod:`token_saver.hook_runtime` application boundary.\nConcrete services are composed here so the runtime itself stays independent of\nClaude, environment variables, persistence, and repository implementations.\n"""\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport sys\n\nfrom .delta_context import apply_delta\nfrom .estimate import estimate_tokens\nfrom .output import OutputPipeline\nfrom .guard import _digest, run as guard_run\nfrom .hook_runtime import (\n    DEFAULT_KEEP_TAIL,\n    DEFAULT_MIN_LINES,\n    MIN_NET_TOKENS,\n    HookConfig,\n    HookRuntime,\n    HookServices,\n    cap_for,\n)\nfrom .output_store import store_output\nfrom .policy import user_nudge\nfrom .state import record_read, reset_session\n\nDISABLE_ENV = \"TOKEN_SAVER_DISABLED\"\n\n\ndef _env_int(name: str, fallback: int) -> int:\n    \"\"\"Read an integer environment setting or return ``fallback``.\"\"\"\n\n    try:\n        return int(os.environ[name])\n    except (KeyError, ValueError):\n        return fallback\n\n\ndef _env_bool(name: str, fallback: bool = False) -> bool:\n    \"\"\"Read a conventional truthy environment setting.\"\"\"\n\n    raw = os.environ.get(name)\n    if raw is None:\n        return fallback\n    return raw.strip().lower() in {\"1\", \"true\", \"yes\", \"on\"}\n\n\ndef _passthrough() -> int:\n    \"\"\"Return the successful exit status that tells Claude to keep original data.\"\"\"\n\n    return 0\n\n\ndef _config_from_env() -> HookConfig:\n    \"\"\"Translate Claude hook environment variables into runtime configuration.\"\"\"\n\n    max_lines_raw = os.environ.get(\"TOKEN_SAVER_MAX_LINES\")\n    max_lines: int | None = None\n    if max_lines_raw is not None:\n        try:\n            max_lines = max(1, int(max_lines_raw))\n        except ValueError:\n            max_lines = None\n\n    return HookConfig(\n        disabled=_env_bool(DISABLE_ENV),\n        delta_enabled=_env_bool(\"TOKEN_SAVER_DELTA\"),\n        min_lines=max(1, _env_int(\"TOKEN_SAVER_MIN_LINES\", DEFAULT_MIN_LINES)),\n        keep_tail=max(0, _env_int(\"TOKEN_SAVER_KEEP_TAIL\", DEFAULT_KEEP_TAIL)),\n        max_lines=max_lines,\n        min_net_tokens=MIN_NET_TOKENS,\n    )\n\n\ndef _services() -> HookServices:\n    \"\"\"Compose concrete Token Saver services for the Claude adapter.\n\n    Construction happens per top-level call so tests and embedders can replace\n    module-level callables without hidden singleton state.\n    \"\"\"\n\n    return HookServices(\n        guard=guard_run,\n        output_pipeline=OutputPipeline(),\n        apply_delta=apply_delta,\n        store_output=store_output,\n        user_nudge=user_nudge,\n        reset_session=reset_session,\n        record_read=record_read,\n        digest=_digest,\n        estimate_tokens=estimate_tokens,\n    )\n\n\ndef _runtime() -> HookRuntime:\n    \"\"\"Build the default Claude runtime from current environment and services.\"\"\"\n\n    return HookRuntime(_services(), _config_from_env())\n\n\ndef run_post(payload: dict) -> tuple[int, dict | None]:\n    \"\"\"Process a Claude post-tool payload through the default runtime.\"\"\"\n\n    return _runtime().run_post(payload)\n\n\ndef run_session_start(payload: dict) -> tuple[int, dict | None]:\n    \"\"\"Process a Claude session-start payload through the default runtime.\"\"\"\n\n    return _runtime().run_session_start(payload)\n\n\ndef run_user_prompt(payload: dict) -> tuple[int, dict | None]:\n    \"\"\"Process a Claude user-prompt payload through the default runtime.\"\"\"\n\n    return _runtime().run_user_prompt(payload)\n\n\ndef run_post_read(payload: dict) -> None:\n    \"\"\"Record a Claude full-file read through the default runtime.\"\"\"\n\n    _runtime().run_post_read(payload)\n\n\ndef run(payload: dict) -> tuple[int, dict | None]:\n    \"\"\"Process one Claude hook payload through the default runtime.\"\"\"\n\n    return _runtime().run(payload)\n\n\ndef main(argv: list[str] | None = None) -> int:\n    \"\"\"Run the Claude hook JSON stdin/stdout adapter.\"\"\"\n\n    del argv\n    try:\n        payload = json.loads(sys.stdin.read() or \"{}\")\n    except ValueError:\n        return _passthrough()\n    if not isinstance(payload, dict):\n        return _passthrough()\n    try:\n        code, response = run(payload)\n    except Exception as exc:\n        print(f\"token-saver hook error: {exc}\", file=sys.stderr)\n        return _passthrough()\n    if response is not None:\n        json.dump(response, sys.stdout)\n    return code\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n
+"""Claude Code JSON hook adapter.
+
+This module translates Claude's stdin/stdout protocol and environment settings
+into the host-neutral :mod:`token_saver.hook_runtime` application boundary.
+Concrete services are composed here so the runtime itself stays independent of
+Claude, environment variables, persistence, and repository implementations.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+
+from .delta_context import apply_delta
+from .estimate import estimate_tokens
+from .output import OutputPipeline
+from .guard import _digest, run as guard_run
+from .hook_runtime import (
+    DEFAULT_KEEP_TAIL,
+    DEFAULT_MIN_LINES,
+    MIN_NET_TOKENS,
+    HookConfig,
+    HookRuntime,
+    HookServices,
+    cap_for,
+)
+from .output_store import store_output
+from .policy import user_nudge
+from .state import record_read, reset_session
+
+DISABLE_ENV = "TOKEN_SAVER_DISABLED"
+
+
+def _env_int(name: str, fallback: int) -> int:
+    """Read an integer environment setting or return ``fallback``."""
+
+    try:
+        return int(os.environ[name])
+    except (KeyError, ValueError):
+        return fallback
+
+
+def _env_bool(name: str, fallback: bool = False) -> bool:
+    """Read a conventional truthy environment setting."""
+
+    raw = os.environ.get(name)
+    if raw is None:
+        return fallback
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _passthrough() -> int:
+    """Return the successful exit status that tells Claude to keep original data."""
+
+    return 0
+
+
+def _config_from_env() -> HookConfig:
+    """Translate Claude hook environment variables into runtime configuration."""
+
+    max_lines_raw = os.environ.get("TOKEN_SAVER_MAX_LINES")
+    max_lines: int | None = None
+    if max_lines_raw is not None:
+        try:
+            max_lines = max(1, int(max_lines_raw))
+        except ValueError:
+            max_lines = None
+
+    return HookConfig(
+        disabled=_env_bool(DISABLE_ENV),
+        delta_enabled=_env_bool("TOKEN_SAVER_DELTA"),
+        min_lines=max(1, _env_int("TOKEN_SAVER_MIN_LINES", DEFAULT_MIN_LINES)),
+        keep_tail=max(0, _env_int("TOKEN_SAVER_KEEP_TAIL", DEFAULT_KEEP_TAIL)),
+        max_lines=max_lines,
+        min_net_tokens=MIN_NET_TOKENS,
+    )
+
+
+def _services() -> HookServices:
+    """Compose concrete Token Saver services for the Claude adapter.
+
+    Construction happens per top-level call so tests and embedders can replace
+    module-level callables without hidden singleton state.
+    """
+
+    return HookServices(
+        guard=guard_run,
+        output_pipeline=OutputPipeline(),
+        apply_delta=apply_delta,
+        store_output=store_output,
+        user_nudge=user_nudge,
+        reset_session=reset_session,
+        record_read=record_read,
+        digest=_digest,
+        estimate_tokens=estimate_tokens,
+    )
+
+
+def _runtime() -> HookRuntime:
+    """Build the default Claude runtime from current environment and services."""
+
+    return HookRuntime(_services(), _config_from_env())
+
+
+def run_post(payload: dict) -> tuple[int, dict | None]:
+    """Process a Claude post-tool payload through the default runtime."""
+
+    return _runtime().run_post(payload)
+
+
+def run_session_start(payload: dict) -> tuple[int, dict | None]:
+    """Process a Claude session-start payload through the default runtime."""
+
+    return _runtime().run_session_start(payload)
+
+
+def run_user_prompt(payload: dict) -> tuple[int, dict | None]:
+    """Process a Claude user-prompt payload through the default runtime."""
+
+    return _runtime().run_user_prompt(payload)
+
+
+def run_post_read(payload: dict) -> None:
+    """Record a Claude full-file read through the default runtime."""
+
+    _runtime().run_post_read(payload)
+
+
+def run(payload: dict) -> tuple[int, dict | None]:
+    """Process one Claude hook payload through the default runtime."""
+
+    return _runtime().run(payload)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the Claude hook JSON stdin/stdout adapter."""
+
+    del argv
+    try:
+        payload = json.loads(sys.stdin.read() or "{}")
+    except ValueError:
+        return _passthrough()
+    if not isinstance(payload, dict):
+        return _passthrough()
+    try:
+        code, response = run(payload)
+    except Exception as exc:
+        print(f"token-saver hook error: {exc}", file=sys.stderr)
+        return _passthrough()
+    if response is not None:
+        json.dump(response, sys.stdout)
+    return code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
