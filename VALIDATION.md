@@ -1,7 +1,9 @@
-# Validation for 1.3.0
+# Validation for 1.3.1
 
 Release validation is anchored to GitHub CI on Linux across Python 3.10,
-3.12, and 3.13. The release candidate is based on the post-PR #24 mainline.
+3.12, and 3.13. Version 1.3.1 is a packaging/release-integrity patch over
+1.3.0 plus the behavior-preserving ranking refactor and CI quality gates
+merged after that tag; the frozen retrieval evidence below is unchanged.
 
 Observed CI dependency versions include:
 
@@ -21,7 +23,7 @@ Observed CI dependency versions include:
 - The self-benchmark is now saturated and should be treated as a regression
   floor, not as the main evidence of generalization. The frozen external
   holdouts below are deliberately stronger evidence.
-- Package metadata for this release is **token-saver 1.3.0**.
+- Package metadata for this release is **claude-token-saver 1.3.1**; the import remains `token_saver` and the CLI remains `token-saver`.
 
 ## Frozen external holdout program
 

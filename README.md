@@ -1,4 +1,4 @@
-# Token Saver 1.3.0
+# Token Saver 1.3.1
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -192,7 +192,7 @@ The repository's included 25-task self-benchmark is now saturated at **100%
 file recall, 100% symbol recall, and 100% scoped symbol recall**, with
 **97.90% mean estimated context reduction** at a 6,000-token cap. Because that
 self-benchmark is no longer discriminative, external frozen holdouts are the
-stronger quality signal. CI currently runs **456 tests** on Python 3.10, 3.12,
+stronger quality signal. CI currently runs **474 tests** on Python 3.10, 3.12,
 and 3.13.
 
 Other 1.3 highlights include:
@@ -257,7 +257,7 @@ above.
 At the 1.2.0 release point, the included deterministic benchmark measured
 **92% relevant-file recall, 96% relevant-symbol recall, and ~95.3% mean
 estimated context reduction** at a 6,000-token cap (88%/92%/93.83% at 1.1).
-Those are historical 1.2.0 measurements; the current 1.3.0 result is reported
+Those are historical 1.2.0 measurements; the current 1.3.x result is reported
 above and in `VALIDATION.md`.
 
 ## What was new in 1.1

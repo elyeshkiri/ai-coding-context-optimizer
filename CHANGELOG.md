@@ -1,5 +1,23 @@
 # Unreleased
 
+# 1.3.1 - 2026-09-19
+
+- **Made release artifacts provenance-safe.** Release automation now treats a
+  version as immutable: it no-ops once the corresponding GitHub release exists,
+  refuses to reuse an already-reserved tag for a different commit, serializes
+  concurrent release attempts, creates the version tag before publishing, and
+  publishes to PyPI before creating the GitHub release. A retry after a partial
+  failure is safe through the pinned tag plus PyPI's `skip-existing` behavior.
+- **Renamed the PyPI distribution to `claude-token-saver`.** PyPI rejects
+  `token-saver` as too similar to the unrelated existing `tokensaver`
+  project. The Python import remains `token_saver` and both CLI entry points
+  remain `token-saver` / `token-saver-pack`.
+- **Hardened CI and ranking maintainability after 1.3.0.** The ranking core was
+  decomposed into addressable scoring stages without retuning, correctness-
+  focused Ruff and actionlint gates were added, and the historical external
+  holdout is now enforced as an explicit regression floor including scoped
+  symbol recall.
+
 # 1.3.0 - 2026-09-19
 
 - **Hardened the four failure classes exposed by frozen holdout #11.**

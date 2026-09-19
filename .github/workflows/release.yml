@@ -4,23 +4,22 @@ on:
   push:
     branches:
       - main
-  # Lets you publish a version whose GitHub release already exists (1.3.0 was
-  # tagged and released before PyPI publishing was wired up) without inventing
-  # an empty commit.
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Serialize release attempts so two close main pushes cannot race to reserve
+# the same immutable version tag.
+concurrency:
+  group: token-saver-release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      # The `secrets` context is not available in a step-level `if`, only in
-      # job-level `env`. Hoisting the presence check here keeps the publish
-      # step skippable for forks without the secret; testing `secrets`
-      # directly in the step condition makes the whole workflow file invalid,
-      # so it fails to parse and never runs at all.
+      # `secrets` is not available directly in a step-level `if`.
       HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -32,82 +31,89 @@ jobs:
           python-version: "3.12"
 
       - name: Read package version
-        id: version
+        id: package
         shell: bash
         run: |
           version="$(python - <<'PY'
           import tomllib
           with open("pyproject.toml", "rb") as fh:
-              print(tomllib.load(fh)["project"]["version"])
+              project = tomllib.load(fh)["project"]
+          print(project["version"])
           PY
           )"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
-      - name: Check whether release already exists
-        id: existing
+      - name: Validate release provenance
+        id: state
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
+          TAG: ${{ steps.package.outputs.tag }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "$TAG already exists; the GitHub release step will no-op."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "release_needed=false" >> "$GITHUB_OUTPUT"
+            echo "$TAG is already released; this workflow is a no-op until the package version changes."
+            exit 0
           fi
 
-      # Built unconditionally: the PyPI step below is gated on what PyPI
-      # already has, not on what GitHub already has, so a version that was
-      # released here before publishing existed can still reach PyPI.
+          echo "release_needed=true" >> "$GITHUB_OUTPUT"
+          if tag_sha="$(git rev-parse "$TAG^{commit}" 2>/dev/null)"; then
+            echo "tag_exists=true" >> "$GITHUB_OUTPUT"
+            if [ "$tag_sha" != "$GITHUB_SHA" ]; then
+              echo "::error::Version ${TAG#v} is already reserved by $TAG at $tag_sha, but this run is $GITHUB_SHA. Bump project.version before releasing."
+              exit 1
+            fi
+            echo "$TAG already points at this exact commit; continuing a previous release attempt."
+          else
+            echo "tag_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Explain missing PyPI credential
+        if: steps.state.outputs.release_needed == 'true' && env.HAS_PYPI_TOKEN != 'true'
+        run: |
+          echo "::warning::PYPI_API_TOKEN is not configured; no tag, PyPI package, or GitHub release will be created."
+
       - name: Build wheel and source distribution
+        if: steps.state.outputs.release_needed == 'true' && env.HAS_PYPI_TOKEN == 'true'
         run: |
           python -m pip install --upgrade build twine
           python -m build
 
       - name: Validate distribution metadata
+        if: steps.state.outputs.release_needed == 'true' && env.HAS_PYPI_TOKEN == 'true'
         run: python -m twine check --strict dist/*
 
-      - name: Create GitHub release
-        if: steps.existing.outputs.exists != 'true'
+      # Reserve the version before publishing. If PyPI rejects the upload,
+      # that version remains tied to this exact commit and the next attempt
+      # must either retry this commit or bump the version.
+      - name: Create version tag
+        if: steps.state.outputs.release_needed == 'true' && env.HAS_PYPI_TOKEN == 'true' && steps.state.outputs.tag_exists != 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.package.outputs.tag }}
         run: |
-          gh release create "$TAG" dist/* \
-            --target "$GITHUB_SHA" \
-            --title "Token Saver $VERSION" \
-            --generate-notes
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
 
-      # skip-existing makes this idempotent: PyPI refuses re-uploads of a
-      # version that is already published, and a re-run should be a no-op
-      # rather than a red build. Publishing is irreversible -- a version
-      # number on PyPI can be yanked but never reused -- so bump the version
-      # in pyproject.toml for every release.
-      #
-      # Prefer Trusted Publishing over this long-lived token: configure the
-      # repository as a trusted publisher at
-      # https://pypi.org/manage/project/token-saver/settings/publishing/,
-      # then delete the PYPI_API_TOKEN secret, add `id-token: write` to this
-      # job's permissions, and drop the `password:` line below. That removes
-      # the stored credential entirely.
-      # Automatic publishing is disabled, not removed. PyPI rejects the
-      # distribution name `token-saver` with
-      #   400 The name 'token-saver' is too similar to an existing project
-      # because `tokensaver` is already registered (run 35431852349). The
-      # credential is fine -- a bad token returns 403, and this was a 400
-      # about the name. Until `project.name` in pyproject.toml becomes a name
-      # PyPI accepts, this step cannot succeed, and leaving it on every push
-      # would keep main permanently red.
-      #
-      # It still runs on workflow_dispatch, so a rename can be verified on
-      # demand before re-enabling. To re-enable: drop the github.event_name
-      # clause below.
+      # PyPI is published before the GitHub release. If the upload fails, no
+      # GitHub release is created. If upload succeeds but release creation
+      # fails, skip-existing makes a retry safe while the tag pins provenance.
       - name: Publish to PyPI
-        if: env.HAS_PYPI_TOKEN == 'true' && github.event_name == 'workflow_dispatch'
+        if: steps.state.outputs.release_needed == 'true' && env.HAS_PYPI_TOKEN == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
+
+      - name: Create GitHub release
+        if: steps.state.outputs.release_needed == 'true' && env.HAS_PYPI_TOKEN == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.package.outputs.tag }}
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          gh release create "$TAG" dist/*             --title "Token Saver $VERSION"             --generate-notes
+
+      # Prefer PyPI Trusted Publishing over the long-lived API token once the
+      # project exists. Configure claude-token-saver as a trusted publisher,
+      # add `id-token: write`, and remove the explicit password above.
