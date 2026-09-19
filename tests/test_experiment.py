@@ -1,11 +1,13 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 from token_saver.benchmark import evaluate, task_definition_hash
 from token_saver.experiment import (
+    _expand_command,
     build_schedule,
     prompt_sha256,
     run_experiment,
@@ -324,3 +326,28 @@ new file mode 100644
         any(step.get("kind") == "hidden_test_patch" for step in run["verification"])
         for run in result["runs"]
     )
+
+
+def _expand(command, prompt="fix it"):
+    return _expand_command(
+        command,
+        worktree=Path("/w"),
+        transcript=Path("/t.jsonl"),
+        prompt=prompt,
+        prompt_file=Path("/p.txt"),
+        model="m",
+        condition="baseline",
+    )
+
+
+def test_expand_command_substitutes_only_known_placeholders():
+    assert _expand(["run", "{model}", "{condition}", "{worktree}"]) == [
+        "run", "m", "baseline", "/w",
+    ]
+    assert _expand(["--settings", '{"a": {"b": 1}}']) == ["--settings", '{"a": {"b": 1}}']
+    assert _expand(["{unknown}", "x{}y", "{0}"]) == ["{unknown}", "x{}y", "{0}"]
+
+
+def test_expand_command_does_not_reinterpret_braces_in_substituted_text():
+    assert _expand(["{prompt}"], prompt="use {model} and {x}") == ["use {model} and {x}"]
+    assert _expand(["{prompt}:{model}"], prompt="{model}") == ["{model}:m"]
