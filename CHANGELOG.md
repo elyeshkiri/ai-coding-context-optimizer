@@ -1,5 +1,13 @@
 # Unreleased
 
+- **Fixed SWE-bench grading in the experiment harness.** Captured agent patches
+  keep their trailing newline (previously stripped, so `git apply` rejected every
+  patch as corrupt). Agent edits to files the hidden test patch modifies are
+  removed before verification instead of making the hidden tests fail to apply.
+  Success is now per test: all `fail_to_pass` tests pass and nothing that passed
+  on the unpatched reference regresses, rather than the exit code of the whole
+  test command, which pre-existing image errors could make unsatisfiable.
+
 - **Added executable broad cost-per-success experiments.** A new `experiment`
   command runs randomized paired baseline/enabled trials in clean pinned Git
   worktrees, applies a hard hook kill-switch to the baseline arm, installs

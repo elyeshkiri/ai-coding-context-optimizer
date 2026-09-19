@@ -121,6 +121,17 @@ agent runs. After the agent exits, its diff is captured, then a fresh official
 SWE-bench Docker image applies the agent patch and hidden test patch and executes
 the canonical test command inside the benchmark's prepared environment.
 
+A run is graded per test, not by the exit code of the whole command, because
+official images can carry pre-existing errors (for example broken fixtures)
+that make it nonzero even for a correct fix. A run is **resolved** when every
+`source.fail_to_pass` test passes and no test that passed on the unpatched
+reference regressed. The reference is the same image with the hidden tests
+applied and no agent patch; it is computed once per task and cached under
+`<out>.artifacts/_reference/`. Agent edits to files the hidden test patch
+modifies are removed before verification (the full patch stays recorded as
+`agent.patch`; the verified one is `agent.graded.patch`), so an agent that also
+edits a test file cannot make the hidden tests fail to apply.
+
 Before any paid run, finalize the task definitions and experimental design, then
 freeze them:
 

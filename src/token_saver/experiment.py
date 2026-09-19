@@ -169,6 +169,17 @@ def validate_suite(
                 raise ValueError(
                     f"task {task_id}: SWE-bench grading requires test_patch"
                 )
+            source = task.get("source")
+            fail_to_pass = source.get("fail_to_pass") if isinstance(source, dict) else None
+            if (
+                not isinstance(fail_to_pass, list)
+                or not fail_to_pass
+                or not all(isinstance(t, str) and t for t in fail_to_pass)
+            ):
+                raise ValueError(
+                    f"task {task_id}: SWE-bench grading requires "
+                    "source.fail_to_pass as a nonempty list of test ids"
+                )
 
     if require_broad:
         if len(tasks) < MIN_PUBLISHABLE_TASKS:
@@ -227,7 +238,7 @@ def build_schedule(suite: dict) -> list[dict]:
     return schedule
 
 
-def _git(source: Path, *args: str) -> str:
+def _git(source: Path, *args: str, strip: bool = True) -> str:
     proc = subprocess.run(
         ["git", "-C", str(source), *args],
         text=True,
@@ -238,7 +249,7 @@ def _git(source: Path, *args: str) -> str:
         raise ValueError(
             f"git {' '.join(args)} failed for {source}: {proc.stderr.strip()}"
         )
-    return proc.stdout.strip()
+    return proc.stdout.strip() if strip else proc.stdout
 
 
 def _validate_repository(source: Path, revision: str) -> str:
@@ -386,6 +397,45 @@ def _existing_keys(output_path: Path, suite: dict) -> tuple[dict, set[tuple[str,
         if isinstance(run, dict)
     }
     return payload, keys
+
+
+def _swebench_reference_passed(task: dict, ref_dir: Path, *, timeout: int) -> set[str]:
+    """Tests passing on the unpatched code with the hidden tests applied.
+
+    Computed once per task and cached, so regressions are judged against what
+    the image itself can pass rather than the exit code of the whole command.
+    """
+    from .swebench_docker import parse_test_statuses, passed_tests, verify_swebench
+
+    swebench = task["swebench"]
+    out = ref_dir / "swebench.stdout"
+    if not out.is_file():
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        empty = ref_dir / "empty.patch"
+        empty.write_text("", encoding="utf-8")
+        test_patch = ref_dir / "hidden-test.patch"
+        test_patch.write_text(task["test_patch"], encoding="utf-8")
+        rc, _ = verify_swebench(
+            image=swebench["image"],
+            agent_patch=empty,
+            test_patch=test_patch,
+            test_command=swebench["test_command"],
+            env_activate=swebench["env_activate"],
+            stdout_path=out,
+            stderr_path=ref_dir / "swebench.stderr",
+            timeout=timeout,
+        )
+        if rc == 124:
+            out.unlink(missing_ok=True)
+            raise ValueError(f"task {task['id']}: reference verification timed out")
+    text = out.read_text(encoding="utf-8", errors="replace")
+    if not parse_test_statuses(text):
+        out.unlink(missing_ok=True)
+        raise ValueError(
+            f"task {task['id']}: reference run produced no test results; "
+            "check the image and test command"
+        )
+    return passed_tests(text)
 
 
 def run_experiment(
@@ -576,7 +626,8 @@ def run_experiment(
                 _git(worktree, "add", "-A")
                 agent_patch = run_dir / "agent.patch"
                 agent_patch.write_text(
-                    _git(worktree, "diff", "--cached", "--binary"),
+                    # strip=False: a patch without its final newline is "corrupt"
+                    _git(worktree, "diff", "--cached", "--binary", strip=False),
                     encoding="utf-8",
                 )
 
@@ -585,21 +636,44 @@ def run_experiment(
                 test_patch = task.get("test_patch")
                 swebench = task.get("swebench")
                 if swebench is not None:
-                    from .swebench_docker import verify_swebench
+                    from .swebench_docker import (
+                        grade_swebench,
+                        passed_tests,
+                        strip_test_file_changes,
+                        verify_swebench,
+                    )
 
+                    verifier_timeout = int(task.get("verifier_timeout_seconds", timeout))
                     test_patch_path = run_dir / "hidden-test.patch"
                     test_patch_path.write_text(test_patch, encoding="utf-8")
+                    graded_patch = run_dir / "agent.graded.patch"
+                    graded_patch.write_text(
+                        strip_test_file_changes(
+                            agent_patch.read_text(encoding="utf-8"), test_patch
+                        ),
+                        encoding="utf-8",
+                    )
+                    reference_passed = _swebench_reference_passed(
+                        task,
+                        artifacts / "_reference" / item["task"],
+                        timeout=verifier_timeout,
+                    )
                     verify_out = run_dir / "swebench.stdout"
                     verify_err = run_dir / "swebench.stderr"
                     rc, elapsed = verify_swebench(
                         image=swebench["image"],
-                        agent_patch=agent_patch,
+                        agent_patch=graded_patch,
                         test_patch=test_patch_path,
                         test_command=swebench["test_command"],
                         env_activate=swebench["env_activate"],
                         stdout_path=verify_out,
                         stderr_path=verify_err,
-                        timeout=int(task.get("verifier_timeout_seconds", timeout)),
+                        timeout=verifier_timeout,
+                    )
+                    grade = grade_swebench(
+                        task["source"]["fail_to_pass"],
+                        reference_passed,
+                        passed_tests(verify_out.read_text(encoding="utf-8", errors="replace")),
                     )
                     verification.append({
                         "kind": "swebench_docker",
@@ -607,10 +681,12 @@ def run_experiment(
                         "test_command": swebench["test_command"],
                         "exit_code": rc,
                         "seconds": elapsed,
+                        "graded_patch": str(graded_patch.relative_to(output_path.parent)),
+                        "grade": grade,
                         "stdout": str(verify_out.relative_to(output_path.parent)),
                         "stderr": str(verify_err.relative_to(output_path.parent)),
                     })
-                    verifier_ok = rc == 0
+                    verifier_ok = grade["resolved"] and rc != 124
                 else:
                     if test_patch:
                         patch_stdout = run_dir / "test-patch.stdout"
