@@ -190,6 +190,18 @@ This makes ranking R&D evidence-preserving: a regression can be attributed to
 the scoring component or registered reranker whose contribution changed,
 rather than inferred from a single final score.
 
+PR CI operationalizes the same contract without hidden baseline recomputation.
+The workflow checks out the immutable pull-request base SHA and the candidate
+tree separately. The base Token Saver captures the baseline snapshot; candidate
+Token Saver captures the candidate snapshot. Both use the base checkout's task
+manifest so a PR cannot redefine its own comparison ground truth. The candidate
+then performs the pure artifact diff and publishes Markdown plus raw JSON
+artifacts.
+
+The first CI phase is informational for rank movement. Tooling failures remain
+hard failures, while ranking regressions are summarized but do not block merges
+until a regression allowance is calibrated from observed PR history.
+
 ### Symbol scoring vs rendering
 
 Within-file relevance and source rendering are separate policies.
@@ -288,11 +300,14 @@ behavior or duplicating repository logic.
 14. **Ranking comparisons preserve ground truth:** regression diffs require the
     same frozen task hash and compare saved evidence rather than silently
     rerunning baseline retrieval under candidate code.
+15. **PR ranking baselines are immutable:** CI captures baseline evidence with
+    base-commit code against the base checkout and uses the base manifest for
+    both sides; candidate code cannot redefine the comparison ground truth.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
 `tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
 `tests/test_ranking_pipeline_boundaries.py`, `tests/test_ranking_stage_registry.py`,
-`tests/test_ranking_observability.py`, and `tests/test_ranking_regression.py` lock
-in these extension seams so future features can grow by composition instead of
-by adding more central branching.
+`tests/test_ranking_observability.py`, `tests/test_ranking_regression.py`, and
+`tests/test_ranking_ci_workflow.py` lock in these extension seams so future
+features can grow by composition instead of by adding more central branching.
