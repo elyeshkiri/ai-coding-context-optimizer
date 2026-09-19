@@ -337,7 +337,6 @@ def _structural_file_authority(
     return min(320.0, best)
 
 
-@dataclass
 # Kept as private compatibility aliases for callers/tests that imported these
 # helpers before retrieval was moved into the persistent index.
 def _terms(text: str) -> list[str]:
