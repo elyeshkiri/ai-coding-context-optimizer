@@ -20,7 +20,7 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
 
     seen = {}
 
-    def fake_run(command, check=False):
+    def fake_run(command, **_kwargs):
         seen["command"] = command
         claude_home = transcript.parent / "claude-home"
         session = claude_home / "projects" / "fixture" / "session.jsonl"
@@ -66,7 +66,7 @@ def test_isolated_runner_cleans_home_when_transcript_is_missing(
     monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "ws_test")
     monkeypatch.setattr("token_saver.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
 
-    def fake_run(command, check=False):
+    def fake_run(command, **_kwargs):
         claude_home = transcript.parent / "claude-home"
         (claude_home / "sessions").mkdir(parents=True)
         return SimpleNamespace(returncode=1, stdout="", stderr="")
@@ -106,7 +106,7 @@ def test_isolated_runner_rejects_api_error_with_zero_exit(
         lambda _name: "/usr/bin/docker",
     )
 
-    def fake_run(command, text=True, capture_output=True, check=False):
+    def fake_run(command, **_kwargs):
         claude_home = transcript.parent / "claude-home"
         session = claude_home / "projects" / "fixture" / "session.jsonl"
         session.parent.mkdir(parents=True)
