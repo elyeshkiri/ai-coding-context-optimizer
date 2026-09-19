@@ -5,6 +5,57 @@ from __future__ import annotations
 from ..closure import authoritative_providers, dependency_closure
 from .contracts import RankedFile
 from .file_scoring import _FileRankingScope
+from .ranking_stages import RankingStageContext
+
+class GraphClosureStage:
+    """Apply dependency-closure and authoritative-provider score evidence."""
+
+    name = "graph-closure"
+    order = 100
+
+    def enabled(self, context: RankingStageContext) -> bool:
+        """Run graph evidence for every ranking request, matching legacy behavior."""
+        del context
+        return True
+
+    def apply(
+        self,
+        context: RankingStageContext,
+        ranked: list[RankedFile],
+    ) -> None:
+        """Apply graph evidence using the request's bounded closure options."""
+        options = context.options
+        priority_files = (
+            set(options.priority_files) if options.priority_files is not None else None
+        )
+        _apply_graph_boosts(
+            context.scope,
+            ranked,
+            priority_files,
+            options.seed_limit,
+            options.graph_hops,
+            options.closure_max_items,
+        )
+
+
+class EmbeddingRerankStage:
+    """Apply optional local embedding similarity after graph score evidence."""
+
+    name = "embeddings"
+    order = 200
+
+    def enabled(self, context: RankingStageContext) -> bool:
+        """Run only when embedding reranking was explicitly requested."""
+        return context.options.embeddings
+
+    def apply(
+        self,
+        context: RankingStageContext,
+        ranked: list[RankedFile],
+    ) -> None:
+        """Apply the existing local-only embedding reranker."""
+        _apply_embedding_rerank(context.scope, ranked)
+
 
 def _credit_closure(item: RankedFile, related) -> None:
     """Handle credit closure."""
