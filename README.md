@@ -4,6 +4,25 @@ Token Saver is a local context-optimization layer for AI coding agents. It reduc
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
+## Install
+
+```bash
+pip install claude-token-saver
+```
+
+The distribution is named `claude-token-saver` because PyPI rejects
+`token-saver` as too similar to an unrelated existing project. The command
+and the import are unchanged:
+
+| | Name |
+|---|---|
+| Install | `claude-token-saver` |
+| Command | `token-saver` |
+| Import | `token_saver` |
+
+This is an independent project and is not affiliated with or endorsed by
+Anthropic.
+
 ## Output Saver: reduce generated tokens too
 
 Token Saver can now control the other side of the bill: model output. The output
@@ -411,7 +430,7 @@ state directory); neither source nor queries leave the machine.
 Embedding reranking is optional and requires an already-downloaded local model:
 
 ```bash
-pip install 'token-saver[embeddings]'
+pip install 'claude-token-saver[embeddings]'
 token-saver pack . -q "retry failed downloads" --embeddings
 ```
 
