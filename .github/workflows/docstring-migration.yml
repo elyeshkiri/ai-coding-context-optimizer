@@ -1,0 +1,36 @@
+name: Docstring migration
+
+on:
+  push:
+    branches:
+      - quality/100-docstring-coverage
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: quality/100-docstring-coverage
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate missing docstrings
+        run: python scripts/add_missing_docstrings.py
+      - name: Verify generated source parses
+        run: python -m compileall -q src/token_saver
+      - name: Commit migration
+        run: |
+          if git diff --quiet; then
+            echo "No docstrings to add."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/token_saver
+          git commit -m "docs: fill missing source docstrings"
+          git push origin HEAD:quality/100-docstring-coverage
