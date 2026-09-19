@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # PR updates validate feature branches; main is revalidated after merge.
+  # Avoid a second duplicate push run for branches that already have a PR.
   push:
-    branches: [main, "feat/**"]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -13,10 +15,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install --upgrade pip ruff
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
       # Scoped to correctness rules, not formatting -- see [tool.ruff.lint]
       # in pyproject.toml for why E501/E701/E702/I are deliberately excluded.
-      - run: ruff check src tests
+      - run: ruff check src tests scripts
 
   test:
     runs-on: ubuntu-latest
@@ -36,9 +39,8 @@ jobs:
   holdout:
     # The 25-task self-benchmark above is saturated at 100% and cannot detect
     # a ranking regression. This runs a real frozen external holdout against
-    # pinned third-party repositories and enforces a recall floor, which is
-    # what makes "regression floor" in VALIDATION.md an actual guarantee
-    # rather than a claim.
+    # pinned third-party repositories and enforces file, bare-symbol, and
+    # expected-file-scoped symbol recall floors.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
