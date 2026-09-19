@@ -63,6 +63,16 @@ def _browse_context(context: McpToolContext, arguments: dict) -> dict:
     )
 
 
+def _explain_ranking(context: McpToolContext, arguments: dict) -> dict:
+    """Explain stage-by-stage file-ranking score contributions."""
+    return context.repository.explain_ranking(
+        str(arguments.get("query", "")),
+        max_files=int(arguments.get("max_files", 8)),
+        changed_boost=bool(arguments.get("changed_boost", True)),
+        embeddings=bool(arguments.get("embeddings", False)),
+    )
+
+
 def _find_symbol(context: McpToolContext, arguments: dict) -> list[dict]:
     """Find symbol definitions and source ranges."""
     return context.repository.find_symbols(str(arguments.get("name", "")))
@@ -177,6 +187,21 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
                 },
             },
             _browse_context,
+        ),
+        McpToolSpec(
+            "explain_ranking",
+            "Explain stage-by-stage score contributions for ranked repository files.",
+            {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "max_files": {"type": "integer", "minimum": 1},
+                    "changed_boost": {"type": "boolean"},
+                    "embeddings": {"type": "boolean"},
+                },
+            },
+            _explain_ranking,
         ),
         McpToolSpec(
             "analyze_change_impact",

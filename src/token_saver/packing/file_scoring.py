@@ -14,7 +14,7 @@ from pathlib import Path
 from ..lexical import document_counts, identifier_terms, symbol_terms, terms
 from ..repo_index import RepositoryIndex
 from ..skeleton import file_priority
-from .contracts import RankedFile
+from .contracts import RankedFile, RankingScoreEvent
 from .query_analysis import _query_member_hints, _query_wants_top_level
 
 _MAX_FILE_BYTES = 2_000_000
@@ -194,6 +194,7 @@ class _FileRankingScope:
     callable_file_counts: Counter
     query: str
     structural_authority: Callable = _structural_file_authority
+    trace_scores: bool = False
 
 
 def _resolve_changed_files(
@@ -252,9 +253,23 @@ def _bm25_score(
     return score, matched
 
 
+def _record_score_event(
+    score_trace: list[RankingScoreEvent] | None,
+    stage: str,
+    before: float,
+    after: float,
+    evidence: tuple[str, ...] = (),
+) -> None:
+    """Append one structured score transition when tracing is enabled."""
+    if score_trace is not None:
+        score_trace.append(
+            RankingScoreEvent.from_scores(stage, before, after, evidence)
+        )
+
+
 def _apply_file_boosts(
     scope: _FileRankingScope, rel: str, outline: str, score: float,
-    reasons: list[str],
+    reasons: list[str], score_trace: list[RankingScoreEvent] | None = None,
 ) -> float:
     """Code-aware boosts layered on top of the BM25 base, in a fixed order."""
     rel_terms = set(terms(rel))
@@ -262,11 +277,17 @@ def _apply_file_boosts(
     path_hits = sum(1 for term in scope.q_terms if term in rel_terms)
     symbol_hits = sum(1 for term in scope.q_terms if term in outline_terms)
     if path_hits:
+        before = score
         score += 8.0 * path_hits
-        reasons.append(f"path:{path_hits}")
+        evidence = f"path:{path_hits}"
+        reasons.append(evidence)
+        _record_score_event(score_trace, "path", before, score, (evidence,))
     if symbol_hits:
+        before = score
         score += 5.0 * symbol_hits
-        reasons.append(f"symbols:{symbol_hits}")
+        evidence = f"symbols:{symbol_hits}"
+        reasons.append(evidence)
+        _record_score_event(score_trace, "symbols", before, score, (evidence,))
 
     # Parser-backed declaration authority must survive BM25 document-length
     # normalisation. This especially matters for partial-class APIs split
@@ -281,11 +302,28 @@ def _apply_file_boosts(
         callable_file_counts=scope.callable_file_counts,
     )
     if authority:
+        before = score
         score += authority
-        reasons.append(f"structural-symbol:{authority:.1f}")
+        evidence = f"structural-symbol:{authority:.1f}"
+        reasons.append(evidence)
+        _record_score_event(
+            score_trace,
+            "structural-authority",
+            before,
+            score,
+            (evidence,),
+        )
 
     priority = file_priority(rel)
+    before = score
     score += max(0.0, 1.2 - 0.3 * priority)
+    _record_score_event(
+        score_trace,
+        "file-priority",
+        before,
+        score,
+        (f"priority:{priority}",),
+    )
     if priority == 3:
         # file_priority's flat additive bonus above (max spread 0.9) is
         # dwarfed by BM25 term-overlap scores that routinely run into
@@ -297,17 +335,50 @@ def _apply_file_boosts(
         # answer to "how does X work." Dampen the whole score instead
         # of adding a fixed amount, so it scales with however large the
         # underlying (possibly very large) score actually is.
+        before = score
         score *= 0.35
+        _record_score_event(
+            score_trace,
+            "low-value-directory",
+            before,
+            score,
+            (f"priority:{priority}",),
+        )
     if rel in scope.changed:
+        before = score
         score += 4.0
         reasons.append("changed")
+        _record_score_event(
+            score_trace,
+            "changed-file",
+            before,
+            score,
+            ("changed",),
+        )
     if scope.query_continues and rel in scope.remembered_files:
+        before = score
         score += 2.0
         reasons.append("working-set")
+        _record_score_event(
+            score_trace,
+            "working-set",
+            before,
+            score,
+            ("working-set",),
+        )
     if scope.feedback.get(rel):
         boost = max(-2.0, min(2.0, scope.feedback[rel] * 0.4))
+        before = score
         score += boost
-        reasons.append(f"feedback:{scope.feedback[rel]:+d}")
+        evidence = f"feedback:{scope.feedback[rel]:+d}"
+        reasons.append(evidence)
+        _record_score_event(
+            score_trace,
+            "feedback",
+            before,
+            score,
+            (evidence,),
+        )
     return score
 
 
@@ -325,10 +396,27 @@ def _score_documents(
     ranked: list[RankedFile] = []
     for (path, rel, outline, counts), length in zip(docs, lengths):
         reasons: list[str] = []
+        score_trace: list[RankingScoreEvent] | None = (
+            [] if scope.trace_scores else None
+        )
         score, matched = _bm25_score(
             counts, scope.q_terms, doc_freq, length, avg_len, len(docs),
         )
-        score = _apply_file_boosts(scope, rel, outline, score, reasons)
+        _record_score_event(
+            score_trace,
+            "bm25",
+            0.0,
+            score,
+            (f"term-hits:{matched}",) if matched else (),
+        )
+        score = _apply_file_boosts(
+            scope,
+            rel,
+            outline,
+            score,
+            reasons,
+            score_trace,
+        )
         if matched:
             reasons.insert(0, f"term-hits:{matched}")
         ranked.append(RankedFile(
@@ -340,6 +428,7 @@ def _score_documents(
             reasons=reasons or [f"priority:{file_priority(rel)}"],
             term_hits=matched,
             changed=rel in scope.changed,
+            score_trace=score_trace or [],
         ))
     return ranked
 

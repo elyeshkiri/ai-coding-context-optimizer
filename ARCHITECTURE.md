@@ -38,7 +38,7 @@ CLI for existing commands.
 Command implementations are grouped vertically under
 `token_saver.command_handlers`:
 
-- `context.py` — repository browsing, impact, and feedback;
+- `context.py` — repository browsing, ranking explanations, impact, and feedback;
 - `evaluation.py` — context and agent evaluation;
 - `experiment.py` — paired experiments and cost-per-success reporting;
 - `host.py` — host validation and MCP serving;
@@ -58,8 +58,8 @@ operations. Host-facing code should use it instead of composing
 enrichment, and ranking feedback independently.
 
 The service owns one repository scope and one reusable index lifecycle. It
-provides `build_context`, `browse`, `find_symbols`, `impact`,
-`feedback`, `enrich_typescript`, `get`, `refresh`, and `status`.
+provides `build_context`, `browse`, `explain_ranking`, `find_symbols`,
+`impact`, `feedback`, `enrich_typescript`, `get`, `refresh`, and `status`.
 
 The main pack CLI, context CLI commands, and repository-oriented MCP tools now
 consume this same boundary. `mcp_server.IndexService` remains as a compatibility
@@ -153,6 +153,24 @@ when no registry is provided, while
 `DEFAULT_RANKING_STAGE_REGISTRY.extend(...)` provides a non-mutating way to add
 new rerankers.
 
+### Ranking observability
+
+Score tracing is deliberately opt-in. Normal ranking keeps `trace_scores=False`
+so context packing and holdout evaluation do not allocate per-candidate trace
+events. `RepositoryContextService.explain_ranking`, the
+`ranking-explain` CLI command, and the MCP `explain_ranking` tool enable
+tracing explicitly.
+
+Deterministic file scoring records exact before/after transitions at the point of
+each score mutation. `RankingStageRegistry` snapshots enabled rerankers and
+automatically records each plugin's aggregate delta plus newly-added evidence.
+This makes custom stages observable without expanding the extension contract.
+
+`RankingScoreEvent` is additive metadata on `RankedFile`; legacy
+`score`, `reasons`, ordering, and default runtime behavior remain unchanged.
+The explanation payload verifies that the final trace endpoint equals the final
+rank score.
+
 ### Symbol scoring vs rendering
 
 Within-file relevance and source rendering are separate policies.
@@ -245,10 +263,13 @@ behavior or duplicating repository logic.
 12. **Ranking extensions are registered:** post-score behavior grows through
     `RankingStageRegistry`; duplicate names/orders fail at composition and
     `rank_files()` retains the only final sort.
+13. **Observability is additive:** score tracing must not change ranking
+    arithmetic, legacy reason strings, or default runtime cost; explanation
+    surfaces opt into traces explicitly.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
 `tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
-`tests/test_ranking_pipeline_boundaries.py`, and `tests/test_ranking_stage_registry.py`
-lock in these extension seams so future features can grow by composition instead
-of by adding more central branching.
+`tests/test_ranking_pipeline_boundaries.py`, `tests/test_ranking_stage_registry.py`,
+and `tests/test_ranking_observability.py` lock in these extension seams so future
+features can grow by composition instead of by adding more central branching.

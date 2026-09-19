@@ -31,6 +31,10 @@ class RepositoryContextServiceContract(Protocol):
         """Return ranked repository context candidates."""
         ...
 
+    def explain_ranking(self, query: str, **kwargs) -> dict:
+        """Return structured score traces for ranked repository files."""
+        ...
+
     def find_symbols(self, name: str) -> list[dict]:
         """Return normalized symbol-definition records."""
         ...

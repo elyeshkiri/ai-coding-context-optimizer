@@ -54,6 +54,43 @@ def feedback_main(argv: list[str]) -> int:
     return 0
 
 
+def ranking_explain_main(argv: list[str]) -> int:
+    """Run the ranking explanation command."""
+    parser = argparse.ArgumentParser(prog="token-saver ranking-explain")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--query", required=True)
+    parser.add_argument("--max-files", type=int, default=8)
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--no-changed-boost", action="store_true")
+    args = parser.parse_args(argv)
+
+    try:
+        report = RepositoryContextService(Path(args.path)).explain_ranking(
+            args.query,
+            max_files=args.max_files,
+            changed_boost=not args.no_changed_boost,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    print(f"RANKING EXPLANATION: {report['query']}")
+    for item in report["results"]:
+        print(f"{item['rank']:>2}. {item['final_score']:>9.3f} {item['path']}")
+        for event in item["trace"]:
+            evidence = ", ".join(event["evidence"])
+            suffix = f" [{evidence}]" if evidence else ""
+            print(
+                f"    {event['stage']:<24} "
+                f"{event['delta']:+9.3f} -> {event['after']:>9.3f}{suffix}"
+            )
+    return 0
+
+
 def browse_main(argv: list[str]) -> int:
     """Run the browse command."""
     parser = argparse.ArgumentParser(prog="token-saver browse")

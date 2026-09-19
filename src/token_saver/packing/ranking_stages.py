@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from ..repo_index import RepositoryIndex
-from .contracts import RankedFile
+from .contracts import RankedFile, RankingScoreEvent
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class RankingStageOptions:
     graph_hops: int
     closure_max_items: int
     embeddings: bool
+    trace_scores: bool = False
 
 
 @dataclass(frozen=True)
@@ -82,10 +83,33 @@ class RankingStageRegistry:
         context: RankingStageContext,
         ranked: list[RankedFile],
     ) -> None:
-        """Run enabled stages in deterministic order without implicit sorting."""
+        """Run enabled stages and trace each stage's score/evidence contribution."""
         for stage in self._stages:
-            if stage.enabled(context):
-                stage.apply(context, ranked)
+            if not stage.enabled(context):
+                continue
+            identities = tuple(id(item) for item in ranked)
+            if context.options.trace_scores:
+                before_scores = {id(item): item.score for item in ranked}
+                reason_lengths = {id(item): len(item.reasons) for item in ranked}
+            stage.apply(context, ranked)
+            if tuple(id(item) for item in ranked) != identities:
+                raise ValueError(
+                    f"ranking stage {stage.name} must not add, remove, "
+                    "or reorder candidates"
+                )
+            if not context.options.trace_scores:
+                continue
+            for item in ranked:
+                item_id = id(item)
+                evidence = tuple(item.reasons[reason_lengths[item_id]:])
+                item.score_trace.append(
+                    RankingScoreEvent.from_scores(
+                        stage.name,
+                        before_scores[item_id],
+                        item.score,
+                        evidence,
+                    )
+                )
 
     def extend(self, *stages: RankingStage) -> RankingStageRegistry:
         """Return a new registry containing existing stages plus extensions."""
