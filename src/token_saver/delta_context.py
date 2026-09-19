@@ -219,11 +219,13 @@ def apply_delta(
         "unchanged": 0,
         "resolved": 0,
     }
-    if family is None or not current_list or not session_id:
+    if family is None or not session_id:
         return fallback, metadata
 
     key = _command_key(family, command)
     previous = _restore(diagnostic_snapshot(root, key, session_id))
+    if not current_list and not previous:
+        return fallback, metadata
     current = {item.identifier: item for item in current_list}
     record_diagnostic_snapshot(
         root,
