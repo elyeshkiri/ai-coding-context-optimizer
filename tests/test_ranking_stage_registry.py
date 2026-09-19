@@ -67,7 +67,8 @@ class _BoostLastStage:
 def _context() -> RankingStageContext:
     """Return an inert stage context for registry-only tests."""
     return RankingStageContext(
-        scope=None,  # type: ignore[arg-type]
+        index=None,
+        query="",
         options=RankingStageOptions(
             priority_files=None,
             seed_limit=6,
