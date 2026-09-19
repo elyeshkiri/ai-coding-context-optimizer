@@ -15,6 +15,13 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # The `secrets` context is not available in a step-level `if`, only in
+      # job-level `env`. Hoisting the presence check here keeps the publish
+      # step skippable for forks without the secret; testing `secrets`
+      # directly in the step condition makes the whole workflow file invalid,
+      # so it fails to parse and never runs at all.
+      HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,7 +94,7 @@ jobs:
       # job's permissions, and drop the `password:` line below. That removes
       # the stored credential entirely.
       - name: Publish to PyPI
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: env.HAS_PYPI_TOKEN == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}

@@ -20,6 +20,18 @@ jobs:
       # Scoped to correctness rules, not formatting -- see [tool.ruff.lint]
       # in pyproject.toml for why E501/E701/E702/I are deliberately excluded.
       - run: ruff check src tests scripts
+      # An invalid workflow expression is rejected by GitHub before any job
+      # is created, so it shows up as a zero-second failure with no logs and
+      # cannot be caught by any job running inside the workflow. release.yml
+      # shipped broken exactly once this way (`secrets` used in a step-level
+      # `if`, where that context is unavailable). Validate the workflows
+      # themselves from a job that does run.
+      - name: Lint GitHub Actions workflows
+        run: |
+          curl -sSLo actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
+          tar xzf actionlint.tar.gz actionlint
+          ./actionlint .github/workflows/*.yml
 
   test:
     runs-on: ubuntu-latest
