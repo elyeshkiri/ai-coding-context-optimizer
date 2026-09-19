@@ -7,8 +7,8 @@
     "history_isolated": true,
     "hidden_tests_after_agent": true,
     "development_excluded": true,
-    "frozen_at": "2026-09-19T10:00:00Z",
-    "task_definition_sha256": "f6036b0695734de2f8df323565b92a306026cb9491c8f4f10b30b569332d96f9"
+    "frozen_at": "2026-09-19T11:45:00+02:00",
+    "task_definition_sha256": "fb32efd628671663a30c129ba8c61409b3a6f1497baf19ca8e41db669d7d710c"
   },
   "design": {
     "trials_per_task": 3,
@@ -66,7 +66,8 @@
     "claude_code_version": "2.1.276",
     "agent_image": "token-saver-e2e-agent:2.1.276",
     "transcript_mode": "path",
-    "timeout_seconds": 1800
+    "timeout_seconds": 1800,
+    "container_user_mode": "host-uid-gid"
   },
   "tasks": [
     {
