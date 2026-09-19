@@ -3,7 +3,7 @@ name: Fresh External Holdout 12
 on:
   push:
     branches:
-      - bench/fresh-holdout-12
+      - bench/fresh-holdout-12-72
 
 permissions:
   contents: read
@@ -52,16 +52,30 @@ jobs:
             actual="$(git -C "$path" rev-parse HEAD)"
             test "$actual" = "$sha"
           }
-          clone_at https://github.com/psf/black.git \
-            acd6198877ced2d8126b9b3958bb17f4a65ef0d1 benchmarks/holdout12/black
-          clone_at https://github.com/stretchr/testify.git \
-            435c07b5cb95c88b82cf35f49da0dde33d24ad46 benchmarks/holdout12/testify
-          clone_at https://github.com/tokio-rs/mio.git \
-            da425f909dd6b86d887da9eaefcb158099b5b165 benchmarks/holdout12/mio
-          clone_at https://github.com/apache/commons-io.git \
-            f720b24227eb6972d4281d330ddb64c1416f81a4 benchmarks/holdout12/commons-io
-          clone_at https://github.com/vuejs/core.git \
-            4ab865a848a1da3d10fb674f857e5fff13094644 benchmarks/holdout12/vue-core
+          clone_at https://github.com/pallets/itsdangerous.git \
+            672971d66a2ef9f85151e53283113f33d642dabd benchmarks/holdout12/itsdangerous
+          clone_at https://github.com/encode/httpcore.git \
+            10a658221deb38a4c5b16db55ab554b0bf731707 benchmarks/holdout12/py-httpcore
+          clone_at https://github.com/gorilla/websocket.git \
+            e064f32e3674d9d79a8fd417b5bc06fa5c6cad8f benchmarks/holdout12/websocket
+          clone_at https://github.com/rs/zerolog.git \
+            5eb5f3a76c09eeadc1f2464baf4a4e3f1037c830 benchmarks/holdout12/zerolog
+          clone_at https://github.com/uuid-rs/uuid.git \
+            9f927126c89892ddfed6cd2f92df16852f3f9aa6 benchmarks/holdout12/uuid
+          clone_at https://github.com/crossbeam-rs/crossbeam.git \
+            38dacb462261fcd64edcb308aed9cbf95c8c82c3 benchmarks/holdout12/crossbeam
+          clone_at https://github.com/apache/commons-text.git \
+            ae3d36b8cea5d1fa5eaf3bd28f07bb111d1890e0 benchmarks/holdout12/commons-text
+          clone_at https://github.com/apache/commons-codec.git \
+            089f90450fd1f8acafad3fe626b9e9425aff5a3c benchmarks/holdout12/commons-codec
+          clone_at https://github.com/pmndrs/zustand.git \
+            b57db4f86ef179285da216eeb291266da82c361c benchmarks/holdout12/zustand
+          clone_at https://github.com/react-hook-form/react-hook-form.git \
+            1747bde471b452d1223c1e7e6ec740fcd63400f5 benchmarks/holdout12/react-hook-form
+          clone_at https://github.com/Humanizr/Humanizer.git \
+            ffc2b77c0f30d2fb176875841424379319d0ae9b benchmarks/holdout12/humanizer
+          clone_at https://github.com/JamesNK/Newtonsoft.Json.git \
+            09bb545d72969ad7fb4ea07db0d5c34f4fc07877 benchmarks/holdout12/newtonsoft
 
       - name: Run fresh holdout exactly once
         run: |
