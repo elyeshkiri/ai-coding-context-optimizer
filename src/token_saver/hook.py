@@ -25,7 +25,6 @@ from .hook_runtime import (
     HookServices,
     cap_for as cap_for,
 )
-from .output_store import store_output
 from .policy import user_nudge
 from .state import record_read, reset_session
 
@@ -84,11 +83,13 @@ def _services() -> HookServices:
     module-level callables without hidden singleton state.
     """
 
+    from .output_store import store_output as store_output_service
+
     return HookServices(
         guard=guard_run,
         output_pipeline=OutputPipeline(),
         apply_delta=apply_delta,
-        store_output=store_output,
+        store_output=store_output_service,
         user_nudge=user_nudge,
         reset_session=reset_session,
         record_read=record_read,
