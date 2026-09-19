@@ -4,50 +4,6 @@ Token Saver is a local context-optimization layer for AI coding agents. It reduc
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
-## Failure-aware tool output and diagnostic Delta
-
-Bash output now goes through a pluggable processor registry rather than one
-monolithic filter. Format-specific processors currently cover pytest, Jest/Vitest,
-`git log`, and npm/pnpm/yarn/bun installs, with a conservative generic fallback.
-A processor must explicitly opt into failed-command handling; unknown failures
-pass through unchanged. After every processor, a shared critical-line recovery
-pass restores omitted error/location lines, and a ratio gate rejects marginal or
-larger rewrites.
-
-Inspect routing without running a command:
-
-```bash
-token-saver output-explain "pytest -q"
-token-saver output-explain "npm install" --exit-code 1
-```
-
-Replay captured output against explicit preservation and savings contracts:
-
-```bash
-token-saver output-replay benchmarks/output-quality.example.json
-```
-
-Each case can require exact diagnostic strings, a maximum output-token budget,
-and a minimum reduction. A failed contract exits non-zero, so the same fixtures
-can guard CI.
-
-Repeated pytest and Ruff diagnostics can optionally use **graph-aware Delta**:
-
-```bash
-export TOKEN_SAVER_DELTA=1
-```
-
-See [OUTPUT_OPTIMIZATION.md](OUTPUT_OPTIMIZATION.md) for the processor contract,
-failure-routing rules, critical-line recovery, replay manifest schema, Delta
-state model, and graph-enrichment behavior.
-
-Within one Claude Code session, subsequent runs classify diagnostics as
-`NEW`, `CHANGED`, `UNCHANGED`, or `RESOLVED`. New and changed diagnostics
-are mapped through Token Saver's repository index to the containing symbol and
-nearby dependency/call-graph edges. Only bounded structured diagnostics are
-stored in session state; raw command output is not persisted by Delta. Delta
-replaces the normal compressed output only when the rendered delta is smaller.
-
 ## Install
 
 ```bash
@@ -115,6 +71,50 @@ Start with the task-oriented docs instead of searching this README:
 - [Contributing](CONTRIBUTING.md)
 
 The complete documentation map is [docs/README.md](docs/README.md).
+
+## Failure-aware tool output and diagnostic Delta
+
+Bash output now goes through a pluggable processor registry rather than one
+monolithic filter. Format-specific processors currently cover pytest, Jest/Vitest,
+`git log`, and npm/pnpm/yarn/bun installs, with a conservative generic fallback.
+A processor must explicitly opt into failed-command handling; unknown failures
+pass through unchanged. After every processor, a shared critical-line recovery
+pass restores omitted error/location lines, and a ratio gate rejects marginal or
+larger rewrites.
+
+Inspect routing without running a command:
+
+```bash
+token-saver output-explain "pytest -q"
+token-saver output-explain "npm install" --exit-code 1
+```
+
+Replay captured output against explicit preservation and savings contracts:
+
+```bash
+token-saver output-replay benchmarks/output-quality.example.json
+```
+
+Each case can require exact diagnostic strings, a maximum output-token budget,
+and a minimum reduction. A failed contract exits non-zero, so the same fixtures
+can guard CI.
+
+Repeated pytest and Ruff diagnostics can optionally use **graph-aware Delta**:
+
+```bash
+export TOKEN_SAVER_DELTA=1
+```
+
+See [OUTPUT_OPTIMIZATION.md](OUTPUT_OPTIMIZATION.md) for the processor contract,
+failure-routing rules, critical-line recovery, replay manifest schema, Delta
+state model, and graph-enrichment behavior.
+
+Within one Claude Code session, subsequent runs classify diagnostics as
+`NEW`, `CHANGED`, `UNCHANGED`, or `RESOLVED`. New and changed diagnostics
+are mapped through Token Saver's repository index to the containing symbol and
+nearby dependency/call-graph edges. Only bounded structured diagnostics are
+stored in session state; raw command output is not persisted by Delta. Delta
+replaces the normal compressed output only when the rendered delta is smaller.
 
 ## Output Saver: reduce generated tokens too
 
