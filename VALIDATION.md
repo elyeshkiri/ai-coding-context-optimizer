@@ -13,7 +13,7 @@ Observed CI dependency versions include:
 
 ## Test suite and self-benchmark
 
-- Full test suite: **456 passed** on the Python 3.10/3.12/3.13 CI matrix.
+- Full test suite: **474 tests** are expected after the quality-gate coverage added on this branch; the PR CI run is the authoritative result across Python 3.10/3.12/3.13.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **100% mean relevant-file recall, 100% mean
   relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
@@ -117,14 +117,18 @@ evaluated with `--require-holdout` (`benchmarks/holdout-external.json` /
   - `7acb0d8` "align structural leaf gates with query tokenization" broke
     `zod-email-regex` file recall (1.000 -> 0.833).
 
-  Current main therefore measures 83.3% file and 83.3% symbol recall, but
-  the failing tasks are `zod-email-regex` (file) and `zod-error-tree`
-  (symbol) -- not the distribution described above. The aggregate matching
-  the 1.2.0 figure is a coincidence of two offsetting changes.
+  Current main therefore measures 83.3% file recall, 83.3% bare-symbol
+  recall, and 66.7% symbol recall in expected files. The scoped metric is
+  lower because `zod-email-regex` can still find a same-named symbol outside
+  `regexes.ts`, while `zod-error-tree` misses its expected symbol. The
+  aggregate 83.3% bare figures matching the 1.2.0 result are therefore a
+  coincidence of offsetting changes.
 
-  `.github/workflows/ci.yml` now runs this suite on every push and pull
-  request via `scripts/check_holdout.py`, enforcing the floor recorded in
-  `benchmarks/holdout-external.floor.json`. Neither regression has been
+  `.github/workflows/ci.yml` now runs this suite on every pull request and
+  again on every push to `main` via `scripts/check_holdout.py`, enforcing
+  file, bare-symbol, and expected-file-scoped symbol floors recorded in
+  `benchmarks/holdout-external.floor.json`. The floor update command is
+  monotonic and refuses to lower any existing threshold. Neither regression has been
   "fixed" by adjusting ranking: this is a burned holdout, and tuning
   against it to move the number is exactly what the protocol forbids. The
   floor is set at the current value and should be ratcheted upward only
