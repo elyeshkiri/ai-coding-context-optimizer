@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
-from .command_handlers.context import browse_main, feedback_main, impact_main
+from .command_handlers.context import (
+    browse_main,
+    feedback_main,
+    impact_main,
+    ranking_explain_main,
+)
 from .command_handlers.evaluation import agent_evaluate_main, evaluate_main
 from .command_handlers.experiment import cost_report_main, experiment_main
 from .command_handlers.host import host_check_main, serve_main
@@ -62,6 +67,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("impact", impact_main),
         CommandSpec("browse", browse_main),
         CommandSpec("feedback", feedback_main),
+        CommandSpec("ranking-explain", ranking_explain_main),
         CommandSpec("evaluate", evaluate_main),
         CommandSpec("agent-evaluate", agent_evaluate_main),
         CommandSpec("experiment", experiment_main),
