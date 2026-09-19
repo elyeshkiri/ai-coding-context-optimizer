@@ -269,8 +269,8 @@ pipeline.
 ## Hook boundary
 
 `token_saver.hook` is now the Claude-specific composition root only. It parses
-JSON/stdin, translates environment variables into `HookConfig`, and wires
-concrete services. Event routing and replacement policy live in the host-neutral
+JSON/stdin, resolves project configuration plus environment overrides into
+`HookConfig`, and wires concrete services. Event routing and replacement policy live in the host-neutral
 `HookRuntime`.
 
 `HookRuntime` receives an explicit `HookServices` bundle containing the
@@ -340,13 +340,17 @@ behavior or duplicating repository logic.
 16. **Gate calibration is empirical:** PR reruns are deduplicated, ground-truth
     cohorts remain separate, and calibration reports observed distributions
     without automatically redefining regressions as allowed noise.
+17. **Documentation is a tested public interface:** package/README/validation
+    versions stay aligned, every shipped CLI command is present in the command
+    reference, and relative links in the maintained public documentation set
+    must resolve in CI.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
 `tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
 `tests/test_ranking_pipeline_boundaries.py`, `tests/test_ranking_stage_registry.py`,
 `tests/test_ranking_observability.py`, `tests/test_ranking_regression.py`, and
-`tests/test_ranking_ci_workflow.py`, `tests/test_ranking_calibration.py`, and
-`tests/test_ranking_calibration_workflow.py` lock in these extension seams so
-future features can grow by composition instead of by adding more central
-branching.
+`tests/test_ranking_ci_workflow.py`, `tests/test_ranking_calibration.py`,
+`tests/test_ranking_calibration_workflow.py`, and `tests/test_documentation.py`
+lock in these extension seams and public documentation contracts so future
+features can grow without silently breaking discoverability or evidence links.
