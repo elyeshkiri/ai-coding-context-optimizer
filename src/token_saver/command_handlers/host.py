@@ -182,14 +182,14 @@ def completion_main(argv: list[str]) -> int:
     names = " ".join(DEFAULT_COMMAND_REGISTRY.names())
     if args.shell == "bash":
         print(
-            "_token_saver_complete() {\\n"
-            '  local cur="${COMP_WORDS[COMP_CWORD]}"\\n'
-            f'  COMPREPLY=( $(compgen -W "{names}" -- "$cur") )\\n'
-            "}\\n"
+            "_token_saver_complete() {\n"
+            '  local cur="${COMP_WORDS[COMP_CWORD]}"\n'
+            f'  COMPREPLY=( $(compgen -W "{names}" -- "$cur") )\n'
+            "}\n"
             "complete -F _token_saver_complete token-saver"
         )
     elif args.shell == "zsh":
-        print(f"#compdef token-saver\\n_arguments \'1:command:({names})\'")
+        print(f"#compdef token-saver\n_arguments \'1:command:({names})\'")
     else:
         for name in DEFAULT_COMMAND_REGISTRY.names():
             print(f"complete -c token-saver -n \'__fish_use_subcommand\' -a \'{name}\'")
@@ -205,5 +205,5 @@ def commands_main(argv: list[str]) -> int:
     print("TOKEN SAVER COMMANDS")
     for name in DEFAULT_COMMAND_REGISTRY.names():
         print(name)
-    print("\\nUse: token-saver <command> --help")
+    print("\nUse: token-saver <command> --help")
     return 0
