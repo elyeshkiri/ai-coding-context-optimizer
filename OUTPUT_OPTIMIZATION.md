@@ -1,7 +1,7 @@
 # Output optimization, quality contracts, and diagnostic Delta
 
 Token Saver's output layer reduces command noise without treating all terminal
-text as disposable. Version 1.4.0 introduces three related capabilities:
+text as disposable. Version 1.5.0 introduces three related capabilities:
 
 1. a pluggable, failure-aware output processor registry;
 2. registry-wide critical-diagnostic recovery plus replayable quality contracts;
@@ -92,7 +92,7 @@ original.
 
 ## 3. Replayable output quality contracts
 
-Compression ratios alone are not a correctness guarantee. Version 1.4.0 adds
+Compression ratios alone are not a correctness guarantee. Version 1.5.0 adds
 `output-replay`, which evaluates captured command output against explicit
 preservation and savings requirements.
 
