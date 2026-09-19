@@ -158,6 +158,43 @@ The same structured payload is exposed through MCP as `explain_ranking`.
 Third-party `RankingStage` implementations are traced automatically when an
 explanation is requested; plugins do not need their own observability API.
 
+### Diff ranking behavior across commits/configurations
+
+Capture the same frozen task manifest on each revision or configuration:
+
+```bash
+token-saver ranking-snapshot benchmarks/context-quality.json \
+  --path . --max-files 20 --out baseline-ranking.json
+
+# after checking out or configuring the candidate
+token-saver ranking-snapshot benchmarks/context-quality.json \
+  --path . --max-files 20 --out candidate-ranking.json
+```
+
+Then compare the artifacts:
+
+```bash
+token-saver ranking-diff baseline-ranking.json candidate-ranking.json
+token-saver ranking-diff baseline-ranking.json candidate-ranking.json --json
+```
+
+The diff follows every expected file from the manifest, even when it falls below
+the displayed top-N, and reports rank movement, score movement, and the
+per-stage contribution changes that caused it. Snapshots with different
+ground-truth hashes are rejected instead of producing misleading comparisons.
+
+For CI, fail when an expected file disappears or drops farther than an allowed
+amount:
+
+```bash
+token-saver ranking-diff baseline-ranking.json candidate-ranking.json \
+  --fail-on-regression --allowed-rank-drop 1
+```
+
+This workflow intentionally separates snapshot capture from comparison, so the
+same diff engine works across Git commits, feature flags, plugin registries,
+model/embedding availability, or CI artifacts without managing hidden worktrees.
+
 
 ## Benchmark Output Saver compaction
 
