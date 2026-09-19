@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
-import os
 import re
 import shlex
 from pathlib import Path
@@ -26,7 +25,6 @@ from .skeleton import CODE_SUFFIXES, skeletonize
 from .runtime_config import settings_for
 from .state import seen_read
 
-DEFAULT_READ_MAX_LINES = 220
 OUTLINE_PREVIEW_TOKENS = 900
 ALLOW_NAMES = {
     "package.json",
@@ -37,14 +35,6 @@ ALLOW_NAMES = {
     "Makefile",
     "Dockerfile",
 }
-
-
-def _env_int(name: str, fallback: int) -> int:
-    """Handle env int."""
-    try:
-        return int(os.environ[name])
-    except (KeyError, ValueError):
-        return fallback
 
 
 def _guard_enabled(cwd: Path | None = None) -> bool:
