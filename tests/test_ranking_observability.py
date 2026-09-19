@@ -137,7 +137,7 @@ def test_custom_reranker_is_traced_automatically(tmp_path):
     for item in ranked:
         event = item.score_trace[-1]
         assert event.stage == "test-boost"
-        assert event.delta == 3.5
+        assert math.isclose(event.delta, 3.5, rel_tol=1e-12, abs_tol=1e-12)
         assert event.evidence == ("custom:test-boost",)
         assert event.after == item.score
 
