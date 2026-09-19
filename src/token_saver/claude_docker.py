@@ -43,6 +43,10 @@ def run(
 
     uid = os.getuid()
     gid = os.getgid()
+    child_env = os.environ.copy()
+    child_env["ANTHROPIC_CUSTOM_HEADERS"] = (
+        "anthropic-workspace-id: " + os.environ["ANTHROPIC_WORKSPACE_ID"]
+    )
     command = [
         "docker", "run", "--rm",
         "--user", f"{uid}:{gid}",
@@ -60,6 +64,7 @@ def run(
         "TOKEN_SAVER_BENCHMARK_TRIAL",
     ):
         _docker_env(command, name)
+    command.extend(["-e", "ANTHROPIC_CUSTOM_HEADERS"])
     command.extend([
         "-e", "DISABLE_AUTOUPDATER=1",
         image,
@@ -75,6 +80,7 @@ def run(
         text=True,
         capture_output=True,
         check=False,
+        env=child_env,
     )
     if proc.stdout:
         print(proc.stdout, end="")
