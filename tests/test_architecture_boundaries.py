@@ -1,8 +1,12 @@
 """Regression tests for the explicit architecture extension seams."""
 
+import ast
 import inspect
 
+import token_saver.command_handlers.context as context_commands
 import token_saver.commands as commands_facade
+import token_saver.mcp_server.tools as mcp_tools
+import token_saver.pack_cli as pack_cli
 from token_saver.command_handlers.context import browse_main as vertical_browse_main
 from token_saver.command_registry import (
     DEFAULT_COMMAND_REGISTRY,
@@ -108,3 +112,23 @@ def test_default_registry_bypasses_the_commands_compatibility_facade():
     }
     assert modules
     assert all(module.startswith("token_saver.command_handlers.") for module in modules)
+
+
+def test_repository_integrations_use_application_service_boundary():
+    """Host-facing repository integrations should not import low-level orchestration."""
+    forbidden = {
+        "build_context_pack",
+        "browse_context",
+        "analyze_impact",
+        "build_index",
+        "record_feedback",
+    }
+    for module in (context_commands, mcp_tools, pack_cli):
+        tree = ast.parse(inspect.getsource(module))
+        imported = {
+            alias.name
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+            for alias in node.names
+        }
+        assert forbidden.isdisjoint(imported)

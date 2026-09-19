@@ -4,11 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ..context_browser import browse_context
-from ..feedback import record_feedback
-from ..impact import analyze_impact
 from ..output_saver import build_output_policy, compact_output
-from ..pack import build_context_pack
 from ..patch_context import build_diff_context, review_patch
 from .contracts import McpToolContext, McpToolSpec
 
@@ -43,12 +39,10 @@ class McpToolRegistry:
 
 def _build_context(context: McpToolContext, arguments: dict) -> dict:
     """Build a task-aware source context pack."""
-    pack = build_context_pack(
-        context.root,
+    pack = context.repository.build_context(
         str(arguments.get("query", "")),
         max_tokens=int(arguments.get("max_tokens", 6000)),
         target_symbol=arguments.get("target_symbol"),
-        index=context.index.get(),
     )
     return {
         "text": pack.text,
@@ -62,45 +56,28 @@ def _build_context(context: McpToolContext, arguments: dict) -> dict:
 
 def _browse_context(context: McpToolContext, arguments: dict) -> dict:
     """Return ranked repository source candidates for a query."""
-    return browse_context(
-        context.root,
+    return context.repository.browse(
         str(arguments.get("query", "")),
         max_files=int(arguments.get("max_files", 8)),
         preview_tokens=int(arguments.get("preview_tokens", 350)),
-        index=context.index.get(),
     )
 
 
 def _find_symbol(context: McpToolContext, arguments: dict) -> list[dict]:
     """Find symbol definitions and source ranges."""
-    index = context.index.get()
-    return [
-        {
-            "path": rel,
-            "name": symbol.name,
-            "kind": symbol.kind,
-            "start_line": symbol.start_line,
-            "end_line": symbol.end_line,
-            "signature": symbol.signature,
-            "parent": symbol.parent,
-        }
-        for rel, symbol in index.find_symbols(str(arguments.get("name", "")))
-    ]
+    return context.repository.find_symbols(str(arguments.get("name", "")))
 
 
 def _analyze_change_impact(context: McpToolContext, arguments: dict) -> dict:
     """Return callers, dependents, tests, and graph evidence for a target."""
-    return analyze_impact(
-        context.root,
-        str(arguments.get("target", "")),
-        index=context.index.get(),
+    return context.repository.impact(
+        str(arguments.get("target", ""))
     ).to_dict()
 
 
 def _report_context_feedback(context: McpToolContext, arguments: dict) -> dict:
     """Record whether one included file was useful for future local ranking."""
-    scores = record_feedback(
-        context.root,
+    scores = context.repository.feedback(
         str(arguments.get("path", "")),
         useful=bool(arguments.get("useful")),
     )
@@ -110,14 +87,14 @@ def _report_context_feedback(context: McpToolContext, arguments: dict) -> dict:
 def _index_status(context: McpToolContext, arguments: dict) -> dict:
     """Return persistent repository-index lifecycle metadata."""
     del arguments
-    return context.index.status()
+    return context.repository.status()
 
 
 def _refresh_index(context: McpToolContext, arguments: dict) -> dict:
     """Refresh the repository index and return its resulting status."""
     del arguments
-    context.index.refresh()
-    return context.index.status()
+    context.repository.refresh()
+    return context.repository.status()
 
 
 def _build_diff_context(context: McpToolContext, arguments: dict) -> dict:

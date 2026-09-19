@@ -7,9 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from ..context_browser import browse_context
-from ..feedback import record_feedback
-from ..impact import analyze_impact
+from ..repository_service import RepositoryContextService
 
 
 def impact_main(argv: list[str]) -> int:
@@ -20,7 +18,7 @@ def impact_main(argv: list[str]) -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
-        report = analyze_impact(Path(args.path).resolve(), args.target)
+        report = RepositoryContextService(Path(args.path)).impact(args.target)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
@@ -47,7 +45,10 @@ def feedback_main(argv: list[str]) -> int:
     group.add_argument("--useful", action="store_true")
     group.add_argument("--irrelevant", action="store_true")
     args = parser.parse_args(argv)
-    scores = record_feedback(Path(args.path), args.file, useful=args.useful)
+    scores = RepositoryContextService(Path(args.path)).feedback(
+        args.file,
+        useful=args.useful,
+    )
     normalized = args.file.replace("\\", "/").lstrip("./")
     print(json.dumps({"file": args.file, "score": scores[normalized]}))
     return 0
@@ -68,8 +69,7 @@ def browse_main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     try:
-        report = browse_context(
-            Path(args.path).resolve(),
+        report = RepositoryContextService(Path(args.path)).browse(
             args.query,
             max_files=args.max_files,
             preview_tokens=args.preview_tokens,

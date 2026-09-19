@@ -6,9 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .pack import build_context_pack
-from .repo_index import build_index
-from .semantic_ts import enrich_index_with_typescript
+from .repository_service import RepositoryContextService
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,33 +51,28 @@ def main(argv: list[str] | None = None) -> int:
         print(f"not a directory: {root}", file=sys.stderr)
         return 1
     try:
-        index = build_index(
+        repository = RepositoryContextService(
             root,
             use_gitignore=not args.no_gitignore,
-            persist=not args.no_index_cache,
+            persist_index=not args.no_index_cache,
         )
         semantic_enabled = True if (args.typescript_semantic or args.strict_semantic) else None
-        semantic_edges = enrich_index_with_typescript(
-            index,
+        semantic_edges = repository.enrich_typescript(
             enabled=semantic_enabled,
             strict=args.strict_semantic,
         )
-        pack = build_context_pack(
-            root,
+        pack = repository.build_context(
             args.query,
             max_tokens=args.max_tokens,
             max_files=args.max_files,
             context_lines=args.context_lines,
-            use_gitignore=not args.no_gitignore,
             changed_boost=not args.no_changed_boost,
             graph_hops=args.graph_hops,
             duplicate_threshold=args.duplicate_threshold,
             session=args.session,
             embeddings=args.embeddings,
-            persist_index=not args.no_index_cache,
             target_symbol=args.target_symbol,
             closure_max_items=args.closure_items,
-            index=index,
         )
     except (ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)
