@@ -39,7 +39,7 @@ Command implementations are grouped vertically under
 `token_saver.command_handlers`:
 
 - `context.py` — repository browsing, ranking explanations, impact, and feedback;
-- `evaluation.py` — context and agent evaluation;
+- `evaluation.py` — context/agent evaluation plus ranking snapshot/diff workflows;
 - `experiment.py` — paired experiments and cost-per-success reporting;
 - `host.py` — host validation and MCP serving;
 - `output.py` — output policy, compaction, replay, explain, and benchmarks;
@@ -171,6 +171,25 @@ This makes custom stages observable without expanding the extension contract.
 The explanation payload verifies that the final trace endpoint equals the final
 rank score.
 
+### Ranking regression snapshots
+
+`ranking-snapshot` records trace-enabled ranking evidence against the same task
+manifest used by retrieval evaluation. Snapshot capture disables changed-file
+and learned-feedback boosts to make revision/configuration comparisons stable,
+records repository revisions, and retains every expected file even when its
+rank is below the configured top-N display limit.
+
+`ranking-diff` requires identical ground-truth hashes and task definitions,
+then compares expected-file rank/score movement and per-stage contribution
+changes. The comparison layer does not rerun retrieval, so baseline and
+candidate artifacts can originate from different commits, machines, or
+configurations. Optional CI gating treats disappearance as a regression and
+supports a bounded allowed rank drop.
+
+This makes ranking R&D evidence-preserving: a regression can be attributed to
+the scoring component or registered reranker whose contribution changed,
+rather than inferred from a single final score.
+
 ### Symbol scoring vs rendering
 
 Within-file relevance and source rendering are separate policies.
@@ -266,10 +285,14 @@ behavior or duplicating repository logic.
 13. **Observability is additive:** score tracing must not change ranking
     arithmetic, legacy reason strings, or default runtime cost; explanation
     surfaces opt into traces explicitly.
+14. **Ranking comparisons preserve ground truth:** regression diffs require the
+    same frozen task hash and compare saved evidence rather than silently
+    rerunning baseline retrieval under candidate code.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
 `tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
 `tests/test_ranking_pipeline_boundaries.py`, `tests/test_ranking_stage_registry.py`,
-and `tests/test_ranking_observability.py` lock in these extension seams so future
-features can grow by composition instead of by adding more central branching.
+`tests/test_ranking_observability.py`, and `tests/test_ranking_regression.py` lock
+in these extension seams so future features can grow by composition instead of
+by adding more central branching.

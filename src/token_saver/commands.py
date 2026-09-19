@@ -10,7 +10,12 @@ from .command_handlers.context import (
     impact_main,
     ranking_explain_main,
 )
-from .command_handlers.evaluation import agent_evaluate_main, evaluate_main
+from .command_handlers.evaluation import (
+    agent_evaluate_main,
+    evaluate_main,
+    ranking_diff_main,
+    ranking_snapshot_main,
+)
 from .command_handlers.experiment import cost_report_main, experiment_main
 from .command_handlers.host import host_check_main, serve_main
 from .command_handlers.output import (
@@ -37,7 +42,9 @@ __all__ = [
     "output_replay_main",
     "output_save_main",
     "pack_diff_main",
+    "ranking_diff_main",
     "ranking_explain_main",
+    "ranking_snapshot_main",
     "review_main",
     "serve_main",
 ]

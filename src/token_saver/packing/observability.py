@@ -39,13 +39,17 @@ def explain_ranked_files(
     ranked: list[RankedFile],
     *,
     max_files: int = 8,
+    include_paths: set[str] | None = None,
 ) -> dict:
-    """Return stage-by-stage score explanations for the top ranked files."""
+    """Return score explanations for top files plus explicitly included paths."""
     if max_files <= 0:
         raise ValueError("max_files must be positive")
 
+    include_paths = include_paths or set()
     results: list[dict] = []
-    for position, item in enumerate(ranked[:max_files], start=1):
+    for position, item in enumerate(ranked, start=1):
+        if position > max_files and item.rel not in include_paths:
+            continue
         stage_deltas: dict[str, float] = {}
         for event in item.score_trace:
             stage_deltas[event.stage] = (
@@ -68,5 +72,6 @@ def explain_ranked_files(
         "query": query,
         "candidate_count": len(ranked),
         "returned": len(results),
+        "top_limit": max_files,
         "results": results,
     }

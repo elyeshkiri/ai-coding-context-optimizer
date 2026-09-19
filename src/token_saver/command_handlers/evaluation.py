@@ -9,6 +9,12 @@ from pathlib import Path
 
 from ..agent_eval import evaluate_agent_runs
 from ..evaluate import evaluate_manifest, ground_truth_hash
+from ..ranking_regression import (
+    build_ranking_snapshot,
+    compare_ranking_snapshots,
+    load_ranking_snapshot,
+    regression_violations,
+)
 
 
 def evaluate_main(argv: list[str]) -> int:
@@ -60,4 +66,110 @@ def agent_evaluate_main(argv: list[str]) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def ranking_snapshot_main(argv: list[str]) -> int:
+    """Capture ranking traces for an evaluation-style task manifest."""
+    parser = argparse.ArgumentParser(prog="token-saver ranking-snapshot")
+    parser.add_argument("manifest")
+    parser.add_argument("--path", default=".")
+    parser.add_argument("--max-files", type=int, default=20)
+    parser.add_argument("--graph-hops", type=int, default=1)
+    parser.add_argument("--closure-items", type=int, default=20)
+    parser.add_argument("--embeddings", action="store_true")
+    parser.add_argument("--out")
+    args = parser.parse_args(argv)
+    try:
+        snapshot = build_ranking_snapshot(
+            Path(args.path),
+            Path(args.manifest),
+            max_files=args.max_files,
+            graph_hops=args.graph_hops,
+            closure_max_items=args.closure_items,
+            embeddings=args.embeddings,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    rendered = json.dumps(snapshot, indent=2)
+    if args.out:
+        try:
+            Path(args.out).write_text(rendered + "\n", encoding="utf-8")
+        except OSError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+    else:
+        print(rendered)
+    return 0
+
+
+def ranking_diff_main(argv: list[str]) -> int:
+    """Compare two ranking snapshots and attribute expected-file movement."""
+    parser = argparse.ArgumentParser(prog="token-saver ranking-diff")
+    parser.add_argument("baseline")
+    parser.add_argument("candidate")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="exit 1 when an expected file disappears or drops too far",
+    )
+    parser.add_argument(
+        "--allowed-rank-drop",
+        type=int,
+        default=0,
+        help="largest downward rank movement allowed by --fail-on-regression",
+    )
+    args = parser.parse_args(argv)
+    try:
+        baseline = load_ranking_snapshot(Path(args.baseline))
+        candidate = load_ranking_snapshot(Path(args.candidate))
+        report = compare_ranking_snapshots(baseline, candidate)
+        violations = regression_violations(
+            report,
+            allowed_rank_drop=args.allowed_rank_drop,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        payload = dict(report)
+        payload["violations"] = violations
+        print(json.dumps(payload, indent=2))
+    else:
+        summary = report["summary"]
+        print(
+            "RANKING DIFF: "
+            f"{summary['regressed_files']} regressed, "
+            f"{summary['improved_files']} improved, "
+            f"{summary['missing_in_candidate']} missing"
+        )
+        for task in report["tasks"]:
+            interesting = [
+                item
+                for item in task["files"]
+                if item["regression"] or item["improvement"]
+            ]
+            if not interesting:
+                continue
+            print(f"\n{task['id']}: {task['query']}")
+            for item in interesting:
+                before = item["baseline_rank"]
+                after = item["candidate_rank"]
+                direction = "REGRESSION" if item["regression"] else "IMPROVEMENT"
+                print(f"  {direction}: {item['path']} rank {before} -> {after}")
+                for change in item["stage_changes"][:5]:
+                    if abs(change["delta"]) <= 1e-12:
+                        continue
+                    print(
+                        f"    {change['stage']:<24} "
+                        f"{change['delta']:+.3f} "
+                        f"({change['baseline']:.3f} -> {change['candidate']:.3f})"
+                    )
+
+    if args.fail_on_regression and violations:
+        return 1
     return 0
