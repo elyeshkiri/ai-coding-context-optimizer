@@ -4,7 +4,12 @@ New code should import handlers from :mod:`token_saver.command_handlers`
 submodules. This module preserves the pre-refactor import surface only.
 """
 
-from .command_handlers.context import browse_main, feedback_main, impact_main
+from .command_handlers.context import (
+    browse_main,
+    feedback_main,
+    impact_main,
+    ranking_explain_main,
+)
 from .command_handlers.evaluation import agent_evaluate_main, evaluate_main
 from .command_handlers.experiment import cost_report_main, experiment_main
 from .command_handlers.host import host_check_main, serve_main
@@ -32,6 +37,7 @@ __all__ = [
     "output_replay_main",
     "output_save_main",
     "pack_diff_main",
+    "ranking_explain_main",
     "review_main",
     "serve_main",
 ]
