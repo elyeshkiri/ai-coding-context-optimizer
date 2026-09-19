@@ -10,10 +10,32 @@ import os
 from pathlib import Path
 import sys
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 from zipfile import BadZipFile, ZipFile
 
 API_VERSION = "2022-11-28"
+
+
+class _CrossHostSafeRedirect(HTTPRedirectHandler):
+    """Follow redirects while stripping GitHub auth from cross-host requests."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """Remove Authorization when a redirect leaves the original API host."""
+        redirected = super().redirect_request(
+            req,
+            fp,
+            code,
+            msg,
+            headers,
+            newurl,
+        )
+        if (
+            redirected is not None
+            and urlparse(req.full_url).netloc != urlparse(newurl).netloc
+        ):
+            redirected.remove_header("Authorization")
+        return redirected
 
 
 def _request(url: str, token: str) -> Request:
@@ -112,6 +134,13 @@ def _extract_ranking_diff(archive: bytes) -> bytes:
         raise ValueError("GitHub artifact response was not a ZIP archive") from exc
 
 
+def _download_archive(url: str, token: str) -> bytes:
+    """Download one artifact ZIP without leaking GitHub auth to blob storage."""
+    opener = build_opener(_CrossHostSafeRedirect())
+    with opener.open(_request(url, token), timeout=60) as response:
+        return response.read()
+
+
 def download_ranking_history(
     artifacts: list[dict],
     token: str,
@@ -122,9 +151,7 @@ def download_ranking_history(
     for artifact in artifacts:
         artifact_id = int(artifact["id"])
         url = str(artifact["archive_download_url"])
-        with urlopen(_request(url, token), timeout=60) as response:
-            archive = response.read()
-        diff = _extract_ranking_diff(archive)
+        diff = _extract_ranking_diff(_download_archive(url, token))
         (output / f"{artifact_id}.json").write_bytes(diff)
 
 

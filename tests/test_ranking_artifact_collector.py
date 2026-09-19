@@ -141,3 +141,46 @@ def test_collector_requires_positive_limit(monkeypatch):
         collector.list_recent_ranking_artifacts("owner/repo", "token", limit=0)
 
     assert called is False
+
+
+
+def test_cross_host_redirect_strips_github_authorization():
+    """Signed blob-storage redirects must never receive the GitHub bearer token."""
+    collector = _collector_module()
+    request = collector._request(
+        "https://api.github.com/repos/owner/repo/actions/artifacts/1/zip",
+        "secret-token",
+    )
+
+    redirected = collector._CrossHostSafeRedirect().redirect_request(
+        request,
+        None,
+        302,
+        "Found",
+        {},
+        "https://objects.example.test/artifact.zip?sig=abc",
+    )
+
+    assert redirected is not None
+    assert redirected.get_header("Authorization") is None
+
+
+def test_same_host_redirect_keeps_github_authorization():
+    """GitHub-to-GitHub redirects may retain the API bearer token."""
+    collector = _collector_module()
+    request = collector._request(
+        "https://api.github.com/repos/owner/repo/actions/artifacts/1/zip",
+        "secret-token",
+    )
+
+    redirected = collector._CrossHostSafeRedirect().redirect_request(
+        request,
+        None,
+        302,
+        "Found",
+        {},
+        "https://api.github.com/repos/owner/repo/actions/artifacts/1/archive",
+    )
+
+    assert redirected is not None
+    assert redirected.get_header("Authorization") == "Bearer secret-token"
