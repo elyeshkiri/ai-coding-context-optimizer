@@ -13,7 +13,7 @@ Observed CI dependency versions include:
 
 ## Test suite and self-benchmark
 
-- Full test suite: **456 passed** on the Python 3.10/3.12/3.13 CI matrix.
+- Full test suite: **474 passed** on the Python 3.10/3.12/3.13 PR CI matrix after adding quality-gate coverage.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **100% mean relevant-file recall, 100% mean
   relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
@@ -105,6 +105,34 @@ evaluated with `--require-holdout` (`benchmarks/holdout-external.json` /
   and a file-ranking dampening attempt that broke it again while fixing
   `zod-email-regex`); both are disclosed in full, with root cause and
   resolution, in CHANGELOG.md.
+- **Correction (bisected after 1.3.0):** the per-task attribution above is
+  stale, and `benchmarks/holdout-external.result.json` (6/6 at 1.0/1.0) no
+  longer reproduces. That artifact was accurate when written -- the suite
+  scored 6/6 at `3462828` -- but regressed twice afterwards, undetected,
+  because this suite ran in no CI job:
+  - `6f47fd2` "stop containers from double-counting descendant relevance"
+    broke `zod-error-tree` symbol recall (1.000 -> 0.667; partially
+    recovered to 0.833 at `3361bdb`, and `zod-error-tree` has failed ever
+    since);
+  - `7acb0d8` "align structural leaf gates with query tokenization" broke
+    `zod-email-regex` file recall (1.000 -> 0.833).
+
+  Current main therefore measures 83.3% file recall, 83.3% bare-symbol
+  recall, and 66.7% symbol recall in expected files. The scoped metric is
+  lower because `zod-email-regex` can still find a same-named symbol outside
+  `regexes.ts`, while `zod-error-tree` misses its expected symbol. The
+  aggregate 83.3% bare figures matching the 1.2.0 result are therefore a
+  coincidence of offsetting changes.
+
+  `.github/workflows/ci.yml` now runs this suite on every pull request and
+  again on every push to `main` via `scripts/check_holdout.py`, enforcing
+  file, bare-symbol, and expected-file-scoped symbol floors recorded in
+  `benchmarks/holdout-external.floor.json`. The floor update command is
+  monotonic and refuses to lower any existing threshold. Neither regression has been
+  "fixed" by adjusting ranking: this is a burned holdout, and tuning
+  against it to move the number is exactly what the protocol forbids. The
+  floor is set at the current value and should be ratcheted upward only
+  when a root-cause fix, validated on the self-benchmark first, raises it.
 - **Remaining known gap: `zod-email-regex` (0.0 file recall).** Root
   cause identified precisely: `rank_files()`'s outline-term bonus is
   presence-only, not normalized by outline size, so a large file with a

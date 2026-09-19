@@ -14,7 +14,8 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Iterable, Any
+from typing import Any
+from collections.abc import Iterable
 
 _NAMED_IMPORT = re.compile(
     r"\bimport\s+(?:type\s+)?\{(?P<items>[^}]+)\}\s+from\s+['\"](?P<module>[^'\"]+)['\"]",

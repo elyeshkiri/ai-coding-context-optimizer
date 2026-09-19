@@ -1,0 +1,45 @@
+{
+  "_note": [
+    "Regression floor for frozen external holdout #1. CI fails if recall drops",
+    "below the floor, so a ranking change can no longer silently regress this",
+    "suite the way two already did.",
+    "",
+    "The floor is deliberately set to what main CURRENTLY scores, not to the",
+    "target. Holdout #1 scored 1.0/1.0 at 3462828 and regressed twice since:",
+    "  6f47fd2 'stop containers from double-counting descendant relevance'",
+    "          broke zod-error-tree symbol recall (1.000 -> 0.667; later",
+    "          partially recovered to 0.833 at 3361bdb).",
+    "  7acb0d8 'align structural leaf gates with query tokenization'",
+    "          broke zod-email-regex file recall (1.000 -> 0.833).",
+    "Because zod-email-regex still finds a same-named symbol outside the expected",
+    "file, scoped symbol recall is exactly 2/3 and is gated separately from bare recall.",
+    "Both regressions landed while this suite ran nowhere, which is what this gate fixes.",
+    "",
+    "Raise floors back toward the targets only when independent root-cause fixes",
+    "improve them. Do NOT tune ranking against this suite to move these numbers --",
+    "it is a burned holdout and the project's protocol treats it as a regression",
+    "floor only. --update-floor is monotonic and refuses to lower any threshold."
+  ],
+  "manifest": "benchmarks/holdout-external.json",
+  "max_tokens": 6000,
+  "repositories": {
+    "httpx": {
+      "url": "https://github.com/encode/httpx.git",
+      "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254"
+    },
+    "zod": {
+      "url": "https://github.com/colinhacks/zod.git",
+      "revision": "59bbc03e10c636b9eb3c393dfeb552819774ec21"
+    }
+  },
+  "floor": {
+    "mean_file_recall": 0.833,
+    "mean_symbol_recall": 0.833,
+    "mean_symbol_recall_in_expected_files": 0.6666666666666666
+  },
+  "target": {
+    "mean_file_recall": 1.0,
+    "mean_symbol_recall": 1.0,
+    "mean_symbol_recall_in_expected_files": 1.0
+  }
+}

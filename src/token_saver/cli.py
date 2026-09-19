@@ -10,7 +10,7 @@ from pathlib import Path
 from .audit import audit
 from .sessions import analyze, transcript_paths
 from .estimate import DEFAULT_MODEL, Counter, estimate_tokens, format_tokens
-from .filter_output import filter_command_output, filter_text
+from .filter_output import filter_command_output
 from .hook import main as hook_main
 from .install import install
 from .mapstat import map_freshness
@@ -321,7 +321,6 @@ def cmd_sessions(args: argparse.Namespace) -> int:
     img_tokens, img_count = report.image_cost()
     if img_count:
         share = 100 * img_tokens / total if total else 0
-        avg = img_tokens // max(img_count, 1)
         print(f"\nIMAGE PAYLOADS — ~{img_tokens:,} estimated tokens, {img_count} images, "
               f"{share:.1f}% of tool output")
         unknown = sum(c.unknown_size for c in report.calls if c.kind == "image")

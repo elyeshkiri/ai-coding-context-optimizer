@@ -232,7 +232,7 @@ def _confidence(pairs: list[tuple[Run, Run]]) -> dict:
             f"seed {_BOOTSTRAP_SEED}, 95% percentile interval"
         ),
         "task_clusters": len(totals),
-        "intervals": {name: None for name in names},
+        "intervals": dict.fromkeys(names),
     }
     if len(totals) < 2:
         out["note"] = "at least 2 distinct tasks are required for an interval"

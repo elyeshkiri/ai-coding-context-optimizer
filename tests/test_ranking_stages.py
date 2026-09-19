@@ -7,7 +7,6 @@ rather than only shifting an aggregate benchmark number.
 """
 from collections import Counter
 
-from token_saver.lexical import terms
 from token_saver.pack import (
     _ACTION_TERMS,
     _apply_file_boosts,

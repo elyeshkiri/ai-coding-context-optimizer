@@ -17,9 +17,9 @@ from token_saver.guard import decide_read
 from token_saver.output_store import retrieve, store_output
 from token_saver.sessions import Report, Turn, ToolCall, analyze
 from token_saver.snippet import extract_symbol
-from token_saver.state import load, record_read, reset_session, seen_read
+from token_saver.state import load, record_read, seen_read
 from token_saver.install import install, merge_hooks
-from token_saver.pricing import cost, load_rates
+from token_saver.pricing import cost
 
 
 def bash(stdout, stderr='', **extra):

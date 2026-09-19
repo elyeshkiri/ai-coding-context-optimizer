@@ -1,5 +1,4 @@
 import json
-import json
 import textwrap
 
 from token_saver.entry import main

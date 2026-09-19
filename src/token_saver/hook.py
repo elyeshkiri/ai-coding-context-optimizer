@@ -20,7 +20,7 @@ from .estimate import estimate_tokens
 from .filter_output import filter_command_output
 from .guard import run as guard_run
 from .policy import user_nudge
-from .state import record_read, record_usage, reset_session
+from .state import record_read, reset_session
 
 DEFAULT_MIN_LINES = 40
 DEFAULT_KEEP_TAIL = 15
@@ -139,7 +139,6 @@ def run_post_read(payload: dict) -> None:
     tool_input = payload.get("tool_input") or {}
     if not isinstance(tool_input, dict):
         return
-    from .guard import _has_range
     if any(k in tool_input for k in ("offset", "limit", "start_line", "end_line")):
         return
     raw = tool_input.get("file_path") or tool_input.get("path") or tool_input.get("filePath")
