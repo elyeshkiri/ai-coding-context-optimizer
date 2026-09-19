@@ -1,35 +1,87 @@
-# Validation for 1.4.0
+# Validation for 1.5.0
 
-Release validation is anchored to GitHub CI on Linux across Python 3.10,
-3.12, and 3.13. Version 1.4.0 adds the failure-aware output processor
-registry, critical-line recovery, replayable output quality contracts, the
-opt-in graph-aware diagnostic Delta, the large-source Bash `cat` guard, and
-the broader cost-evidence harness while preserving the frozen retrieval
-protocol.
+Token Saver separates **mechanical correctness**, **retrieval generalization**,
+and **end-to-end agent economics**. Passing one layer is not presented as proof
+of another.
 
-Observed CI dependency versions include:
+Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
-- pytest 9.1.1
-- tree-sitter 0.25.2
-- tree-sitter-javascript 0.25.0
-- tree-sitter-typescript 0.23.2
-- tree-sitter-c-sharp 0.23.5
+- the complete pytest suite on every supported Python version;
+- the deterministic context-quality evaluation;
+- the frozen external holdout regression floor;
+- PR base-vs-candidate ranking snapshots/diffs;
+- Ruff correctness checks;
+- 100% docstring coverage via interrogate;
+- GitHub Actions workflow linting.
+
+Version 1.5.0 adds the pluggable ranking-stage boundary, opt-in ranking
+observability, immutable ranking snapshots/diffs, PR regression evidence,
+historical gate calibration, unified host setup/doctor/uninstall, project TOML
+configuration, and documentation correctness gates. It does **not** retune the
+frozen retrieval baseline merely to improve release metrics.
 
 ## Test suite and self-benchmark
 
-- Full test suite: **545 passed** on the Python 3.10/3.12/3.13 release PR CI matrix.
+- The release gate runs the full suite on Python **3.10, 3.12, and 3.13** rather
+  than relying on a single interpreter.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
-  currently measures **100% mean relevant-file recall, 100% mean
-  relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
-  mean estimated context reduction**.
-- The self-benchmark is now saturated and should be treated as a regression
-  floor, not as the main evidence of generalization. The frozen external
-  holdouts below are deliberately stronger evidence.
-- Package metadata for this release is **claude-token-saver 1.4.0**; the import remains `token_saver` and the CLI remains `token-saver`.
+  measures **100% mean relevant-file recall, 100% mean relevant-symbol recall,
+  100% symbol recall in expected files, and 97.90% mean estimated context
+  reduction**.
+- The self-benchmark is saturated and is treated as a regression floor, not the
+  main evidence of generalization.
+- Package metadata for this release is **claude-token-saver 1.5.0**; the import
+  remains `token_saver` and the CLI remains `token-saver`.
+
+## Ranking observability and regression validation
+
+Version 1.5.0 adds evidence around *why* ranking changes:
+
+- normal ranking keeps score tracing disabled, preserving the default execution
+  path;
+- `ranking-explain` verifies trace endpoints against final scores;
+- registered post-score stages are traced automatically;
+- snapshots retain expected files even when they fall below the ordinary
+  display top-N;
+- `ranking-diff` refuses incompatible frozen ground truth;
+- PR CI captures the baseline with base-commit code against the immutable base
+  checkout and the candidate with candidate code;
+- both PR snapshots use the base manifest so a PR cannot redefine its own
+  comparison ground truth;
+- ranking history de-duplicates workflow reruns and selects the newest artifact
+  per PR by explicit `(created_at, artifact_id)` comparison;
+- historical gate calibration separates frozen ground-truth cohorts and remains
+  descriptive until the configured independent-PR evidence floor is reached.
+
+These checks make ranking regressions explainable and reproducible. They do not
+turn the current historical sample into a hard merge threshold prematurely.
+
+## Integration lifecycle validation
+
+The 1.5.0 setup lifecycle is tested for:
+
+- auto-detection and explicit Claude Code / Cursor / Codex selection;
+- idempotent repeated setup;
+- preservation of unrelated MCP servers, hooks, and TOML;
+- refusal to overwrite malformed JSON or unmanaged conflicting Codex sections;
+- preflight of all selected hosts before the first multi-host mutation;
+- safe uninstall of only Token Saver-owned entries;
+- preservation of a user-modified generated Claude skill;
+- project `.token-saver.toml` discovery and environment-variable precedence;
+- repository-relative guard allowlist globs;
+- Python 3.10 TOML support through the conditional `tomli` dependency;
+- top-level dispatcher, doctor, command-discovery, and shell-completion
+  behavior.
+
+`doctor` validates configuration/index health; `host-check` remains the
+stronger transport/live-host diagnostic. Configuration health alone is not
+claimed as proof that an external host accepted model-visible replacement
+output.
 
 ## Output optimization validation
 
-Version 1.4.0 adds a second validation surface alongside source retrieval:
+The failure-aware output subsystem introduced in 1.4 remains a separate
+validation surface alongside source retrieval:
 
 - failure-aware routing is tested so success-oriented processors do not
   automatically compress failed commands;
@@ -53,12 +105,12 @@ portable quality-contract format. See `OUTPUT_OPTIMIZATION.md` for the
 processor and Delta contracts.
 
 The broad 24-task SWE-bench cost experiment remains **non-publishable evidence**
-at this release: its latest run exposed harness/grader issues, including
+for 1.5.0: its latest broad run exposed harness/grader issues, including
 budget-limited agent runs being misclassified as infrastructure failures and a
 reference grader that produced no parseable test result for one task. Those
-failures are treated as benchmark-infrastructure findings, not as evidence for
-or against Token Saver's real-task cost effect. No 144-run aggregate savings
-claim is made in 1.4.0.
+failures are benchmark-infrastructure findings, not evidence for or against
+Token Saver's real-task cost effect. No 144-run aggregate savings claim is made
+for 1.5.0.
 
 ## Frozen external holdout program
 
