@@ -67,21 +67,23 @@ def run(
     ])
     proc = subprocess.run(command, check=False)
 
-    paths = sorted((claude_home / "projects").rglob("*.jsonl"))
-    if not paths:
-        raise ValueError(
-            "Claude Code produced no transcript; the run cannot be costed"
-        )
-    transcript.parent.mkdir(parents=True, exist_ok=True)
-    with transcript.open("wb") as output:
-        for path in paths:
-            body = path.read_bytes()
-            output.write(body)
-            if body and not body.endswith(b"\n"):
-                output.write(b"\n")
-    # Keep only the evidence needed for accounting. Claude's private config and
-    # session-home contents are not benchmark artifacts and must not be uploaded.
-    shutil.rmtree(claude_home, ignore_errors=True)
+    try:
+        paths = sorted((claude_home / "projects").rglob("*.jsonl"))
+        if not paths:
+            raise ValueError(
+                "Claude Code produced no transcript; the run cannot be costed"
+            )
+        transcript.parent.mkdir(parents=True, exist_ok=True)
+        with transcript.open("wb") as output:
+            for path in paths:
+                body = path.read_bytes()
+                output.write(body)
+                if body and not body.endswith(b"\n"):
+                    output.write(b"\n")
+    finally:
+        # Keep only the evidence needed for accounting. Claude's private config
+        # and session-home contents are not benchmark artifacts.
+        shutil.rmtree(claude_home, ignore_errors=True)
     return proc.returncode
 
 
