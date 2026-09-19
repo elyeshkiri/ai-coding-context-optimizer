@@ -260,7 +260,7 @@ def setup_integrations(
         requested = tuple(item.name for item in detected if item.detected)
     unknown = sorted(set(requested) - set(HOSTS))
     if unknown:
-        raise ValueError(f"Unsupported host(s): {\', \'.join(unknown)}")
+        raise ValueError(f"Unsupported host(s): {', '.join(unknown)}")
 
     changed: list[str] = []
     config_path = write_default_config(root)
