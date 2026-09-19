@@ -9,6 +9,7 @@ import textwrap
 import pytest
 
 from token_saver.command_handlers.context import ranking_explain_main
+from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
 from token_saver.pack import rank_files
 from token_saver.packing import RankingStageRegistry
 from token_saver.packing.ranking_stages import RankingStageContext
@@ -186,6 +187,7 @@ def test_repository_service_explains_complete_score_trace(tmp_path):
 
 def test_ranking_explain_cli_supports_json_output(tmp_path, capsys):
     """CLI should expose the same structured explanation without host coupling."""
+    assert "ranking-explain" in DEFAULT_COMMAND_REGISTRY.names()
     root = _repo(tmp_path)
 
     result = ranking_explain_main(
