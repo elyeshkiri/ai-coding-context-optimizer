@@ -51,13 +51,15 @@ does not modify a pull request or publish benchmark claims.
 
 ## Claude Code output optimization
 
-Install the hooks after installing or upgrading Token Saver:
+For project use, configure/repair Claude with the unified lifecycle:
 
 ```bash
-token-saver install /absolute/path/to/project --templates
+token-saver setup /absolute/path/to/project --host claude
+token-saver doctor /absolute/path/to/project
 ```
 
-For a user-wide hook installation:
+The lower-level `token-saver install` command remains for compatibility and
+specialized user-wide hook-only setup:
 
 ```bash
 token-saver install . --user
