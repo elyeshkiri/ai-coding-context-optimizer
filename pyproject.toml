@@ -9,7 +9,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "build>=1"]
+dev = ["pytest>=7", "build>=1", "ruff==0.16.8"]
 # provider-aware exact token counting: Anthropic API + OpenAI local tokenizer
 exact = ["anthropic>=0.40", "tiktoken>=0.7,<1"]
 google = ["google-genai>=1,<2"]
