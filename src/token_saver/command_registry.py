@@ -5,24 +5,18 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
-from .commands import (
-    agent_evaluate_main,
-    browse_main,
-    cost_report_main,
-    evaluate_main,
-    experiment_main,
-    feedback_main,
-    host_check_main,
-    impact_main,
+from .command_handlers.context import browse_main, feedback_main, impact_main
+from .command_handlers.evaluation import agent_evaluate_main, evaluate_main
+from .command_handlers.experiment import cost_report_main, experiment_main
+from .command_handlers.host import host_check_main, serve_main
+from .command_handlers.output import (
     output_benchmark_main,
     output_explain_main,
     output_policy_main,
     output_replay_main,
     output_save_main,
-    pack_diff_main,
-    review_main,
-    serve_main,
 )
+from .command_handlers.patch import pack_diff_main, review_main
 from .pack_cli import main as pack_main
 
 CommandHandler = Callable[[list[str]], int]
