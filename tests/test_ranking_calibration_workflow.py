@@ -9,10 +9,13 @@ def _workflow_text(name: str) -> str:
     return (root / ".github" / "workflows" / name).read_text(encoding="utf-8")
 
 
-def test_calibration_workflow_runs_weekly_and_manually():
-    """Gate calibration should be repeatable on demand and refreshed automatically."""
+def test_calibration_workflow_runs_weekly_manually_and_self_verifies():
+    """Calibration should be repeatable, scheduled, and dogfood workflow changes."""
     workflow = _workflow_text("ranking-calibration.yml")
 
+    assert "push:" in workflow
+    assert "branches: [main]" in workflow
+    assert '".github/workflows/ranking-calibration.yml"' in workflow
     assert "schedule:" in workflow
     assert 'cron: "17 5 * * 1"' in workflow
     assert "workflow_dispatch:" in workflow
