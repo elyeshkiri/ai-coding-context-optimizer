@@ -39,7 +39,7 @@ class RepositoryContextServiceContract(Protocol):
         """Return change-impact analysis for a target."""
         ...
 
-    def feedback(self, path: str, *, useful: bool) -> dict[str, float]:
+    def feedback(self, path: str, *, useful: bool) -> dict[str, int]:
         """Record local ranking feedback."""
         ...
 
