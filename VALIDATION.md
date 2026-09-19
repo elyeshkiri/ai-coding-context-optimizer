@@ -25,11 +25,12 @@ frozen retrieval baseline merely to improve release metrics.
 - The release gate runs the full suite on Python **3.10, 3.12, and 3.13** rather
   than relying on a single interpreter.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
-  measures **100% mean relevant-file recall, 100% mean relevant-symbol recall,
-  100% symbol recall in expected files, and 97.90% mean estimated context
-  reduction**.
-- The self-benchmark is saturated and is treated as a regression floor, not the
-  main evidence of generalization.
+  currently measures **92% mean relevant-file recall, 92% mean
+  relevant-symbol recall, 88% symbol recall in expected files, and 98.71% mean
+  estimated context reduction** on the 1.5 release candidate.
+- This repository-local benchmark is a diagnostic signal, not the main
+  generalization claim and not the frozen release floor. The external holdout
+  program below is the stronger retrieval-regression evidence.
 - Package metadata for this release is **claude-token-saver 1.5.0**; the import
   remains `token_saver` and the CLI remains `token-saver`.
 
