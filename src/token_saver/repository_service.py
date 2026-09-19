@@ -159,6 +159,6 @@ class RepositoryContextService:
         """Analyze callers, dependents, and related tests for a target."""
         return analyze_impact(self.root, target, index=self.get())
 
-    def feedback(self, path: str, *, useful: bool) -> dict[str, float]:
+    def feedback(self, path: str, *, useful: bool) -> dict[str, int]:
         """Record local ranking feedback for one repository-relative file."""
         return record_feedback(self.root, path, useful=useful)
