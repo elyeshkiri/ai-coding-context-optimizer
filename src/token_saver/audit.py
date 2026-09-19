@@ -40,6 +40,7 @@ _FRONTMATTER = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.S)
 
 @dataclass
 class Item:
+    """Represent a item item."""
     path: str
     kind: str          # claude_md | import | rule | memory | skill | mcp
     tokens: int
@@ -49,6 +50,7 @@ class Item:
 
 @dataclass
 class Report:
+    """Represent a report report."""
     items: list[Item] = field(default_factory=list)
     mcp_servers: list[str] = field(default_factory=list)
     window: int = 200_000
@@ -56,10 +58,12 @@ class Report:
 
     @property
     def always_on(self) -> int:
+        """Return always on for report."""
         return sum(i.tokens for i in self.items if i.always_on)
 
     @property
     def on_demand(self) -> int:
+        """Return on demand for report."""
         return sum(i.tokens for i in self.items if not i.always_on)
 
 
@@ -69,6 +73,7 @@ def strip_noncounting(text: str) -> str:
 
 
 def parse_frontmatter(text: str) -> dict:
+    """Parse frontmatter."""
     m = _FRONTMATTER.match(text)
     if not m:
         return {}
@@ -104,6 +109,7 @@ def _add_file(
     report: Report, counter: Counter, path: Path, kind: str, always_on: bool,
     root: Path, note: str = "", depth: int = 0, seen: set | None = None,
 ) -> None:
+    """Add file."""
     seen = seen if seen is not None else set()
     resolved = path.resolve()
     if resolved in seen or not path.is_file():
@@ -140,6 +146,7 @@ def _add_file(
 
 def audit(root: Path, counter: Counter | None = None, window: int = 200_000,
           user_scope: bool = True) -> Report:
+    """Audit the requested value."""
     root = root.resolve()
     counter = counter or Counter()
     report = Report(window=window, counter_label=counter.label)
@@ -191,6 +198,7 @@ def audit(root: Path, counter: Counter | None = None, window: int = 200_000,
 
 
 def _scan_rule(report: Report, counter: Counter, rule: Path, root: Path, prefix: str) -> None:
+    """Scan rule."""
     try:
         text = rule.read_text(encoding="utf-8", errors="replace")
     except OSError:

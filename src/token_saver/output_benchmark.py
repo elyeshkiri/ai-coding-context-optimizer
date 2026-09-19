@@ -8,6 +8,7 @@ from .output_saver import compact_output
 
 
 def _load_text(case: dict, manifest: Path) -> str:
+    """Load text."""
     has_text = isinstance(case.get("text"), str)
     has_path = isinstance(case.get("path"), str)
     if has_text == has_path:
@@ -21,6 +22,7 @@ def _load_text(case: dict, manifest: Path) -> str:
 
 
 def evaluate_output_manifest(manifest: Path) -> dict:
+    """Evaluate output manifest."""
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     cases = payload.get("cases") if isinstance(payload, dict) else None
     if not isinstance(cases, list) or not cases:

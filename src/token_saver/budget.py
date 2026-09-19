@@ -11,12 +11,14 @@ from dataclasses import asdict, dataclass
 
 @dataclass(frozen=True)
 class RetrievalPlan:
+    """Represent retrieval plan state and behavior."""
     seed_limit: int
     graph_hops: int
     closure_items: int
     context_lines: int
 
     def to_dict(self) -> dict[str, int]:
+        """Return a dictionary representation."""
         return asdict(self)
 
 

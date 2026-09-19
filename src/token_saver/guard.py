@@ -39,6 +39,7 @@ ALLOW_NAMES = {
 
 
 def _env_int(name: str, fallback: int) -> int:
+    """Handle env int."""
     try:
         return int(os.environ[name])
     except (KeyError, ValueError):
@@ -46,11 +47,13 @@ def _env_int(name: str, fallback: int) -> int:
 
 
 def _guard_enabled() -> bool:
+    """Handle guard enabled."""
     raw = os.environ.get("TOKEN_SAVER_GUARD", "1").strip().lower()
     return raw not in {"0", "false", "off", "no"}
 
 
 def _read_path(tool_input: dict) -> Path | None:
+    """Read path."""
     raw = tool_input.get("file_path") or tool_input.get("path") or tool_input.get("filePath")
     if not raw or not isinstance(raw, str):
         return None
@@ -81,10 +84,12 @@ def _has_range(tool_input: dict) -> bool:
 
 
 def _is_source(path: Path) -> bool:
+    """Return whether source."""
     return path.suffix.lower() in CODE_SUFFIXES and path.suffix.lower() not in {".md", ".markdown"}
 
 
 def _allowed(path: Path) -> bool:
+    """Handle allowed."""
     if path.name in ALLOW_NAMES or path.name.endswith(".d.ts"):
         return True
     raw = os.environ.get("TOKEN_SAVER_ALLOW", "")
@@ -96,6 +101,7 @@ def _allowed(path: Path) -> bool:
 
 
 def _digest(text: str) -> str:
+    """Handle digest."""
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:16]
 
 
@@ -144,6 +150,7 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
 
 
 def _outline_reason(path: Path, text: str, n_lines: int, action: str) -> str:
+    """Handle outline reason."""
     outlined = skeletonize(text, path.suffix, line_numbers=True)
     # cap the deny-reason so the hook message itself does not become the dump
     lines = outlined.splitlines()
@@ -167,6 +174,7 @@ def _outline_reason(path: Path, text: str, n_lines: int, action: str) -> str:
 
 
 def _deny(reason: str) -> dict:
+    """Handle deny."""
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
@@ -231,6 +239,7 @@ def decide_bash(command: str, cwd: Path | None = None) -> dict | None:
 
 
 def run(payload: dict) -> tuple[int, dict | None]:
+    """Run the requested value."""
     tool = payload.get("tool_name")
     if tool not in {"Read", "Bash"}:
         return 0, None

@@ -308,6 +308,7 @@ def resolve_typescript_edges(
 
 
 def _relative_module(source_rel: str, target_rel: str) -> str:
+    """Handle relative module."""
     source_dir = Path(source_rel).parent
     source_parts = list(source_dir.parts)
     target = Path(target_rel)

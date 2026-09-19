@@ -10,6 +10,7 @@ from .output_processors import process_output
 
 
 def _case_text(case: dict, manifest: Path) -> str:
+    """Handle case text."""
     inline = isinstance(case.get("text"), str)
     from_file = isinstance(case.get("path"), str)
     if inline == from_file:
@@ -23,6 +24,7 @@ def _case_text(case: dict, manifest: Path) -> str:
 
 
 def evaluate_quality_manifest(manifest: Path) -> dict:
+    """Evaluate quality manifest."""
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     cases = payload.get("cases") if isinstance(payload, dict) else None
     if not isinstance(cases, list) or not cases:

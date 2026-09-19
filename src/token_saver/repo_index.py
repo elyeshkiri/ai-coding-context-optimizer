@@ -45,6 +45,7 @@ _YAML_JOB_KEY = re.compile(r"^  ([\w.-]+)\s*:")
 
 @dataclass
 class SymbolRecord:
+    """Represent a symbol record."""
     name: str
     kind: str
     start_line: int
@@ -58,6 +59,7 @@ class SymbolRecord:
 
 @dataclass
 class FileRecord:
+    """Represent a file record."""
     path: str
     digest: str
     size: int
@@ -73,11 +75,13 @@ class FileRecord:
 
     @property
     def document_length(self) -> int:
+        """Return document length for file record."""
         return sum((self.term_counts or {}).values())
 
 
 @dataclass
 class RepositoryIndex:
+    """Represent repository index state and behavior."""
     root: Path
     records: dict[str, FileRecord]
     reparsed: int = 0
@@ -97,6 +101,7 @@ class RepositoryIndex:
     )
 
     def find_symbols(self, name: str) -> list[tuple[str, SymbolRecord]]:
+        """Find symbols."""
         needle = name.lower()
         qualified_exact: list[tuple[str, SymbolRecord]] = []
         exact: list[tuple[str, SymbolRecord]] = []
@@ -117,6 +122,7 @@ class RepositoryIndex:
         )
 
     def _callers_by_name(self) -> dict[str, list[tuple[str, SymbolRecord]]]:
+        """Return callers by name for repository index."""
         if self._caller_index is None:
             built: dict[str, list[tuple[str, SymbolRecord]]] = {}
             for rel, record in self.records.items():
@@ -127,10 +133,12 @@ class RepositoryIndex:
         return self._caller_index
 
     def symbol_callers(self, name: str) -> list[tuple[str, SymbolRecord]]:
+        """Return symbol callers for repository index."""
         out = self._callers_by_name().get(name.lower(), [])
         return sorted(out, key=lambda item: (item[0], item[1].start_line))
 
     def test_file_signatures(self) -> list[tuple[str, str, set[str]]]:
+        """Return test file signatures for repository index."""
         if self._test_file_signatures is None:
             self._test_file_signatures = [
                 (rel, rel.lower(), set(record.tokens))
@@ -142,6 +150,7 @@ class RepositoryIndex:
     def _build_neighbor_indexes(
         self,
     ) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
+        """Build neighbor indexes."""
         imported_by_index: dict[str, set[str]] = {}
         stem_index: dict[str, set[str]] = {}
         call_symbol_index: dict[str, set[str]] = {}
@@ -158,6 +167,7 @@ class RepositoryIndex:
         return imported_by_index, stem_index, call_symbol_index, symbol_def_index
 
     def _build_semantic_neighbors(self) -> dict[str, list[tuple[str, str]]]:
+        """Build semantic neighbors."""
         known = self.records.keys()
         out: dict[str, list[tuple[str, str]]] = {}
         for rel, record in self.records.items():
@@ -177,6 +187,7 @@ class RepositoryIndex:
         return out
 
     def neighbors(self, rel: str) -> list[tuple[str, str]]:
+        """Return neighbors for repository index."""
         source = self.records.get(rel)
         if source is None:
             return []
@@ -222,10 +233,12 @@ class RepositoryIndex:
 
 
 def _digest(text: str) -> str:
+    """Handle digest."""
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()
 
 
 def _python_name(node: ast.AST) -> str | None:
+    """Handle python name."""
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
@@ -236,6 +249,7 @@ def _python_name(node: ast.AST) -> str | None:
 def _python_signature(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> str:
     # ast.unparse is recursive; a pathologically nested default/annotation/base
     # expression must degrade to an elided signature, not abort the whole index.
+    """Handle python signature."""
     if isinstance(node, ast.ClassDef):
         try:
             bases = ", ".join(ast.unparse(base) for base in node.bases)
@@ -252,6 +266,7 @@ def _python_signature(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDe
 
 
 def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[SymbolRecord]]:
+    """Extract python."""
     symbols: set[str] = set()
     imports: set[str] = set()
     calls: set[str] = set()
@@ -299,6 +314,7 @@ def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[Symbo
 
 
 def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
+    """Extract generic definitions."""
     lines = text.splitlines()
     found: list[SymbolRecord] = []
     for match in _DECL.finditer(text):
@@ -313,6 +329,7 @@ def _extract_generic_definitions(text: str) -> list[SymbolRecord]:
 
 
 def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord]:
+    """Extract javascript definitions."""
     try:
         parsed = syntax_symbols(text, suffix)
     except (ImportError, ValueError, OSError):
@@ -334,6 +351,7 @@ def _extract_javascript_definitions(text: str, suffix: str) -> list[SymbolRecord
 
 
 def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
+    """Extract sql."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     lines = text.splitlines()
@@ -351,6 +369,7 @@ def _extract_sql(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
 
 
 def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRecord]]:
+    """Extract package json."""
     symbols: set[str] = set()
     imports: set[str] = set()
     definitions: list[SymbolRecord] = []
@@ -378,6 +397,7 @@ def _extract_package_json(text: str) -> tuple[set[str], set[str], list[SymbolRec
 
 
 def _extract_yaml_ci_jobs(text: str) -> tuple[set[str], list[SymbolRecord]]:
+    """Extract yaml ci jobs."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     lines = text.splitlines()
@@ -398,6 +418,7 @@ def _extract_yaml_ci_jobs(text: str) -> tuple[set[str], list[SymbolRecord]]:
 
 
 def _extract_env_vars(text: str) -> tuple[set[str], list[SymbolRecord]]:
+    """Extract env vars."""
     symbols: set[str] = set()
     definitions: list[SymbolRecord] = []
     for i, line in enumerate(text.splitlines(), start=1):
@@ -415,6 +436,7 @@ def _extract_env_vars(text: str) -> tuple[set[str], list[SymbolRecord]]:
 def _extract(
     text: str, suffix: str, rel: str = "",
 ) -> tuple[list[str], list[str], list[str], list[str], list[SymbolRecord]]:
+    """Extract the requested value."""
     name = Path(rel).name if rel else ""
     if suffix.lower() in {".py", ".pyi"}:
         symbols, imports, calls, definitions = _extract_python(text)
@@ -466,6 +488,7 @@ def _extract(
 
 
 def _outline(text: str, suffix: str) -> str:
+    """Handle outline."""
     try:
         return skeletonize(text, suffix, line_numbers=True)
     except (SyntaxError, ValueError, RecursionError):
@@ -473,6 +496,7 @@ def _outline(text: str, suffix: str) -> str:
 
 
 def _default_cache(root: Path) -> Path:
+    """Handle default cache."""
     state = os.environ.get("TOKEN_SAVER_STATE_DIR")
     base = Path(state).expanduser() if state else Path.home() / ".claude" / "token-saver"
     key = hashlib.sha256(str(root.resolve()).encode()).hexdigest()[:16]
@@ -480,6 +504,7 @@ def _default_cache(root: Path) -> Path:
 
 
 def _load(path: Path) -> dict[str, FileRecord]:
+    """Load the requested value."""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(payload, dict) or payload.get("version") != INDEX_VERSION:
@@ -512,6 +537,7 @@ def _load(path: Path) -> dict[str, FileRecord]:
 
 
 def _save(path: Path, records: dict[str, FileRecord]) -> None:
+    """Save the requested value."""
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     payload = {"version": INDEX_VERSION, "records": {key: asdict(value) for key, value in records.items()}}
     fd, tmp_name = tempfile.mkstemp(prefix=path.name, dir=path.parent)
@@ -533,6 +559,7 @@ def _save(path: Path, records: dict[str, FileRecord]) -> None:
 
 
 def _record(rel: str, text: str, suffix: str, *, size: int, mtime_ns: int) -> FileRecord:
+    """Record the requested value."""
     symbols, imports, calls, tokens, definitions = _extract(text, suffix, rel)
     outline = _outline(text, suffix)
     return FileRecord(
@@ -547,6 +574,7 @@ def build_index(
     root: Path, *, use_gitignore: bool = True, cache_path: Path | None = None,
     persist: bool = True,
 ) -> RepositoryIndex:
+    """Build index."""
     root = root.resolve()
     target = cache_path or _default_cache(root)
     resolved_target = target.resolve()

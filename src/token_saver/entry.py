@@ -19,6 +19,7 @@ from .commands import (
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line entry point."""
     args = list(sys.argv[1:] if argv is None else argv)
     if args and args[0] == "pack":
         return pack_main(args[1:])

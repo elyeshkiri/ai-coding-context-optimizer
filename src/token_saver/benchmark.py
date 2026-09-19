@@ -60,6 +60,7 @@ def task_definition_hash(manifest: dict) -> str:
 
 
 def _publishability_issues(manifest: dict, runs: list[dict]) -> list[str]:
+    """Handle publishability issues."""
     issues: list[str] = []
     protocol = manifest.get("protocol")
     tasks = manifest.get("tasks")
@@ -168,6 +169,7 @@ def evaluate(
     *,
     require_publishable: bool = False,
 ) -> dict:
+    """Evaluate the requested value."""
     path = Path(manifest_path).resolve()
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict):

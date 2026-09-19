@@ -12,11 +12,13 @@ from typing import Any
 
 @dataclass(frozen=True)
 class Pricing:
+    """Represent pricing state and behavior."""
     input_per_million: float = 0.0
     output_per_million: float = 0.0
     cached_input_per_million: float = 0.0
 
     def cost(self, input_tokens: int, output_tokens: int, cached_input_tokens: int) -> float:
+        """Return cost for pricing."""
         uncached = max(0, input_tokens - cached_input_tokens)
         return (
             uncached * self.input_per_million
@@ -27,6 +29,7 @@ class Pricing:
 
 @dataclass(frozen=True)
 class Run:
+    """Represent run state and behavior."""
     task_id: str
     success: bool
     input_tokens: int
@@ -42,6 +45,7 @@ class Run:
 
 
 def _trial(value: Any, where: str) -> str:
+    """Handle trial."""
     if value is None:
         return ""
     if isinstance(value, bool) or not isinstance(value, (str, int)):
@@ -50,10 +54,12 @@ def _trial(value: Any, where: str) -> str:
 
 
 def _label(task_id: str, trial: str) -> str:
+    """Handle label."""
     return f"{task_id}#{trial}" if trial else task_id
 
 
 def _duplicate_message(where: str, task_id: str, trial: str, extra: str = "") -> str:
+    """Handle duplicate message."""
     if trial:
         return f"{where}: duplicate {extra}task_id {task_id!r} trial {trial!r}"
     return (
@@ -64,6 +70,7 @@ def _duplicate_message(where: str, task_id: str, trial: str, extra: str = "") ->
 
 
 def _number(value: Any, field: str, *, integer: bool = False) -> float | int:
+    """Handle number."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{field} must be a number")
     if value < 0:
@@ -76,6 +83,7 @@ def _number(value: Any, field: str, *, integer: bool = False) -> float | int:
 
 
 def _runs_payload(path: Path) -> list[dict]:
+    """Handle runs payload."""
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, list):
         raw = payload
@@ -91,6 +99,7 @@ def _runs_payload(path: Path) -> list[dict]:
 
 
 def load_runs(path: Path, pricing: Pricing | None = None) -> list[Run]:
+    """Load runs."""
     pricing = pricing or Pricing()
     seen: set[tuple[str, str]] = set()
     runs: list[Run] = []
@@ -141,12 +150,14 @@ def load_runs(path: Path, pricing: Pricing | None = None) -> list[Run]:
 
 
 def _safe_reduction(before: float, after: float) -> float | None:
+    """Handle safe reduction."""
     if before <= 0:
         return None
     return 1.0 - after / before
 
 
 def _summary(runs: list[Run]) -> dict:
+    """Handle summary."""
     successes = sum(run.success for run in runs)
     total_cost = sum(run.cost_usd for run in runs)
     input_tokens = sum(run.input_tokens for run in runs)
@@ -172,6 +183,7 @@ def _summary(runs: list[Run]) -> dict:
 
 
 def _index_runs(runs: list[Run], side: str) -> dict[tuple[str, str], Run]:
+    """Handle index runs."""
     indexed: dict[tuple[str, str], Run] = {}
     for run in runs:
         key = (run.task_id, run.trial)
@@ -188,6 +200,7 @@ _BOOTSTRAP_SEED = 0
 
 
 def _cluster_totals(members: list[tuple[Run, Run]]) -> tuple[float, ...]:
+    """Handle cluster totals."""
     return (
         sum(b.input_tokens + b.output_tokens for b, _ in members),
         sum(o.input_tokens + o.output_tokens for _, o in members),
@@ -200,6 +213,7 @@ def _cluster_totals(members: list[tuple[Run, Run]]) -> tuple[float, ...]:
 
 
 def _bootstrap_metrics(t: tuple[float, ...]) -> dict[str, float | None]:
+    """Handle bootstrap metrics."""
     b_tok, o_tok, b_cost, o_cost, b_ok, o_ok, n = t
     cps = None
     if b_ok > 0 and o_ok > 0 and b_cost > 0:
@@ -263,6 +277,7 @@ def compare_costs(
     *,
     require_same_tasks: bool = True,
 ) -> dict:
+    """Compare costs."""
     baseline_by_id = _index_runs(baseline, "baseline")
     optimized_by_id = _index_runs(optimized, "optimized")
     baseline_ids = set(baseline_by_id)
@@ -416,6 +431,7 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
 
 
 def compare_paired_agent_file(path: Path, *, pricing: Pricing | None = None) -> dict:
+    """Compare paired agent file."""
     baseline, optimized = load_paired_agent_runs(path, pricing)
     return compare_costs(baseline, optimized, require_same_tasks=True)
 
@@ -426,6 +442,7 @@ def compare_cost_files(
     pricing: Pricing | None = None,
     require_same_tasks: bool = True,
 ) -> dict:
+    """Compare cost files."""
     pricing = pricing or Pricing()
     return compare_costs(
         load_runs(baseline_path, pricing),

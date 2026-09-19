@@ -22,6 +22,7 @@ REMINDER_CHARS = 320
 
 
 def cache_ttl_min() -> int:
+    """Handle cache ttl min."""
     raw = os.environ.get("TOKEN_SAVER_CACHE_TTL_MIN")
     if raw:
         try:
@@ -32,6 +33,7 @@ def cache_ttl_min() -> int:
 
 
 def _parse_ts(raw: str | None) -> datetime | None:
+    """Parse ts."""
     if not raw:
         return None
     text = raw.strip()
@@ -47,6 +49,7 @@ def _parse_ts(raw: str | None) -> datetime | None:
 
 
 def idle_gaps(turns: list[Turn], minutes: int | None = None) -> list[tuple[Turn, Turn, float]]:
+    """Handle idle gaps."""
     threshold = cache_ttl_min() if minutes is None else minutes
     by_session: dict[str, list[Turn]] = {}
     for turn in turns:
@@ -70,12 +73,14 @@ def idle_gaps(turns: list[Turn], minutes: int | None = None) -> list[tuple[Turn,
 
 @dataclass
 class Advice:
+    """Represent advice state and behavior."""
     kind: str
     detail: str
     tokens_at_stake: int = 0
 
 
 def advise(report: Report) -> list[Advice]:
+    """Handle advise."""
     out: list[Advice] = []
     churn, churn_turns, _worst = report.cache_churn()
     if churn:
@@ -144,6 +149,7 @@ def reminder(report: Report, limit: int = REMINDER_CHARS) -> str:
 
 
 def snapshot(report: Report, root: Path) -> Path:
+    """Return the requested value."""
     items = advise(report)
     fields = {}
     data = fields
@@ -173,6 +179,7 @@ NEW_TASK_HINTS = (
 
 
 def looks_like_new_task(prompt: str) -> bool:
+    """Return whether looks like new task."""
     low = prompt.lower()
     return any(hint in low for hint in NEW_TASK_HINTS)
 
@@ -205,6 +212,7 @@ description: Session hygiene when context is fat or the user starts a new task. 
 
 
 def write_skill(root: Path) -> Path:
+    """Write skill."""
     dest = root / ".claude" / "skills" / "token-budget" / "SKILL.md"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(SKILL_TEXT, encoding="utf-8")

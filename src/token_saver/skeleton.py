@@ -112,6 +112,7 @@ _EXTRA_FILENAMES = {"Makefile", "Dockerfile", "CLAUDE.md"} | _ENV_TEMPLATE_NAMES
 
 
 def _omitted(n: int, indent: int = 4) -> str:
+    """Handle omitted."""
     return f"{' ' * indent}… ({n} lines omitted)"
 
 
@@ -178,6 +179,7 @@ def _is_field(node: ast.AST, *, module_level: bool) -> bool:
 
 
 def _is_main_guard(node: ast.AST) -> bool:
+    """Return whether main guard."""
     return (
         isinstance(node, ast.If)
         and isinstance(node.test, ast.Compare)
@@ -187,6 +189,7 @@ def _is_main_guard(node: ast.AST) -> bool:
 
 
 class _PyEmitter:
+    """Represent py emitter state and behavior."""
     def __init__(self, src_lines: list[str], docstrings: bool) -> None:
         self.out: list[str] = []
         # source line for each entry of `out`; None for omission markers.
@@ -198,6 +201,7 @@ class _PyEmitter:
         self.docstrings = docstrings
 
     def line(self, indent: int, text: str, lineno: int | None = None) -> None:
+        """Return line for py emitter."""
         self.out.append(" " * indent + text)
         self.nums.append(lineno)
 
@@ -208,11 +212,13 @@ class _PyEmitter:
         return sum(1 for ln in self.src[lo:hi] if ln.strip())
 
     def omit(self, indent: int, n: int) -> None:
+        """Return omit for py emitter."""
         if n >= MIN_OMIT_LINES:
             self.out.append(_omitted(n, indent))
             self.nums.append(None)
 
     def docstring(self, node: ast.AST, indent: int) -> None:
+        """Return docstring for py emitter."""
         if not self.docstrings:
             return
         doc = ast.get_docstring(node, clean=True)
@@ -223,6 +229,7 @@ class _PyEmitter:
             self.line(indent, f'"""{first[:80]}"""')
 
     def body(self, body: list[ast.stmt], indent: int, *, module_level: bool) -> None:
+        """Return body for py emitter."""
         pending = 0
         cursor: int | None = None
         for node in body:
@@ -333,6 +340,7 @@ def _open_brackets(line: str) -> int:
 
 
 def line_is_signature(line: str, suffix: str = "") -> bool:
+    """Handle line is signature."""
     stripped = line.strip()
     if not stripped:
         return False
@@ -479,6 +487,7 @@ def _git_tracked(root: Path) -> list[Path] | None:
 
 
 def walk_repo(root: Path, use_gitignore: bool = True) -> list[Path]:
+    """Yield repo."""
     tracked = _git_tracked(root) if use_gitignore else None
     if tracked is not None:
         return sorted(
@@ -539,10 +548,12 @@ def _rank(rel: str, skel: str) -> tuple:
 
 
 def _symbol_count(skel: str) -> int:
+    """Handle symbol count."""
     return sum(1 for ln in skel.splitlines() if ln.strip() and "omitted" not in ln)
 
 
 def _summary_line(rel: str, skel: str) -> str:
+    """Handle summary line."""
     return f"- {rel} ({_symbol_count(skel)} symbols)"
 
 

@@ -27,12 +27,14 @@ _MAX_IMPACT_SECONDS = 10.0
 
 @dataclass(frozen=True)
 class ChangedPath:
+    """Represent changed path state and behavior."""
     path: str
     added_lines: tuple[int, ...]
     status: str = "modified"
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Handle git."""
     try:
         return subprocess.run(
             ["git", "-C", str(root), *args], capture_output=True, text=True,
@@ -43,6 +45,7 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def collect_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> list[ChangedPath]:
+    """Collect patch."""
     args = ["diff", "--unified=0", "--no-color"]
     if staged:
         args.append("--cached")
@@ -78,6 +81,7 @@ def collect_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> li
 
 
 def changed_symbols(index: RepositoryIndex, change: ChangedPath) -> list[str]:
+    """Handle changed symbols."""
     record = index.records.get(change.path)
     if record is None:
         return []
@@ -89,6 +93,7 @@ def changed_symbols(index: RepositoryIndex, change: ChangedPath) -> list[str]:
 
 
 def _old_signatures(root: Path, base: str, path: str) -> dict[str, str]:
+    """Handle old signatures."""
     proc = _git(root, "show", f"{base}:{path}")
     if proc.returncode != 0:
         return {}
@@ -97,10 +102,12 @@ def _old_signatures(root: Path, base: str, path: str) -> dict[str, str]:
 
 
 def _symbol_key(symbol) -> str:
+    """Handle symbol key."""
     return f"{symbol.parent}.{symbol.name}" if symbol.parent else symbol.name
 
 
 def review_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> dict:
+    """Handle review patch."""
     index = build_index(root)
     changes = collect_patch(root, base=base, staged=staged)
     files = []
@@ -155,6 +162,7 @@ def review_patch(root: Path, *, base: str = "HEAD", staged: bool = False) -> dic
 
 
 def _evidence_category(path: str) -> str:
+    """Handle evidence category."""
     lower = path.lower()
     if lower.endswith(".sql") or "migrations/" in lower or "/drizzle/" in lower or lower.startswith("drizzle/"):
         return "database"
@@ -219,6 +227,7 @@ _CATEGORY_RESERVE_FLOOR = 150
 
 
 def _strip_pack_header(text: str) -> str:
+    """Strip pack header."""
     idx = text.find("\n## ")
     return text[idx + 1:] if idx != -1 else text
 
@@ -227,6 +236,7 @@ def build_diff_context(
     root: Path, *, base: str = "HEAD", staged: bool = False,
     max_tokens: int = 6000,
 ) -> dict:
+    """Build diff context."""
     review = review_patch(root, base=base, staged=staged)
     parts: list[str] = []
     for item in review["files"]:

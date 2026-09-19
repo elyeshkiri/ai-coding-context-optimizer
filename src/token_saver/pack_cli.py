@@ -12,6 +12,7 @@ from .semantic_ts import enrich_index_with_typescript
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
         prog="token-saver-pack",
         description="Build a task-aware source context pack under a hard token budget.",

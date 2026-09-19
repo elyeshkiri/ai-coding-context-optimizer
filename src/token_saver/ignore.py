@@ -64,12 +64,14 @@ _DOT_DIR_ALLOWLIST = {".github", ".gitlab", ".circleci"}
 
 
 def should_skip_dir(name: str) -> bool:
+    """Return whether should skip dir."""
     if name in _DOT_DIR_ALLOWLIST:
         return False
     return name in SKIP_DIR_NAMES or name.startswith(".")
 
 
 def should_skip_file(path: Path) -> bool:
+    """Return whether should skip file."""
     if path.name in SKIP_FILE_NAMES:
         return True
     if path.suffix.lower() in SKIP_FILE_SUFFIXES:

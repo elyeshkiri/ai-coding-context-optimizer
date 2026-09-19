@@ -24,6 +24,7 @@ _REQUIRED_EVENTS = {"PreToolUse", "PostToolUse", "SessionStart", "UserPromptSubm
 
 
 def _version(executable: str) -> dict[str, Any]:
+    """Handle version."""
     path = shutil.which(executable)
     if not path:
         return {"found": False, "path": None, "version": None}
@@ -48,6 +49,7 @@ def _version(executable: str) -> dict[str, Any]:
 
 
 def _settings_status(path: Path) -> dict[str, Any]:
+    """Handle settings status."""
     if not path.is_file():
         return {
             "path": str(path), "exists": False,
@@ -89,6 +91,7 @@ def _settings_status(path: Path) -> dict[str, Any]:
 def _transport_roundtrip() -> dict[str, Any]:
     # Distinct middle lines prove recovery uses stored original output, not the
     # compressed model-visible replacement.
+    """Handle transport roundtrip."""
     original = "\n".join(
         f"progress-line-{number:04d}" for number in range(1, 501)
     ) + "\n"
@@ -122,6 +125,7 @@ def _transport_roundtrip() -> dict[str, Any]:
 
 
 def _host_evidence(path: Path | None) -> dict[str, Any]:
+    """Handle host evidence."""
     if path is None:
         return {"provided": False, "accepted_replacement": None}
     try:
@@ -154,6 +158,7 @@ def validate_host(
     executable: str = "claude",
     live_evidence: Path | None = None,
 ) -> dict[str, Any]:
+    """Validate host."""
     root = root.resolve()
     project = _settings_status(settings_path(root))
     user = _settings_status(user_settings_path())

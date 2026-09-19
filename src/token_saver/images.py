@@ -27,6 +27,7 @@ TIER_STANDARD = (1568, 1568)   # everything else
 
 @dataclass
 class ImageCost:
+    """Represent image cost state and behavior."""
     width: int
     height: int
     tokens: int

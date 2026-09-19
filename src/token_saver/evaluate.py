@@ -12,10 +12,12 @@ from .repo_index import RepositoryIndex, build_index
 
 
 def _recall(expected: set[str], actual: set[str]) -> float:
+    """Handle recall."""
     return len(expected & actual) / len(expected) if expected else 1.0
 
 
 def _git_revision(root: Path) -> str | None:
+    """Handle git revision."""
     try:
         proc = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "HEAD"],
@@ -28,6 +30,7 @@ def _git_revision(root: Path) -> str | None:
 
 
 def _repository_specs(payload: dict, manifest: Path) -> dict[str, tuple[Path, str | None]]:
+    """Handle repository specs."""
     raw = payload.get("repositories", {})
     if raw is None:
         return {}
@@ -128,6 +131,7 @@ def ground_truth_hash(payload: dict[str, Any]) -> str:
 
 
 def _validate_holdout_protocol(payload: dict) -> str:
+    """Validate holdout protocol."""
     protocol = payload.get("protocol")
     if not isinstance(protocol, dict):
         raise ValueError("holdout evaluation requires a 'protocol' object")
@@ -151,6 +155,7 @@ def _validate_holdout_protocol(payload: dict) -> str:
 
 
 def _summary(items: list[dict]) -> dict:
+    """Handle summary."""
     out = {
         "task_count": len(items),
         "mean_file_recall": sum(item["file_recall"] for item in items) / len(items),

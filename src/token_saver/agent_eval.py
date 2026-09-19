@@ -9,6 +9,7 @@ CONDITIONS = {"baseline", "token-saver"}
 
 
 def evaluate_agent_runs(path: Path) -> dict:
+    """Evaluate agent runs."""
     payload = json.loads(path.read_text(encoding="utf-8"))
     runs = payload.get("runs") if isinstance(payload, dict) else None
     if not isinstance(runs, list) or not runs:

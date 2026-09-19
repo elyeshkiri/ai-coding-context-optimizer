@@ -43,6 +43,7 @@ def cap_for(n_lines: int) -> int:
 
 
 def _env_int(name: str, fallback: int) -> int:
+    """Handle env int."""
     try:
         return int(os.environ[name])
     except (KeyError, ValueError):
@@ -50,14 +51,17 @@ def _env_int(name: str, fallback: int) -> int:
 
 
 def _passthrough() -> int:
+    """Handle passthrough."""
     return 0
 
 
 def _disabled() -> bool:
+    """Handle disabled."""
     return os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _response_text(payload: dict) -> str | None:
+    """Handle response text."""
     response = payload.get("tool_response")
     if isinstance(response, str) and response.strip():
         return response
@@ -70,10 +74,12 @@ def _response_text(payload: dict) -> str | None:
 
 
 def _is_filterable(tool_name: str) -> bool:
+    """Return whether filterable."""
     return tool_name in FILTERABLE
 
 
 def _exit_code(response: dict) -> int | None:
+    """Handle exit code."""
     for key in ("exit_code", "exitCode", "code"):
         value = response.get(key)
         if isinstance(value, int) and not isinstance(value, bool):
@@ -82,12 +88,14 @@ def _exit_code(response: dict) -> int | None:
 
 
 def _delta_enabled() -> bool:
+    """Handle delta enabled."""
     return os.environ.get("TOKEN_SAVER_DELTA", "0").strip().lower() in {
         "1", "true", "yes", "on",
     }
 
 
 def run_post(payload: dict) -> tuple[int, dict | None]:
+    """Run post."""
     tool = payload.get("tool_name") or ""
     if tool == "Read" or tool == "Edit":
         return 0, None
@@ -158,6 +166,7 @@ def run_post(payload: dict) -> tuple[int, dict | None]:
 
 
 def _cwd(payload: dict) -> Path:
+    """Handle cwd."""
     raw = payload.get("cwd") or payload.get("cwd_path") or "."
     return Path(str(raw))
 
@@ -172,6 +181,7 @@ def run_session_start(payload: dict) -> tuple[int, dict | None]:
 
 
 def run_user_prompt(payload: dict) -> tuple[int, dict | None]:
+    """Run user prompt."""
     root = _cwd(payload)
     prompt = str(payload.get("prompt") or payload.get("user_prompt") or "")
     note = user_nudge(root, prompt)
@@ -205,6 +215,7 @@ def run_post_read(payload: dict) -> None:
 
 
 def run(payload: dict) -> tuple[int, dict | None]:
+    """Run the requested value."""
     if _disabled():
         return 0, None
     event = payload.get("hook_event_name") or payload.get("hookEventName") or ""
@@ -223,6 +234,7 @@ def run(payload: dict) -> tuple[int, dict | None]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line entry point."""
     try:
         payload = json.loads(sys.stdin.read() or "{}")
     except ValueError:
