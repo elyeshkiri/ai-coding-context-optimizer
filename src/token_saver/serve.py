@@ -9,7 +9,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .mcp_server.protocol import PROTOCOL_VERSION, McpProtocol, result_content
+from .mcp_server.protocol import (
+    PROTOCOL_VERSION as PROTOCOL_VERSION,
+    McpProtocol,
+    result_content,
+)
 from .mcp_server.services import IndexService
 from .mcp_server.tools import DEFAULT_TOOL_REGISTRY
 from .mcp_server.transport import serve_stdio
