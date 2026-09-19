@@ -200,8 +200,7 @@ def _git(source: Path, *args: str) -> str:
     proc = subprocess.run(
         ["git", "-C", str(source), *args],
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     if proc.returncode:
@@ -389,8 +388,7 @@ def run_experiment(
                         setup,
                         cwd=worktree,
                         text=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
+                        capture_output=True,
                         check=False,
                     )
                     if setup_proc.returncode:
