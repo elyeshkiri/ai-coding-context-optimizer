@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import tarfile
 from pathlib import Path
 from typing import Any
 
@@ -246,6 +247,51 @@ def _validate_repository(source: Path, revision: str) -> str:
     return resolved
 
 
+def _export_history_isolated_snapshot(
+    source: Path,
+    revision: str,
+    destination: Path,
+) -> None:
+    """Export one commit without exposing later Git history to the agent."""
+    destination.mkdir(parents=True, exist_ok=False)
+    proc = subprocess.Popen(
+        ["git", "-C", str(source), "archive", "--format=tar", revision],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert proc.stdout is not None
+    try:
+        with tarfile.open(fileobj=proc.stdout, mode="r|") as archive:
+            archive.extractall(destination)
+    finally:
+        proc.stdout.close()
+    stderr = proc.stderr.read().decode("utf-8", "replace") if proc.stderr else ""
+    if proc.stderr:
+        proc.stderr.close()
+    if proc.wait() != 0:
+        raise ValueError(
+            f"git archive failed for {source}@{revision}: {stderr.strip()}"
+        )
+
+    subprocess.run(["git", "init", "-q", str(destination)], check=True)
+    _git(destination, "config", "user.email", "token-saver-benchmark@example.invalid")
+    _git(destination, "config", "user.name", "Token Saver Benchmark")
+    _git(destination, "add", "-A")
+    proc = subprocess.run(
+        [
+            "git", "-C", str(destination), "commit", "-q", "--no-gpg-sign",
+            "-m", f"benchmark snapshot {revision}",
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode:
+        raise ValueError(
+            f"failed to initialize isolated benchmark snapshot: {proc.stderr.strip()}"
+        )
+
+
 def _expand_command(
     command: list[str],
     *,
@@ -421,7 +467,7 @@ def run_experiment(
 
         with tempfile.TemporaryDirectory(prefix="token-saver-e2e-") as tmp:
             worktree = Path(tmp) / "repo"
-            _git(source, "worktree", "add", "--detach", str(worktree), revision)
+            _export_history_isolated_snapshot(source, revision, worktree)
             try:
                 for setup in task.get("setup", []):
                     setup_proc = subprocess.run(
@@ -597,9 +643,6 @@ def run_experiment(
                 _checkpoint(output_path, result)
                 completed.add(key)
             finally:
-                try:
-                    _git(source, "worktree", "remove", "--force", str(worktree))
-                except ValueError:
-                    pass
+                pass
 
     return result
