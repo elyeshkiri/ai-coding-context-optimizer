@@ -93,8 +93,6 @@ def _prioritized_ranges(
     return result
 
 
-@dataclass
-
 def _container_windows(symbol, child) -> list[tuple[int, int]]:
     """Source windows for one selected symbol.
 
