@@ -503,9 +503,24 @@ def cmd_output(args):
 
 
 def cmd_benchmark(args):
-    from .benchmark import evaluate
+    from .benchmark import evaluate, task_definition_hash
     try:
-        print(json.dumps(evaluate(args.manifest, args.rates), indent=2))
+        if args.print_task_definition_hash:
+            payload = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("manifest must be a JSON object")
+            print(task_definition_hash(payload))
+            return 0
+        if not args.rates:
+            raise ValueError("--rates is required unless --print-task-definition-hash is used")
+        print(json.dumps(
+            evaluate(
+                args.manifest,
+                args.rates,
+                require_publishable=args.require_publishable,
+            ),
+            indent=2,
+        ))
         return 0
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f"benchmark error: {exc}", file=sys.stderr)
@@ -654,7 +669,15 @@ def main(argv: list[str] | None = None) -> int:
     prune.set_defaults(func=prune_outputs)
     bench = sub.add_parser("benchmark", help="compare paired recorded coding tasks")
     bench.add_argument("manifest")
-    bench.add_argument("--rates", required=True)
+    bench.add_argument("--rates")
+    bench.add_argument(
+        "--require-publishable", action="store_true",
+        help="require frozen >=20-task, >=3-trial independently verified evidence",
+    )
+    bench.add_argument(
+        "--print-task-definition-hash", action="store_true",
+        help="print the hash to freeze before any paid benchmark run",
+    )
     bench.set_defaults(func=cmd_benchmark)
     args = p.parse_args(argv)
     return args.func(args)
