@@ -134,7 +134,7 @@ def ranking_diff_main(argv: list[str]) -> int:
             report,
             allowed_rank_drop=args.allowed_rank_drop,
         )
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
