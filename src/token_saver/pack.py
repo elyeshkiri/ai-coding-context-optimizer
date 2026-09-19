@@ -16,7 +16,11 @@ from .repo_index import RepositoryIndex, build_index, similarity
 from .working_set import save_working_set
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
 from .packing.ranking import (
+    _AUTHORITY_CALLABLE_KINDS as _AUTHORITY_CALLABLE_KINDS,
     _FileRankingScope as _FileRankingScope,
+    _GENERIC_CALLABLE_MAX_FILES as _GENERIC_CALLABLE_MAX_FILES,
+    _MAX_FILE_BYTES as _MAX_FILE_BYTES,
+    _NUMBER_WORDS as _NUMBER_WORDS,
     _apply_embedding_rerank as _apply_embedding_rerank,
     _apply_file_boosts as _apply_file_boosts,
     _apply_graph_boosts as _apply_graph_boosts,
@@ -57,6 +61,7 @@ from .packing.render import (
 )
 from .packing.symbols import (
     _ACTION_TERMS as _ACTION_TERMS,
+    _LARGE_CONTAINER_LINES as _LARGE_CONTAINER_LINES,
     _SymbolScope as _SymbolScope,
     _apply_overload_dimensions as _apply_overload_dimensions,
     _apply_parent_credit as _apply_parent_credit,
