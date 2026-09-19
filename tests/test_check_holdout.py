@@ -14,7 +14,7 @@ def test_floor_failures_detects_regression_and_missing_metric():
     floor = {
         "mean_file_recall": 0.833,
         "mean_symbol_recall": 0.833,
-        "mean_symbol_recall_in_expected_files": 0.667,
+        "mean_symbol_recall_in_expected_files": 2 / 3,
     }
 
     failures = _floor_failures(summary, floor)
@@ -51,7 +51,7 @@ def test_ratcheted_floor_raises_only_improved_metrics():
     }
 
     assert _ratcheted_floor(summary, floor) == {
-        "mean_file_recall": 0.833,
+        "mean_file_recall": 0.8333333333,
         "mean_symbol_recall": 0.91,
         "mean_symbol_recall_in_expected_files": 0.75,
     }
@@ -63,5 +63,5 @@ def test_frozen_holdout_floor_gates_scoped_symbol_recall():
         (root / "benchmarks" / "holdout-external.floor.json").read_text()
     )
 
-    assert spec["floor"]["mean_symbol_recall_in_expected_files"] == 0.667
+    assert spec["floor"]["mean_symbol_recall_in_expected_files"] == pytest.approx(2 / 3)
     assert spec["target"]["mean_symbol_recall_in_expected_files"] == 1.0
