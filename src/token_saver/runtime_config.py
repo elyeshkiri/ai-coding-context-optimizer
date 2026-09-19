@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10
+    import tomli as tomllib
 
 CONFIG_NAME = ".token-saver.toml"
 
