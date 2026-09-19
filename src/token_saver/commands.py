@@ -18,6 +18,8 @@ from .host_validate import validate_host
 from .impact import analyze_impact
 from .patch_context import build_diff_context, review_patch
 from .output_benchmark import evaluate_output_manifest
+from .output_processors import explain_processor
+from .output_quality import evaluate_quality_manifest
 from .output_saver import build_output_policy, compact_output, compact_structured_result
 from .serve import serve
 
@@ -398,6 +400,39 @@ def output_benchmark_main(argv: list[str]) -> int:
         return 2
     print(json.dumps(result, indent=2))
     return 0
+
+
+def output_explain_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver output-explain")
+    parser.add_argument("command")
+    parser.add_argument("--exit-code", type=int)
+    parser.add_argument("--sample", help="optional captured output used for failure detection")
+    args = parser.parse_args(argv)
+    sample = ""
+    if args.sample:
+        try:
+            sample = Path(args.sample).read_text(encoding="utf-8")
+        except OSError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+    print(json.dumps(
+        explain_processor(args.command, exit_code=args.exit_code, sample=sample),
+        indent=2,
+    ))
+    return 0
+
+
+def output_replay_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver output-replay")
+    parser.add_argument("manifest")
+    args = parser.parse_args(argv)
+    try:
+        result = evaluate_quality_manifest(Path(args.manifest))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    return 1 if result["summary"]["failed"] else 0
 
 
 def cost_report_main(argv: list[str]) -> int:
