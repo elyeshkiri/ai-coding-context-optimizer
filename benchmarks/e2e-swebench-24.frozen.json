@@ -7,8 +7,8 @@
     "history_isolated": true,
     "hidden_tests_after_agent": true,
     "development_excluded": true,
-    "frozen_at": "2026-09-19T11:45:00+02:00",
-    "task_definition_sha256": "fb32efd628671663a30c129ba8c61409b3a6f1497baf19ca8e41db669d7d710c"
+    "frozen_at": "2026-09-19T14:35:00+02:00",
+    "task_definition_sha256": "8486359b1f3bea306e53f6e3d40f19dc0cc26b4a986776ee6792ef981d5f4ad4"
   },
   "design": {
     "trials_per_task": 3,
@@ -67,7 +67,8 @@
     "agent_image": "token-saver-e2e-agent:2.1.276",
     "transcript_mode": "path",
     "timeout_seconds": 1800,
-    "container_user_mode": "host-uid-gid"
+    "container_user_mode": "host-uid-gid",
+    "workspace_routing": "anthropic-workspace-id-via-ANTHROPIC_CUSTOM_HEADERS"
   },
   "tasks": [
     {
