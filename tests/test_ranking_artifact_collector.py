@@ -25,20 +25,20 @@ def test_collector_keeps_newest_artifact_per_pr_name(monkeypatch):
     payload = {
         "artifacts": [
             {
-                "id": 30,
-                "name": "ranking-regression-59",
-                "expired": False,
-                "created_at": "2026-09-20T10:00:00Z",
-                "archive_download_url": "https://example.test/30.zip",
-                "workflow_run": {"id": 300},
-            },
-            {
                 "id": 29,
                 "name": "ranking-regression-59",
                 "expired": False,
                 "created_at": "2026-09-20T09:00:00Z",
                 "archive_download_url": "https://example.test/29.zip",
                 "workflow_run": {"id": 290},
+            },
+            {
+                "id": 30,
+                "name": "ranking-regression-59",
+                "expired": False,
+                "created_at": "2026-09-20T10:00:00Z",
+                "archive_download_url": "https://example.test/30.zip",
+                "workflow_run": {"id": 300},
             },
             {
                 "id": 20,
@@ -184,3 +184,67 @@ def test_same_host_redirect_keeps_github_authorization():
 
     assert redirected is not None
     assert redirected.get_header("Authorization") == "Bearer secret-token"
+
+
+
+def test_collector_finds_newer_rerun_on_later_api_page(monkeypatch):
+    """A newer PR rerun must win even when it appears on a later API page."""
+    collector = _collector_module()
+    filler = [
+        {
+            "id": 1000 + value,
+            "name": f"other-{value}",
+            "expired": False,
+            "created_at": "2026-09-20T12:00:00Z",
+            "archive_download_url": f"https://example.test/other-{value}.zip",
+        }
+        for value in range(99)
+    ]
+    page_one = {
+        "artifacts": [
+            {
+                "id": 10,
+                "name": "ranking-regression-59",
+                "expired": False,
+                "created_at": "2026-09-20T08:00:00Z",
+                "archive_download_url": "https://example.test/10.zip",
+            },
+            *filler,
+        ]
+    }
+    page_two = {
+        "artifacts": [
+            {
+                "id": 20,
+                "name": "ranking-regression-59",
+                "expired": False,
+                "created_at": "2026-09-20T11:00:00Z",
+                "archive_download_url": "https://example.test/20.zip",
+            },
+            {
+                "id": 15,
+                "name": "ranking-regression-58",
+                "expired": False,
+                "created_at": "2026-09-19T11:00:00Z",
+                "archive_download_url": "https://example.test/15.zip",
+            },
+        ]
+    }
+
+    def fake_fetch(url, token):
+        """Return deterministic artifact pages independent of API ordering."""
+        del token
+        return page_two if "page=2" in url else page_one
+
+    monkeypatch.setattr(collector, "_fetch_json", fake_fetch)
+
+    selected = collector.list_recent_ranking_artifacts(
+        "owner/repo",
+        "token",
+        limit=2,
+    )
+
+    assert [(item["name"], item["id"]) for item in selected] == [
+        ("ranking-regression-59", 20),
+        ("ranking-regression-58", 15),
+    ]

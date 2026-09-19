@@ -70,10 +70,9 @@ def list_recent_ranking_artifacts(
     if limit <= 0:
         raise ValueError("limit must be positive")
 
-    selected: list[dict] = []
-    seen_names: set[str] = set()
+    newest_by_name: dict[str, dict] = {}
     page = 1
-    while len(selected) < limit:
+    while True:
         url = (
             f"https://api.github.com/repos/{repository}/actions/artifacts"
             f"?per_page=100&page={page}"
@@ -89,31 +88,42 @@ def list_recent_ranking_artifacts(
             name = artifact.get("name")
             artifact_id = artifact.get("id")
             download_url = artifact.get("archive_download_url")
+            created_at = artifact.get("created_at")
             if (
                 not isinstance(name, str)
                 or not name.startswith("ranking-regression-")
-                or name in seen_names
                 or not isinstance(artifact_id, int)
                 or not isinstance(download_url, str)
+                or not isinstance(created_at, str)
             ):
                 continue
-            seen_names.add(name)
-            selected.append(
-                {
-                    "id": artifact_id,
-                    "name": name,
-                    "created_at": artifact.get("created_at"),
-                    "archive_download_url": download_url,
-                    "workflow_run": artifact.get("workflow_run"),
-                }
-            )
-            if len(selected) >= limit:
-                break
+            candidate = {
+                "id": artifact_id,
+                "name": name,
+                "created_at": created_at,
+                "archive_download_url": download_url,
+                "workflow_run": artifact.get("workflow_run"),
+            }
+            current = newest_by_name.get(name)
+            if current is None or (
+                candidate["created_at"],
+                candidate["id"],
+            ) > (
+                current["created_at"],
+                current["id"],
+            ):
+                newest_by_name[name] = candidate
 
         if len(artifacts) < 100:
             break
         page += 1
-    return selected
+
+    selected = sorted(
+        newest_by_name.values(),
+        key=lambda item: (item["created_at"], item["id"]),
+        reverse=True,
+    )
+    return selected[:limit]
 
 
 def _extract_ranking_diff(archive: bytes) -> bytes:
