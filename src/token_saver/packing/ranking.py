@@ -130,7 +130,8 @@ def rank_files(
     registry = stage_registry or DEFAULT_RANKING_STAGE_REGISTRY
     registry.run(
         RankingStageContext(
-            scope=scope,
+            index=scope.index,
+            query=scope.query,
             options=RankingStageOptions(
                 priority_files=(
                     frozenset(priority_files) if priority_files is not None else None
