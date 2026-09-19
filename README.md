@@ -52,6 +52,37 @@ replaces the normal compressed output only when the rendered delta is smaller.
 
 ```bash
 pip install claude-token-saver
+cd /path/to/project
+token-saver setup
+token-saver doctor
+```
+
+`setup` auto-detects Claude Code, Cursor, and Codex, writes only Token
+Saver-owned integration entries, creates a project `.token-saver.toml`, and is
+safe to rerun after upgrades as a repair/migration step. Configure hosts
+explicitly when needed:
+
+```bash
+token-saver setup . --host claude --host cursor
+token-saver setup . --host all
+```
+
+`doctor` consolidates CLI, project-config, host-integration, repository-index,
+and available Claude transcript evidence in one health report. Remove only
+Token Saver-owned entries with:
+
+```bash
+token-saver uninstall . --host all
+token-saver uninstall . --host all --remove-config
+```
+
+Discover commands without opening the README and enable shell completion:
+
+```bash
+token-saver commands
+token-saver completion bash
+token-saver completion zsh
+token-saver completion fish
 ```
 
 The distribution is named `claude-token-saver` because PyPI rejects
@@ -766,6 +797,27 @@ pytest -q 2>&1 | token-saver filter --command "pytest -q"
 The filter removes ANSI noise, compacts valid JSON, abbreviates huge hex blobs, collapses duplicate successful log lines, and applies command-aware reductions. Failure evidence is favored over aggressive compression.
 
 ## Configuration
+
+`token-saver setup` creates `.token-saver.toml` in the project. Hook and
+guard settings can be committed with the repository instead of being repeated
+as shell environment variables:
+
+```toml
+version = 1
+
+[hooks]
+guard = true
+read_max_lines = 220
+reread = false
+delta = false
+min_lines = 40
+keep_tail = 15
+allow = []
+```
+
+Existing `TOKEN_SAVER_*` environment variables remain supported and take
+precedence over project configuration, which keeps CI/temporary overrides
+simple.
 
 | Variable | Default | Purpose |
 |---|---:|---|
