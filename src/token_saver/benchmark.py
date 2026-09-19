@@ -68,6 +68,10 @@ def _publishability_issues(manifest: dict, runs: list[dict]) -> list[str]:
         issues.append("protocol.condition_order_randomized must be true")
     if protocol.get("independent_verification") is not True:
         issues.append("protocol.independent_verification must be true")
+    if protocol.get("history_isolated") is not True:
+        issues.append("protocol.history_isolated must be true")
+    if protocol.get("hidden_tests_after_agent") is not True:
+        issues.append("protocol.hidden_tests_after_agent must be true")
     if not str(protocol.get("frozen_at", "")).strip():
         issues.append("protocol.frozen_at is required")
 
