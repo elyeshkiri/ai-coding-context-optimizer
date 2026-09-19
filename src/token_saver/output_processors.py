@@ -239,6 +239,17 @@ class JsTestProcessor:
         self, command: str, text: str, *, failed: bool,
         max_lines: int, keep_tail: int,
     ) -> str:
+        # A real JS test failure often carries stack frames and a multiline
+        # assertion diff whose context cannot be reconstructed from isolated
+        # FAIL/Expected/Received lines. Preserve that shape verbatim. A
+        # non-zero shell status without failure-shaped stdout can still be
+        # compressed safely because stderr remains untouched by the hook.
+        complex_failure = failed and bool(re.search(
+            r"(?m)^\s+at\s+|^\s*[+-]\s+.+$",
+            text,
+        ))
+        if complex_failure:
+            return text
         candidate = _keep_matching(
             text,
             re.compile(
@@ -248,9 +259,10 @@ class JsTestProcessor:
             limit=max(40, max_lines),
             label="test",
         )
-        return candidate or (
-            text if failed else filter_text(preprocess(text), max_lines, keep_tail, prepared=True)
-        )
+        if candidate:
+            return candidate
+        prepared = preprocess(text)
+        return filter_text(prepared, max_lines, keep_tail, prepared=True)
 
 
 class GitLogProcessor:
