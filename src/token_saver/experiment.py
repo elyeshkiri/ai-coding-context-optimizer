@@ -186,6 +186,8 @@ def validate_suite(
             "task_definitions_frozen",
             "condition_order_randomized",
             "independent_verification",
+            "history_isolated",
+            "hidden_tests_after_agent",
         ):
             if protocol.get(key) is not True:
                 raise ValueError(f"protocol.{key} must be true")
