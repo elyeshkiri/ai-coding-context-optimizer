@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/ranking-calibration.yml"
+      - "scripts/collect_ranking_artifacts.py"
   schedule:
     - cron: "17 5 * * 1"
   workflow_dispatch:
@@ -42,47 +43,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_LIMIT: ${{ github.event.inputs.artifact_limit }}
         run: |
-          limit="${ARTIFACT_LIMIT:-50}"
-          mkdir -p ranking-history downloads
-
-          gh api --paginate \
-            "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
-            --jq '.artifacts[]
-              | select(.expired == false)
-              | select(.name | startswith("ranking-regression-"))
-              | [.id, .name, .created_at]
-              | @tsv' > all-ranking-artifacts.tsv
-
-          python - "$limit" <<'PY'
-          import sys
-          from pathlib import Path
-
-          limit = int(sys.argv[1])
-          seen = set()
-          selected = []
-          source = Path("all-ranking-artifacts.tsv")
-          if source.exists():
-              for raw in source.read_text(encoding="utf-8").splitlines():
-                  parts = raw.split("\t")
-                  if len(parts) != 3:
-                      continue
-                  artifact_id, name, created_at = parts
-                  if name in seen:
-                      continue
-                  seen.add(name)
-                  selected.append((artifact_id, name, created_at))
-                  if len(selected) >= limit:
-                      break
-
-          Path("selected-ranking-artifacts.tsv").write_text(
-              "".join("\t".join(row) + "\n" for row in selected),
-              encoding="utf-8",
-          )
-          PY
-
-          while IFS=
-          count="$(find ranking-history -name '*.json' -type f | wc -l)"
-          echo "Collected $count ranking diff reports."
+          python scripts/collect_ranking_artifacts.py \
+            --limit "${ARTIFACT_LIMIT:-50}" \
+            --out ranking-history \
+            --selection-out selected-ranking-artifacts.json
 
       - name: Build current-cohort calibration
         env:
@@ -103,43 +67,6 @@ jobs:
           name: ranking-gate-calibration
           path: |
             ranking-calibration.json
-            selected-ranking-artifacts.tsv
-          if-no-files-found: error
-          retention-days: 30
-\t' read -r artifact_id artifact_name _created_at; do
-            [ -n "$artifact_id" ] || continue
-            archive="downloads/$artifact_id.zip"
-            curl --fail --silent --show-error --location \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
-              --output "$archive"
-            unzip -p "$archive" ranking-diff.json > "ranking-history/$artifact_id.json"
-          done < selected-ranking-artifacts.tsv
-
-          count="$(find ranking-history -name '*.json' -type f | wc -l)"
-          echo "Collected $count ranking diff reports."
-
-      - name: Build current-cohort calibration
-        env:
-          GROUND_TRUTH_SHA: ${{ steps.benchmark.outputs.ground_truth_sha256 }}
-        run: |
-          token-saver ranking-calibrate ranking-history \
-            --ground-truth-sha "$GROUND_TRUTH_SHA" \
-            --min-reports 20 \
-            --json > ranking-calibration.json
-          token-saver ranking-calibrate ranking-history \
-            --ground-truth-sha "$GROUND_TRUTH_SHA" \
-            --min-reports 20 \
-            --markdown >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload calibration evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: ranking-gate-calibration
-          path: |
-            ranking-calibration.json
-            selected-ranking-artifacts.tsv
+            selected-ranking-artifacts.json
           if-no-files-found: error
           retention-days: 30
