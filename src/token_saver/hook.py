@@ -23,7 +23,7 @@ from .hook_runtime import (
     HookConfig,
     HookRuntime,
     HookServices,
-    cap_for,
+    cap_for as cap_for,
 )
 from .output_store import store_output
 from .policy import user_nudge
