@@ -22,6 +22,7 @@ from token_saver.ranking_regression import (
 
 def _repo(tmp_path):
     """Create a deterministic two-file repository for ranking snapshots."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "auth.py").write_text(
         textwrap.dedent(
             """
