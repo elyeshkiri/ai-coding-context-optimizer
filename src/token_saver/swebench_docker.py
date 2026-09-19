@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -62,3 +63,71 @@ def verify_swebench(
     except subprocess.TimeoutExpired:
         return 124, time.monotonic() - start
     return proc.returncode, time.monotonic() - start
+
+
+_DIFF_HEADER = re.compile(r"^diff --git a/(\S+) b/(\S+)", re.M)
+_STATUS_LINE = re.compile(r"^(PASSED|FAILED|ERROR|XFAIL|XPASS|SKIPPED)[ \t]+(\S.*)$")
+
+
+def _patch_blocks(patch: str) -> list[str]:
+    return [b for b in re.split(r"(?=^diff --git )", patch, flags=re.M) if b.strip()]
+
+
+def _patch_files(patch: str) -> set[str]:
+    return {name for pair in _DIFF_HEADER.findall(patch) for name in pair}
+
+
+def strip_test_file_changes(agent_patch: str, test_patch: str) -> str:
+    """Drop agent hunks for files the hidden test patch modifies.
+
+    Applying the hidden tests on top of an agent's own edits to the same test
+    file fails with "patch does not apply". Grading must judge the agent's
+    source changes against the reference tests, so those test-file edits are
+    removed before verification (the recorded agent patch is left untouched).
+    """
+    protected = _patch_files(test_patch)
+    return "".join(
+        block for block in _patch_blocks(agent_patch)
+        if not _patch_files(block) & protected
+    )
+
+
+def parse_test_statuses(output: str) -> dict[str, str]:
+    """Per-test outcome parsed from pytest ``-rA`` short-summary lines."""
+    statuses: dict[str, str] = {}
+    for line in output.splitlines():
+        match = _STATUS_LINE.match(line)
+        if not match:
+            continue
+        status, rest = match.groups()
+        if status in {"FAILED", "ERROR"}:
+            rest = rest.split(" - ", 1)[0]
+        statuses[rest.strip()] = status
+    return statuses
+
+
+def passed_tests(output: str) -> set[str]:
+    return {t for t, s in parse_test_statuses(output).items() if s == "PASSED"}
+
+
+def grade_swebench(
+    fail_to_pass: list[str],
+    reference_passed: set[str],
+    run_passed: set[str],
+) -> dict:
+    """Resolved iff every target test passes and nothing regresses.
+
+    The whole-command exit code is not used: images can carry pre-existing
+    errors (for example broken fixtures) that make it nonzero even for a
+    correct fix. Regressions are measured against the unpatched reference run,
+    which had the same hidden tests applied.
+    """
+    fixed = [t for t in fail_to_pass if t in run_passed]
+    regressions = sorted(reference_passed - run_passed)
+    return {
+        "resolved": len(fixed) == len(fail_to_pass) and not regressions,
+        "fail_to_pass_passed": len(fixed),
+        "fail_to_pass_total": len(fail_to_pass),
+        "regression_count": len(regressions),
+        "regressions": regressions[:20],
+    }
