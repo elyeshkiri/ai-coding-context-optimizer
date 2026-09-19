@@ -75,6 +75,9 @@ def ranking_snapshot_main(argv: list[str]) -> int:
     parser.add_argument("manifest")
     parser.add_argument("--path", default=".")
     parser.add_argument("--max-files", type=int, default=20)
+    parser.add_argument("--graph-hops", type=int, default=1)
+    parser.add_argument("--closure-items", type=int, default=20)
+    parser.add_argument("--embeddings", action="store_true")
     parser.add_argument("--out")
     args = parser.parse_args(argv)
     try:
@@ -82,6 +85,9 @@ def ranking_snapshot_main(argv: list[str]) -> int:
             Path(args.path),
             Path(args.manifest),
             max_files=args.max_files,
+            graph_hops=args.graph_hops,
+            closure_max_items=args.closure_items,
+            embeddings=args.embeddings,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
