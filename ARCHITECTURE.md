@@ -79,6 +79,23 @@ This makes host behavior testable without filesystem-backed session state or a
 Claude process, and lets another host reuse the same runtime policy with a
 different adapter.
 
+## MCP server boundary
+
+`token_saver.serve` is now a compatibility facade and composition root. The
+server implementation is split under `token_saver.mcp_server`:
+
+- `contracts.py` — tool/context contracts with no JSON-RPC or stdio knowledge;
+- `services.py` — repository-index lifecycle service;
+- `tools.py` — tool schemas, application handlers, and `McpToolRegistry`;
+- `protocol.py` — JSON-RPC method routing and MCP result/error translation;
+- `transport.py` — newline-delimited stdio only.
+
+Tool handlers return plain application values and depend on an explicit
+`McpToolContext`. The protocol runtime receives an injectable registry and
+index service, and the transport receives an `McpProtocol` instance. This lets
+other hosts or transports reuse the exact same tools without importing stdio
+behavior or duplicating repository logic.
+
 ## Architectural invariants
 
 1. **Fail open:** unknown failed output is preserved unless a processor explicitly
@@ -94,7 +111,9 @@ different adapter.
    command-family-specific logic.
 6. **Command handlers grow vertically:** registry composition and compatibility
    facades must not accumulate command implementation logic.
+7. **MCP transport is replaceable:** tool handlers must not depend on JSON-RPC or
+   stdio, and protocol routing must consume tools through the registry contract.
 
-`tests/test_architecture_boundaries.py` and `tests/test_hook_runtime.py` lock in
-these extension seams so future features can grow by composition instead of by
-adding more central branching.
+`tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`, and
+`tests/test_mcp_server_boundaries.py` lock in these extension seams so future
+features can grow by composition instead of by adding more central branching.
