@@ -589,6 +589,19 @@ def run_experiment(
                     stderr_path=stderr_path,
                     timeout=timeout,
                 )
+                if agent_rc != 0:
+                    stdout_tail = stdout_path.read_text(
+                        encoding="utf-8", errors="replace"
+                    )[-2000:]
+                    stderr_tail = stderr_path.read_text(
+                        encoding="utf-8", errors="replace"
+                    )[-2000:]
+                    raise ValueError(
+                        f"task {task['id']} trial {item['trial']} "
+                        f"{item['condition']}: agent runner exited {agent_rc}\n"
+                        f"stdout tail:\n{stdout_tail}\n"
+                        f"stderr tail:\n{stderr_tail}"
+                    )
 
                 mode = runner.get("transcript_mode", "claude-project")
                 if mode == "claude-project":
