@@ -87,7 +87,10 @@ def test_host_check_command_is_routed(monkeypatch, capsys, tmp_path):
         "ready": False,
         "live_verified": False,
     }
-    monkeypatch.setattr("token_saver.commands.validate_host", lambda *args, **kwargs: result)
+    monkeypatch.setattr(
+        "token_saver.command_handlers.host.validate_host",
+        lambda *args, **kwargs: result,
+    )
     assert entry_main(["host-check", str(tmp_path)]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["hook_transport"]["ok"] is True
