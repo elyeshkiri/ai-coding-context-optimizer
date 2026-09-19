@@ -14,6 +14,7 @@ from ..ranking_regression import (
     compare_ranking_snapshots,
     load_ranking_snapshot,
     regression_violations,
+    render_ranking_diff_markdown,
 )
 
 
@@ -110,7 +111,9 @@ def ranking_diff_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="token-saver ranking-diff")
     parser.add_argument("baseline")
     parser.add_argument("candidate")
-    parser.add_argument("--json", action="store_true")
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true")
+    output.add_argument("--markdown", action="store_true")
     parser.add_argument(
         "--fail-on-regression",
         action="store_true",
@@ -139,6 +142,8 @@ def ranking_diff_main(argv: list[str]) -> int:
         payload = dict(report)
         payload["violations"] = violations
         print(json.dumps(payload, indent=2))
+    elif args.markdown:
+        print(render_ranking_diff_markdown(report))
     else:
         summary = report["summary"]
         print(
