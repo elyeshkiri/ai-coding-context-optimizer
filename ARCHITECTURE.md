@@ -19,8 +19,9 @@ Claude hook / replay / CLI
               -> built-in or custom processors
       -> preservation/text policy
 
-context/browser/MCP
-  -> repository index + ranking + graph services
+CLI / MCP / future agent hosts
+  -> RepositoryContextService
+      -> repository index + ranking + graph + packing services
 ```
 
 The dependency arrows point inward toward contracts and pure application logic.
@@ -48,6 +49,25 @@ The registry imports these handlers directly. `token_saver.commands` is retained
 only as a compatibility facade for older imports and contains no command
 implementation. This keeps command growth local to one user-facing capability
 instead of rebuilding a central CLI monolith.
+
+## Repository application boundary
+
+`RepositoryContextService` is the shared application layer for repository-aware
+operations. Host-facing code should use it instead of composing
+`RepositoryIndex`, context packing, browsing, impact analysis, semantic
+enrichment, and ranking feedback independently.
+
+The service owns one repository scope and one reusable index lifecycle. It
+provides `build_context`, `browse`, `find_symbols`, `impact`,
+`feedback`, `enrich_typescript`, `get`, `refresh`, and `status`.
+
+The main pack CLI, context CLI commands, and repository-oriented MCP tools now
+consume this same boundary. `mcp_server.IndexService` remains as a compatibility
+subclass so existing imports and MCP index-status behavior stay stable.
+
+This keeps retrieval policy single-sourced while leaving low-level modules such
+as `pack.py`, `repo_index.py`, `context_browser.py`, and `impact.py`
+independently testable.
 
 ## Output boundary
 
@@ -113,7 +133,10 @@ behavior or duplicating repository logic.
    facades must not accumulate command implementation logic.
 7. **MCP transport is replaceable:** tool handlers must not depend on JSON-RPC or
    stdio, and protocol routing must consume tools through the registry contract.
+8. **Repository orchestration is single-sourced:** host-facing integrations use
+   `RepositoryContextService` rather than rebuilding index/ranking/graph flows.
 
-`tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`, and
-`tests/test_mcp_server_boundaries.py` lock in these extension seams so future
-features can grow by composition instead of by adding more central branching.
+`tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
+`tests/test_mcp_server_boundaries.py`, and `tests/test_repository_service.py`
+lock in these extension seams so future features can grow by composition instead
+of by adding more central branching.
