@@ -16,7 +16,7 @@ ERROR_HINTS = re.compile(
     re.I,
 )
 _STRONG_FAILURE = re.compile(
-    r"(?im)(^\s*(?:FAILED|ERROR|FATAL|PANIC)\b|Traceback \(most recent call last\)|"
+    r"(?im)(^\s*(?:FAIL|FAILED|ERROR|FATAL|PANIC)\b|Traceback \(most recent call last\)|"
     r"\b(?:AssertionError|Exception|RuntimeError|TypeError|ValueError)\b)"
 )
 _CRITICAL = re.compile(
