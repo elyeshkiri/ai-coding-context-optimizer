@@ -77,10 +77,17 @@ def build_ranking_snapshot(
     manifest: Path,
     *,
     max_files: int = 20,
+    graph_hops: int = 1,
+    closure_max_items: int = 20,
+    embeddings: bool = False,
 ) -> dict:
     """Capture ranking traces for every task in an evaluation-style manifest."""
     if max_files <= 0:
         raise ValueError("max_files must be positive")
+    if graph_hops < 0:
+        raise ValueError("graph_hops must be nonnegative")
+    if closure_max_items <= 0:
+        raise ValueError("closure_max_items must be positive")
 
     root = root.resolve()
     manifest = manifest.resolve()
@@ -134,6 +141,9 @@ def build_ranking_snapshot(
             max_files=max_files,
             changed_boost=False,
             feedback_boost=False,
+            graph_hops=graph_hops,
+            closure_max_items=closure_max_items,
+            embeddings=embeddings,
             include_paths=set(expected_files),
         )
         results.append(
@@ -159,6 +169,9 @@ def build_ranking_snapshot(
             "max_files": max_files,
             "changed_boost": False,
             "feedback_boost": False,
+            "graph_hops": graph_hops,
+            "closure_max_items": closure_max_items,
+            "embeddings": embeddings,
             "trace_scores": True,
         },
         "repositories": {
