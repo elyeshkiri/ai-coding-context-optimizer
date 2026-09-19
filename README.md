@@ -209,6 +209,36 @@ Rank movement is intentionally informational for now: broken snapshot/diff
 execution fails CI, but ranking regressions do not block merges until a
 data-backed rank-drop threshold has been calibrated from real PR history.
 
+### Calibrate a blocking policy from PR history
+
+Each PR artifact now carries its pull-request number, workflow run/attempt, base
+SHA, and candidate SHA. A separate **Ranking Calibration** workflow runs weekly
+and on manual dispatch. It downloads the newest `ranking-regression-<PR>`
+artifact per PR, so workflow reruns do not masquerade as independent evidence.
+
+The workflow groups reports by frozen ground-truth hash and evaluates only the
+current `benchmarks/context-quality.json` cohort. Old benchmark definitions are
+kept separate instead of contaminating the current policy.
+
+You can run the same calibration locally:
+
+```bash
+token-saver ranking-calibrate ./ranking-history \
+  --ground-truth-sha <CURRENT_HASH> \
+  --min-reports 20 \
+  --markdown
+```
+
+The report includes report/observation counts, expected-file regressions,
+disappearances, empirical positive rank-drop percentiles, and scoring-stage
+activity. It also states whether the available history factually supports a
+zero-rank-drop and/or no-disappearance policy after the configured minimum
+sample count.
+
+Calibration is deliberately descriptive: it does **not** call historical
+regressions "noise" or automatically choose an allowed rank drop. That decision
+remains a separate ratchet once enough representative PR history exists.
+
 
 ## Benchmark Output Saver compaction
 
