@@ -13,7 +13,7 @@ Observed CI dependency versions include:
 
 ## Test suite and self-benchmark
 
-- Full test suite: **474 tests** are expected after the quality-gate coverage added on this branch; the PR CI run is the authoritative result across Python 3.10/3.12/3.13.
+- Full test suite: **474 passed** on the Python 3.10/3.12/3.13 PR CI matrix after adding quality-gate coverage.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **100% mean relevant-file recall, 100% mean
   relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
