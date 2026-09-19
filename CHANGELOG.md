@@ -1,5 +1,16 @@
 # Unreleased
 
+- **Added executable broad cost-per-success experiments.** A new `experiment`
+  command runs randomized paired baseline/enabled trials in clean pinned Git
+  worktrees, applies a hard hook kill-switch to the baseline arm, installs
+  project hooks only for the enabled arm, executes independent verifier
+  commands, captures real transcripts, and checkpoints after every run. The
+  transcript benchmark now exposes task-clustered 95% bootstrap intervals and a
+  publication gate requiring frozen task definitions, at least 20 distinct
+  tasks, at least three paired trials per task, one exact model ID, randomized
+  arm order, and no manual intervention. Small development experiments remain
+  supported but are explicitly not publishable evidence.
+
 # 1.3.1 - 2026-09-19
 
 - **Made release artifacts provenance-safe.** Release automation now treats a
