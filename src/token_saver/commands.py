@@ -111,6 +111,10 @@ def experiment_main(argv: list[str]) -> int:
         help="allow an existing user-level token-saver hook (can double-instrument enabled runs)",
     )
     parser.add_argument(
+        "--task", action="append", dest="tasks",
+        help="run only this frozen task id; repeat to run multiple tasks",
+    )
+    parser.add_argument(
         "--print-task-definition-hash", action="store_true",
         help="print the hash to freeze into protocol.task_definition_sha256",
     )
@@ -131,6 +135,7 @@ def experiment_main(argv: list[str]) -> int:
             dry_run=args.dry_run,
             allow_development=args.allow_development,
             allow_user_hook=args.allow_user_hook,
+            only_tasks=set(args.tasks) if args.tasks else None,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
