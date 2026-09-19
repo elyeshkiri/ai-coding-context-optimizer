@@ -77,6 +77,7 @@ def rank_files(
     restrict_files: set[str] | None = None,
     seed_limit: int = 6,
     stage_registry: RankingStageRegistry | None = None,
+    trace_scores: bool = False,
     _symbol_terms_fn: Callable[[str], list[str]] = symbol_terms,
     _load_feedback_fn: Callable[[Path], dict] = load_feedback,
     _structural_authority_fn: Callable = _structural_file_authority,
@@ -124,6 +125,7 @@ def rank_files(
         callable_file_counts=_callable_file_counts(index),
         query=query,
         structural_authority=_structural_authority_fn,
+        trace_scores=trace_scores,
     )
     ranked = _score_documents(scope, docs)
     ranked.sort(key=_rank_sort_key)
@@ -140,6 +142,7 @@ def rank_files(
                 graph_hops=graph_hops,
                 closure_max_items=closure_max_items,
                 embeddings=embeddings,
+                trace_scores=trace_scores,
             ),
         ),
         ranked,
