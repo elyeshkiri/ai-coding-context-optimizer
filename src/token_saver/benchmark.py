@@ -103,9 +103,13 @@ def _publishability_issues(manifest: dict, runs: list[dict]) -> list[str]:
             issues.append(f"duplicate task definition: {task_id}")
             continue
         task_defs[task_id] = task
-        for field in ("repository", "revision", "prompt_sha256", "verifier"):
+        for field in ("repository", "revision", "prompt_sha256"):
             if not task.get(field):
                 issues.append(f"task {task_id}: missing {field}")
+        if not task.get("verifier") and not task.get("swebench"):
+            issues.append(
+                f"task {task_id}: missing independent verifier or SWE-bench grader"
+            )
 
     if len(task_defs) < MIN_PUBLISHABLE_TASKS:
         issues.append(
