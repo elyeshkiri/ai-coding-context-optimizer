@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
 
+from ..repo_index import RepositoryIndex
 from .contracts import RankedFile
-from .file_scoring import _FileRankingScope
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,8 @@ class RankingStageOptions:
 class RankingStageContext:
     """Provide immutable ranking scope and stage configuration."""
 
-    scope: _FileRankingScope
+    index: RepositoryIndex
+    query: str
     options: RankingStageOptions
 
 
