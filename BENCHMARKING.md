@@ -83,11 +83,13 @@ Preserve manifest history and the task-definition process as audit evidence.
 ## Automated end-to-end cost-per-success experiment
 
 For evidence that supports a public cost claim, use the executable experiment
-harness rather than hand-assembling a few runs. It creates independent detached
-worktrees at pinned revisions, randomizes baseline/enabled order deterministically,
-runs multiple trials, applies Token Saver only in the enabled arm, executes the
-task's verifier outside the agent, captures the real Claude Code transcript, and
-checkpoints after every run so an interrupted paid experiment can resume safely.
+harness rather than hand-assembling a few runs. It exports history-isolated snapshots at pinned revisions, randomizes
+baseline/enabled order deterministically, runs multiple trials, applies Token
+Saver only in the enabled arm, executes the task's verifier outside the agent,
+captures the real Claude Code transcript, and checkpoints after every run so an
+interrupted paid experiment can resume safely. The exported snapshot is
+re-initialized as a one-commit Git repository, so an agent cannot recover the
+historical gold fix from later commits or remote branches.
 
 The publication gate deliberately requires **at least 20 distinct tasks and at
 least 3 paired trials per task**. A 20-task suite therefore means 120 agent runs
@@ -99,6 +101,25 @@ Start from `benchmarks/e2e-suite.example.json`. Each task must pin a repository
 revision, preserve the exact prompt (plus its SHA-256), and specify one or more
 independent verifier commands. Do not use the agent's own "done" statement as
 the success label.
+
+A production-ready frozen suite is checked in as
+`benchmarks/e2e-swebench-24.frozen.json`. It contains 24 historical SWE-bench
+Verified issues across scikit-learn, pytest, Astropy, Pylint, Requests, Xarray,
+and Seaborn, with three paired trials per task (**144 agent runs**). The public
+repository URL, task revision, prompt, hidden regression patch, official
+SWE-bench evaluation image, and canonical test command are frozen into the suite
+hash; only the machine-local clone path is excluded.
+
+Prepare its external repositories without checking them into this repository:
+
+```bash
+python scripts/prepare_e2e_repos.py benchmarks/e2e-swebench-24.frozen.json
+```
+
+For these tasks, the hidden regression patch is not present while the coding
+agent runs. After the agent exits, its diff is captured, then a fresh official
+SWE-bench Docker image applies the agent patch and hidden test patch and executes
+the canonical test command inside the benchmark's prepared environment.
 
 Before any paid run, finalize the task definitions and experimental design, then
 freeze them:
@@ -126,6 +147,9 @@ token-saver experiment benchmarks/e2e-suite.json \
 
 The baseline arm exports `TOKEN_SAVER_DISABLED=1`, which makes any inherited
 Token Saver hook a true no-op. The enabled arm installs project-local hooks.
+Both arms receive the same history-isolated source snapshot, exact prompt, model,
+turn limit, and verifier. Hidden SWE-bench regression tests are applied only
+after the agent process has ended.
 To avoid double instrumentation, the runner refuses to start when it detects a
 user-level `token-saver hook`; use a clean host configuration for publishable
 runs rather than bypassing that guard.

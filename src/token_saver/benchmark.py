@@ -29,9 +29,24 @@ def task_definition_hash(manifest: dict) -> str:
         raise ValueError("publishable benchmark manifest requires nonempty tasks")
     if not all(isinstance(task, dict) for task in tasks):
         raise ValueError("every task definition must be an object")
+    repositories = manifest.get("repositories", {})
+    if repositories is None:
+        repositories = {}
+    if not isinstance(repositories, dict):
+        raise ValueError("repositories must be an object when present")
+    frozen_repositories = {}
+    for repo_id, definition in sorted(repositories.items()):
+        if not isinstance(definition, dict):
+            raise ValueError(f"repository {repo_id}: definition must be an object")
+        frozen_repositories[repo_id] = {
+            key: value
+            for key, value in sorted(definition.items())
+            if key != "path"
+        }
     normalized = {
         "suite_version": manifest.get("suite_version", 1),
         "design": manifest.get("design", {}),
+        "repositories": frozen_repositories,
         "tasks": sorted(tasks, key=lambda task: str(task.get("id", ""))),
     }
     raw = json.dumps(
@@ -53,6 +68,10 @@ def _publishability_issues(manifest: dict, runs: list[dict]) -> list[str]:
         issues.append("protocol.condition_order_randomized must be true")
     if protocol.get("independent_verification") is not True:
         issues.append("protocol.independent_verification must be true")
+    if protocol.get("history_isolated") is not True:
+        issues.append("protocol.history_isolated must be true")
+    if protocol.get("hidden_tests_after_agent") is not True:
+        issues.append("protocol.hidden_tests_after_agent must be true")
     if not str(protocol.get("frozen_at", "")).strip():
         issues.append("protocol.frozen_at is required")
 
@@ -88,9 +107,13 @@ def _publishability_issues(manifest: dict, runs: list[dict]) -> list[str]:
             issues.append(f"duplicate task definition: {task_id}")
             continue
         task_defs[task_id] = task
-        for field in ("repository", "revision", "prompt_sha256", "verifier"):
+        for field in ("repository", "revision", "prompt_sha256"):
             if not task.get(field):
                 issues.append(f"task {task_id}: missing {field}")
+        if not task.get("verifier") and not task.get("swebench"):
+            issues.append(
+                f"task {task_id}: missing independent verifier or SWE-bench grader"
+            )
 
     if len(task_defs) < MIN_PUBLISHABLE_TASKS:
         issues.append(

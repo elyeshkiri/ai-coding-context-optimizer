@@ -93,6 +93,8 @@ def _suite(tmp_path, task_count=2, trials=2):
             "task_definitions_frozen": True,
             "condition_order_randomized": True,
             "independent_verification": True,
+            "history_isolated": True,
+            "hidden_tests_after_agent": True,
             "frozen_at": "2026-09-19T00:00:00Z",
             "task_definition_sha256": "",
         },
@@ -225,4 +227,100 @@ def test_experiment_output_flows_into_transcript_cost_report(
     assert any(
         "at least 20" in issue or "at least 3" in issue
         for issue in report["evidence"]["protocol_issues"]
+    )
+
+
+def test_hidden_test_patch_is_applied_only_after_agent(tmp_path, monkeypatch):
+    repo, revision = _repo(tmp_path)
+    runner = tmp_path / "hidden_runner.py"
+    runner.write_text(
+        """
+import json
+import pathlib
+import sys
+
+assert not pathlib.Path("grader.py").exists(), "hidden grader leaked to agent"
+pathlib.Path("fixed.txt").write_text("ok", encoding="utf-8")
+transcript = pathlib.Path(sys.argv[1])
+transcript.parent.mkdir(parents=True, exist_ok=True)
+transcript.write_text(json.dumps({
+    "type": "assistant",
+    "message": {
+        "id": "hidden-test",
+        "model": "synthetic-test-model",
+        "usage": {
+            "input_tokens": 10,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 1
+        },
+        "content": []
+    }
+}) + "\\n", encoding="utf-8")
+""".lstrip(),
+        encoding="utf-8",
+    )
+    prompt = "Create fixed.txt with the value ok."
+    test_patch = """diff --git a/grader.py b/grader.py
+new file mode 100644
+--- /dev/null
++++ b/grader.py
+@@ -0,0 +1,2 @@
++from pathlib import Path
++assert Path("fixed.txt").read_text() == "ok"
+"""
+    suite = {
+        "suite_version": 1,
+        "protocol": {
+            "task_definitions_frozen": True,
+            "condition_order_randomized": True,
+            "independent_verification": True,
+            "history_isolated": True,
+            "hidden_tests_after_agent": True,
+            "frozen_at": "2026-09-19T00:00:00Z",
+            "task_definition_sha256": "",
+        },
+        "design": {"trials_per_task": 1, "condition_order_seed": 1},
+        "repositories": {
+            "fixture": {"path": "source", "revision": revision},
+        },
+        "runner": {
+            "command": [
+                sys.executable,
+                str(runner),
+                "{transcript}",
+            ],
+            "model": "synthetic-test-model",
+            "transcript_mode": "path",
+            "timeout_seconds": 30,
+        },
+        "tasks": [{
+            "id": "hidden",
+            "repository": "fixture",
+            "revision": revision,
+            "prompt": prompt,
+            "prompt_sha256": prompt_sha256(prompt),
+            "test_patch": test_patch,
+            "verifier": [[sys.executable, "grader.py"]],
+        }],
+    }
+    suite["protocol"]["task_definition_sha256"] = task_definition_hash(suite)
+    path = tmp_path / "hidden-suite.json"
+    path.write_text(json.dumps(suite, indent=2), encoding="utf-8")
+    monkeypatch.setattr(
+        "token_saver.experiment.user_token_saver_hook_configured",
+        lambda: False,
+    )
+
+    result = run_experiment(
+        path,
+        tmp_path / "hidden-runs.json",
+        allow_development=True,
+    )
+
+    assert len(result["runs"]) == 2
+    assert all(run["success"] for run in result["runs"])
+    assert all(
+        any(step.get("kind") == "hidden_test_patch" for step in run["verification"])
+        for run in result["runs"]
     )

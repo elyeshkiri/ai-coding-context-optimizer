@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import tarfile
 from pathlib import Path
 from typing import Any
 
@@ -117,9 +118,13 @@ def validate_suite(
         if not isinstance(repo, dict):
             raise ValueError(f"repository {repo_id}: definition must be an object")
         revision = str(task.get("revision", "")).strip()
-        if not revision or revision != str(repo.get("revision", "")).strip():
+        if not revision:
+            raise ValueError(f"task {task_id}: revision is required")
+        repo_revision = str(repo.get("revision", "")).strip()
+        if repo_revision and revision != repo_revision:
             raise ValueError(
-                f"task {task_id}: revision must equal repositories.{repo_id}.revision"
+                f"task {task_id}: revision must equal repositories.{repo_id}.revision "
+                "when the repository pins a single revision"
             )
         prompt = task.get("prompt")
         if not isinstance(prompt, str) or not prompt.strip():
@@ -130,15 +135,38 @@ def validate_suite(
             raise ValueError(
                 f"task {task_id}: prompt_sha256 mismatch; expected {actual_prompt}"
             )
+        test_patch = task.get("test_patch")
+        if test_patch is not None and (
+            not isinstance(test_patch, str) or not test_patch.strip()
+        ):
+            raise ValueError(f"task {task_id}: test_patch must be a nonempty string")
         verifier = task.get("verifier")
-        if not isinstance(verifier, list) or not verifier:
-            raise ValueError(f"task {task_id}: verifier must contain commands")
-        for cmd in verifier:
-            if not isinstance(cmd, list) or not cmd or not all(
-                isinstance(arg, str) and arg for arg in cmd
-            ):
+        swebench = task.get("swebench")
+        if verifier is None and swebench is None:
+            raise ValueError(
+                f"task {task_id}: verifier or swebench grader is required"
+            )
+        if verifier is not None:
+            if not isinstance(verifier, list) or not verifier:
+                raise ValueError(f"task {task_id}: verifier must contain commands")
+            for cmd in verifier:
+                if not isinstance(cmd, list) or not cmd or not all(
+                    isinstance(arg, str) and arg for arg in cmd
+                ):
+                    raise ValueError(
+                        f"task {task_id}: each verifier command must be a string array"
+                    )
+        if swebench is not None:
+            if not isinstance(swebench, dict):
+                raise ValueError(f"task {task_id}: swebench must be an object")
+            for field in ("image", "test_command", "env_activate"):
+                if not isinstance(swebench.get(field), str) or not swebench[field].strip():
+                    raise ValueError(
+                        f"task {task_id}: swebench.{field} must be a nonempty string"
+                    )
+            if not isinstance(test_patch, str) or not test_patch.strip():
                 raise ValueError(
-                    f"task {task_id}: each verifier command must be a string array"
+                    f"task {task_id}: SWE-bench grading requires test_patch"
                 )
 
     if require_broad:
@@ -158,6 +186,8 @@ def validate_suite(
             "task_definitions_frozen",
             "condition_order_randomized",
             "independent_verification",
+            "history_isolated",
+            "hidden_tests_after_agent",
         ):
             if protocol.get(key) is not True:
                 raise ValueError(f"protocol.{key} must be true")
@@ -217,6 +247,51 @@ def _validate_repository(source: Path, revision: str) -> str:
     if not resolved:
         raise ValueError(f"revision not found in {source}: {revision}")
     return resolved
+
+
+def _export_history_isolated_snapshot(
+    source: Path,
+    revision: str,
+    destination: Path,
+) -> None:
+    """Export one commit without exposing later Git history to the agent."""
+    destination.mkdir(parents=True, exist_ok=False)
+    proc = subprocess.Popen(
+        ["git", "-C", str(source), "archive", "--format=tar", revision],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert proc.stdout is not None
+    try:
+        with tarfile.open(fileobj=proc.stdout, mode="r|") as archive:
+            archive.extractall(destination)
+    finally:
+        proc.stdout.close()
+    stderr = proc.stderr.read().decode("utf-8", "replace") if proc.stderr else ""
+    if proc.stderr:
+        proc.stderr.close()
+    if proc.wait() != 0:
+        raise ValueError(
+            f"git archive failed for {source}@{revision}: {stderr.strip()}"
+        )
+
+    subprocess.run(["git", "init", "-q", str(destination)], check=True)
+    _git(destination, "config", "user.email", "token-saver-benchmark@example.invalid")
+    _git(destination, "config", "user.name", "Token Saver Benchmark")
+    _git(destination, "add", "-A")
+    proc = subprocess.run(
+        [
+            "git", "-C", str(destination), "commit", "-q", "--no-gpg-sign",
+            "-m", f"benchmark snapshot {revision}",
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode:
+        raise ValueError(
+            f"failed to initialize isolated benchmark snapshot: {proc.stderr.strip()}"
+        )
 
 
 def _expand_command(
@@ -343,11 +418,23 @@ def run_experiment(
         )
 
     base_dir = suite_path.parent
-    repositories: dict[str, tuple[Path, str]] = {}
+    repositories: dict[str, Path] = {}
     for repo_id, definition in suite["repositories"].items():
         source = (base_dir / str(definition["path"])).resolve()
-        revision = str(definition["revision"]).strip()
-        repositories[repo_id] = (source, _validate_repository(source, revision))
+        if not source.is_dir():
+            raise ValueError(f"repository path not found: {source}")
+        repositories[repo_id] = source
+
+    resolved_revisions: dict[tuple[str, str], str] = {}
+    for task in suite["tasks"]:
+        repo_id = str(task["repository"])
+        revision = str(task["revision"]).strip()
+        key = (repo_id, revision)
+        if key not in resolved_revisions:
+            resolved_revisions[key] = _validate_repository(
+                repositories[repo_id],
+                revision,
+            )
 
     result, completed = _existing_keys(output_path, suite)
     tasks = {task["id"]: task for task in suite["tasks"]}
@@ -370,7 +457,8 @@ def run_experiment(
             continue
 
         task = tasks[item["task"]]
-        source, revision = repositories[task["repository"]]
+        source = repositories[task["repository"]]
+        revision = resolved_revisions[(task["repository"], str(task["revision"]).strip())]
         run_dir = artifacts / item["task"] / f"trial-{item['trial']}" / item["condition"]
         run_dir.mkdir(parents=True, exist_ok=True)
         transcript = run_dir / "transcript.jsonl"
@@ -381,7 +469,7 @@ def run_experiment(
 
         with tempfile.TemporaryDirectory(prefix="token-saver-e2e-") as tmp:
             worktree = Path(tmp) / "repo"
-            _git(source, "worktree", "add", "--detach", str(worktree), revision)
+            _export_history_isolated_snapshot(source, revision, worktree)
             try:
                 for setup in task.get("setup", []):
                     setup_proc = subprocess.run(
@@ -443,31 +531,90 @@ def run_experiment(
                         f"runner did not create transcript: {transcript}"
                     )
 
+                agent_patch = run_dir / "agent.patch"
+                agent_patch.write_text(
+                    _git(worktree, "diff", "--binary"),
+                    encoding="utf-8",
+                )
+
                 verification = []
                 verifier_ok = True
-                for index, verifier in enumerate(task["verifier"], start=1):
-                    verify_out = run_dir / f"verify-{index}.stdout"
-                    verify_err = run_dir / f"verify-{index}.stderr"
-                    verify_env = env.copy()
-                    verify_env["TOKEN_SAVER_DISABLED"] = "1"
-                    rc, elapsed = _run_command(
-                        verifier,
-                        cwd=worktree,
-                        env=verify_env,
+                test_patch = task.get("test_patch")
+                swebench = task.get("swebench")
+                if swebench is not None:
+                    from .swebench_docker import verify_swebench
+
+                    test_patch_path = run_dir / "hidden-test.patch"
+                    test_patch_path.write_text(test_patch, encoding="utf-8")
+                    verify_out = run_dir / "swebench.stdout"
+                    verify_err = run_dir / "swebench.stderr"
+                    rc, elapsed = verify_swebench(
+                        image=swebench["image"],
+                        agent_patch=agent_patch,
+                        test_patch=test_patch_path,
+                        test_command=swebench["test_command"],
+                        env_activate=swebench["env_activate"],
                         stdout_path=verify_out,
                         stderr_path=verify_err,
                         timeout=int(task.get("verifier_timeout_seconds", timeout)),
                     )
-                    verification.append(
-                        {
-                            "command": verifier,
-                            "exit_code": rc,
-                            "seconds": elapsed,
-                            "stdout": str(verify_out.relative_to(output_path.parent)),
-                            "stderr": str(verify_err.relative_to(output_path.parent)),
-                        }
-                    )
-                    verifier_ok = verifier_ok and rc == 0
+                    verification.append({
+                        "kind": "swebench_docker",
+                        "image": swebench["image"],
+                        "test_command": swebench["test_command"],
+                        "exit_code": rc,
+                        "seconds": elapsed,
+                        "stdout": str(verify_out.relative_to(output_path.parent)),
+                        "stderr": str(verify_err.relative_to(output_path.parent)),
+                    })
+                    verifier_ok = rc == 0
+                else:
+                    if test_patch:
+                        patch_stdout = run_dir / "test-patch.stdout"
+                        patch_stderr = run_dir / "test-patch.stderr"
+                        start = time.monotonic()
+                        with patch_stdout.open("wb") as stdout, patch_stderr.open("wb") as stderr:
+                            patch_proc = subprocess.run(
+                                ["git", "apply", "--whitespace=nowarn", "-"],
+                                cwd=worktree,
+                                env=env,
+                                input=test_patch.encode("utf-8"),
+                                stdout=stdout,
+                                stderr=stderr,
+                                check=False,
+                            )
+                        verification.append({
+                            "kind": "hidden_test_patch",
+                            "exit_code": patch_proc.returncode,
+                            "seconds": time.monotonic() - start,
+                            "stdout": str(patch_stdout.relative_to(output_path.parent)),
+                            "stderr": str(patch_stderr.relative_to(output_path.parent)),
+                        })
+                        verifier_ok = patch_proc.returncode == 0
+
+                    for index, verifier in enumerate(task["verifier"], start=1):
+                        verify_out = run_dir / f"verify-{index}.stdout"
+                        verify_err = run_dir / f"verify-{index}.stderr"
+                        verify_env = env.copy()
+                        verify_env["TOKEN_SAVER_DISABLED"] = "1"
+                        rc, elapsed = _run_command(
+                            verifier,
+                            cwd=worktree,
+                            env=verify_env,
+                            stdout_path=verify_out,
+                            stderr_path=verify_err,
+                            timeout=int(task.get("verifier_timeout_seconds", timeout)),
+                        )
+                        verification.append(
+                            {
+                                "command": verifier,
+                                "exit_code": rc,
+                                "seconds": elapsed,
+                                "stdout": str(verify_out.relative_to(output_path.parent)),
+                                "stderr": str(verify_err.relative_to(output_path.parent)),
+                            }
+                        )
+                        verifier_ok = verifier_ok and rc == 0
 
                 success = agent_rc == 0 and verifier_ok
                 validation = (
@@ -489,6 +636,7 @@ def run_experiment(
                     "seconds": seconds,
                     "agent_exit_code": agent_rc,
                     "verification": verification,
+                    "agent_patch": str(agent_patch.relative_to(output_path.parent)),
                     "transcripts": [
                         str(transcript.relative_to(output_path.parent))
                     ],
@@ -497,9 +645,6 @@ def run_experiment(
                 _checkpoint(output_path, result)
                 completed.add(key)
             finally:
-                try:
-                    _git(source, "worktree", "remove", "--force", str(worktree))
-                except ValueError:
-                    pass
+                pass
 
     return result

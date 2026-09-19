@@ -15,3 +15,8 @@ coverage.xml
 # Holdout clones fetched by scripts/check_holdout.py
 benchmarks/httpx/
 benchmarks/zod/
+
+# Frozen end-to-end benchmark clones and private run artifacts
+benchmarks/external-e2e/
+benchmarks/*-runs.json
+benchmarks/*-runs.artifacts/
