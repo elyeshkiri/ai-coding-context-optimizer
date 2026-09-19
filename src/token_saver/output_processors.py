@@ -54,10 +54,6 @@ class OutputResult:
     failed: bool
     recovered_lines: tuple[str, ...] = ()
 
-    @property
-    def reduction(self) -> float:
-        return 0.0
-
 
 class OutputProcessor(Protocol):
     name: str
