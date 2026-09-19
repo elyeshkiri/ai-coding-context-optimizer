@@ -131,6 +131,8 @@ ranking orchestration.
 Post-score ranking is composed through `RankingStageRegistry`. A stage declares
 a stable `name`, an integer `order`, an `enabled(context)` gate, and an
 `apply(context, ranked)` mutation over the already-scored candidate list.
+The public stage context exposes only the repository index, query, and immutable
+stage options; it does not leak the private deterministic-scoring scope.
 
 The default registry preserves the validated baseline:
 
