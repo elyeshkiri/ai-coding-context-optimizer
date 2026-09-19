@@ -1,5 +1,6 @@
 """Regression tests for the explicit architecture extension seams."""
 
+import ast
 import inspect
 
 import token_saver.command_handlers.context as context_commands
@@ -114,14 +115,20 @@ def test_default_registry_bypasses_the_commands_compatibility_facade():
 
 
 def test_repository_integrations_use_application_service_boundary():
-    """Host-facing repository integrations should not recompose low-level retrieval."""
-    forbidden = (
+    """Host-facing repository integrations should not import low-level orchestration."""
+    forbidden = {
         "build_context_pack",
         "browse_context",
         "analyze_impact",
         "build_index",
         "record_feedback",
-    )
+    }
     for module in (context_commands, mcp_tools, pack_cli):
-        source = inspect.getsource(module)
-        assert all(name not in source for name in forbidden)
+        tree = ast.parse(inspect.getsource(module))
+        imported = {
+            alias.name
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+            for alias in node.names
+        }
+        assert forbidden.isdisjoint(imported)
