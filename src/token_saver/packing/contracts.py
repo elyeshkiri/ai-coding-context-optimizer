@@ -23,7 +23,7 @@ class RankingScoreEvent:
         before: float,
         after: float,
         evidence: tuple[str, ...] = (),
-    ) -> "RankingScoreEvent":
+    ) -> RankingScoreEvent:
         """Create an event while deriving its exact score delta."""
         return cls(
             stage=stage,
