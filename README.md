@@ -382,18 +382,17 @@ notes.
 
 ## Automatic protections
 
-Install the Claude Code hooks:
+The recommended Claude Code lifecycle is:
 
 ```bash
-python -m pip install .
-token-saver install /path/to/project --templates
+token-saver setup /path/to/project --host claude
+token-saver doctor /path/to/project
 ```
 
-For user-wide installation:
-
-```bash
-token-saver install . --user
-```
+This configures both project hooks and MCP. The lower-level `token-saver
+install` command remains available for compatibility and specialized
+Claude-only/user-wide hook installation; new projects should normally use
+`setup`.
 
 ### Bounded source reads
 
