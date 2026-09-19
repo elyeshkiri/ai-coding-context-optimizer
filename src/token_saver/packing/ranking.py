@@ -25,6 +25,17 @@ from ..working_set import load_working_set
 from .contracts import RankedFile
 
 _MAX_FILE_BYTES = 2_000_000
+_NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+}
+
 
 def _generic_parameter_names(signature: str, name: str) -> tuple[str, ...]:
     """Return generic parameters declared directly on a callable name."""
