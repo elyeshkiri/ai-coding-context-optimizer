@@ -140,14 +140,32 @@ def validate_suite(
         ):
             raise ValueError(f"task {task_id}: test_patch must be a nonempty string")
         verifier = task.get("verifier")
-        if not isinstance(verifier, list) or not verifier:
-            raise ValueError(f"task {task_id}: verifier must contain commands")
-        for cmd in verifier:
-            if not isinstance(cmd, list) or not cmd or not all(
-                isinstance(arg, str) and arg for arg in cmd
-            ):
+        swebench = task.get("swebench")
+        if verifier is None and swebench is None:
+            raise ValueError(
+                f"task {task_id}: verifier or swebench grader is required"
+            )
+        if verifier is not None:
+            if not isinstance(verifier, list) or not verifier:
+                raise ValueError(f"task {task_id}: verifier must contain commands")
+            for cmd in verifier:
+                if not isinstance(cmd, list) or not cmd or not all(
+                    isinstance(arg, str) and arg for arg in cmd
+                ):
+                    raise ValueError(
+                        f"task {task_id}: each verifier command must be a string array"
+                    )
+        if swebench is not None:
+            if not isinstance(swebench, dict):
+                raise ValueError(f"task {task_id}: swebench must be an object")
+            for field in ("image", "test_command", "env_activate"):
+                if not isinstance(swebench.get(field), str) or not swebench[field].strip():
+                    raise ValueError(
+                        f"task {task_id}: swebench.{field} must be a nonempty string"
+                    )
+            if not isinstance(test_patch, str) or not test_patch.strip():
                 raise ValueError(
-                    f"task {task_id}: each verifier command must be a string array"
+                    f"task {task_id}: SWE-bench grading requires test_patch"
                 )
 
     if require_broad:
@@ -474,52 +492,81 @@ def run_experiment(
                 verification = []
                 verifier_ok = True
                 test_patch = task.get("test_patch")
-                if test_patch:
-                    patch_stdout = run_dir / "test-patch.stdout"
-                    patch_stderr = run_dir / "test-patch.stderr"
-                    start = time.monotonic()
-                    with patch_stdout.open("wb") as stdout, patch_stderr.open("wb") as stderr:
-                        patch_proc = subprocess.run(
-                            ["git", "apply", "--whitespace=nowarn", "-"],
-                            cwd=worktree,
-                            env=env,
-                            input=test_patch.encode("utf-8"),
-                            stdout=stdout,
-                            stderr=stderr,
-                            check=False,
-                        )
-                    verification.append({
-                        "kind": "hidden_test_patch",
-                        "exit_code": patch_proc.returncode,
-                        "seconds": time.monotonic() - start,
-                        "stdout": str(patch_stdout.relative_to(output_path.parent)),
-                        "stderr": str(patch_stderr.relative_to(output_path.parent)),
-                    })
-                    verifier_ok = patch_proc.returncode == 0
+                swebench = task.get("swebench")
+                if swebench is not None:
+                    from .swebench_docker import verify_swebench
 
-                for index, verifier in enumerate(task["verifier"], start=1):
-                    verify_out = run_dir / f"verify-{index}.stdout"
-                    verify_err = run_dir / f"verify-{index}.stderr"
-                    verify_env = env.copy()
-                    verify_env["TOKEN_SAVER_DISABLED"] = "1"
-                    rc, elapsed = _run_command(
-                        verifier,
-                        cwd=worktree,
-                        env=verify_env,
+                    test_patch_path = run_dir / "hidden-test.patch"
+                    test_patch_path.write_text(test_patch, encoding="utf-8")
+                    verify_out = run_dir / "swebench.stdout"
+                    verify_err = run_dir / "swebench.stderr"
+                    rc, elapsed = verify_swebench(
+                        image=swebench["image"],
+                        agent_patch=agent_patch,
+                        test_patch=test_patch_path,
+                        test_command=swebench["test_command"],
+                        env_activate=swebench["env_activate"],
                         stdout_path=verify_out,
                         stderr_path=verify_err,
                         timeout=int(task.get("verifier_timeout_seconds", timeout)),
                     )
-                    verification.append(
-                        {
-                            "command": verifier,
-                            "exit_code": rc,
-                            "seconds": elapsed,
-                            "stdout": str(verify_out.relative_to(output_path.parent)),
-                            "stderr": str(verify_err.relative_to(output_path.parent)),
-                        }
-                    )
-                    verifier_ok = verifier_ok and rc == 0
+                    verification.append({
+                        "kind": "swebench_docker",
+                        "image": swebench["image"],
+                        "test_command": swebench["test_command"],
+                        "exit_code": rc,
+                        "seconds": elapsed,
+                        "stdout": str(verify_out.relative_to(output_path.parent)),
+                        "stderr": str(verify_err.relative_to(output_path.parent)),
+                    })
+                    verifier_ok = rc == 0
+                else:
+                    if test_patch:
+                        patch_stdout = run_dir / "test-patch.stdout"
+                        patch_stderr = run_dir / "test-patch.stderr"
+                        start = time.monotonic()
+                        with patch_stdout.open("wb") as stdout, patch_stderr.open("wb") as stderr:
+                            patch_proc = subprocess.run(
+                                ["git", "apply", "--whitespace=nowarn", "-"],
+                                cwd=worktree,
+                                env=env,
+                                input=test_patch.encode("utf-8"),
+                                stdout=stdout,
+                                stderr=stderr,
+                                check=False,
+                            )
+                        verification.append({
+                            "kind": "hidden_test_patch",
+                            "exit_code": patch_proc.returncode,
+                            "seconds": time.monotonic() - start,
+                            "stdout": str(patch_stdout.relative_to(output_path.parent)),
+                            "stderr": str(patch_stderr.relative_to(output_path.parent)),
+                        })
+                        verifier_ok = patch_proc.returncode == 0
+
+                    for index, verifier in enumerate(task["verifier"], start=1):
+                        verify_out = run_dir / f"verify-{index}.stdout"
+                        verify_err = run_dir / f"verify-{index}.stderr"
+                        verify_env = env.copy()
+                        verify_env["TOKEN_SAVER_DISABLED"] = "1"
+                        rc, elapsed = _run_command(
+                            verifier,
+                            cwd=worktree,
+                            env=verify_env,
+                            stdout_path=verify_out,
+                            stderr_path=verify_err,
+                            timeout=int(task.get("verifier_timeout_seconds", timeout)),
+                        )
+                        verification.append(
+                            {
+                                "command": verifier,
+                                "exit_code": rc,
+                                "seconds": elapsed,
+                                "stdout": str(verify_out.relative_to(output_path.parent)),
+                                "stderr": str(verify_err.relative_to(output_path.parent)),
+                            }
+                        )
+                        verifier_ok = verifier_ok and rc == 0
 
                 success = agent_rc == 0 and verifier_ok
                 validation = (
