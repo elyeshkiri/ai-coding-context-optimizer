@@ -138,6 +138,26 @@ human or agent can see why a typo matched an identifier.
 
 The same inspection surface is available through MCP as `browse_context`.
 
+### Explain ranking score decisions
+
+Ranking observability is opt-in so ordinary packing does not pay for trace
+collection. Ask for a stage-by-stage breakdown when diagnosing a surprising
+candidate:
+
+```bash
+token-saver ranking-explain . --query "refresh session token"
+token-saver ranking-explain . --query "refresh session token" --max-files 3 --json
+```
+
+Each candidate reports its final score plus exact score transitions such as
+BM25, path/symbol evidence, structural authority, file-priority adjustments,
+changed/working-set/feedback boosts, graph closure, embeddings, and custom
+registered rerankers. Legacy `reasons` remain available unchanged.
+
+The same structured payload is exposed through MCP as `explain_ranking`.
+Third-party `RankingStage` implementations are traced automatically when an
+explanation is requested; plugins do not need their own observability API.
+
 
 ## Benchmark Output Saver compaction
 
