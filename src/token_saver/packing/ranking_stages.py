@@ -94,7 +94,8 @@ class RankingStageRegistry:
             stage.apply(context, ranked)
             if tuple(id(item) for item in ranked) != identities:
                 raise ValueError(
-                    f"ranking stage {stage.name} must not add, remove, or reorder candidates"
+                    f"ranking stage {stage.name} must not add, remove, "
+                    "or reorder candidates"
                 )
             if not context.options.trace_scores:
                 continue
