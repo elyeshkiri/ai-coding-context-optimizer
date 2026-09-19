@@ -181,3 +181,50 @@ def test_dispatcher_exposes_output_replay(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["summary"]["failed"] == 0
     assert payload["cases"][0]["processor"] == "git-log"
+
+
+
+def test_dispatcher_exposes_setup_doctor_and_uninstall(tmp_path, capsys):
+    """Top-level product UX commands should work through the stable dispatcher."""
+    assert main([
+        "setup",
+        str(tmp_path),
+        "--host",
+        "cursor",
+        "--json",
+    ]) == 0
+    setup = json.loads(capsys.readouterr().out)
+    assert setup["configured_hosts"] == ["cursor"]
+    assert (tmp_path / ".cursor" / "mcp.json").is_file()
+    assert (tmp_path / ".token-saver.toml").is_file()
+
+    assert main([
+        "doctor",
+        str(tmp_path),
+        "--json",
+        "--no-index",
+    ]) == 0
+    doctor = json.loads(capsys.readouterr().out)
+    assert "cursor" in doctor["configured_hosts"]
+    assert doctor["config_path"].endswith(".token-saver.toml")
+
+    assert main([
+        "uninstall",
+        str(tmp_path),
+        "--host",
+        "cursor",
+        "--remove-config",
+        "--json",
+    ]) == 0
+    removed = json.loads(capsys.readouterr().out)
+    assert removed["removed_hosts"] == ["cursor"]
+    assert removed["config_removed"] is True
+
+
+def test_dispatcher_exposes_command_discovery(capsys):
+    """Users should be able to discover registered commands without README lookup."""
+    assert main(["commands"]) == 0
+    output = capsys.readouterr().out
+    assert "setup" in output
+    assert "doctor" in output
+    assert "completion" in output
