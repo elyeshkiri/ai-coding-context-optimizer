@@ -35,6 +35,12 @@ from .graph_rerank import (
     _apply_graph_boosts as _apply_graph_boosts,
     _credit_closure as _credit_closure,
 )
+from .ranking_defaults import DEFAULT_RANKING_STAGE_REGISTRY
+from .ranking_stages import (
+    RankingStageContext,
+    RankingStageOptions,
+    RankingStageRegistry,
+)
 from .query_analysis import (
     _NUMBER_WORDS as _NUMBER_WORDS,
     _callable_signature_terms as _callable_signature_terms,
@@ -70,6 +76,7 @@ def rank_files(
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
     seed_limit: int = 6,
+    stage_registry: RankingStageRegistry | None = None,
     _symbol_terms_fn: Callable[[str], list[str]] = symbol_terms,
     _load_feedback_fn: Callable[[Path], dict] = load_feedback,
     _structural_authority_fn: Callable = _structural_file_authority,
@@ -120,11 +127,23 @@ def rank_files(
     )
     ranked = _score_documents(scope, docs)
     ranked.sort(key=_rank_sort_key)
-    _apply_graph_boosts(
-        scope, ranked, priority_files, seed_limit, graph_hops, closure_max_items,
+    registry = stage_registry or DEFAULT_RANKING_STAGE_REGISTRY
+    registry.run(
+        RankingStageContext(
+            index=scope.index,
+            query=scope.query,
+            options=RankingStageOptions(
+                priority_files=(
+                    frozenset(priority_files) if priority_files is not None else None
+                ),
+                seed_limit=seed_limit,
+                graph_hops=graph_hops,
+                closure_max_items=closure_max_items,
+                embeddings=embeddings,
+            ),
+        ),
+        ranked,
     )
-    if embeddings:
-        _apply_embedding_rerank(scope, ranked)
     ranked.sort(key=_rank_sort_key)
     return ranked
 

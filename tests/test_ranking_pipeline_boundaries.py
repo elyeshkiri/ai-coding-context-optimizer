@@ -45,6 +45,11 @@ def test_ranking_module_is_orchestrator_and_compatibility_facade():
     assert ranking._expand_query_terms is query_analysis._expand_query_terms
     assert ranking._bm25_score is file_scoring._bm25_score
     assert ranking._apply_graph_boosts is graph_rerank._apply_graph_boosts
+    rank_source = inspect.getsource(ranking.rank_files)
+    assert "DEFAULT_RANKING_STAGE_REGISTRY" in rank_source
+    assert "registry.run(" in rank_source
+    assert "if embeddings" not in rank_source
+    assert "_apply_graph_boosts(" not in rank_source
     assert len(source.splitlines()) < 180
 
 

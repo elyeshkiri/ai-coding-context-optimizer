@@ -126,6 +126,33 @@ through the ranking compatibility facade. This keeps shared overload/query
 interpretation reusable without coupling within-file scoring to repository-level
 ranking orchestration.
 
+### Pluggable ranking extensions
+
+Post-score ranking is composed through `RankingStageRegistry`. A stage declares
+a stable `name`, an integer `order`, an `enabled(context)` gate, and an
+`apply(context, ranked)` mutation over the already-scored candidate list.
+The public stage context exposes only the repository index, query, and immutable
+stage options; it does not leak the private deterministic-scoring scope.
+
+The default registry preserves the validated baseline:
+
+```text
+100  graph-closure
+200  embeddings
+```
+
+The registry rejects duplicate names and duplicate execution orders during
+composition. It intentionally does not sort between stages: each extension sees
+the deterministic pre-rerank order plus any score/evidence mutations from prior
+stages, matching the previous graph-then-embedding behavior. Final ordering
+remains centralized in `rank_files()`.
+
+Custom registries flow through `rank_files`, `build_context_pack`, and
+`RepositoryContextService.build_context`. Existing defaults remain unchanged
+when no registry is provided, while
+`DEFAULT_RANKING_STAGE_REGISTRY.extend(...)` provides a non-mutating way to add
+new rerankers.
+
 ### Symbol scoring vs rendering
 
 Within-file relevance and source rendering are separate policies.
@@ -215,10 +242,13 @@ behavior or duplicating repository logic.
 11. **Graph reranking is post-score:** deterministic file scoring must not depend
     on graph closure or embedding implementations; rerankers consume an already
     scored candidate set and cannot duplicate the lexical scoring pipeline.
+12. **Ranking extensions are registered:** post-score behavior grows through
+    `RankingStageRegistry`; duplicate names/orders fail at composition and
+    `rank_files()` retains the only final sort.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
 `tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
-and `tests/test_ranking_pipeline_boundaries.py` lock in these extension seams so
-future features can grow by composition instead of by adding more central
-branching.
+`tests/test_ranking_pipeline_boundaries.py`, and `tests/test_ranking_stage_registry.py`
+lock in these extension seams so future features can grow by composition instead
+of by adding more central branching.

@@ -54,6 +54,7 @@ from .packing.ranking import (
     _terms as _terms,
     rank_files as _rank_files,
 )
+from .packing.ranking_stages import RankingStageRegistry
 from .packing.render import (
     _fingerprint as _fingerprint,
     _fit_section as _fit_section,
@@ -121,6 +122,7 @@ def rank_files(
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
     seed_limit: int = 6,
+    stage_registry: RankingStageRegistry | None = None,
 ) -> list[RankedFile]:
     """Rank files through the extracted stage while preserving patch seams."""
     resolved_changed = changed_files
@@ -144,6 +146,7 @@ def rank_files(
         exclude_files=exclude_files,
         restrict_files=restrict_files,
         seed_limit=seed_limit,
+        stage_registry=stage_registry,
         _symbol_terms_fn=symbol_terms,
         _load_feedback_fn=load_feedback,
         _structural_authority_fn=_structural_file_authority,
@@ -173,6 +176,7 @@ def build_context_pack(
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
     adaptive_budget: bool = True,
+    stage_registry: RankingStageRegistry | None = None,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
@@ -213,6 +217,7 @@ def build_context_pack(
         changed_files=resolved_changed, priority_files=priority_files,
         exclude_files=exclude_files, restrict_files=restrict_files,
         seed_limit=plan.seed_limit,
+        stage_registry=stage_registry,
     )
     task_display = query.strip() or "(no query; structural priority mode)"
     if len(task_display) > 300:

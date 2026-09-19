@@ -3,11 +3,64 @@
 from __future__ import annotations
 
 from ..closure import authoritative_providers, dependency_closure
+from ..repo_index import RepositoryIndex
 from .contracts import RankedFile
 from .file_scoring import _FileRankingScope
+from .ranking_stages import RankingStageContext
+
+
+class GraphClosureStage:
+    """Apply dependency-closure and authoritative-provider score evidence."""
+
+    name = "graph-closure"
+    order = 100
+
+    def enabled(self, context: RankingStageContext) -> bool:
+        """Run graph evidence for every ranking request, matching legacy behavior."""
+        del context
+        return True
+
+    def apply(
+        self,
+        context: RankingStageContext,
+        ranked: list[RankedFile],
+    ) -> None:
+        """Apply graph evidence using the request's bounded closure options."""
+        options = context.options
+        priority_files = (
+            set(options.priority_files) if options.priority_files is not None else None
+        )
+        _apply_graph_boosts_index(
+            context.index,
+            ranked,
+            priority_files,
+            options.seed_limit,
+            options.graph_hops,
+            options.closure_max_items,
+        )
+
+
+class EmbeddingRerankStage:
+    """Apply optional local embedding similarity after graph score evidence."""
+
+    name = "embeddings"
+    order = 200
+
+    def enabled(self, context: RankingStageContext) -> bool:
+        """Run only when embedding reranking was explicitly requested."""
+        return context.options.embeddings
+
+    def apply(
+        self,
+        context: RankingStageContext,
+        ranked: list[RankedFile],
+    ) -> None:
+        """Apply the existing local-only embedding reranker."""
+        _apply_embedding_rerank_index(context.index, context.query, ranked)
+
 
 def _credit_closure(item: RankedFile, related) -> None:
-    """Handle credit closure."""
+    """Credit one closure relationship to a ranked file."""
     item.score += 2.5 * related.confidence
     item.reasons.append(f"graph:{related.reason}@{related.distance}")
     item.reasons.append(
@@ -15,19 +68,25 @@ def _credit_closure(item: RankedFile, related) -> None:
     )
 
 
-def _apply_graph_boosts(
-    scope: _FileRankingScope, ranked: list[RankedFile],
-    priority_files: set[str] | None, seed_limit: int,
-    graph_hops: int, closure_max_items: int,
+def _apply_graph_boosts_index(
+    index: RepositoryIndex,
+    ranked: list[RankedFile],
+    priority_files: set[str] | None,
+    seed_limit: int,
+    graph_hops: int,
+    closure_max_items: int,
 ) -> None:
-    """Boost files reachable from the top seeds, then authoritative providers."""
+    """Boost files reachable from top seeds, then authoritative providers."""
     by_rel = {item.rel: item for item in ranked}
     seed_pool = [item.rel for item in ranked if item.term_hits or item.changed]
     if priority_files:
         seed_pool.sort(key=lambda rel: rel not in priority_files)
     seeds = seed_pool[:seed_limit]
     for related in dependency_closure(
-        scope.index, seeds, max_hops=graph_hops, max_items=closure_max_items,
+        index,
+        seeds,
+        max_hops=graph_hops,
+        max_items=closure_max_items,
     ):
         item = by_rel.get(related.path)
         if item is None:
@@ -41,7 +100,7 @@ def _apply_graph_boosts(
     # overlap alone -- would otherwise never get a chance to surface an exact
     # value it imports. Run the cheap, non-transitive semantic-ref lookup over
     # every relevant candidate instead of just the seed set.
-    for related in authoritative_providers(scope.index, seed_pool):
+    for related in authoritative_providers(index, seed_pool):
         item = by_rel.get(related.path)
         if item is None or any(
             reason.startswith("graph:") for reason in item.reasons
@@ -50,10 +109,31 @@ def _apply_graph_boosts(
         _credit_closure(item, related)
 
 
-def _apply_embedding_rerank(
-    scope: _FileRankingScope, ranked: list[RankedFile],
+def _apply_graph_boosts(
+    scope: _FileRankingScope,
+    ranked: list[RankedFile],
+    priority_files: set[str] | None,
+    seed_limit: int,
+    graph_hops: int,
+    closure_max_items: int,
 ) -> None:
-    """Optional local-only semantic rerank on top of deterministic ranking."""
+    """Preserve the historical scope-based graph helper."""
+    _apply_graph_boosts_index(
+        scope.index,
+        ranked,
+        priority_files,
+        seed_limit,
+        graph_hops,
+        closure_max_items,
+    )
+
+
+def _apply_embedding_rerank_index(
+    index: RepositoryIndex,
+    query: str,
+    ranked: list[RankedFile],
+) -> None:
+    """Apply optional local-only semantic reranking to scored files."""
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
@@ -67,10 +147,10 @@ def _apply_embedding_rerank(
             "local embedding model all-MiniLM-L6-v2 is not downloaded"
         ) from exc
     descriptions = [
-        f"{item.rel} {' '.join(scope.index.records[item.rel].symbols)} {item.outline}"
+        f"{item.rel} {' '.join(index.records[item.rel].symbols)} {item.outline}"
         for item in ranked
     ]
-    vectors = model.encode([scope.query] + descriptions, normalize_embeddings=True)
+    vectors = model.encode([query] + descriptions, normalize_embeddings=True)
     query_vector = vectors[0]
     for item, vector in zip(ranked, vectors[1:]):
         semantic = float(query_vector @ vector)
@@ -78,3 +158,9 @@ def _apply_embedding_rerank(
         item.reasons.append(f"embedding:{semantic:.2f}")
 
 
+def _apply_embedding_rerank(
+    scope: _FileRankingScope,
+    ranked: list[RankedFile],
+) -> None:
+    """Preserve the historical scope-based embedding helper."""
+    _apply_embedding_rerank_index(scope.index, scope.query, ranked)

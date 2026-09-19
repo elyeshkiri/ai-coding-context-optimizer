@@ -16,6 +16,7 @@ from .context_browser import browse_context
 from .feedback import record_feedback
 from .impact import ImpactReport, analyze_impact
 from .pack import ContextPack, build_context_pack
+from .packing.ranking_stages import RankingStageRegistry
 from .repo_index import INDEX_VERSION, RepositoryIndex, build_index
 from .semantic_ts import enrich_index_with_typescript
 
@@ -94,6 +95,7 @@ class RepositoryContextService:
         exclude_files: set[str] | None = None,
         restrict_files: set[str] | None = None,
         adaptive_budget: bool = True,
+        stage_registry: RankingStageRegistry | None = None,
     ) -> ContextPack:
         """Build a task-aware context pack using the service's shared index."""
         return build_context_pack(
@@ -118,6 +120,7 @@ class RepositoryContextService:
             exclude_files=exclude_files,
             restrict_files=restrict_files,
             adaptive_budget=adaptive_budget,
+            stage_registry=stage_registry,
         )
 
     def browse(
