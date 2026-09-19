@@ -29,9 +29,24 @@ def task_definition_hash(manifest: dict) -> str:
         raise ValueError("publishable benchmark manifest requires nonempty tasks")
     if not all(isinstance(task, dict) for task in tasks):
         raise ValueError("every task definition must be an object")
+    repositories = manifest.get("repositories", {})
+    if repositories is None:
+        repositories = {}
+    if not isinstance(repositories, dict):
+        raise ValueError("repositories must be an object when present")
+    frozen_repositories = {}
+    for repo_id, definition in sorted(repositories.items()):
+        if not isinstance(definition, dict):
+            raise ValueError(f"repository {repo_id}: definition must be an object")
+        frozen_repositories[repo_id] = {
+            key: value
+            for key, value in sorted(definition.items())
+            if key != "path"
+        }
     normalized = {
         "suite_version": manifest.get("suite_version", 1),
         "design": manifest.get("design", {}),
+        "repositories": frozen_repositories,
         "tasks": sorted(tasks, key=lambda task: str(task.get("id", ""))),
     }
     raw = json.dumps(
