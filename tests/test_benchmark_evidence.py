@@ -18,6 +18,8 @@ def _manifest(task_count=20, trials=3):
             "task_definitions_frozen": True,
             "condition_order_randomized": True,
             "independent_verification": True,
+            "history_isolated": True,
+            "hidden_tests_after_agent": True,
             "frozen_at": "2026-09-19T00:00:00Z",
             "task_definition_sha256": "",
         },
