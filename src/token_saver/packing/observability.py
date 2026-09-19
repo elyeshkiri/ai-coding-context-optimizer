@@ -7,6 +7,33 @@ import math
 from .contracts import RankedFile
 
 
+def _trace_complete(item: RankedFile) -> bool:
+    """Return whether a trace is contiguous from zero through the final score."""
+    if not item.score_trace:
+        return False
+    if not math.isclose(
+        item.score_trace[0].before,
+        0.0,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    ):
+        return False
+    for previous, current in zip(item.score_trace, item.score_trace[1:]):
+        if not math.isclose(
+            previous.after,
+            current.before,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            return False
+    return math.isclose(
+        item.score_trace[-1].after,
+        item.score,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    )
+
+
 def explain_ranked_files(
     query: str,
     ranked: list[RankedFile],
@@ -24,9 +51,6 @@ def explain_ranked_files(
             stage_deltas[event.stage] = (
                 stage_deltas.get(event.stage, 0.0) + event.delta
             )
-        trace_end = (
-            item.score_trace[-1].after if item.score_trace else item.score
-        )
         results.append(
             {
                 "rank": position,
@@ -37,12 +61,7 @@ def explain_ranked_files(
                 "reasons": list(item.reasons),
                 "stage_deltas": stage_deltas,
                 "trace": [event.to_dict() for event in item.score_trace],
-                "trace_complete": math.isclose(
-                    trace_end,
-                    item.score,
-                    rel_tol=1e-12,
-                    abs_tol=1e-12,
-                ),
+                "trace_complete": _trace_complete(item),
             }
         )
     return {
