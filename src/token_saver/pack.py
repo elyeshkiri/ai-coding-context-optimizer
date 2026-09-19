@@ -67,6 +67,7 @@ from .packing.symbols import (
     _apply_parent_credit as _apply_parent_credit,
     _best_child_by_container as _best_child_by_container,
     _build_symbol_scope as _build_symbol_scope,
+    _call_graph_bonus as _call_graph_bonus,
     _contained_children_by_parent as _contained_children_by_parent,
     _container_windows as _container_windows,
     _containers_by_qualified as _containers_by_qualified,
