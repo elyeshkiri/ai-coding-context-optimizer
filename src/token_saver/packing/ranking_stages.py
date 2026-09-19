@@ -19,6 +19,7 @@ class RankingStageOptions:
     graph_hops: int
     closure_max_items: int
     embeddings: bool
+    trace_scores: bool = False
 
 
 @dataclass(frozen=True)
@@ -87,13 +88,16 @@ class RankingStageRegistry:
             if not stage.enabled(context):
                 continue
             identities = tuple(id(item) for item in ranked)
-            before_scores = {id(item): item.score for item in ranked}
-            reason_lengths = {id(item): len(item.reasons) for item in ranked}
+            if context.options.trace_scores:
+                before_scores = {id(item): item.score for item in ranked}
+                reason_lengths = {id(item): len(item.reasons) for item in ranked}
             stage.apply(context, ranked)
             if tuple(id(item) for item in ranked) != identities:
                 raise ValueError(
                     f"ranking stage {stage.name} must not add, remove, or reorder candidates"
                 )
+            if not context.options.trace_scores:
+                continue
             for item in ranked:
                 item_id = id(item)
                 evidence = tuple(item.reasons[reason_lengths[item_id]:])
