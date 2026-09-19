@@ -1,0 +1,51 @@
+{
+  "suite_version": 1,
+  "protocol": {
+    "task_definitions_frozen": true,
+    "condition_order_randomized": true,
+    "independent_verification": true,
+    "frozen_at": "REPLACE_AFTER_FINALIZING_TASKS",
+    "task_definition_sha256": "REPLACE_WITH_TOKEN_SAVER_EXPERIMENT_HASH"
+  },
+  "design": {
+    "trials_per_task": 3,
+    "condition_order_seed": 1729
+  },
+  "repositories": {
+    "example": {
+      "path": "../example-repo",
+      "revision": "REPLACE_WITH_PINNED_COMMIT_SHA"
+    }
+  },
+  "runner": {
+    "command": [
+      "claude",
+      "-p",
+      "{prompt}",
+      "--model",
+      "{model}"
+    ],
+    "model": "REPLACE_WITH_EXACT_MODEL_ID",
+    "transcript_mode": "claude-project",
+    "timeout_seconds": 1800
+  },
+  "tasks": [
+    {
+      "id": "example-historical-regression",
+      "repository": "example",
+      "revision": "REPLACE_WITH_PINNED_COMMIT_SHA",
+      "prompt": "Fix the historical regression described by the task fixture. Preserve public behavior and make the independent verifier pass.",
+      "prompt_sha256": "adf4b185f4914406ec0686db2521c093556516b5e810605f7dc568dd9d6b57de",
+      "setup": [],
+      "verifier": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_regression.py"
+        ]
+      ]
+    }
+  ]
+}

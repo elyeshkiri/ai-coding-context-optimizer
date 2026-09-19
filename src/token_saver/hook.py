@@ -25,6 +25,7 @@ from .state import record_read, reset_session
 DEFAULT_MIN_LINES = 40
 DEFAULT_KEEP_TAIL = 15
 MIN_NET_TOKENS = 50
+DISABLE_ENV = "TOKEN_SAVER_DISABLED"
 
 # Bash logs only. Grep/WebFetch hits often sit in the middle; clipping them
 # causes extra tool calls that cost more than the filter saved.
@@ -49,6 +50,10 @@ def _env_int(name: str, fallback: int) -> int:
 
 def _passthrough() -> int:
     return 0
+
+
+def _disabled() -> bool:
+    return os.environ.get(DISABLE_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _response_text(payload: dict) -> str | None:
@@ -161,6 +166,8 @@ def run_post_read(payload: dict) -> None:
 
 
 def run(payload: dict) -> tuple[int, dict | None]:
+    if _disabled():
+        return 0, None
     event = payload.get("hook_event_name") or payload.get("hookEventName") or ""
     if event == "SessionStart":
         return run_session_start(payload)

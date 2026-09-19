@@ -113,6 +113,32 @@ compaction. Generation-time policy savings must be measured from actual model
 runs and can be compared with `token-saver cost-report`.
 
 
+## Run broad end-to-end cost experiments
+
+For publishable cost-per-success evidence, Token Saver can execute frozen paired
+coding experiments rather than relying on a handful of manually recorded runs.
+The harness uses pinned detached worktrees, randomized baseline/enabled order,
+independent verifier commands, repeated trials, real Claude Code transcripts,
+and resumable checkpoints.
+
+```bash
+# freeze task/design definition before paid runs
+token-saver experiment benchmarks/e2e-suite.json --print-task-definition-hash
+
+# inspect the randomized 20-50 task schedule without calling a model
+token-saver experiment benchmarks/e2e-suite.json --out benchmark-runs.json --dry-run
+
+# execute, then require the broad-evidence protocol in analysis
+token-saver experiment benchmarks/e2e-suite.json --out benchmark-runs.json
+token-saver benchmark benchmark-runs.json --rates rates.json --require-publishable
+```
+
+The publication gate requires at least **20 distinct tasks** and **3 paired
+trials per task**. Cost/success confidence intervals are bootstrapped by task,
+so repeated trials of one task do not inflate the effective sample size. See
+[BENCHMARKING.md](BENCHMARKING.md) for the frozen-suite protocol and runner
+schema.
+
 ## Measure cost per successful task
 
 Context reduction is not the same thing as invoice reduction. Token Saver can

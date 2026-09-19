@@ -24,6 +24,18 @@ def _updated(payload):
     return response["hookSpecificOutput"]["updatedToolOutput"]["stdout"] if response else None
 
 
+
+def test_hook_kill_switch_makes_all_events_noops(monkeypatch):
+    monkeypatch.setenv("TOKEN_SAVER_DISABLED", "1")
+    noisy = "\n".join(f"line {i}" for i in range(500))
+    assert run(_payload(noisy)) == (0, None)
+    assert run({
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Read",
+        "tool_input": {"file_path": "/tmp/example.py"},
+    }) == (0, None)
+
+
 def test_large_bash_output_is_filtered():
     noisy = "\n".join(f"line {i}" for i in range(500))
     out = _updated(_payload(noisy))

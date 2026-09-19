@@ -80,6 +80,82 @@ A valid hash proves the evaluated definition did not change after it was frozen;
 it does not by itself prove the labels were independently authored before tuning.
 Preserve manifest history and the task-definition process as audit evidence.
 
+## Automated end-to-end cost-per-success experiment
+
+For evidence that supports a public cost claim, use the executable experiment
+harness rather than hand-assembling a few runs. It creates independent detached
+worktrees at pinned revisions, randomizes baseline/enabled order deterministically,
+runs multiple trials, applies Token Saver only in the enabled arm, executes the
+task's verifier outside the agent, captures the real Claude Code transcript, and
+checkpoints after every run so an interrupted paid experiment can resume safely.
+
+The publication gate deliberately requires **at least 20 distinct tasks and at
+least 3 paired trials per task**. A 20-task suite therefore means 120 agent runs
+(20 tasks × 3 trials × 2 conditions). Prefer 20–50 historical real-world bug
+fixes/refactors across several repositories and task types rather than many near-
+duplicates from one project.
+
+Start from `benchmarks/e2e-suite.example.json`. Each task must pin a repository
+revision, preserve the exact prompt (plus its SHA-256), and specify one or more
+independent verifier commands. Do not use the agent's own "done" statement as
+the success label.
+
+Before any paid run, finalize the task definitions and experimental design, then
+freeze them:
+
+```bash
+token-saver experiment benchmarks/e2e-suite.json \
+  --print-task-definition-hash
+```
+
+Copy that SHA-256 into `protocol.task_definition_sha256`, set `frozen_at`,
+commit the suite, and inspect the randomized schedule without calling a model:
+
+```bash
+token-saver experiment benchmarks/e2e-suite.json \
+  --out benchmark-runs.json \
+  --dry-run
+```
+
+Run the experiment:
+
+```bash
+token-saver experiment benchmarks/e2e-suite.json \
+  --out benchmark-runs.json
+```
+
+The baseline arm exports `TOKEN_SAVER_DISABLED=1`, which makes any inherited
+Token Saver hook a true no-op. The enabled arm installs project-local hooks.
+To avoid double instrumentation, the runner refuses to start when it detects a
+user-level `token-saver hook`; use a clean host configuration for publishable
+runs rather than bypassing that guard.
+
+For development/smoke experiments with fewer tasks or an unfrozen suite, pass
+`--allow-development`. Those runs are intentionally rejected by the publication
+gate.
+
+After the runs finish, price the exact recorded model usage and require the broad
+protocol:
+
+```bash
+token-saver benchmark benchmark-runs.json \
+  --rates rates.json \
+  --require-publishable
+```
+
+The result includes success rates, failed-run cost, cost per success, per-task
+improvements/regressions, and deterministic **95% task-cluster bootstrap
+intervals**. Repeated trials are resampled as one task cluster; three trials of
+one task are not treated as three independent tasks. The report separately marks
+whether the frozen protocol is valid, whether a quality-parity cost claim is
+allowed, and whether the 95% interval for cost-per-success reduction is entirely
+above zero.
+
+Raw transcripts and verifier outputs can contain source code or secrets. Keep
+them private when needed; the checked-in suite definition, revision pins, prompt
+hashes, verifier definitions, rates, and aggregate result are sufficient to make
+the experimental design auditable.
+
 ## Paired agent outcomes
 
 Record independently validated baseline and Token Saver runs using the schema in
@@ -240,6 +316,9 @@ Costs from failed attempts are included. A reduced success rate suppresses the
 headline cost-per-success reduction. Inspect per-task outcomes too: aggregate
 success parity does not prove each task retained the same quality.
 
-No confidence interval or statistical significance is claimed. Before publishing
-savings, retain task definitions, repeated trials, model versions, host versions,
-prices, independent checks, and raw results needed to reproduce the claim.
+For the automated experiment path above, `token-saver benchmark` reports a
+deterministic task-cluster bootstrap 95% interval. This is still an empirical
+benchmark, not a proof that savings generalize to every repository or model.
+Before publishing savings, retain the frozen task definitions, repeated trials,
+model and host versions, prices, independent checks, and raw results needed to
+reproduce the claim.
