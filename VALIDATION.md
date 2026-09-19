@@ -17,7 +17,7 @@ Observed CI dependency versions include:
 
 ## Test suite and self-benchmark
 
-- Full test suite: **544 passed** on the Python 3.10/3.12/3.13 PR CI matrix for the output-registry/Delta merge.
+- Full test suite: **545 passed** on the Python 3.10/3.12/3.13 release PR CI matrix.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **100% mean relevant-file recall, 100% mean
   relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
