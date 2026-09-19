@@ -8,7 +8,7 @@ import math
 
 from ..lexical import fuzzy_symbol_terms, identifier_terms, symbol_terms, terms
 from .contracts import RankedFile
-from .ranking import (
+from .query_analysis import (
     _callable_signature_terms,
     _generic_arity,
     _query_array_preference,

@@ -75,8 +75,13 @@ independently testable.
 stage. Retrieval algorithms are split under `token_saver.packing`:
 
 - `contracts.py` — `RankedFile` and `ContextPack` data contracts;
-- `ranking.py` — query interpretation, BM25/code-aware file scoring, graph
-  expansion, changed/working-set/feedback boosts, and optional embeddings;
+- `query_analysis.py` — query normalization, structural request hints,
+  signature/overload intent, and conservative repository typo expansion;
+- `file_scoring.py` — deterministic BM25, path/symbol/structural authority,
+  changed/working-set/feedback boosts, candidate filtering, and final sort key;
+- `graph_rerank.py` — dependency/semantic-ref closure boosts and optional
+  local embedding reranking;
+- `ranking.py` — compatibility facade plus the `rank_files` stage orchestrator;
 - `symbol_scoring.py` — within-file lexical/structural scoring, overload
   resolution, fuzzy/call-graph evidence, and parent/container credit;
 - `symbol_windows.py` — selected-symbol source windows, evidence labels,
@@ -94,6 +99,32 @@ seam while leaving the ranking implementation host-independent.
 The extraction is behavior-preserving: ranking policy and weights remain in the
 same order, and the frozen holdout remains the regression oracle for any future
 changes to these stages.
+
+### File ranking stages
+
+File ranking now has a one-way dependency chain:
+
+```text
+query_analysis
+      ↓
+file_scoring
+      ↓
+graph_rerank
+      ↓
+ranking.py orchestration
+```
+
+`query_analysis.py` has no dependency on scored files or graph traversal.
+`file_scoring.py` owns deterministic lexical/structural policy and does not
+import closure or embedding implementations. `graph_rerank.py` can adjust an
+already-scored candidate set but does not redefine BM25 or structural boosts.
+`ranking.py` preserves the historical private helper surface while composing
+those stages in the existing order.
+
+`symbol_scoring.py` consumes `query_analysis.py` directly rather than routing
+through the ranking compatibility facade. This keeps shared overload/query
+interpretation reusable without coupling within-file scoring to repository-level
+ranking orchestration.
 
 ### Symbol scoring vs rendering
 
@@ -181,9 +212,13 @@ behavior or duplicating repository logic.
 10. **Scoring does not render:** symbol relevance policy cannot depend on source
     formatting/redaction, while window rendering consumes scoring through the
     extracted scoring stage instead of duplicating its weights.
+11. **Graph reranking is post-score:** deterministic file scoring must not depend
+    on graph closure or embedding implementations; rerankers consume an already
+    scored candidate set and cannot duplicate the lexical scoring pipeline.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
 `tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
-`tests/test_pack_pipeline_boundaries.py` and `tests/test_symbol_pipeline_boundaries.py`
-lock in these extension seams so future features can grow by composition instead
-of by adding more central branching.
+`tests/test_pack_pipeline_boundaries.py`, `tests/test_symbol_pipeline_boundaries.py`,
+and `tests/test_ranking_pipeline_boundaries.py` lock in these extension seams so
+future features can grow by composition instead of by adding more central
+branching.
