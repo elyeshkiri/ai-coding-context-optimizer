@@ -163,6 +163,15 @@ def test_project_slug_matches_claude_code_layout():
     assert project_slug("/home/u/proj") == "-home-u-proj"
 
 
+def test_project_slug_replaces_every_non_alphanumeric_like_claude_code():
+    # tempfile names such as /tmp/token-saver-e2e-m5_wfwlk/repo contain "_"
+    assert (
+        project_slug("/tmp/token-saver-e2e-m5_wfwlk/repo")
+        == "-tmp-token-saver-e2e-m5-wfwlk-repo"
+    )
+    assert project_slug("/home/u/.config/my proj") == "-home-u--config-my-proj"
+
+
 def test_transcript_paths_for_an_unknown_project(tmp_path, monkeypatch):
     monkeypatch.setattr("token_saver.sessions.projects_dir", lambda: tmp_path)
     assert transcript_paths(tmp_path / "nope") == []

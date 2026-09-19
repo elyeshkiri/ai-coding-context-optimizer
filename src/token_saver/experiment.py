@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import tempfile
@@ -312,13 +313,13 @@ def _expand_command(
         "model": model,
         "condition": condition,
     }
-    expanded = []
-    for item in command:
-        value = item
-        for key, replacement in values.items():
-            value = value.replace("{" + key + "}", replacement)
-        expanded.append(value)
-    return expanded
+    # One pass over each argument: substituted text (e.g. a prompt that itself
+    # contains "{model}") is never re-scanned, and unknown braces stay literal.
+    placeholder = re.compile(r"\{(" + "|".join(map(re.escape, values)) + r")\}")
+    return [
+        placeholder.sub(lambda match: values[match.group(1)], item)
+        for item in command
+    ]
 
 
 def _run_command(
