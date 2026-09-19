@@ -113,9 +113,13 @@ def test_uninstall_removes_only_owned_entries(tmp_path):
     mcp["mcpServers"]["github"] = {"command": "gh"}
     (root / ".mcp.json").write_text(json.dumps(mcp), encoding="utf-8")
 
+    skill = root / ".claude" / "skills" / "token-budget" / "SKILL.md"
+    assert skill.is_file()
+
     result = uninstall_integrations(root, ("all",), home=home)
 
     assert result["removed_hosts"] == ["claude", "cursor", "codex"]
+    assert not skill.exists()
     assert (root / ".token-saver.toml").exists()
     remaining = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert remaining["mcpServers"] == {"github": {"command": "gh"}}
@@ -247,3 +251,18 @@ def test_completion_lists_new_integration_commands(capsys):
     assert "doctor" in output
     assert "uninstall" in output
     assert "${COMP_WORDS[COMP_CWORD]}" in output
+
+
+
+def test_uninstall_preserves_modified_claude_skill(tmp_path):
+    """Uninstall must not delete a user-modified skill file."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    setup_integrations(root, ("claude",), which=_which({"claude"}))
+    skill = root / ".claude" / "skills" / "token-budget" / "SKILL.md"
+    skill.write_text(skill.read_text(encoding="utf-8") + "\n# local note\n", encoding="utf-8")
+
+    uninstall_integrations(root, ("claude",))
+
+    assert skill.exists()
+    assert "# local note" in skill.read_text(encoding="utf-8")
