@@ -390,6 +390,7 @@ def run_experiment(
     dry_run: bool = False,
     allow_development: bool = False,
     allow_user_hook: bool = False,
+    only_tasks: set[str] | None = None,
 ) -> dict:
     suite_path = suite_path.resolve()
     output_path = output_path.resolve()
@@ -398,11 +399,23 @@ def run_experiment(
         require_frozen=not allow_development,
         require_broad=not allow_development,
     )
-    schedule = build_schedule(suite)
+    all_task_ids = {str(task["id"]) for task in suite["tasks"]}
+    selected_ids = set(only_tasks or all_task_ids)
+    unknown = sorted(selected_ids - all_task_ids)
+    if unknown:
+        raise ValueError("unknown experiment task(s): " + ", ".join(unknown))
+    if not selected_ids:
+        raise ValueError("at least one experiment task must be selected")
+    selected_tasks = [
+        task for task in suite["tasks"] if str(task["id"]) in selected_ids
+    ]
+    schedule = [
+        item for item in build_schedule(suite) if item["task"] in selected_ids
+    ]
 
     if dry_run:
         return {
-            "task_count": len(suite["tasks"]),
+            "task_count": len(selected_tasks),
             "trials_per_task": suite["design"]["trials_per_task"],
             "paired_trials": len(schedule) // 2,
             "run_count": len(schedule),
@@ -418,15 +431,17 @@ def run_experiment(
         )
 
     base_dir = suite_path.parent
+    selected_repo_ids = {str(task["repository"]) for task in selected_tasks}
     repositories: dict[str, Path] = {}
-    for repo_id, definition in suite["repositories"].items():
+    for repo_id in selected_repo_ids:
+        definition = suite["repositories"][repo_id]
         source = (base_dir / str(definition["path"])).resolve()
         if not source.is_dir():
             raise ValueError(f"repository path not found: {source}")
         repositories[repo_id] = source
 
     resolved_revisions: dict[tuple[str, str], str] = {}
-    for task in suite["tasks"]:
+    for task in selected_tasks:
         repo_id = str(task["repository"])
         revision = str(task["revision"]).strip()
         key = (repo_id, revision)
@@ -437,7 +452,7 @@ def run_experiment(
             )
 
     result, completed = _existing_keys(output_path, suite)
-    tasks = {task["id"]: task for task in suite["tasks"]}
+    tasks = {task["id"]: task for task in selected_tasks}
     runner = suite["runner"]
     model = str(runner["model"])
     timeout = int(runner.get("timeout_seconds", 1800))
@@ -485,6 +500,11 @@ def run_experiment(
                             + setup_proc.stderr[-2000:]
                         )
 
+                settings_path = worktree / ".claude" / "settings.json"
+                original_settings = (
+                    settings_path.read_bytes() if settings_path.is_file() else None
+                )
+
                 env = os.environ.copy()
                 env.update(extra_env)
                 env["TOKEN_SAVER_BENCHMARK_CONDITION"] = item["condition"]
@@ -531,9 +551,27 @@ def run_experiment(
                         f"runner did not create transcript: {transcript}"
                     )
 
+                # Remove benchmark instrumentation before capturing the solution.
+                # The enabled arm creates .claude/settings.json so its hook can run,
+                # but that file is not part of the agent's solution and must never
+                # be sent to the independent grader.
+                if item["condition"] == "enabled":
+                    if original_settings is None:
+                        settings_path.unlink(missing_ok=True)
+                        try:
+                            settings_path.parent.rmdir()
+                        except OSError:
+                            pass
+                    else:
+                        settings_path.parent.mkdir(parents=True, exist_ok=True)
+                        settings_path.write_bytes(original_settings)
+
+                # Stage the complete working tree so new/deleted files are included
+                # in the patch as well as modifications to tracked files.
+                _git(worktree, "add", "-A")
                 agent_patch = run_dir / "agent.patch"
                 agent_patch.write_text(
-                    _git(worktree, "diff", "--binary"),
+                    _git(worktree, "diff", "--cached", "--binary"),
                     encoding="utf-8",
                 )
 
