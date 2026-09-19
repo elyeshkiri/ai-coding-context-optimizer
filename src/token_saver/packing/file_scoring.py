@@ -19,6 +19,7 @@ from .query_analysis import _query_member_hints, _query_wants_top_level
 
 _MAX_FILE_BYTES = 2_000_000
 
+# A callable whose bare name is defined in more than this many files (get, add,
 # run, route, ...) is generic API vocabulary, not evidence that any one of those
 # files is the answer to a query that happens to contain the same common word.
 _GENERIC_CALLABLE_MAX_FILES = 3
