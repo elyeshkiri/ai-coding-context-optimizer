@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 
 from .evaluate import evaluate_manifest, ground_truth_hash
+from .experiment import run_experiment, validate_suite
+from .benchmark import task_definition_hash
 from .context_browser import browse_context
 from .cost_report import Pricing, compare_cost_files, compare_paired_agent_file
 from .agent_eval import evaluate_agent_runs
@@ -86,6 +88,51 @@ def evaluate_main(argv: list[str]) -> int:
             require_holdout=args.require_holdout,
         )
     except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def experiment_main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="token-saver experiment")
+    parser.add_argument("suite")
+    parser.add_argument("--out", default="benchmark-runs.json")
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="validate and print the randomized schedule without running an agent",
+    )
+    parser.add_argument(
+        "--allow-development", action="store_true",
+        help="allow an unfrozen or smaller-than-publishable suite",
+    )
+    parser.add_argument(
+        "--allow-user-hook", action="store_true",
+        help="allow an existing user-level token-saver hook (can double-instrument enabled runs)",
+    )
+    parser.add_argument(
+        "--print-task-definition-hash", action="store_true",
+        help="print the hash to freeze into protocol.task_definition_sha256",
+    )
+    args = parser.parse_args(argv)
+    suite_path = Path(args.suite)
+    try:
+        if args.print_task_definition_hash:
+            suite = validate_suite(
+                suite_path,
+                require_frozen=False,
+                require_broad=False,
+            )
+            print(task_definition_hash(suite))
+            return 0
+        result = run_experiment(
+            suite_path,
+            Path(args.out),
+            dry_run=args.dry_run,
+            allow_development=args.allow_development,
+            allow_user_hook=args.allow_user_hook,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))
