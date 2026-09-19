@@ -82,7 +82,7 @@ def run(
         print(proc.stderr, end="", file=os.sys.stderr)
 
     if proc.returncode != 0:
-        return 0
+        return proc.returncode
 
     try:
         result = json.loads(proc.stdout)
