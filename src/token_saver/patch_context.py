@@ -9,7 +9,7 @@ import subprocess
 import time
 
 from .impact import analyze_impact
-from .pack import build_context_pack
+from .pack import ContextPack, build_context_pack
 from .repo_index import RepositoryIndex, build_index, record_for_text
 from .security import inspect_path
 
@@ -167,11 +167,10 @@ def _evidence_category(path: str) -> str:
     return "source"
 
 
-def _coverage(review: dict, index: RepositoryIndex, pack: "ContextPack") -> dict:
+def _coverage(review: dict, index: RepositoryIndex, pack: ContextPack) -> dict:
     """What fraction of the diff's own files actually reached the model,
     broken out by why not, so a caller can tell 'nothing relevant here' from
     'this pack has a real blind spot' instead of assuming completeness."""
-    from collections import Counter
     changed = [item["path"] for item in review["files"]]
     selected = set(pack.selected_files)
     closure = set(pack.closure_files)
@@ -306,7 +305,6 @@ def build_diff_context(
     combined_tokens = pack.estimated_tokens + reserve_used
     selected_files = [*pack.selected_files, *reserved_selected]
     index = build_index(root)
-    from .pack import ContextPack
     combined_pack = ContextPack(
         text=combined_text, estimated_tokens=combined_tokens,
         scanned_files=pack.scanned_files, selected_files=selected_files,

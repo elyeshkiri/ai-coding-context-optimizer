@@ -6,6 +6,18 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip ruff
+      # Scoped to correctness rules, not formatting -- see [tool.ruff.lint]
+      # in pyproject.toml for why E501/E701/E702/I are deliberately excluded.
+      - run: ruff check src tests
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -20,3 +32,20 @@ jobs:
       - run: python -m pip install -e '.[dev]'
       - run: python -m pytest -q
       - run: token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+
+  holdout:
+    # The 25-task self-benchmark above is saturated at 100% and cannot detect
+    # a ranking regression. This runs a real frozen external holdout against
+    # pinned third-party repositories and enforces a recall floor, which is
+    # what makes "regression floor" in VALIDATION.md an actual guarantee
+    # rather than a claim.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Enforce frozen holdout regression floor
+        run: python scripts/check_holdout.py benchmarks/holdout-external.floor.json

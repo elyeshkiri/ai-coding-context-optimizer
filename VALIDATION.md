@@ -105,6 +105,30 @@ evaluated with `--require-holdout` (`benchmarks/holdout-external.json` /
   and a file-ranking dampening attempt that broke it again while fixing
   `zod-email-regex`); both are disclosed in full, with root cause and
   resolution, in CHANGELOG.md.
+- **Correction (bisected after 1.3.0):** the per-task attribution above is
+  stale, and `benchmarks/holdout-external.result.json` (6/6 at 1.0/1.0) no
+  longer reproduces. That artifact was accurate when written -- the suite
+  scored 6/6 at `3462828` -- but regressed twice afterwards, undetected,
+  because this suite ran in no CI job:
+  - `6f47fd2` "stop containers from double-counting descendant relevance"
+    broke `zod-error-tree` symbol recall (1.000 -> 0.667; partially
+    recovered to 0.833 at `3361bdb`, and `zod-error-tree` has failed ever
+    since);
+  - `7acb0d8` "align structural leaf gates with query tokenization" broke
+    `zod-email-regex` file recall (1.000 -> 0.833).
+
+  Current main therefore measures 83.3% file and 83.3% symbol recall, but
+  the failing tasks are `zod-email-regex` (file) and `zod-error-tree`
+  (symbol) -- not the distribution described above. The aggregate matching
+  the 1.2.0 figure is a coincidence of two offsetting changes.
+
+  `.github/workflows/ci.yml` now runs this suite on every push and pull
+  request via `scripts/check_holdout.py`, enforcing the floor recorded in
+  `benchmarks/holdout-external.floor.json`. Neither regression has been
+  "fixed" by adjusting ranking: this is a burned holdout, and tuning
+  against it to move the number is exactly what the protocol forbids. The
+  floor is set at the current value and should be ratcheted upward only
+  when a root-cause fix, validated on the self-benchmark first, raises it.
 - **Remaining known gap: `zod-email-regex` (0.0 file recall).** Root
   cause identified precisely: `rank_files()`'s outline-term bonus is
   presence-only, not normalized by outline size, so a large file with a

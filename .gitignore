@@ -11,3 +11,7 @@ CODEMAP.md
 .coverage
 htmlcov/
 coverage.xml
+
+# Holdout clones fetched by scripts/check_holdout.py
+benchmarks/httpx/
+benchmarks/zod/

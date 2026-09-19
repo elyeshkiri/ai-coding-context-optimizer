@@ -30,5 +30,26 @@ where = ["src"]
 "share/token-saver/benchmarks" = ["benchmarks/*.json"]
 "share/token-saver/integrations" = ["integrations/*"]
 
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+# Deliberately scoped to correctness, not formatting. This codebase uses a
+# compact `if cond: raise ...` style (E701/E702) and long descriptive lines
+# (E501) on purpose; flagging those would be 500+ diagnostics of pure noise
+# and would train everyone to ignore the linter. Import ordering (I) is left
+# alone for the same reason.
+select = ["E9", "F", "B", "C4", "UP"]
+ignore = [
+    # zip(..., strict=) changes runtime behaviour on length mismatch rather
+    # than just documenting intent, so it is not a safe blanket autofix here.
+    "B905",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests build deliberately malformed sources as fixtures.
+# dict(key=value) reads better than a literal for wide keyword-style fixtures.
+"tests/*" = ["B018", "C408"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
