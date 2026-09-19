@@ -9,6 +9,14 @@ def _workflow_text(name: str) -> str:
     return (root / ".github" / "workflows" / name).read_text(encoding="utf-8")
 
 
+def _collector_text() -> str:
+    """Read the GitHub ranking-artifact collector edge script."""
+    root = Path(__file__).resolve().parents[1]
+    return (root / "scripts" / "collect_ranking_artifacts.py").read_text(
+        encoding="utf-8"
+    )
+
+
 def test_calibration_workflow_runs_weekly_manually_and_self_verifies():
     """Calibration should be repeatable, scheduled, and dogfood workflow changes."""
     workflow = _workflow_text("ranking-calibration.yml")
@@ -16,30 +24,31 @@ def test_calibration_workflow_runs_weekly_manually_and_self_verifies():
     assert "push:" in workflow
     assert "branches: [main]" in workflow
     assert '".github/workflows/ranking-calibration.yml"' in workflow
+    assert '"scripts/collect_ranking_artifacts.py"' in workflow
     assert "schedule:" in workflow
     assert 'cron: "17 5 * * 1"' in workflow
     assert "workflow_dispatch:" in workflow
     assert "artifact_limit:" in workflow
 
 
-def test_calibration_workflow_reads_ranking_artifacts_without_write_permissions():
-    """History collection needs read-only repository/action permissions."""
+def test_calibration_workflow_reads_artifacts_with_read_only_permissions():
+    """History collection needs only repository/action read permissions."""
     workflow = _workflow_text("ranking-calibration.yml")
 
     assert "contents: read" in workflow
     assert "actions: read" in workflow
-    assert "ranking-regression-" in workflow
-    assert "gh run download" in workflow
-    assert "ranking-history/$artifact_id.json" in workflow
+    assert "python scripts/collect_ranking_artifacts.py" in workflow
+    assert "GH_TOKEN: ${{ github.token }}" in workflow
 
 
-def test_calibration_workflow_deduplicates_pr_artifacts_before_sampling():
-    """Reruns of one PR should not count as independent calibration samples."""
-    workflow = _workflow_text("ranking-calibration.yml")
+def test_artifact_collector_uses_immutable_artifact_id_download_urls():
+    """History collection should not depend on run/name artifact resolution."""
+    collector = _collector_text()
 
-    assert "seen = set()" in workflow
-    assert "if name in seen:" in workflow
-    assert "seen.add(name)" in workflow
+    assert "archive_download_url" in collector
+    assert "actions/artifacts" in collector
+    assert "ranking-regression-" in collector
+    assert "gh run download" not in collector
 
 
 def test_calibration_workflow_targets_current_ground_truth_hash():
@@ -57,7 +66,7 @@ def test_calibration_workflow_publishes_summary_and_evidence():
 
     assert '--markdown >> "$GITHUB_STEP_SUMMARY"' in workflow
     assert "ranking-calibration.json" in workflow
-    assert "selected-ranking-artifacts.tsv" in workflow
+    assert "selected-ranking-artifacts.json" in workflow
     assert "actions/upload-artifact@v4" in workflow
     assert "retention-days: 30" in workflow
 
