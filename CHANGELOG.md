@@ -32,6 +32,12 @@
   reports package/CLI availability, project config, detected/configured hosts,
   repository-index health, and available Claude transcript evidence in one
   human- or JSON-readable result.
+- **Rebuilt the documentation as a tested product surface.** Added a docs hub,
+  five-minute quickstart, complete CLI map, canonical configuration reference,
+  troubleshooting playbook, upgrade/migration guide, contributor guide, and
+  security/privacy reference. CI now checks package/document version parity,
+  internal Markdown links, and coverage of every shipped CLI command.
+
 
 
 # 1.4.0 - 2026-09-19
