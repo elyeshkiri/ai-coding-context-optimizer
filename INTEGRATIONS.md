@@ -1,20 +1,34 @@
 # Agent integrations
 
-Install Token Saver in the environment that launches the coding agent:
+Install Token Saver in the environment that launches the coding agent, then let
+the setup command detect and configure supported hosts:
 
 ```bash
-python -m pip install .
+pip install claude-token-saver
+cd /absolute/path/to/project
+token-saver setup
+token-saver doctor
 ```
+
+Supported automatic setup currently covers:
+
+- **Claude Code** — project hooks plus project MCP configuration;
+- **Cursor** — project `.cursor/mcp.json`;
+- **Codex** — a clearly marked Token Saver block in the user Codex TOML config.
+
+Only Token Saver-owned entries are changed. Setup is idempotent, so rerunning it
+after upgrades repairs/migrates managed entries without duplicating them.
+`token-saver uninstall` reverses those entries while preserving unrelated host
+configuration.
+
+Use `--host claude|cursor|codex|all` for explicit selection. The files under
+`integrations/` remain manual fallback/reference templates.
 
 The MCP process is local and uses newline-delimited JSON-RPC over stdio:
 
 ```bash
 token-saver serve /absolute/path/to/project
 ```
-
-Copy the relevant example from `integrations/` into the agent's project or user
-configuration. Replace `.` with an absolute project path when the agent launches
-MCP servers from another working directory.
 
 Available MCP tools:
 
@@ -73,3 +87,36 @@ It currently applies to supported repeated pytest and Ruff diagnostics within a
 Claude Code session. See [OUTPUT_OPTIMIZATION.md](OUTPUT_OPTIMIZATION.md) for
 failure routing, critical-line recovery, quality replay, Delta state, and graph
 mapping details.
+
+
+## Project configuration
+
+Setup creates `.token-saver.toml`. The nearest file is discovered by walking
+from the active project directory toward the filesystem root. Environment
+variables override the TOML values for temporary/CI changes.
+
+```toml
+version = 1
+
+[hooks]
+guard = true
+read_max_lines = 220
+reread = false
+delta = false
+min_lines = 40
+keep_tail = 15
+allow = []
+```
+
+## Troubleshooting and repair
+
+```bash
+token-saver doctor .
+token-saver doctor . --json
+token-saver setup .        # idempotent repair / upgrade migration
+token-saver commands
+```
+
+For Claude Code, the existing lower-level `token-saver host-check` remains
+available when you need transport/live-host evidence beyond the consolidated
+configuration health report.
