@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 import math
@@ -394,6 +395,7 @@ class _FileRankingScope:
     authority_pairs: set
     callable_file_counts: Counter
     query: str
+    structural_authority: Callable = _structural_file_authority
 
 
 def _expand_query_terms(index: RepositoryIndex, query: str) -> list[str]:
@@ -497,7 +499,7 @@ def _apply_file_boosts(
     # added *before* the low-value-directory dampening below so a test or
     # example file that merely defines a same-named helper is not exempt
     # from that penalty.
-    authority = _structural_file_authority(
+    authority = scope.structural_authority(
         scope.index.records.get(rel), scope.query,
         query_terms=scope.authority_terms, explicit_pairs=scope.authority_pairs,
         callable_file_counts=scope.callable_file_counts,
@@ -660,6 +662,9 @@ def rank_files(
     exclude_files: set[str] | None = None,
     restrict_files: set[str] | None = None,
     seed_limit: int = 6,
+    _symbol_terms_fn: Callable[[str], list[str]] = symbol_terms,
+    _load_feedback_fn: Callable[[Path], dict] = load_feedback,
+    _structural_authority_fn: Callable = _structural_file_authority,
 ) -> list[RankedFile]:
     """Rank indexed files for ``query`` using BM25 + code-aware boosts.
 
@@ -683,7 +688,7 @@ def rank_files(
     remembered_files, remembered_terms = (
         load_working_set(root, session) if session else (set(), set())
     )
-    feedback = load_feedback(root) if feedback_boost else {}
+    feedback = _load_feedback_fn(root) if feedback_boost else {}
     query_continues = bool(set(q_terms) & remembered_terms)
 
     docs = _candidate_documents(root, index, exclude_files, restrict_files)
@@ -699,10 +704,11 @@ def rank_files(
         feedback=feedback,
         remembered_files=remembered_files,
         query_continues=query_continues,
-        authority_terms=set(symbol_terms(query)),
+        authority_terms=set(_symbol_terms_fn(query)),
         authority_pairs=_query_member_hints(query),
         callable_file_counts=_callable_file_counts(index),
         query=query,
+        structural_authority=_structural_authority_fn,
     )
     ranked = _score_documents(scope, docs)
     ranked.sort(key=_rank_sort_key)
