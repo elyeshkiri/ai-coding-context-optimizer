@@ -87,6 +87,6 @@ class RankingStageRegistry:
             if stage.enabled(context):
                 stage.apply(context, ranked)
 
-    def extend(self, *stages: RankingStage) -> "RankingStageRegistry":
+    def extend(self, *stages: RankingStage) -> RankingStageRegistry:
         """Return a new registry containing existing stages plus extensions."""
         return RankingStageRegistry((*self._stages, *stages))
