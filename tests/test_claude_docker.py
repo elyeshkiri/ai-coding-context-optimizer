@@ -20,8 +20,9 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
 
     seen = {}
 
-    def fake_run(command, **_kwargs):
+    def fake_run(command, **kwargs):
         seen["command"] = command
+        seen["env"] = kwargs.get("env")
         claude_home = transcript.parent / "claude-home"
         session = claude_home / "projects" / "fixture" / "session.jsonl"
         session.parent.mkdir(parents=True)
@@ -48,6 +49,10 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
         command.index("--user") : command.index("--user") + 2
     ]
     assert "HOME=/tmp" in command
+    assert "ANTHROPIC_CUSTOM_HEADERS" in command
+    assert seen["env"]["ANTHROPIC_CUSTOM_HEADERS"] == (
+        "anthropic-workspace-id: ws_test"
+    )
     assert f"{(transcript.parent / 'claude-home').resolve()}:/tmp/.claude" in command
     assert transcript.read_text(encoding="utf-8") == '{"type":"assistant"}\n'
     assert not (transcript.parent / "claude-home").exists()
