@@ -36,7 +36,6 @@ def _normalized_files(values: object) -> list[str]:
 
 def _resolve_repository(
     root: Path,
-    manifest: Path,
     specs: dict[str, tuple[Path, str | None]],
     alias: object,
 ) -> tuple[str, Path, str | None]:
@@ -112,7 +111,6 @@ def build_ranking_snapshot(
 
         repo_name, repo_root, expected_revision = _resolve_repository(
             root,
-            manifest,
             specs,
             task.get("repository"),
         )
@@ -367,6 +365,8 @@ def compare_ranking_snapshots(
         "ground_truth_sha256": baseline_hash,
         "baseline_repositories": baseline.get("repositories", {}),
         "candidate_repositories": candidate.get("repositories", {}),
+        "baseline_config": baseline.get("config", {}),
+        "candidate_config": candidate.get("config", {}),
         "summary": {
             "task_count": len(comparisons),
             "expected_files_compared": len(all_files),
