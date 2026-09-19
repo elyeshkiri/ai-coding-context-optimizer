@@ -194,6 +194,7 @@ class _FileRankingScope:
     callable_file_counts: Counter
     query: str
     structural_authority: Callable = _structural_file_authority
+    trace_scores: bool = False
 
 
 def _resolve_changed_files(
@@ -395,7 +396,9 @@ def _score_documents(
     ranked: list[RankedFile] = []
     for (path, rel, outline, counts), length in zip(docs, lengths):
         reasons: list[str] = []
-        score_trace: list[RankingScoreEvent] = []
+        score_trace: list[RankingScoreEvent] | None = (
+            [] if scope.trace_scores else None
+        )
         score, matched = _bm25_score(
             counts, scope.q_terms, doc_freq, length, avg_len, len(docs),
         )
@@ -425,7 +428,7 @@ def _score_documents(
             reasons=reasons or [f"priority:{file_priority(rel)}"],
             term_hits=matched,
             changed=rel in scope.changed,
-            score_trace=score_trace,
+            score_trace=score_trace or [],
         ))
     return ranked
 
