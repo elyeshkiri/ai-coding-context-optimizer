@@ -75,6 +75,9 @@ def run(
             output.write(body)
             if body and not body.endswith(b"\n"):
                 output.write(b"\n")
+    # Keep only the evidence needed for accounting. Claude's private config and
+    # session-home contents are not benchmark artifacts and must not be uploaded.
+    shutil.rmtree(claude_home, ignore_errors=True)
     return proc.returncode
 
 
