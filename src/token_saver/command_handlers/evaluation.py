@@ -89,7 +89,7 @@ def ranking_snapshot_main(argv: list[str]) -> int:
             closure_max_items=args.closure_items,
             embeddings=args.embeddings,
         )
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
