@@ -1,7 +1,7 @@
-"""Stable top-level dispatcher.
+"""Stable top-level command dispatcher.
 
-Keep the mature legacy CLI untouched while allowing high-value commands to be
-implemented as isolated modules. This reduces regression risk in hook tooling.
+Command registration lives in :mod:`token_saver.command_registry`; this module
+owns only argv acquisition and fallback to the mature legacy CLI.
 """
 
 from __future__ import annotations
@@ -9,53 +9,13 @@ from __future__ import annotations
 import sys
 
 from .cli import main as legacy_main
-from .pack_cli import main as pack_main
-from .commands import (
-    agent_evaluate_main, browse_main, cost_report_main, evaluate_main, experiment_main, feedback_main,
-    host_check_main, impact_main, output_benchmark_main, output_explain_main, output_policy_main,
-    output_replay_main, output_save_main, pack_diff_main,
-    review_main, serve_main,
-)
+from .command_registry import DEFAULT_COMMAND_REGISTRY
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the command-line entry point."""
+    """Dispatch the requested command while preserving legacy CLI behavior."""
     args = list(sys.argv[1:] if argv is None else argv)
-    if args and args[0] == "pack":
-        return pack_main(args[1:])
-    if args and args[0] == "impact":
-        return impact_main(args[1:])
-    if args and args[0] == "browse":
-        return browse_main(args[1:])
-    if args and args[0] == "feedback":
-        return feedback_main(args[1:])
-    if args and args[0] == "evaluate":
-        return evaluate_main(args[1:])
-    if args and args[0] == "agent-evaluate":
-        return agent_evaluate_main(args[1:])
-    if args and args[0] == "experiment":
-        return experiment_main(args[1:])
-    if args and args[0] == "cost-report":
-        return cost_report_main(args[1:])
-    if args and args[0] == "host-check":
-        return host_check_main(args[1:])
-    if args and args[0] == "output-policy":
-        return output_policy_main(args[1:])
-    if args and args[0] == "output-benchmark":
-        return output_benchmark_main(args[1:])
-    if args and args[0] == "output-explain":
-        return output_explain_main(args[1:])
-    if args and args[0] == "output-replay":
-        return output_replay_main(args[1:])
-    if args and args[0] == "output-save":
-        return output_save_main(args[1:])
-    if args and args[0] == "serve":
-        return serve_main(args[1:])
-    if args and args[0] == "pack-diff":
-        return pack_diff_main(args[1:])
-    if args and args[0] == "review":
-        return review_main(args[1:])
-    return legacy_main(args)
+    return DEFAULT_COMMAND_REGISTRY.dispatch(args, legacy_main)
 
 
 if __name__ == "__main__":
