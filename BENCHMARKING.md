@@ -205,12 +205,13 @@ and output tokens, retries, elapsed time, context failures, success rate, and
 tokens per success. It suppresses the reduction headline whenever Token Saver's
 success rate is below baseline.
 
-## Live host validation (not yet executed for this release)
+## Live host validation is a separate manual gate
 
-Token Saver can verify installation and its local hook/recovery transport before
-a live host trial:
+Start with the consolidated configuration/index check, then run the deeper host
+transport check before a live host trial:
 
 ```bash
+token-saver doctor . --require-ready
 token-saver host-check . --require-ready
 ```
 
