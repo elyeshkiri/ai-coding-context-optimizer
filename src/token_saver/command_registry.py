@@ -19,7 +19,15 @@ from .command_handlers.evaluation import (
     ranking_snapshot_main,
 )
 from .command_handlers.experiment import cost_report_main, experiment_main
-from .command_handlers.host import host_check_main, serve_main
+from .command_handlers.host import (
+    commands_main,
+    completion_main,
+    doctor_main,
+    host_check_main,
+    serve_main,
+    setup_main,
+    uninstall_main,
+)
 from .command_handlers.output import (
     output_benchmark_main,
     output_explain_main,
@@ -81,6 +89,11 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("ranking-calibrate", ranking_calibrate_main),
         CommandSpec("experiment", experiment_main),
         CommandSpec("cost-report", cost_report_main),
+        CommandSpec("setup", setup_main),
+        CommandSpec("doctor", doctor_main),
+        CommandSpec("uninstall", uninstall_main),
+        CommandSpec("completion", completion_main),
+        CommandSpec("commands", commands_main),
         CommandSpec("host-check", host_check_main),
         CommandSpec("output-policy", output_policy_main),
         CommandSpec("output-benchmark", output_benchmark_main),
