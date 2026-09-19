@@ -17,6 +17,7 @@ from token_saver.ranking_regression import (
     build_ranking_snapshot,
     compare_ranking_snapshots,
     regression_violations,
+    render_ranking_diff_markdown,
 )
 
 
@@ -215,3 +216,60 @@ def test_snapshot_and_diff_commands_are_registered_and_ci_capable(tmp_path, caps
     payload = json.loads(capsys.readouterr().out)
     assert payload["summary"]["regressed_files"] == 1
     assert payload["violations"][0]["path"] == "billing.py"
+
+
+
+def test_markdown_report_surfaces_rank_and_stage_changes(tmp_path):
+    """GitHub summaries should explain movement without requiring JSON inspection."""
+    root = _repo(tmp_path / "repo")
+    manifest = _manifest(tmp_path)
+    baseline = build_ranking_snapshot(root, manifest)
+    candidate = copy.deepcopy(baseline)
+    observation = candidate["tasks"][0]["expected"][0]
+    observation["rank"] = 5
+    observation["final_score"] -= 4.0
+    observation["stage_deltas"]["bm25"] = (
+        observation["stage_deltas"].get("bm25", 0.0) - 4.0
+    )
+
+    report = compare_ranking_snapshots(baseline, candidate)
+    markdown = render_ranking_diff_markdown(report)
+
+    assert "## Token Saver ranking regression report" in markdown
+    assert "**1 regressed**" in markdown
+    assert "<code>billing.py</code>" in markdown
+    assert "2 → 5 (+3)" in markdown
+    assert "<code>bm25</code> -4.000" in markdown
+    assert "Snapshot provenance" in markdown
+
+
+def test_markdown_report_handles_no_rank_movement(tmp_path):
+    """A clean comparison should produce a concise no-movement summary."""
+    root = _repo(tmp_path / "repo")
+    manifest = _manifest(tmp_path)
+    snapshot = build_ranking_snapshot(root, manifest)
+
+    markdown = render_ranking_diff_markdown(
+        compare_ranking_snapshots(snapshot, copy.deepcopy(snapshot))
+    )
+
+    assert "No expected-file rank movement was detected." in markdown
+    assert "**0 regressed**" in markdown
+
+
+def test_ranking_diff_cli_supports_markdown(tmp_path, capsys):
+    """The diff CLI should emit GitHub-ready Markdown directly."""
+    root = _repo(tmp_path / "repo")
+    manifest = _manifest(tmp_path)
+    baseline = build_ranking_snapshot(root, manifest)
+    baseline_path = tmp_path / "baseline.json"
+    candidate_path = tmp_path / "candidate.json"
+    baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
+    candidate_path.write_text(json.dumps(baseline), encoding="utf-8")
+
+    result = ranking_diff_main(
+        [str(baseline_path), str(candidate_path), "--markdown"]
+    )
+
+    assert result == 0
+    assert "## Token Saver ranking regression report" in capsys.readouterr().out
