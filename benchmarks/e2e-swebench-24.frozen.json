@@ -7,8 +7,8 @@
     "history_isolated": true,
     "hidden_tests_after_agent": true,
     "development_excluded": true,
-    "frozen_at": "2026-09-19T09:30:00Z",
-    "task_definition_sha256": "1ff1d81acd58d4226bb244dd67412fa166c4d797c43ec685882d5c5a6659cce0"
+    "frozen_at": "2026-09-19T11:45:00+02:00",
+    "task_definition_sha256": "fb32efd628671663a30c129ba8c61409b3a6f1497baf19ca8e41db669d7d710c"
   },
   "design": {
     "trials_per_task": 3,
@@ -46,20 +46,28 @@
   },
   "runner": {
     "command": [
-      "claude",
-      "-p",
-      "{prompt}",
+      "python3",
+      "-m",
+      "token_saver.claude_docker",
+      "--worktree",
+      "{worktree}",
+      "--transcript",
+      "{transcript}",
+      "--prompt-file",
+      "{prompt_file}",
       "--model",
       "{model}",
-      "--dangerously-skip-permissions",
-      "--max-turns",
-      "50",
-      "--output-format",
-      "json"
+      "--condition",
+      "{condition}",
+      "--image",
+      "token-saver-e2e-agent:2.1.276"
     ],
     "model": "claude-sonnet-5",
-    "transcript_mode": "claude-project",
-    "timeout_seconds": 1800
+    "claude_code_version": "2.1.276",
+    "agent_image": "token-saver-e2e-agent:2.1.276",
+    "transcript_mode": "path",
+    "timeout_seconds": 1800,
+    "container_user_mode": "host-uid-gid"
   },
   "tasks": [
     {

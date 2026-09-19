@@ -36,19 +36,32 @@ def _has_commit(repo: Path, revision: str) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("suite")
+    parser.add_argument(
+        "--task", action="append", dest="tasks",
+        help="prepare only this task id; repeat for multiple tasks",
+    )
     args = parser.parse_args()
 
     suite_path = Path(args.suite).resolve()
     suite = json.loads(suite_path.read_text(encoding="utf-8"))
     repositories = suite["repositories"]
     tasks = suite["tasks"]
+    if args.tasks:
+        wanted = set(args.tasks)
+        known = {str(task["id"]) for task in tasks}
+        unknown = sorted(wanted - known)
+        if unknown:
+            raise SystemExit("unknown task(s): " + ", ".join(unknown))
+        tasks = [task for task in tasks if str(task["id"]) in wanted]
     base = suite_path.parent
 
-    revisions: dict[str, set[str]] = {repo_id: set() for repo_id in repositories}
+    selected_repo_ids = {str(task["repository"]) for task in tasks}
+    revisions: dict[str, set[str]] = {repo_id: set() for repo_id in selected_repo_ids}
     for task in tasks:
         revisions[task["repository"]].add(task["revision"])
 
-    for repo_id, definition in repositories.items():
+    for repo_id in sorted(selected_repo_ids):
+        definition = repositories[repo_id]
         path = (base / definition["path"]).resolve()
         url = definition.get("url")
         if not isinstance(url, str) or not url:
