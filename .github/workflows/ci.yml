@@ -20,6 +20,8 @@ jobs:
       # Scoped to correctness rules, not formatting -- see [tool.ruff.lint]
       # in pyproject.toml for why E501/E701/E702/I are deliberately excluded.
       - run: ruff check src tests scripts
+      - name: Enforce 100% docstring coverage
+        run: interrogate src/token_saver
       # An invalid workflow expression is rejected by GitHub before any job
       # is created, so it shows up as a zero-second failure with no logs and
       # cannot be caught by any job running inside the workflow. release.yml
