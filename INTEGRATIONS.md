@@ -33,3 +33,43 @@ in-memory snapshot for predictable low latency.
 
 The GitHub Actions example is intentionally a reporting/validation workflow. It
 does not modify a pull request or publish benchmark claims.
+
+
+## Claude Code output optimization
+
+Install the hooks after installing or upgrading Token Saver:
+
+```bash
+token-saver install /absolute/path/to/project --templates
+```
+
+For a user-wide hook installation:
+
+```bash
+token-saver install . --user
+```
+
+The Claude Code integration uses two distinct boundaries:
+
+- `PreToolUse` protects against unbounded large source reads and lone
+  `cat <large-source>` dumps;
+- `PostToolUse` can reduce large Bash stdout through the failure-aware output
+  processor registry while keeping the original result recoverable locally.
+
+Inspect which processor would handle a command:
+
+```bash
+token-saver output-explain "pytest -q"
+token-saver output-explain "npm install" --exit-code 1
+```
+
+Graph-aware diagnostic Delta is opt-in:
+
+```bash
+export TOKEN_SAVER_DELTA=1
+```
+
+It currently applies to supported repeated pytest and Ruff diagnostics within a
+Claude Code session. See [OUTPUT_OPTIMIZATION.md](OUTPUT_OPTIMIZATION.md) for
+failure routing, critical-line recovery, quality replay, Delta state, and graph
+mapping details.

@@ -1,4 +1,4 @@
-# Token Saver 1.3.1
+# Token Saver 1.4.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -36,6 +36,10 @@ Repeated pytest and Ruff diagnostics can optionally use **graph-aware Delta**:
 ```bash
 export TOKEN_SAVER_DELTA=1
 ```
+
+See [OUTPUT_OPTIMIZATION.md](OUTPUT_OPTIMIZATION.md) for the processor contract,
+failure-routing rules, critical-line recovery, replay manifest schema, Delta
+state model, and graph-enrichment behavior.
 
 Within one Claude Code session, subsequent runs classify diagnostics as
 `NEW`, `CHANGED`, `UNCHANGED`, or `RESOLVED`. New and changed diagnostics
@@ -671,6 +675,7 @@ The filter removes ANSI noise, compacts valid JSON, abbreviates huge hex blobs, 
 | `TOKEN_SAVER_MIN_LINES` | `40` | minimum Bash stdout lines considered for filtering |
 | `TOKEN_SAVER_MAX_LINES` | adaptive | filtered output line target |
 | `TOKEN_SAVER_KEEP_TAIL` | `15` | tail retained by generic filtering |
+| `TOKEN_SAVER_DELTA` | `0` | opt-in graph-aware pytest/Ruff diagnostic Delta |
 | `TOKEN_SAVER_CACHE_TTL_MIN` | `5` | advisory cache-gap classification only |
 | `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | local state and recoverable output storage |
 

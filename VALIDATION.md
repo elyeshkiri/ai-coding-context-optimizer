@@ -1,9 +1,11 @@
-# Validation for 1.3.1
+# Validation for 1.4.0
 
 Release validation is anchored to GitHub CI on Linux across Python 3.10,
-3.12, and 3.13. Version 1.3.1 is a packaging/release-integrity patch over
-1.3.0 plus the behavior-preserving ranking refactor and CI quality gates
-merged after that tag; the frozen retrieval evidence below is unchanged.
+3.12, and 3.13. Version 1.4.0 adds the failure-aware output processor
+registry, critical-line recovery, replayable output quality contracts, the
+opt-in graph-aware diagnostic Delta, the large-source Bash `cat` guard, and
+the broader cost-evidence harness while preserving the frozen retrieval
+protocol.
 
 Observed CI dependency versions include:
 
@@ -15,7 +17,7 @@ Observed CI dependency versions include:
 
 ## Test suite and self-benchmark
 
-- Full test suite: **474 passed** on the Python 3.10/3.12/3.13 PR CI matrix after adding quality-gate coverage.
+- Full test suite: **545 passed** on the Python 3.10/3.12/3.13 release PR CI matrix.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **100% mean relevant-file recall, 100% mean
   relevant-symbol recall, 100% symbol recall in expected files, and 97.90%
@@ -23,7 +25,40 @@ Observed CI dependency versions include:
 - The self-benchmark is now saturated and should be treated as a regression
   floor, not as the main evidence of generalization. The frozen external
   holdouts below are deliberately stronger evidence.
-- Package metadata for this release is **claude-token-saver 1.3.1**; the import remains `token_saver` and the CLI remains `token-saver`.
+- Package metadata for this release is **claude-token-saver 1.4.0**; the import remains `token_saver` and the CLI remains `token-saver`.
+
+## Output optimization validation
+
+Version 1.4.0 adds a second validation surface alongside source retrieval:
+
+- failure-aware routing is tested so success-oriented processors do not
+  automatically compress failed commands;
+- complex JavaScript test failures with stack frames and multiline diffs are
+  preserved verbatim when the processor cannot safely reduce them;
+- the shared critical-line recovery path is exercised independently of any
+  one processor;
+- output replay contracts test exact diagnostic preservation, token budgets,
+  minimum reductions, and nonzero exit status on contract failure;
+- graph-aware Delta tests diagnostic identity, unchanged compression,
+  changed-diagnostic source/symbol mapping, related repository edges, and
+  RESOLVED diagnostics after a clean rerun;
+- the historical large-Read and Bash `cat` guard regressions remain in the
+  suite.
+
+These tests establish mechanics and preservation behavior for covered fixtures.
+They are not a universal lossless guarantee for arbitrary command output.
+
+The checked-in `benchmarks/output-quality.example.json` demonstrates the
+portable quality-contract format. See `OUTPUT_OPTIMIZATION.md` for the
+processor and Delta contracts.
+
+The broad 24-task SWE-bench cost experiment remains **non-publishable evidence**
+at this release: its latest run exposed harness/grader issues, including
+budget-limited agent runs being misclassified as infrastructure failures and a
+reference grader that produced no parseable test result for one task. Those
+failures are treated as benchmark-infrastructure findings, not as evidence for
+or against Token Saver's real-task cost effect. No 144-run aggregate savings
+claim is made in 1.4.0.
 
 ## Frozen external holdout program
 
