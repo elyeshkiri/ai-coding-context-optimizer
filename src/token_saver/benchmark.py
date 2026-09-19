@@ -43,10 +43,14 @@ def task_definition_hash(manifest: dict) -> str:
             for key, value in sorted(definition.items())
             if key != "path"
         }
+    runner = manifest.get("runner", {})
+    if not isinstance(runner, dict):
+        raise ValueError("runner must be an object")
     normalized = {
         "suite_version": manifest.get("suite_version", 1),
         "design": manifest.get("design", {}),
         "repositories": frozen_repositories,
+        "runner": runner,
         "tasks": sorted(tasks, key=lambda task: str(task.get("id", ""))),
     }
     raw = json.dumps(
