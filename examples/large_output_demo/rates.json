@@ -1,0 +1,4 @@
+{
+  "claude-haiku-4-5-20251001": {"input": 1.0, "cache_write_5m": 1.25, "cache_write_1h": 2.0, "cache_read": 0.1, "output": 5.0},
+  "claude-sonnet-5": {"input": 2.0, "cache_write_5m": 2.5, "cache_write_1h": 4.0, "cache_read": 0.2, "output": 10.0}
+}

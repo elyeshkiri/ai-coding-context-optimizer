@@ -5,6 +5,10 @@ bytes — so this hook never touches PostToolUse Read. It intercepts the
 *request*: a Read of a large source file with no offset/limit is denied and
 replaced with an outline plus the ranges to ask for.
 
+A whole-file ``cat`` through Bash is the same dump by another route, so a plain
+``cat <large source file>`` is denied the same way. Only a lone ``cat`` command
+is inspected; pipes, redirects, chains and globs are left alone.
+
 Disable with TOKEN_SAVER_GUARD=0.
 """
 
@@ -13,6 +17,8 @@ from __future__ import annotations
 import fnmatch
 import hashlib
 import os
+import re
+import shlex
 from pathlib import Path
 
 from .estimate import estimate_tokens
@@ -134,6 +140,10 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
     if n_lines <= max_lines:
         return None
 
+    return _deny(_outline_reason(path, text, n_lines, "a full Read"))
+
+
+def _outline_reason(path: Path, text: str, n_lines: int, action: str) -> str:
     outlined = skeletonize(text, path.suffix, line_numbers=True)
     # cap the deny-reason so the hook message itself does not become the dump
     lines = outlined.splitlines()
@@ -147,13 +157,16 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
         preview.append(ln)
         used += cost
     preview_text = "\n".join(preview)
-    reason = (
-        f"token-saver blocked a full Read of {path} ({n_lines} lines, "
+    return (
+        f"token-saver blocked {action} of {path} ({n_lines} lines, "
         f"~{estimate_tokens(text, path.suffix)} tokens). "
         f"Edit needs exact bytes, so use Read with offset+limit on the gutter "
         f"ranges below instead of ingesting the whole file.\n\n"
         f"{preview_text}"
     )
+
+
+def _deny(reason: str) -> dict:
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
@@ -163,13 +176,73 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
     }
 
 
+_CAT_FLAGS = re.compile(r"^-[nbsAETv]+$")
+_SHELL_SYNTAX = set("|&;<>()`$*?[]{}\\")
+MAX_BLOCKED_FILES = 3
+
+
+def _cat_paths(command: str) -> list[str] | None:
+    """File arguments of a lone ``cat`` command, or None for anything else."""
+    cmd = re.sub(r"\s+2>&1\s*$", "", command.strip())
+    if not re.match(r"cat(\s|$)", cmd):
+        return None
+    try:
+        lexer = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return None
+    paths: list[str] = []
+    for token in tokens[1:]:
+        if _CAT_FLAGS.match(token):
+            continue
+        if token.startswith("-") or _SHELL_SYNTAX & set(token):
+            return None
+        paths.append(token)
+    return paths or None
+
+
+def decide_bash(command: str, cwd: Path | None = None) -> dict | None:
+    """Deny ``cat <large source file>``; None lets the command run."""
+    if not _guard_enabled():
+        return None
+    paths = _cat_paths(command)
+    if not paths:
+        return None
+    base = cwd or Path.cwd()
+    max_lines = _env_int("TOKEN_SAVER_READ_MAX_LINES", DEFAULT_READ_MAX_LINES)
+    reasons: list[str] = []
+    for raw in paths:
+        path = Path(raw)
+        if not path.is_absolute():
+            path = base / path
+        if not path.is_file() or _allowed(path) or not _is_source(path):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
+        if n_lines > max_lines:
+            reasons.append(_outline_reason(path, text, n_lines, "`cat`"))
+        if len(reasons) == MAX_BLOCKED_FILES:
+            break
+    return _deny("\n\n".join(reasons)) if reasons else None
+
+
 def run(payload: dict) -> tuple[int, dict | None]:
-    if payload.get("tool_name") != "Read":
+    tool = payload.get("tool_name")
+    if tool not in {"Read", "Bash"}:
         return 0, None
     tool_input = payload.get("tool_input") or {}
     if not isinstance(tool_input, dict):
         return 0, None
     raw_cwd = payload.get("cwd") or payload.get("cwd_path")
     cwd = Path(str(raw_cwd)) if raw_cwd else Path.cwd()
+    if tool == "Bash":
+        command = tool_input.get("command")
+        if not isinstance(command, str):
+            return 0, None
+        return 0, decide_bash(command, cwd=cwd)
     decision = decide_read(tool_input, cwd=cwd, session_id=payload.get("session_id"))
     return 0, decision
