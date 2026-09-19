@@ -15,7 +15,8 @@ from pathlib import Path
 from .context_browser import browse_context
 from .feedback import record_feedback
 from .impact import ImpactReport, analyze_impact
-from .pack import ContextPack, build_context_pack
+from .pack import ContextPack, build_context_pack, rank_files
+from .packing.observability import explain_ranked_files
 from .packing.ranking_stages import RankingStageRegistry
 from .repo_index import INDEX_VERSION, RepositoryIndex, build_index
 from .semantic_ts import enrich_index_with_typescript
@@ -122,6 +123,41 @@ class RepositoryContextService:
             adaptive_budget=adaptive_budget,
             stage_registry=stage_registry,
         )
+
+    def explain_ranking(
+        self,
+        query: str,
+        *,
+        max_files: int = 8,
+        changed_boost: bool = True,
+        graph_hops: int = 1,
+        session: str | None = None,
+        embeddings: bool = False,
+        feedback_boost: bool = True,
+        closure_max_items: int = 20,
+        priority_files: set[str] | None = None,
+        exclude_files: set[str] | None = None,
+        restrict_files: set[str] | None = None,
+        stage_registry: RankingStageRegistry | None = None,
+    ) -> dict:
+        """Explain file-ranking score contributions for one repository query."""
+        ranked = rank_files(
+            self.root,
+            query,
+            use_gitignore=self.use_gitignore,
+            changed_boost=changed_boost,
+            index=self.get(),
+            graph_hops=graph_hops,
+            session=session,
+            embeddings=embeddings,
+            feedback_boost=feedback_boost,
+            closure_max_items=closure_max_items,
+            priority_files=priority_files,
+            exclude_files=exclude_files,
+            restrict_files=restrict_files,
+            stage_registry=stage_registry,
+        )
+        return explain_ranked_files(query, ranked, max_files=max_files)
 
     def browse(
         self,
