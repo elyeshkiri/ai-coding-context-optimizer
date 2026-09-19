@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from importlib import metadata
 import json
@@ -9,7 +10,6 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
-from typing import Callable
 
 from .config import update_json
 from .install import HOOK_COMMAND, install as install_claude_hooks
