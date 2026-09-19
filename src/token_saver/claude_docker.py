@@ -36,11 +36,15 @@ def run(
     claude_home = transcript.parent / "claude-home"
     claude_home.mkdir(parents=True, exist_ok=True)
 
+    uid = os.getuid()
+    gid = os.getgid()
     command = [
         "docker", "run", "--rm",
+        "--user", f"{uid}:{gid}",
         "--workdir", "/workspace",
+        "-e", "HOME=/tmp",
         "-v", f"{worktree.resolve()}:/workspace",
-        "-v", f"{claude_home.resolve()}:/root/.claude",
+        "-v", f"{claude_home.resolve()}:/tmp/.claude",
     ]
     for name in (
         "ANTHROPIC_API_KEY",
