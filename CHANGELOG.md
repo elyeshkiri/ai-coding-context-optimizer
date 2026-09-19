@@ -1,5 +1,39 @@
 # Unreleased
 
+# 1.4.0 - 2026-09-19
+
+- **Added a pluggable, failure-aware Bash-output processor registry.** The existing
+  `filter_command_output` API now routes through format-specific processors for
+  pytest, Jest/Vitest, `git log`, and npm/pnpm/yarn/bun installs, with a
+  conservative generic fallback. Processors must explicitly opt into failed-command
+  handling; unsupported failures are not forced through success-oriented
+  compression. A final ratio gate rejects rewrites that do not save enough output.
+- **Added registry-wide critical-diagnostic recovery and replayable quality
+  contracts.** A shared recovery pass can restore omitted error, traceback,
+  assertion, and source-location lines after processor compression.
+  `token-saver output-replay` evaluates captured output against exact
+  `must_preserve` strings, optional token budgets, and minimum reduction
+  requirements, returning nonzero on contract failure. `token-saver
+  output-explain` exposes processor and failure-routing decisions.
+- **Added opt-in graph-aware diagnostic Delta for repeated pytest and Ruff runs.**
+  With `TOKEN_SAVER_DELTA=1`, repeated diagnostics are classified as NEW,
+  CHANGED, UNCHANGED, or RESOLVED. New/changed diagnostics are mapped through the
+  repository index to the containing symbol and nearby dependency/call-graph
+  edges when possible. Delta stores only a bounded structured diagnostic
+  inventory in local session state and replaces the normal compressed fallback
+  only when the rendered delta is smaller.
+- **Documented the output subsystem as an explicit safety boundary.**
+  `OUTPUT_OPTIMIZATION.md` now describes processor extension contracts,
+  failure routing, critical-line recovery, replay manifest semantics, Delta
+  privacy/state rules, Claude Code hook flow, configuration, and validation
+  limits.
+- **Canonical fresh Holdout #12 reached 100% across all retrieval/identity
+  metrics on the predeclared larger design.** The first and only fresh run covers
+  72 tasks across 12 unseen repositories and 6 languages: 72/72 file, bare,
+  scoped, qualified, and exact symbol-identity recall. Mean estimated context
+  reduction is **94.30%**, which is reported unchanged and remains below the
+  previously proposed >=97% efficiency target. The suite is burned for tuning.
+
 - **The large-file guard now covers `cat` through Bash.** A lone `cat <large source
   file>` was a full dump that bypassed the Read guard (seen in a paired Sonnet 5 run,
   +$0.04 per run). It is now denied with the same outline; pipes, redirects, chains,
