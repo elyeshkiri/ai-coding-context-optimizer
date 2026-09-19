@@ -76,40 +76,7 @@ jobs:
           )
           PY
 
-          while IFS=            [ -n "$artifact_id" ] || continue
-            dest="downloads/$artifact_id"
-            mkdir -p "$dest"
-            gh run download "$run_id" -n "$artifact_name" -D "$dest"
-            if [ -f "$dest/ranking-diff.json" ]; then
-              cp "$dest/ranking-diff.json" "ranking-history/$artifact_id.json"
-            fi
-          done < selected-ranking-artifacts.tsv
-
-          echo "Collected $(find ranking-history -name '*.json' -type f | wc -l) ranking diff reports."
-
-      - name: Build current-cohort calibration
-        env:
-          GROUND_TRUTH_SHA: ${{ steps.benchmark.outputs.ground_truth_sha256 }}
-        run: |
-          token-saver ranking-calibrate ranking-history \
-            --ground-truth-sha "$GROUND_TRUTH_SHA" \
-            --min-reports 20 \
-            --json > ranking-calibration.json
-          token-saver ranking-calibrate ranking-history \
-            --ground-truth-sha "$GROUND_TRUTH_SHA" \
-            --min-reports 20 \
-            --markdown >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload calibration evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: ranking-gate-calibration
-          path: |
-            ranking-calibration.json
-            selected-ranking-artifacts.tsv
-          if-no-files-found: error
-          retention-days: 30
-\t' read -r artifact_id artifact_name run_id _created_at; do
+          while IFS="$(printf '\\t')" read -r artifact_id artifact_name run_id _created_at; do
             [ -n "$artifact_id" ] || continue
             dest="downloads/$artifact_id"
             mkdir -p "$dest"
@@ -119,7 +86,8 @@ jobs:
             fi
           done < selected-ranking-artifacts.tsv
 
-          echo "Collected $(find ranking-history -name '*.json' -type f | wc -l) ranking diff reports."
+          count="$(find ranking-history -name '*.json' -type f | wc -l)"
+          echo "Collected $count ranking diff reports."
 
       - name: Build current-cohort calibration
         env:
