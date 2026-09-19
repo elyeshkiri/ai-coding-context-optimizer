@@ -46,6 +46,45 @@ def merge_hooks(existing: dict) -> dict:
     return out
 
 
+def remove_hooks(existing: dict) -> dict:
+    """Remove only Token Saver hook commands while preserving unrelated hooks."""
+    from copy import deepcopy
+
+    out = deepcopy(existing)
+    hooks = out.get("hooks")
+    if not isinstance(hooks, dict):
+        return out
+    for event, event_entries in list(hooks.items()):
+        if not isinstance(event_entries, list):
+            continue
+        kept = []
+        for entry in event_entries:
+            if not isinstance(entry, dict):
+                kept.append(entry)
+                continue
+            commands = entry.get("hooks")
+            if not isinstance(commands, list):
+                kept.append(entry)
+                continue
+            remaining = [
+                command
+                for command in commands
+                if not isinstance(command, dict)
+                or command.get("command") != HOOK_COMMAND
+            ]
+            if remaining:
+                updated = dict(entry)
+                updated["hooks"] = remaining
+                kept.append(updated)
+        if kept:
+            hooks[event] = kept
+        else:
+            hooks.pop(event, None)
+    if not hooks:
+        out.pop("hooks", None)
+    return out
+
+
 def settings_path(root: Path) -> Path:
     """Handle settings path."""
     return root / ".claude" / "settings.json"
@@ -64,4 +103,15 @@ def install(root: Path, user: bool = False, templates: bool = False) -> Path:
     if templates and not user:
         from .policy import write_skill
         write_skill(root)
+    return path
+
+
+def uninstall(root: Path, user: bool = False) -> Path:
+    """Remove Token Saver hooks without touching unrelated Claude settings."""
+    path = user_settings_path() if user else settings_path(root)
+    if not path.exists():
+        return path
+    from .config import update_json
+
+    update_json(path, remove_hooks)
     return path

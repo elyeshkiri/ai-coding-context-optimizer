@@ -1,5 +1,39 @@
 # Unreleased
 
+# 1.5.0 - 2026-09-20
+
+- **Made file reranking an explicit extension surface.** Ranking now composes
+  deterministic scoring with a validated ordered `RankingStageRegistry`; graph
+  closure, embeddings, and future/custom rerankers no longer require branches
+  inside `rank_files()`.
+- **Added ranking observability and causal regression analysis.** Optional
+  `RankingScoreEvent` traces expose exact score transitions without changing
+  default ranking cost or legacy reasons. `ranking-explain`,
+  `ranking-snapshot`, and `ranking-diff` provide stage-attributed diagnostics,
+  including expected files that fall below the ordinary top-N display window.
+- **Added PR ranking-regression evidence and empirical gate calibration.** Pull
+  requests compare immutable base/candidate snapshots, publish GitHub summaries,
+  and retain raw evidence. Weekly/manual calibration deduplicates reruns, selects
+  the newest artifact per PR, isolates frozen ground-truth cohorts, and reports
+  empirical rank-drop/disappearance distributions without inventing a blocking
+  threshold.
+- **Productized host onboarding and lifecycle management.** Added `token-saver
+  setup`, `doctor`, `uninstall`, `commands`, and shell `completion`.
+  Setup auto-detects Claude Code, Cursor, and Codex, merges only Token
+  Saver-owned MCP/hook entries, creates project `.token-saver.toml`, and is
+  idempotent so rerunning it after upgrades repairs managed configuration.
+  Uninstall removes only managed entries and preserves modified/unrelated host
+  configuration.
+- **Added project-scoped runtime configuration.** The Claude hook and large-read
+  guard now resolve the nearest `.token-saver.toml` for guard/read/output/Delta
+  settings while keeping `TOKEN_SAVER_*` environment variables as higher-
+  priority overrides. Guard allowlists now support repository-relative globs.
+- **Added consolidated integration health checks.** `token-saver doctor`
+  reports package/CLI availability, project config, detected/configured hosts,
+  repository-index health, and available Claude transcript evidence in one
+  human- or JSON-readable result.
+
+
 # 1.4.0 - 2026-09-19
 
 - **Added a pluggable, failure-aware Bash-output processor registry.** The existing

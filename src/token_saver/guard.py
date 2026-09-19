@@ -16,16 +16,15 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
-import os
 import re
 import shlex
 from pathlib import Path
 
 from .estimate import estimate_tokens
 from .skeleton import CODE_SUFFIXES, skeletonize
+from .runtime_config import settings_for
 from .state import seen_read
 
-DEFAULT_READ_MAX_LINES = 220
 OUTLINE_PREVIEW_TOKENS = 900
 ALLOW_NAMES = {
     "package.json",
@@ -38,18 +37,9 @@ ALLOW_NAMES = {
 }
 
 
-def _env_int(name: str, fallback: int) -> int:
-    """Handle env int."""
-    try:
-        return int(os.environ[name])
-    except (KeyError, ValueError):
-        return fallback
-
-
-def _guard_enabled() -> bool:
-    """Handle guard enabled."""
-    raw = os.environ.get("TOKEN_SAVER_GUARD", "1").strip().lower()
-    return raw not in {"0", "false", "off", "no"}
+def _guard_enabled(cwd: Path | None = None) -> bool:
+    """Return whether the source-read guard is enabled for this project."""
+    return settings_for(cwd).guard
 
 
 def _read_path(tool_input: dict) -> Path | None:
@@ -60,7 +50,7 @@ def _read_path(tool_input: dict) -> Path | None:
     return Path(raw)
 
 
-def _has_range(tool_input: dict) -> bool:
+def _has_range(tool_input: dict, cwd: Path | None = None) -> bool:
     """True when the Read asks for a window, not the whole file.
 
     `offset: 0` alone is still a full read. `offset: 0, limit: N` is a window.
@@ -74,7 +64,7 @@ def _has_range(tool_input: dict) -> bool:
         except (TypeError, ValueError):
             return None
 
-    maximum = max(1, _env_int("TOKEN_SAVER_READ_MAX_LINES", DEFAULT_READ_MAX_LINES))
+    maximum = settings_for(cwd).read_max_lines
     limit = _num("limit")
     if limit is not None:
         return 0 < limit <= maximum
@@ -88,16 +78,26 @@ def _is_source(path: Path) -> bool:
     return path.suffix.lower() in CODE_SUFFIXES and path.suffix.lower() not in {".md", ".markdown"}
 
 
-def _allowed(path: Path) -> bool:
-    """Handle allowed."""
+def _allowed(path: Path, cwd: Path | None = None) -> bool:
+    """Return whether a source path is explicitly exempt from guarding."""
     if path.name in ALLOW_NAMES or path.name.endswith(".d.ts"):
         return True
-    raw = os.environ.get("TOKEN_SAVER_ALLOW", "")
-    if not raw.strip():
+    patterns = settings_for(cwd).allow
+    if not patterns:
         return False
     name = path.name
     full = str(path)
-    return any(fnmatch.fnmatch(name, pat) or fnmatch.fnmatch(full, pat) for pat in raw.split(":") if pat)
+    relative = ""
+    try:
+        relative = str(path.resolve().relative_to((cwd or Path.cwd()).resolve()))
+    except ValueError:
+        pass
+    return any(
+        fnmatch.fnmatch(name, pattern)
+        or fnmatch.fnmatch(full, pattern)
+        or bool(relative and fnmatch.fnmatch(relative, pattern))
+        for pattern in patterns
+    )
 
 
 def _digest(text: str) -> str:
@@ -107,18 +107,20 @@ def _digest(text: str) -> str:
 
 def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | None = None) -> dict | None:
     """Return a deny payload, or None to allow the Read through."""
-    if not _guard_enabled():
+    base = cwd or Path.cwd()
+    settings = settings_for(base)
+    if not settings.guard:
         return None
     path = _read_path(tool_input)
     if path is not None and not path.is_absolute():
-        path = (cwd or Path.cwd()) / path
+        path = base / path
     if path is None or not path.is_file():
         return None
-    if _allowed(path):
+    if _allowed(path, base):
         return None
     if not _is_source(path):
         return None
-    if _has_range(tool_input):
+    if _has_range(tool_input, base):
         return None
 
     try:
@@ -128,10 +130,8 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
     root = (cwd or Path.cwd()).resolve()
     digest = _digest(text)
     n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
-    max_lines = _env_int("TOKEN_SAVER_READ_MAX_LINES", DEFAULT_READ_MAX_LINES)
-    reread_on = os.environ.get("TOKEN_SAVER_REREAD", "0").strip().lower() in {
-        "1", "true", "on", "yes",
-    }
+    max_lines = settings.read_max_lines
+    reread_on = settings.reread
     if reread_on and n_lines > max_lines and seen_read(root, path, digest, session_id):
         return {
             "hookSpecificOutput": {
@@ -212,19 +212,20 @@ def _cat_paths(command: str) -> list[str] | None:
 
 def decide_bash(command: str, cwd: Path | None = None) -> dict | None:
     """Deny ``cat <large source file>``; None lets the command run."""
-    if not _guard_enabled():
+    base = cwd or Path.cwd()
+    settings = settings_for(base)
+    if not settings.guard:
         return None
     paths = _cat_paths(command)
     if not paths:
         return None
-    base = cwd or Path.cwd()
-    max_lines = _env_int("TOKEN_SAVER_READ_MAX_LINES", DEFAULT_READ_MAX_LINES)
+    max_lines = settings.read_max_lines
     reasons: list[str] = []
     for raw in paths:
         path = Path(raw)
         if not path.is_absolute():
             path = base / path
-        if not path.is_file() or _allowed(path) or not _is_source(path):
+        if not path.is_file() or _allowed(path, base) or not _is_source(path):
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
