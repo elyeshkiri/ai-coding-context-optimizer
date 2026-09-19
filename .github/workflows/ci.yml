@@ -102,7 +102,7 @@ jobs:
             --out baseline-ranking.json
 
       - name: Install candidate Token Saver
-        run: python -m pip install -e ./candidate
+        run: python -m pip install --force-reinstall --no-deps -e ./candidate
 
       - name: Capture candidate ranking snapshot
         # Deliberately use the base manifest for both sides so a PR cannot
