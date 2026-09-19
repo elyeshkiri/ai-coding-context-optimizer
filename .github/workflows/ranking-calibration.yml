@@ -1,0 +1,104 @@
+name: Ranking Calibration
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      artifact_limit:
+        description: "Maximum recent PR ranking artifacts to inspect"
+        required: false
+        default: "50"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+
+      - name: Resolve current frozen ground truth
+        id: benchmark
+        run: |
+          hash="$(token-saver evaluate benchmarks/context-quality.json --print-ground-truth-hash)"
+          echo "ground_truth_sha256=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Collect recent PR ranking diffs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_LIMIT: ${{ github.event.inputs.artifact_limit }}
+        run: |
+          limit="${ARTIFACT_LIMIT:-50}"
+          mkdir -p ranking-history downloads
+
+          gh api --paginate             "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100"             --jq '.artifacts[]
+              | select(.expired == false)
+              | select(.name | startswith("ranking-regression-"))
+              | [.id, .name, .workflow_run.id, .created_at]
+              | @tsv' > all-ranking-artifacts.tsv
+
+          python - "$limit" <<'PY'
+          import sys
+          from pathlib import Path
+
+          limit = int(sys.argv[1])
+          seen = set()
+          selected = []
+          source = Path("all-ranking-artifacts.tsv")
+          if source.exists():
+              for raw in source.read_text(encoding="utf-8").splitlines():
+                  parts = raw.split("\t")
+                  if len(parts) != 4:
+                      continue
+                  artifact_id, name, run_id, created_at = parts
+                  if name in seen:
+                      continue
+                  seen.add(name)
+                  selected.append((artifact_id, name, run_id, created_at))
+                  if len(selected) >= limit:
+                      break
+
+          Path("selected-ranking-artifacts.tsv").write_text(
+              "".join("\t".join(row) + "\n" for row in selected),
+              encoding="utf-8",
+          )
+          PY
+
+          while IFS=$'\t' read -r artifact_id artifact_name run_id created_at; do
+            [ -n "$artifact_id" ] || continue
+            dest="downloads/$artifact_id"
+            mkdir -p "$dest"
+            gh run download "$run_id" -n "$artifact_name" -D "$dest"
+            if [ -f "$dest/ranking-diff.json" ]; then
+              cp "$dest/ranking-diff.json" "ranking-history/$artifact_id.json"
+            fi
+          done < selected-ranking-artifacts.tsv
+
+          echo "Collected $(find ranking-history -name '*.json' -type f | wc -l) ranking diff reports."
+
+      - name: Build current-cohort calibration
+        env:
+          GROUND_TRUTH_SHA: ${{ steps.benchmark.outputs.ground_truth_sha256 }}
+        run: |
+          token-saver ranking-calibrate ranking-history             --ground-truth-sha "$GROUND_TRUTH_SHA"             --min-reports 20             --json > ranking-calibration.json
+          token-saver ranking-calibrate ranking-history             --ground-truth-sha "$GROUND_TRUTH_SHA"             --min-reports 20             --markdown >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload calibration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ranking-gate-calibration
+          path: |
+            ranking-calibration.json
+            selected-ranking-artifacts.tsv
+          if-no-files-found: error
+          retention-days: 30
