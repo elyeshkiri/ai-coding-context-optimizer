@@ -18,7 +18,15 @@ from .command_handlers.evaluation import (
     ranking_snapshot_main,
 )
 from .command_handlers.experiment import cost_report_main, experiment_main
-from .command_handlers.host import host_check_main, serve_main
+from .command_handlers.host import (
+    commands_main,
+    completion_main,
+    doctor_main,
+    host_check_main,
+    serve_main,
+    setup_main,
+    uninstall_main,
+)
 from .command_handlers.output import (
     output_benchmark_main,
     output_explain_main,
@@ -31,7 +39,10 @@ from .command_handlers.patch import pack_diff_main, review_main
 __all__ = [
     "agent_evaluate_main",
     "browse_main",
+    "commands_main",
+    "completion_main",
     "cost_report_main",
+    "doctor_main",
     "evaluate_main",
     "experiment_main",
     "feedback_main",
@@ -49,4 +60,6 @@ __all__ = [
     "ranking_snapshot_main",
     "review_main",
     "serve_main",
+    "setup_main",
+    "uninstall_main",
 ]
