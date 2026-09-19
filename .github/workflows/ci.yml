@@ -114,9 +114,31 @@ jobs:
             --out candidate-ranking.json
 
       - name: Compare ranking snapshots
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           token-saver ranking-diff baseline-ranking.json candidate-ranking.json \
             --json > ranking-diff.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("ranking-diff.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          payload["ci"] = {
+              "pull_request": int(os.environ["PR_NUMBER"]),
+              "run_id": int(os.environ["RUN_ID"]),
+              "run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "base_sha": os.environ["BASE_SHA"],
+              "candidate_sha": os.environ["CANDIDATE_SHA"],
+          }
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
           token-saver ranking-diff baseline-ranking.json candidate-ranking.json \
             --markdown >> "$GITHUB_STEP_SUMMARY"
 
