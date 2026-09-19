@@ -282,3 +282,34 @@ def test_guard_allow_supports_repository_relative_globs(tmp_path):
     )
 
     assert decide_read({"file_path": str(source)}, cwd=root) is None
+
+
+
+def test_setup_preflight_prevents_partial_multi_host_mutation(tmp_path):
+    """A later host conflict must not leave earlier hosts partially configured."""
+    root = tmp_path / "repo"
+    home = tmp_path / "home"
+    root.mkdir()
+    cursor = root / ".cursor" / "mcp.json"
+    cursor.parent.mkdir(parents=True)
+    cursor.write_text('{"mcpServers": {"docs": {"command": "docs"}}}\n', encoding="utf-8")
+    codex = home / ".codex" / "config.toml"
+    codex.parent.mkdir(parents=True)
+    codex.write_text(
+        '[mcp_servers.token-saver]\ncommand = "custom"\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unmanaged Token Saver Codex config"):
+        setup_integrations(
+            root,
+            ("all",),
+            home=home,
+            which=_which({"claude", "cursor", "codex"}),
+        )
+
+    assert not (root / ".mcp.json").exists()
+    assert json.loads(cursor.read_text(encoding="utf-8")) == {
+        "mcpServers": {"docs": {"command": "docs"}}
+    }
+    assert not (root / ".token-saver.toml").exists()
