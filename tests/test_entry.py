@@ -116,3 +116,44 @@ def test_cost_report_accepts_single_paired_agent_manifest(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "PAIRED TASKS: 1" in out
     assert "60.0% reduction" in out
+
+
+def test_dispatcher_exposes_experiment_hash(tmp_path, capsys):
+    import hashlib
+
+    prompt = "Fix the fixture and make the independent verifier pass."
+    suite = tmp_path / "suite.json"
+    suite.write_text(json.dumps({
+        "suite_version": 1,
+        "protocol": {
+            "task_definitions_frozen": False,
+            "condition_order_randomized": True,
+            "independent_verification": True,
+            "frozen_at": "",
+            "task_definition_sha256": "",
+        },
+        "design": {"trials_per_task": 1, "condition_order_seed": 7},
+        "repositories": {
+            "repo": {"path": "repo", "revision": "a" * 40}
+        },
+        "runner": {
+            "command": ["fake-agent", "{prompt}"],
+            "model": "test-model",
+            "transcript_mode": "path",
+        },
+        "tasks": [{
+            "id": "fixture",
+            "repository": "repo",
+            "revision": "a" * 40,
+            "prompt": prompt,
+            "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+            "verifier": [["python", "-c", "raise SystemExit(0)"]],
+        }],
+    }), encoding="utf-8")
+
+    assert main([
+        "experiment", str(suite), "--print-task-definition-hash",
+    ]) == 0
+    value = capsys.readouterr().out.strip()
+    assert len(value) == 64
+    assert all(ch in "0123456789abcdef" for ch in value)
