@@ -49,6 +49,21 @@ This prevents format-specific processors from owning routing or global safety
 policy, and lets integrations inject a processor registry without modifying the
 pipeline.
 
+
+## Hook boundary
+
+`token_saver.hook` is now the Claude-specific composition root only. It parses
+JSON/stdin, translates environment variables into `HookConfig`, and wires
+concrete services. Event routing and replacement policy live in the host-neutral
+`HookRuntime`.
+
+`HookRuntime` receives an explicit `HookServices` bundle containing the
+`OutputPipeline` contract, Delta application, output persistence, guard,
+session/read-state operations, digesting, policy nudges, and token estimation.
+This makes host behavior testable without filesystem-backed session state or a
+Claude process, and lets another host reuse the same runtime policy with a
+different adapter.
+
 ## Architectural invariants
 
 1. **Fail open:** unknown failed output is preserved unless a processor explicitly
@@ -63,5 +78,6 @@ pipeline.
    into calls to application services; they should not accumulate processor- or
    command-family-specific logic.
 
-`tests/test_architecture_boundaries.py` locks in the extension seams so future
-features can grow by composition instead of by adding more central branching.
+`tests/test_architecture_boundaries.py` and `tests/test_hook_runtime.py` lock in
+these extension seams so future features can grow by composition instead of by
+adding more central branching.
