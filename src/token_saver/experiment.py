@@ -117,9 +117,13 @@ def validate_suite(
         if not isinstance(repo, dict):
             raise ValueError(f"repository {repo_id}: definition must be an object")
         revision = str(task.get("revision", "")).strip()
-        if not revision or revision != str(repo.get("revision", "")).strip():
+        if not revision:
+            raise ValueError(f"task {task_id}: revision is required")
+        repo_revision = str(repo.get("revision", "")).strip()
+        if repo_revision and revision != repo_revision:
             raise ValueError(
-                f"task {task_id}: revision must equal repositories.{repo_id}.revision"
+                f"task {task_id}: revision must equal repositories.{repo_id}.revision "
+                "when the repository pins a single revision"
             )
         prompt = task.get("prompt")
         if not isinstance(prompt, str) or not prompt.strip():
@@ -348,11 +352,23 @@ def run_experiment(
         )
 
     base_dir = suite_path.parent
-    repositories: dict[str, tuple[Path, str]] = {}
+    repositories: dict[str, Path] = {}
     for repo_id, definition in suite["repositories"].items():
         source = (base_dir / str(definition["path"])).resolve()
-        revision = str(definition["revision"]).strip()
-        repositories[repo_id] = (source, _validate_repository(source, revision))
+        if not source.is_dir():
+            raise ValueError(f"repository path not found: {source}")
+        repositories[repo_id] = source
+
+    resolved_revisions: dict[tuple[str, str], str] = {}
+    for task in suite["tasks"]:
+        repo_id = str(task["repository"])
+        revision = str(task["revision"]).strip()
+        key = (repo_id, revision)
+        if key not in resolved_revisions:
+            resolved_revisions[key] = _validate_repository(
+                repositories[repo_id],
+                revision,
+            )
 
     result, completed = _existing_keys(output_path, suite)
     tasks = {task["id"]: task for task in suite["tasks"]}
@@ -375,7 +391,8 @@ def run_experiment(
             continue
 
         task = tasks[item["task"]]
-        source, revision = repositories[task["repository"]]
+        source = repositories[task["repository"]]
+        revision = resolved_revisions[(task["repository"], str(task["revision"]).strip())]
         run_dir = artifacts / item["task"] / f"trial-{item['trial']}" / item["condition"]
         run_dir.mkdir(parents=True, exist_ok=True)
         transcript = run_dir / "transcript.jsonl"
