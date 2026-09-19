@@ -9,7 +9,6 @@ Claude, environment variables, persistence, and repository implementations.
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -18,8 +17,6 @@ from .estimate import estimate_tokens
 from .output import OutputPipeline
 from .guard import _digest, run as guard_run
 from .hook_runtime import (
-    DEFAULT_KEEP_TAIL,
-    DEFAULT_MIN_LINES,
     MIN_NET_TOKENS,
     HookConfig,
     HookRuntime,
@@ -29,27 +26,6 @@ from .hook_runtime import (
 from .policy import user_nudge
 from .runtime_config import settings_for
 from .state import record_read, reset_session
-
-DISABLE_ENV = "TOKEN_SAVER_DISABLED"
-
-
-def _env_int(name: str, fallback: int) -> int:
-    """Read an integer environment setting or return ``fallback``."""
-
-    try:
-        return int(os.environ[name])
-    except (KeyError, ValueError):
-        return fallback
-
-
-def _env_bool(name: str, fallback: bool = False) -> bool:
-    """Read a conventional truthy environment setting."""
-
-    raw = os.environ.get(name)
-    if raw is None:
-        return fallback
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
 
 def _passthrough() -> int:
     """Return the successful exit status that tells Claude to keep original data."""
