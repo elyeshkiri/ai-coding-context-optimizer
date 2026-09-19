@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 def _docker_env(command: list[str], name: str) -> None:
+    """Handle docker env."""
     if os.environ.get(name):
         command.extend(["-e", name])
 
@@ -24,6 +25,7 @@ def run(
     condition: str,
     image: str,
 ) -> int:
+    """Run the requested value."""
     if shutil.which("docker") is None:
         raise ValueError("Docker is required for the isolated Claude runner")
     if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -138,6 +140,7 @@ def run(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--worktree", required=True)
     parser.add_argument("--transcript", required=True)

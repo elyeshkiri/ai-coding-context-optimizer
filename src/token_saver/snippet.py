@@ -10,6 +10,7 @@ from .skeleton import PYTHON_SUFFIXES, _node_start
 
 
 def _python_span(text: str, name: str) -> tuple[int, int] | None:
+    """Handle python span."""
     try:
         tree = ast.parse(text)
     except (SyntaxError, ValueError) as exc:
@@ -35,6 +36,7 @@ _DECL = re.compile(
 
 
 def _pattern_span(text: str, name: str) -> tuple[int, int] | None:
+    """Handle pattern span."""
     lines = text.splitlines()
     start = None
     for i, ln in enumerate(lines, 1):
@@ -88,5 +90,6 @@ def extract_symbol(text: str, suffix: str, name: str) -> tuple[str, int, int] | 
 
 
 def extract_from_path(path: Path, name: str) -> tuple[str, int, int] | None:
+    """Extract from path."""
     text = path.read_text(encoding="utf-8", errors="replace")
     return extract_symbol(text, path.suffix, name)

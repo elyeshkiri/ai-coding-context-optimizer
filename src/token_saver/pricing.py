@@ -6,6 +6,7 @@ from pathlib import Path
 FIELDS = ("input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
 
 def load_rates(path):
+    """Load rates."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not data:
         raise ValueError("rates must map exact model IDs to USD rates per million tokens")
@@ -19,6 +20,7 @@ def load_rates(path):
     return data
 
 def cost(report, rates):
+    """Handle cost."""
     total = 0.0
     reasons = set()
     if not report.turns: reasons.add("no recorded API usage")

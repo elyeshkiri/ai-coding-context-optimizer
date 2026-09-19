@@ -70,10 +70,12 @@ _STATUS_LINE = re.compile(r"^(PASSED|FAILED|ERROR|XFAIL|XPASS|SKIPPED)[ \t]+(\S.
 
 
 def _patch_blocks(patch: str) -> list[str]:
+    """Handle patch blocks."""
     return [b for b in re.split(r"(?=^diff --git )", patch, flags=re.M) if b.strip()]
 
 
 def _patch_files(patch: str) -> set[str]:
+    """Handle patch files."""
     return {name for pair in _DIFF_HEADER.findall(patch) for name in pair}
 
 
@@ -107,6 +109,7 @@ def parse_test_statuses(output: str) -> dict[str, str]:
 
 
 def passed_tests(output: str) -> set[str]:
+    """Handle passed tests."""
     return {t for t, s in parse_test_statuses(output).items() if s == "PASSED"}
 
 

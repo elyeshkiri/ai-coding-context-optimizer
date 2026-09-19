@@ -5,6 +5,7 @@ import tempfile
 from .state import _locked
 
 def update_json(path, mutate):
+    """Update json."""
     with _locked(path):
         current = {}
         if path.exists():

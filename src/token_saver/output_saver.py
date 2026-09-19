@@ -45,11 +45,13 @@ _FILLER_PREFIXES = (
 
 @dataclass(frozen=True)
 class OutputPolicy:
+    """Represent a output policy."""
     mode: str
     max_tokens: int
     instructions: str
 
     def to_dict(self) -> dict:
+        """Return a dictionary representation."""
         return {
             "mode": self.mode,
             "max_tokens": self.max_tokens,
@@ -59,6 +61,7 @@ class OutputPolicy:
 
 @dataclass(frozen=True)
 class OutputSaveResult:
+    """Represent a output save result."""
     text: str
     mode: str
     budget_tokens: int
@@ -70,11 +73,13 @@ class OutputSaveResult:
 
     @property
     def token_reduction(self) -> float:
+        """Return token reduction for output save result."""
         if self.original_tokens <= 0:
             return 0.0
         return max(0.0, 1.0 - self.output_tokens / self.original_tokens)
 
     def to_dict(self) -> dict:
+        """Return a dictionary representation."""
         return {
             "text": self.text,
             "mode": self.mode,
@@ -89,6 +94,7 @@ class OutputSaveResult:
 
 
 def _resolve_budget(mode: str, max_tokens: int | None) -> tuple[str, int]:
+    """Resolve budget."""
     normalized = mode.strip().lower()
     if normalized not in _MODE_BUDGETS:
         raise ValueError(
@@ -124,6 +130,7 @@ def build_output_policy(mode: str = "normal", max_tokens: int | None = None) -> 
 
 
 def _is_filler(paragraph: str) -> bool:
+    """Return whether filler."""
     normalized = " ".join(paragraph.strip().lower().split())
     if not normalized:
         return True
@@ -133,6 +140,7 @@ def _is_filler(paragraph: str) -> bool:
 
 
 def _compact_prose(block: str, seen: set[str]) -> tuple[str, int]:
+    """Compact prose."""
     removed = 0
     paragraphs = re.split(r"\n\s*\n", block)
     kept: list[str] = []

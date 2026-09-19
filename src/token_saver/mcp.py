@@ -26,6 +26,7 @@ DEFAULT_TIMEOUT = 15
 
 @dataclass
 class ServerCost:
+    """Represent server cost state and behavior."""
     name: str
     tools: int | None = None
     tokens: int | None = None
@@ -33,6 +34,7 @@ class ServerCost:
 
     @property
     def measured(self) -> bool:
+        """Return measured for server cost."""
         return self.tokens is not None
 
 
@@ -127,6 +129,7 @@ def probe(name: str, spec: dict, timeout: int = DEFAULT_TIMEOUT,
 
 
 def _extract_tools(stdout: str) -> list | None:
+    """Extract tools."""
     for line in stdout.splitlines():
         line = line.strip()
         if not line.startswith("{"):
@@ -144,6 +147,7 @@ def _extract_tools(stdout: str) -> list | None:
 
 
 def probe_all(root: Path, timeout: int = DEFAULT_TIMEOUT) -> list[ServerCost]:
+    """Handle probe all."""
     return [
         probe(name, spec, timeout, cwd=root)
         for name, spec in sorted(load_servers(root).items())

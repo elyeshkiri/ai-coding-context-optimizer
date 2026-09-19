@@ -28,11 +28,13 @@ ALWAYS_ON_FAIL = 0.05
 
 
 def _counter(args: argparse.Namespace) -> Counter:
+    """Handle counter."""
     return Counter(exact=getattr(args, "exact", False),
                    model=getattr(args, "model", DEFAULT_MODEL))
 
 
 def cmd_map(args: argparse.Namespace) -> int:
+    """Handle cmd map."""
     root = Path(args.path).resolve()
     if not root.exists():
         print(f"not found: {root}", file=sys.stderr)
@@ -63,6 +65,7 @@ def cmd_map(args: argparse.Namespace) -> int:
 
 
 def cmd_estimate(args: argparse.Namespace) -> int:
+    """Handle cmd estimate."""
     counter = _counter(args)
     if args.file:
         path = Path(args.file)
@@ -83,6 +86,7 @@ def cmd_estimate(args: argparse.Namespace) -> int:
 
 
 def cmd_filter(args: argparse.Namespace) -> int:
+    """Handle cmd filter."""
     text = sys.stdin.read()
     command = getattr(args, "command", "") or ""
     filtered = filter_command_output(text, command=command,
@@ -105,6 +109,7 @@ def cmd_filter(args: argparse.Namespace) -> int:
 
 
 def cmd_install(args: argparse.Namespace) -> int:
+    """Handle cmd install."""
     root = Path(args.path).resolve()
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)
@@ -122,6 +127,7 @@ def cmd_install(args: argparse.Namespace) -> int:
 
 
 def cmd_snippet(args: argparse.Namespace) -> int:
+    """Handle cmd snippet."""
     path = Path(args.file)
     if not path.is_file():
         print(f"not found: {args.file}", file=sys.stderr)
@@ -142,6 +148,7 @@ def cmd_snippet(args: argparse.Namespace) -> int:
 
 
 def cmd_audit(args: argparse.Namespace) -> int:
+    """Handle cmd audit."""
     root = Path(args.path).resolve()
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)
@@ -354,6 +361,7 @@ def cmd_sessions(args: argparse.Namespace) -> int:
 
 
 def cmd_policy(args: argparse.Namespace) -> int:
+    """Handle cmd policy."""
     root = Path(args.path).resolve()
     paths = transcript_paths(root, all_projects=args.all_projects)
     if not paths:
@@ -368,6 +376,7 @@ def cmd_policy(args: argparse.Namespace) -> int:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
+    """Handle cmd check."""
     root = Path(args.path).resolve()
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)
@@ -395,6 +404,7 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
+    """Handle cmd status."""
     root = Path(args.path).resolve()
     data = load_state(root)
     print(f"state {state_path(root)}")
@@ -411,6 +421,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_mcp_prune(args: argparse.Namespace) -> int:
+    """Handle cmd mcp prune."""
     root = Path(args.path).resolve()
     paths = transcript_paths(root, all_projects=False)
     if not paths:
@@ -493,6 +504,7 @@ def cmd_budget(args: argparse.Namespace) -> int:
 
 
 def cmd_output(args):
+    """Handle cmd output."""
     from .output_store import retrieve
     try:
         sys.stdout.write(retrieve(args.id, args.stream, args.offset, args.limit))
@@ -503,6 +515,7 @@ def cmd_output(args):
 
 
 def cmd_benchmark(args):
+    """Handle cmd benchmark."""
     from .benchmark import evaluate, task_definition_hash
     try:
         if args.print_task_definition_hash:
@@ -528,6 +541,7 @@ def cmd_benchmark(args):
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line entry point."""
     p = argparse.ArgumentParser(
         prog="token-saver",
         description="Cut tokens sent to coding AIs (Claude and similar).",

@@ -7,6 +7,7 @@ import uuid
 from .state import state_dir
 
 def store_output(response: dict) -> str:
+    """Handle store output."""
     directory = state_dir() / "outputs"
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     output_id = uuid.uuid4().hex
@@ -17,6 +18,7 @@ def store_output(response: dict) -> str:
     return output_id
 
 def retrieve(output_id: str, stream: str = "stdout", offset: int = 1, limit: int = 80) -> str:
+    """Retrieve the requested value."""
     if not re.fullmatch(r"[0-9a-f]{32}", output_id): raise ValueError("invalid output ID")
     if stream not in {"stdout", "stderr"}: raise ValueError("invalid stream")
     if offset < 1 or limit < 1 or limit > 2000: raise ValueError("offset >= 1 and limit 1..2000 required")
@@ -26,6 +28,7 @@ def retrieve(output_id: str, stream: str = "stdout", offset: int = 1, limit: int
     return "".join(lines[offset - 1:offset - 1 + limit])
 
 def prune(days: float = 7) -> int:
+    """Prune the requested value."""
     if days < 0: raise ValueError("days must be nonnegative")
     count = 0
     for path in (state_dir() / "outputs").glob("*.json"):

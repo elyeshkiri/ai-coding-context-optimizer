@@ -52,6 +52,7 @@ def _generic_parameter_names(signature: str, name: str) -> tuple[str, ...]:
 
 
 def _generic_arity(signature: str, name: str) -> int:
+    """Handle generic arity."""
     return len(_generic_parameter_names(signature, name))
 
 
@@ -119,6 +120,7 @@ def _query_member_hints(query: str) -> set[tuple[str, str]]:
 
 
 def _query_wants_top_level(query: str) -> bool:
+    """Handle query wants top level."""
     return bool(re.search(
         r"\b(?:package|module|top)[ -]?level\b", query, re.IGNORECASE
     ))
@@ -193,10 +195,12 @@ def _signature_parameter_count(signature: str, name: str) -> int | None:
 
 
 def _signature_has_implementation(signature: str) -> bool:
+    """Handle signature has implementation."""
     return "{ … }" in signature
 
 
 def _query_declaration_preference(query: str) -> str | None:
+    """Handle query declaration preference."""
     lowered = query.lower()
     if re.search(r"\bimplementation\b", lowered):
         return "implementation"
@@ -228,6 +232,7 @@ _AUTHORITY_CALLABLE_KINDS = frozenset({"method", "function", "constructor"})
 
 @lru_cache(maxsize=65536)
 def _leaf_identifier_terms(name: str) -> frozenset[str]:
+    """Handle leaf identifier terms."""
     return frozenset(identifier_terms(name))
 
 
@@ -337,6 +342,7 @@ def _structural_file_authority(
 
 @dataclass
 class RankedFile:
+    """Represent ranked file state and behavior."""
     path: Path
     rel: str
     text: str
@@ -349,6 +355,7 @@ class RankedFile:
 
 @dataclass
 class ContextPack:
+    """Represent context pack state and behavior."""
     text: str
     estimated_tokens: int
     scanned_files: int
@@ -364,10 +371,12 @@ class ContextPack:
 # Kept as private compatibility aliases for callers/tests that imported these
 # helpers before retrieval was moved into the persistent index.
 def _terms(text: str) -> list[str]:
+    """Handle terms."""
     return terms(text)
 
 
 def _document_terms(text: str, outline: str, rel: str) -> Counter[str]:
+    """Handle document terms."""
     return Counter(document_counts(text, outline, rel))
 
 
@@ -393,6 +402,7 @@ def _changed_files(root: Path) -> set[str]:
 
 
 def _read_source(path: Path) -> str | None:
+    """Read source."""
     try:
         if path.stat().st_size > _MAX_FILE_BYTES:
             return None
@@ -442,6 +452,7 @@ def _expand_query_terms(index: RepositoryIndex, query: str) -> list[str]:
 def _resolve_changed_files(
     root: Path, changed_boost: bool, changed_files: set[str] | None,
 ) -> set[str]:
+    """Resolve changed files."""
     if not changed_boost:
         return set()
     if changed_files is not None:
@@ -556,6 +567,7 @@ def _apply_file_boosts(
 def _score_documents(
     scope: _FileRankingScope, docs: list[tuple[Path, str, str, Counter[str]]],
 ) -> list[RankedFile]:
+    """Handle score documents."""
     lengths = [sum(counts.values()) for *_, counts in docs]
     avg_len = max(1.0, sum(lengths) / len(lengths))
     doc_freq = Counter({
@@ -586,6 +598,7 @@ def _score_documents(
 
 
 def _credit_closure(item: RankedFile, related) -> None:
+    """Handle credit closure."""
     item.score += 2.5 * related.confidence
     item.reasons.append(f"graph:{related.reason}@{related.distance}")
     item.reasons.append(
@@ -657,6 +670,7 @@ def _apply_embedding_rerank(
 
 
 def _rank_sort_key(item: RankedFile) -> tuple[float, int, str]:
+    """Rank sort key."""
     return (-item.score, file_priority(item.rel), item.rel)
 
 
@@ -733,6 +747,7 @@ def rank_files(
 
 
 def _hit_lines(text: str, query_terms: set[str]) -> list[tuple[int, int]]:
+    """Handle hit lines."""
     hits: list[tuple[int, int]] = []
     if not query_terms:
         return hits
@@ -746,6 +761,7 @@ def _hit_lines(text: str, query_terms: set[str]) -> list[tuple[int, int]]:
 
 
 def _merge_windows(lines: list[int], total: int, radius: int) -> list[tuple[int, int]]:
+    """Merge windows."""
     windows = sorted((max(1, n - radius), min(total, n + radius)) for n in lines)
     merged: list[tuple[int, int]] = []
     for start, end in windows:
@@ -757,6 +773,7 @@ def _merge_windows(lines: list[int], total: int, radius: int) -> list[tuple[int,
 
 
 def _merge_ranges(windows: list[tuple[int, int]], total: int) -> list[tuple[int, int]]:
+    """Merge ranges."""
     merged: list[tuple[int, int]] = []
     for start, end in sorted((max(1, a), min(total, b)) for a, b in windows):
         if merged and start <= merged[-1][1] + 1:
@@ -767,6 +784,7 @@ def _merge_ranges(windows: list[tuple[int, int]], total: int) -> list[tuple[int,
 
 
 def _source_window(text: str, start: int, end: int) -> str:
+    """Handle source window."""
     lines = text.splitlines()
     width = len(str(end))
     body = [f"{n:>{width}}|{lines[n - 1]}" for n in range(start, end + 1)]
@@ -836,12 +854,15 @@ class _SymbolScope:
     declaration_preference: str | None
 
     def key(self, symbol) -> tuple[str, int]:
+        """Return key for symbol scope."""
         return (symbol.name, symbol.start_line)
 
     def family_of(self, symbol) -> str:
+        """Return family of for symbol scope."""
         return (symbol.qualified or symbol.name).lower()
 
     def is_container(self, symbol) -> bool:
+        """Return whether container."""
         return (symbol.qualified or symbol.name) in self.container_names
 
     def body_terms(self, symbol) -> set[str]:
@@ -929,6 +950,7 @@ def _build_symbol_scope(
     item: RankedFile, record, query_terms: set[str],
     target_symbol: str | None, symbol_query_text: str | None,
 ) -> _SymbolScope:
+    """Build symbol scope."""
     definitions = record.definitions or []
     # File retrieval stays on the conservative global tokenizer. Once a file
     # has already won retrieval, symbol selection can safely normalize nearby
@@ -1199,10 +1221,12 @@ def _score_symbol(scope: _SymbolScope, symbol, wanted: str) -> float:
 
 
 def _symbol_key(symbol) -> tuple[str, int, int]:
+    """Handle symbol key."""
     return (symbol.qualified or symbol.name, symbol.start_line, symbol.end_line)
 
 
 def _containers_by_qualified(scope: _SymbolScope) -> dict[str, list]:
+    """Handle containers by qualified."""
     out: dict[str, list] = {}
     for candidate in scope.definitions:
         qualified = candidate.qualified or candidate.name
@@ -1280,6 +1304,7 @@ def _apply_parent_credit(
 def _contained_children_by_parent(
     matches: list[tuple[float, object]], containers_by_qualified: dict[str, list],
 ) -> dict[tuple[str, int, int], list]:
+    """Handle contained children by parent."""
     out: dict[tuple[str, int, int], list] = {}
     for _score, candidate in matches:
         if not candidate.parent:
@@ -1321,6 +1346,7 @@ def _render_symbol_windows(
     scope: _SymbolScope, selected: list, best_child_symbol: dict,
     relevant_children_by_parent: dict,
 ) -> tuple[list[tuple[int, int]], list[str], list[str]]:
+    """Render symbol windows."""
     windows: list[tuple[int, int]] = []
     labels: list[str] = []
     identities: list[str] = []
@@ -1416,6 +1442,7 @@ def _file_section(
     index: RepositoryIndex, target_symbol: str | None = None,
     symbol_query_text: str | None = None,
 ) -> tuple[str, list[str], list[str], list[str]]:
+    """Handle file section."""
     lines = item.text.splitlines()
     symbol_windows, symbol_labels, symbol_identities = _symbol_windows(
         item, index, query_terms, target_symbol, symbol_query_text
@@ -1442,6 +1469,7 @@ def _file_section(
 
 
 def _fingerprint(section: str) -> str:
+    """Handle fingerprint."""
     normal = re.sub(r"\s+", " ", section).strip().encode("utf-8", "replace")
     return hashlib.sha256(normal).hexdigest()
 
@@ -1492,6 +1520,7 @@ def _fit_section(section: str, budget: int) -> str:
 def _static_plan(
     graph_hops: int, closure_max_items: int, context_lines: int,
 ) -> RetrievalPlan:
+    """Handle static plan."""
     return RetrievalPlan(
         seed_limit=6,
         graph_hops=graph_hops,

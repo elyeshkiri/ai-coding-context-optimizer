@@ -48,6 +48,7 @@ _LAST_COUNTS = re.compile(r"=+ .*\d+ (passed|failed|error).* =+\s*$", re.I | re.
 
 @dataclass(frozen=True)
 class OutputResult:
+    """Represent a output result."""
     text: str
     processor: str
     compressed: bool
@@ -56,24 +57,31 @@ class OutputResult:
 
 
 class OutputProcessor(Protocol):
+    """Process output command output."""
     name: str
     priority: int
     handles_failure: bool
 
-    def matches(self, command: str) -> bool: ...
+    def matches(self, command: str) -> bool:
+        """Return whether this processor matches the command."""
+        ...
     def compress(
         self, command: str, text: str, *, failed: bool,
         max_lines: int, keep_tail: int,
-    ) -> str: ...
+    ) -> str:
+        """Compress command output while preserving required evidence."""
+        ...
 
 
 def _ensure_nl(text: str) -> str:
+    """Handle ensure nl."""
     if not text or text.endswith("\n"):
         return text
     return text + "\n"
 
 
 def _collapse_repeated_lines(text: str, minimum: int = 3) -> str:
+    """Handle collapse repeated lines."""
     lines = text.splitlines()
     if len(lines) < minimum:
         return text
@@ -96,6 +104,7 @@ def _collapse_repeated_lines(text: str, minimum: int = 3) -> str:
 
 
 def preprocess(text: str) -> str:
+    """Handle preprocess."""
     if not text:
         return text
     out = _ANSI.sub("", text)
@@ -124,6 +133,7 @@ def filter_text(
     text: str, max_lines: int = 80, keep_tail: int = 20, *,
     prepared: bool = False,
 ) -> str:
+    """Filter text."""
     if not prepared:
         text = preprocess(text)
     lines = text.splitlines()
@@ -170,6 +180,7 @@ def filter_text(
 
 
 def _pytest_slice(text: str) -> str | None:
+    """Handle pytest slice."""
     parts: list[str] = []
     fail = _FAIL_BLOCK.search(text)
     if fail:
@@ -194,6 +205,7 @@ def _pytest_slice(text: str) -> str | None:
 def _keep_matching(
     text: str, pattern: re.Pattern[str], limit: int, label: str,
 ) -> str | None:
+    """Handle keep matching."""
     lines = text.splitlines()
     kept = [line for line in lines if pattern.search(line)]
     if not kept:
@@ -211,28 +223,33 @@ def _keep_matching(
 
 
 class PytestProcessor:
+    """Process pytest command output."""
     name = "pytest"
     priority = 10
     handles_failure = True
 
     def matches(self, command: str) -> bool:
+        """Return whether this processor matches the command."""
         return bool(_PYTEST.search(command))
 
     def compress(
         self, command: str, text: str, *, failed: bool,
         max_lines: int, keep_tail: int,
     ) -> str:
+        """Compress command output while preserving required evidence."""
         return _pytest_slice(text) or (
             text if failed else filter_text(preprocess(text), max_lines, keep_tail, prepared=True)
         )
 
 
 class JsTestProcessor:
+    """Process js test command output."""
     name = "js-test"
     priority = 20
     handles_failure = True
 
     def matches(self, command: str) -> bool:
+        """Return whether this processor matches the command."""
         return bool(_JEST.search(command))
 
     def compress(
@@ -244,6 +261,7 @@ class JsTestProcessor:
         # FAIL/Expected/Received lines. Preserve that shape verbatim. A
         # non-zero shell status without failure-shaped stdout can still be
         # compressed safely because stderr remains untouched by the hook.
+        """Compress command output while preserving required evidence."""
         complex_failure = failed and bool(re.search(
             r"(?m)^\s+at\s+|^\s*[+-]\s+.+$",
             text,
@@ -266,17 +284,20 @@ class JsTestProcessor:
 
 
 class GitLogProcessor:
+    """Process git log command output."""
     name = "git-log"
     priority = 30
     handles_failure = False
 
     def matches(self, command: str) -> bool:
+        """Return whether this processor matches the command."""
         return bool(_GIT_LOG.search(command))
 
     def compress(
         self, command: str, text: str, *, failed: bool,
         max_lines: int, keep_tail: int,
     ) -> str:
+        """Compress command output while preserving required evidence."""
         lines = preprocess(text).splitlines()
         if len(lines) <= 40:
             return _ensure_nl(text)
@@ -288,17 +309,20 @@ class GitLogProcessor:
 
 
 class PackageInstallProcessor:
+    """Process package install command output."""
     name = "package-install"
     priority = 40
     handles_failure = False
 
     def matches(self, command: str) -> bool:
+        """Return whether this processor matches the command."""
         return bool(_NPM_INSTALL.search(command))
 
     def compress(
         self, command: str, text: str, *, failed: bool,
         max_lines: int, keep_tail: int,
     ) -> str:
+        """Compress command output while preserving required evidence."""
         candidate = _keep_matching(
             preprocess(text),
             re.compile(
@@ -314,11 +338,13 @@ class PackageInstallProcessor:
 
 
 class GenericProcessor:
+    """Process generic command output."""
     name = "generic"
     priority = 999
     handles_failure = True
 
     def matches(self, command: str) -> bool:
+        """Return whether this processor matches the command."""
         return True
 
     def compress(
@@ -328,6 +354,7 @@ class GenericProcessor:
         # Unknown failures are already information-dense. A format-specific
         # processor must explicitly opt into failure handling before we remove
         # anything from them.
+        """Compress command output while preserving required evidence."""
         if failed:
             return text
         prepared = preprocess(text)
@@ -335,6 +362,7 @@ class GenericProcessor:
 
 
 class ProcessorRegistry:
+    """Represent processor registry state and behavior."""
     def __init__(self, processors: list[OutputProcessor] | None = None):
         selected = processors or [
             PytestProcessor(),
@@ -348,6 +376,7 @@ class ProcessorRegistry:
             raise ValueError("output processor registry requires a generic fallback")
 
     def select(self, command: str, *, failed: bool) -> OutputProcessor:
+        """Return select for processor registry."""
         for processor in self.processors:
             if failed and not processor.handles_failure:
                 continue
@@ -360,12 +389,14 @@ DEFAULT_REGISTRY = ProcessorRegistry()
 
 
 def detect_failure(text: str, exit_code: int | None = None) -> bool:
+    """Detect failure."""
     if exit_code is not None:
         return exit_code != 0
     return bool(_STRONG_FAILURE.search(_ANSI.sub("", text)))
 
 
 def _critical_lines(text: str) -> list[str]:
+    """Handle critical lines."""
     out: list[str] = []
     seen: set[str] = set()
     for line in _ANSI.sub("", text).splitlines():
@@ -380,6 +411,7 @@ def _critical_lines(text: str) -> list[str]:
 
 
 def recover_critical_lines(original: str, candidate: str) -> tuple[str, tuple[str, ...]]:
+    """Recover critical lines."""
     present = {line.strip() for line in candidate.splitlines() if line.strip()}
     missing = tuple(
         line for line in _critical_lines(original) if line.strip() not in present
@@ -407,6 +439,7 @@ def process_output(
     min_reduction: float = 0.02,
     registry: ProcessorRegistry | None = None,
 ) -> OutputResult:
+    """Handle process output."""
     if not text:
         return OutputResult(text, "none", False, False)
     failed = detect_failure(text, exit_code)
@@ -438,6 +471,7 @@ def explain_processor(
     command: str, *, exit_code: int | None = None, sample: str = "",
     registry: ProcessorRegistry | None = None,
 ) -> dict:
+    """Explain processor."""
     failed = detect_failure(sample, exit_code)
     active = registry or DEFAULT_REGISTRY
     processor = active.select(command, failed=failed)

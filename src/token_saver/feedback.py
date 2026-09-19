@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 def _path(root: Path) -> Path:
+    """Handle path."""
     state = os.environ.get("TOKEN_SAVER_STATE_DIR")
     base = Path(state).expanduser() if state else Path.home() / ".claude" / "token-saver"
     key = hashlib.sha256(str(root.resolve()).encode()).hexdigest()[:16]
@@ -17,6 +18,7 @@ def _path(root: Path) -> Path:
 
 
 def load_feedback(root: Path) -> dict[str, int]:
+    """Load feedback."""
     try:
         data = json.loads(_path(root).read_text(encoding="utf-8"))
         return {str(path): int(score) for path, score in data.get("files", {}).items()}
@@ -25,6 +27,7 @@ def load_feedback(root: Path) -> dict[str, int]:
 
 
 def record_feedback(root: Path, path: str, *, useful: bool) -> dict[str, int]:
+    """Record feedback."""
     target = _path(root)
     scores = load_feedback(root)
     normalized = path.replace("\\", "/").lstrip("./")

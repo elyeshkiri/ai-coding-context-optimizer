@@ -34,6 +34,7 @@ _LOCATION = re.compile(
 
 @dataclass(frozen=True)
 class Diagnostic:
+    """Represent diagnostic state and behavior."""
     identifier: str
     summary: str
     detail: str
@@ -41,16 +42,19 @@ class Diagnostic:
     line: int | None = None
 
     def to_dict(self) -> dict:
+        """Return a dictionary representation."""
         return asdict(self)
 
 
 def _normalize_path(value: str | None) -> str | None:
+    """Handle normalize path."""
     if not value:
         return None
     return value.replace("\\", "/").lstrip("./")
 
 
 def family_for(command: str) -> str | None:
+    """Handle family for."""
     if _PYTEST.search(command):
         return "pytest"
     if _RUFF.search(command):
@@ -59,6 +63,7 @@ def family_for(command: str) -> str | None:
 
 
 def _pytest_diagnostics(text: str) -> list[Diagnostic]:
+    """Handle pytest diagnostics."""
     out: list[Diagnostic] = []
     for match in _PYTEST_SUMMARY.finditer(text):
         status, identifier, message = match.groups()
@@ -76,6 +81,7 @@ def _pytest_diagnostics(text: str) -> list[Diagnostic]:
 
 
 def _ruff_diagnostics(text: str) -> list[Diagnostic]:
+    """Handle ruff diagnostics."""
     out: list[Diagnostic] = []
     for match in _RUFF_LINE.finditer(text):
         data = match.groupdict()
@@ -93,6 +99,7 @@ def _ruff_diagnostics(text: str) -> list[Diagnostic]:
 
 
 def extract_diagnostics(command: str, text: str) -> tuple[str | None, list[Diagnostic]]:
+    """Extract diagnostics."""
     family = family_for(command)
     if family == "pytest":
         return family, _pytest_diagnostics(text)
@@ -102,11 +109,13 @@ def extract_diagnostics(command: str, text: str) -> tuple[str | None, list[Diagn
 
 
 def _command_key(family: str, command: str) -> str:
+    """Handle command key."""
     normalized = " ".join(command.split())
     return hashlib.sha256(f"{family}\0{normalized}".encode()).hexdigest()[:24]
 
 
 def _restore(payload: dict | None) -> dict[str, Diagnostic]:
+    """Handle restore."""
     if not isinstance(payload, dict):
         return {}
     raw = payload.get("diagnostics")
@@ -133,6 +142,7 @@ def _restore(payload: dict | None) -> dict[str, Diagnostic]:
 def _symbol_for(
     index: RepositoryIndex, diagnostic: Diagnostic,
 ):
+    """Handle symbol for."""
     path = _normalize_path(diagnostic.path)
     if path and path in index.records:
         definitions = index.records[path].definitions
@@ -161,6 +171,7 @@ def _symbol_for(
 def graph_hint(
     root: Path, diagnostic: Diagnostic, *, index: RepositoryIndex | None = None,
 ) -> dict | None:
+    """Handle graph hint."""
     index = index or build_index(root)
     path, symbol = _symbol_for(index, diagnostic)
     if path is None or path not in index.records:
@@ -184,6 +195,7 @@ def graph_hint(
 def _render_change(
     status: str, diagnostic: Diagnostic, hint: dict | None,
 ) -> list[str]:
+    """Render change."""
     lines = [f"{status} {diagnostic.identifier} — {diagnostic.summary}"]
     if status in {"NEW", "CHANGED"}:
         if diagnostic.detail and diagnostic.detail != lines[0]:

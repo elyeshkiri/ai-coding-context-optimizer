@@ -14,6 +14,7 @@ PROMPT_MATCHER = "*"
 
 
 def hook_block(matcher: str) -> dict:
+    """Handle hook block."""
     block: dict = {
         "hooks": [
             {"type": "command", "command": HOOK_COMMAND, "timeout": HOOK_TIMEOUT}
@@ -46,14 +47,17 @@ def merge_hooks(existing: dict) -> dict:
 
 
 def settings_path(root: Path) -> Path:
+    """Handle settings path."""
     return root / ".claude" / "settings.json"
 
 
 def user_settings_path() -> Path:
+    """Handle user settings path."""
     return Path.home() / ".claude" / "settings.json"
 
 
 def install(root: Path, user: bool = False, templates: bool = False) -> Path:
+    """Install the requested value."""
     path = user_settings_path() if user else settings_path(root)
     from .config import update_json
     update_json(path, merge_hooks)

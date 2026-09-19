@@ -105,19 +105,23 @@ TOOLS = [
 
 @dataclass
 class IndexService:
+    """Represent index service state and behavior."""
     root: Path
     index: RepositoryIndex | None = None
     refreshed_at: float | None = None
 
     def refresh(self):
+        """Refresh index service."""
         self.index = build_index(self.root)
         self.refreshed_at = time.time()
         return self.index
 
     def get(self):
+        """Return index service."""
         return self.index or self.refresh()
 
     def status(self) -> dict:
+        """Return status for index service."""
         index = self.get()
         return {
             "files": len(index.records), "reparsed": index.reparsed,
@@ -127,12 +131,14 @@ class IndexService:
 
 
 def _result(value) -> dict:
+    """Handle result."""
     return {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}]}
 
 
 def call_tool(
     root: Path, name: str, arguments: dict, service: IndexService | None = None,
 ) -> dict:
+    """Call tool."""
     service = service or IndexService(root)
     if name == "build_context":
         pack = build_context_pack(
@@ -209,6 +215,7 @@ def call_tool(
 def handle_message(
     root: Path, message: dict, service: IndexService | None = None,
 ) -> dict | None:
+    """Handle message."""
     method = message.get("method")
     request_id = message.get("id")
     if method == "notifications/initialized":
@@ -235,6 +242,7 @@ def handle_message(
 
 
 def serve(root: Path) -> int:
+    """Serve the requested value."""
     service = IndexService(root)
     for line in sys.stdin:
         try:

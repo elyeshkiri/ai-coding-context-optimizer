@@ -36,6 +36,7 @@ SECRET_PATTERNS = (
 
 @dataclass(frozen=True)
 class PathDecision:
+    """Represent path decision state and behavior."""
     allowed: bool
     reason: str = "allowed"
 

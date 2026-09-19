@@ -7,6 +7,7 @@ JS_TS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 
 @dataclass
 class Symbol:
+    """Represent symbol state and behavior."""
     name: str
     qualified: str
     start: int
@@ -20,6 +21,7 @@ class Symbol:
 
 @lru_cache(maxsize=3)
 def _language(suffix):
+    """Handle language."""
     from tree_sitter import Language
     if suffix in {".ts", ".tsx"}:
         import tree_sitter_typescript as grammar
@@ -28,6 +30,7 @@ def _language(suffix):
     return Language(grammar.language())
 
 def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
+    """Handle symbols js ts."""
     from tree_sitter import Parser
     source = text.encode("utf-8")
     tree = Parser(_language(suffix)).parse(source)
@@ -185,6 +188,7 @@ STRUCTURED_EXTRA = {".go", ".rs", ".java", ".cs"}
 
 @lru_cache(maxsize=4)
 def _extra_language(suffix: str):
+    """Handle extra language."""
     from tree_sitter import Language
 
     if suffix == ".go":
@@ -201,14 +205,17 @@ def _extra_language(suffix: str):
 
 
 def _text(source: bytes, node) -> str:
+    """Handle text."""
     return source[node.start_byte:node.end_byte].decode("utf-8", "replace")
 
 
 def _line_end(node) -> int:
+    """Handle line end."""
     return node.end_point.row + (1 if node.end_point.column else 0)
 
 
 def _first_descendant(node, node_type: str):
+    """Handle first descendant."""
     stack = [node]
     while stack:
         current = stack.pop()
@@ -243,6 +250,7 @@ def _signature(source: bytes, extent, body=None) -> str:
 
 
 def _rightmost_identifier(source: bytes, node) -> str | None:
+    """Handle rightmost identifier."""
     if node is None:
         return None
     if node.type in {
@@ -268,6 +276,7 @@ def _rightmost_identifier(source: bytes, node) -> str | None:
 
 
 def _structured_call_sites(source: bytes, root, suffix: str) -> list[tuple[int, str]]:
+    """Handle structured call sites."""
     sites: list[tuple[int, str]] = []
     call_types = {
         ".go": {"call_expression"},
@@ -296,6 +305,7 @@ def _structured_call_sites(source: bytes, root, suffix: str) -> list[tuple[int, 
 
 
 def _attach_structured_calls(source: bytes, root, suffix: str, found: list[Symbol]) -> list[Symbol]:
+    """Handle attach structured calls."""
     sites = _structured_call_sites(source, root, suffix)
     callable_kinds = {"function", "method", "constructor"}
     for symbol in found:
@@ -351,6 +361,7 @@ def structured_imports(text: str, suffix: str) -> set[str]:
 
 def _append(found: list[Symbol], source: bytes, *, name: str, node, body=None,
             parents=(), kind: str = "symbol", extent=None) -> None:
+    """Handle append."""
     extent = extent or node
     qualified = ".".join((*parents, name)) if parents else name
     name_node = node.child_by_field_name("name")
@@ -372,6 +383,7 @@ def _append(found: list[Symbol], source: bytes, *, name: str, node, body=None,
 
 
 def _go_symbols(source: bytes, root) -> list[Symbol]:
+    """Handle go symbols."""
     found: list[Symbol] = []
 
     def walk(node):
@@ -433,6 +445,7 @@ _RUST_LEAF = {
 
 
 def _rust_impl_owner(source: bytes, node) -> str | None:
+    """Handle rust impl owner."""
     target = node.child_by_field_name("type")
     if target is None:
         return None
@@ -446,6 +459,7 @@ def _rust_impl_owner(source: bytes, node) -> str | None:
 
 
 def _rust_symbols(source: bytes, root) -> list[Symbol]:
+    """Handle rust symbols."""
     found: list[Symbol] = []
 
     def walk(node, parents=()):
@@ -511,6 +525,7 @@ _JAVA_MEMBERS = {
 
 
 def _java_symbols(source: bytes, root) -> list[Symbol]:
+    """Handle java symbols."""
     found: list[Symbol] = []
 
     def walk(node, parents=()):
@@ -658,6 +673,7 @@ def _mask_csharp_noncode(source: bytes) -> bytes:
 
 
 def _matching_byte(masked: bytes, start: int, opening: int, closing: int) -> int | None:
+    """Handle matching byte."""
     if start < 0 or start >= len(masked) or masked[start] != opening:
         return None
     depth = 0
@@ -801,6 +817,7 @@ def _csharp_extension_symbols(source: bytes, found: list[Symbol]) -> list[Symbol
 
 
 def _csharp_symbols(source: bytes, root) -> list[Symbol]:
+    """Handle csharp symbols."""
     found: list[Symbol] = []
 
     def walk(node, parents=()):
@@ -887,6 +904,7 @@ def symbols(text: str, suffix: str) -> list[Symbol]:
     raise ValueError(f"unsupported structured language: {suffix}")
 
 def extract(text: str, suffix: str, name: str):
+    """Extract the requested value."""
     matches = [s for s in symbols(text, suffix) if s.qualified == name or ("." not in name and s.name == name)]
     if not matches: return None
     if len(matches) != 1:

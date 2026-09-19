@@ -52,6 +52,7 @@ _PROSE_DEFAULT = 3.5
 
 
 def ratio_for(suffix: str) -> float:
+    """Handle ratio for."""
     return _RATIOS.get(suffix.lower(), _CODE_DEFAULT)
 
 
@@ -66,6 +67,7 @@ def estimate_tokens(text: str, suffix: str = "") -> int:
 
 
 def estimate_file(path: Path) -> int:
+    """Estimate file."""
     try:
         return estimate_tokens(
             path.read_text(encoding="utf-8", errors="replace"), path.suffix
@@ -87,6 +89,7 @@ def provider_for_model(model: str) -> str | None:
 
 
 def _count_anthropic(text: str, model: str) -> int:
+    """Count anthropic."""
     try:
         import anthropic
     except ImportError as exc:  # pragma: no cover - environment dependent
@@ -102,6 +105,7 @@ def _count_anthropic(text: str, model: str) -> int:
 
 
 def _count_openai(text: str, model: str) -> int:
+    """Count openai."""
     try:
         import tiktoken
     except ImportError as exc:  # pragma: no cover - environment dependent
@@ -119,6 +123,7 @@ def _count_openai(text: str, model: str) -> int:
 
 
 def _count_google(text: str, model: str) -> int:
+    """Count google."""
     try:
         from google import genai
     except ImportError as exc:  # pragma: no cover - environment dependent
@@ -168,13 +173,16 @@ class Counter:
 
     @property
     def label(self) -> str:
+        """Return label for counter."""
         return "exact" if self.exact else "≈est"
 
     @property
     def provider_label(self) -> str | None:
+        """Return provider label for counter."""
         return self.provider or provider_for_model(self.model)
 
     def count(self, text: str, suffix: str = "") -> int:
+        """Count counter."""
         if self.exact:
             return count_tokens_exact(
                 text, self.model, provider=self.provider
@@ -183,6 +191,7 @@ class Counter:
 
 
 def format_tokens(n: int) -> str:
+    """Format tokens."""
     if n >= 1_000_000:
         return f"{n / 1_000_000:.1f}M"
     if n >= 1_000:

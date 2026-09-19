@@ -25,6 +25,7 @@ from .serve import serve
 
 
 def impact_main(argv: list[str]) -> int:
+    """Run the impact command."""
     parser = argparse.ArgumentParser(prog="token-saver impact")
     parser.add_argument("target", help="repository-relative file or symbol name")
     parser.add_argument("--path", default=".")
@@ -50,6 +51,7 @@ def impact_main(argv: list[str]) -> int:
 
 
 def feedback_main(argv: list[str]) -> int:
+    """Run the feedback command."""
     parser = argparse.ArgumentParser(prog="token-saver feedback")
     parser.add_argument("file")
     parser.add_argument("--path", default=".")
@@ -64,6 +66,7 @@ def feedback_main(argv: list[str]) -> int:
 
 
 def evaluate_main(argv: list[str]) -> int:
+    """Run the evaluate command."""
     parser = argparse.ArgumentParser(prog="token-saver evaluate")
     parser.add_argument("manifest")
     parser.add_argument("--path", default=".")
@@ -97,6 +100,7 @@ def evaluate_main(argv: list[str]) -> int:
 
 
 def experiment_main(argv: list[str]) -> int:
+    """Run the experiment command."""
     parser = argparse.ArgumentParser(prog="token-saver experiment")
     parser.add_argument("suite")
     parser.add_argument("--out", default="benchmark-runs.json")
@@ -147,6 +151,7 @@ def experiment_main(argv: list[str]) -> int:
 
 
 def agent_evaluate_main(argv: list[str]) -> int:
+    """Run the agent evaluate command."""
     parser = argparse.ArgumentParser(prog="token-saver agent-evaluate")
     parser.add_argument("manifest")
     args = parser.parse_args(argv)
@@ -160,6 +165,7 @@ def agent_evaluate_main(argv: list[str]) -> int:
 
 
 def host_check_main(argv: list[str]) -> int:
+    """Run the host check command."""
     parser = argparse.ArgumentParser(prog="token-saver host-check")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--host", default="claude", help="host executable to inspect")
@@ -194,6 +200,7 @@ def host_check_main(argv: list[str]) -> int:
 
 
 def serve_main(argv: list[str]) -> int:
+    """Run the serve command."""
     parser = argparse.ArgumentParser(prog="token-saver serve")
     parser.add_argument("path", nargs="?", default=".")
     args = parser.parse_args(argv)
@@ -201,6 +208,7 @@ def serve_main(argv: list[str]) -> int:
 
 
 def _patch_args(prog: str, argv: list[str]):
+    """Handle patch args."""
     parser = argparse.ArgumentParser(prog=prog)
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--base", default="HEAD")
@@ -211,6 +219,7 @@ def _patch_args(prog: str, argv: list[str]):
 
 
 def pack_diff_main(argv: list[str]) -> int:
+    """Run the pack diff command."""
     args = _patch_args("token-saver pack-diff", argv)
     try:
         result = build_diff_context(
@@ -237,6 +246,7 @@ def pack_diff_main(argv: list[str]) -> int:
 
 
 def review_main(argv: list[str]) -> int:
+    """Run the review command."""
     args = _patch_args("token-saver review", argv)
     try:
         result = review_patch(Path(args.path).resolve(), base=args.base, staged=args.staged)
@@ -255,6 +265,7 @@ def review_main(argv: list[str]) -> int:
 
 
 def output_policy_main(argv: list[str]) -> int:
+    """Run the output policy command."""
     parser = argparse.ArgumentParser(prog="token-saver output-policy")
     parser.add_argument("--mode", choices=("terse", "normal", "detailed"), default="normal")
     parser.add_argument("--max-tokens", type=int)
@@ -273,6 +284,7 @@ def output_policy_main(argv: list[str]) -> int:
 
 
 def output_save_main(argv: list[str]) -> int:
+    """Run the output save command."""
     parser = argparse.ArgumentParser(prog="token-saver output-save")
     parser.add_argument("input", nargs="?", default="-", help="response file or - for stdin")
     parser.add_argument("--mode", choices=("terse", "normal", "detailed"), default="normal")
@@ -311,6 +323,7 @@ def output_save_main(argv: list[str]) -> int:
 
 
 def browse_main(argv: list[str]) -> int:
+    """Run the browse command."""
     parser = argparse.ArgumentParser(prog="token-saver browse")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--query", required=True)
@@ -390,6 +403,7 @@ def browse_main(argv: list[str]) -> int:
 
 
 def output_benchmark_main(argv: list[str]) -> int:
+    """Run the output benchmark command."""
     parser = argparse.ArgumentParser(prog="token-saver output-benchmark")
     parser.add_argument("manifest")
     args = parser.parse_args(argv)
@@ -403,6 +417,7 @@ def output_benchmark_main(argv: list[str]) -> int:
 
 
 def output_explain_main(argv: list[str]) -> int:
+    """Run the output explain command."""
     parser = argparse.ArgumentParser(prog="token-saver output-explain")
     parser.add_argument("command")
     parser.add_argument("--exit-code", type=int)
@@ -423,6 +438,7 @@ def output_explain_main(argv: list[str]) -> int:
 
 
 def output_replay_main(argv: list[str]) -> int:
+    """Run the output replay command."""
     parser = argparse.ArgumentParser(prog="token-saver output-replay")
     parser.add_argument("manifest")
     args = parser.parse_args(argv)
@@ -436,6 +452,7 @@ def output_replay_main(argv: list[str]) -> int:
 
 
 def cost_report_main(argv: list[str]) -> int:
+    """Run the cost report command."""
     parser = argparse.ArgumentParser(prog="token-saver cost-report")
     parser.add_argument("baseline")
     parser.add_argument("optimized", nargs="?")

@@ -10,6 +10,7 @@ from .repo_index import RepositoryIndex, SymbolRecord, build_index
 
 @dataclass(frozen=True)
 class ImpactItem:
+    """Represent a impact item."""
     path: str
     reason: str
     confidence: float
@@ -19,11 +20,13 @@ class ImpactItem:
 
 @dataclass
 class ImpactReport:
+    """Represent a impact report."""
     target: str
     matched: list[dict]
     affected: list[ImpactItem]
 
     def to_dict(self) -> dict:
+        """Return a dictionary representation."""
         return {
             "target": self.target,
             "matched": self.matched,
@@ -32,6 +35,7 @@ class ImpactReport:
 
 
 def _tests_for(index: RepositoryIndex, rel: str, symbols: set[str]) -> list[ImpactItem]:
+    """Handle tests for."""
     stem = Path(rel).stem.lower()
     out = []
     for path, lower, tokens in index.test_file_signatures():
@@ -43,6 +47,7 @@ def _tests_for(index: RepositoryIndex, rel: str, symbols: set[str]) -> list[Impa
 def analyze_impact(
     root: Path, target: str, *, index: RepositoryIndex | None = None,
 ) -> ImpactReport:
+    """Analyze impact."""
     index = index or build_index(root)
     normalized = target.replace("\\", "/")
     matched: list[tuple[str, SymbolRecord | None]] = []

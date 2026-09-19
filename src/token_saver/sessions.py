@@ -42,6 +42,7 @@ REPRIME_MIN_TOKENS = 20_000
 
 
 def projects_dir() -> Path:
+    """Handle projects dir."""
     return Path.home() / ".claude" / "projects"
 
 
@@ -52,6 +53,7 @@ def project_slug(path: Path) -> str:
 
 
 def transcript_paths(root: Path | None = None, all_projects: bool = False) -> list[Path]:
+    """Handle transcript paths."""
     base = projects_dir()
     if not base.is_dir():
         return []
@@ -63,6 +65,7 @@ def transcript_paths(root: Path | None = None, all_projects: bool = False) -> li
 
 @dataclass
 class ToolCall:
+    """Represent tool call state and behavior."""
     name: str
     tokens: int
     session: str
@@ -76,6 +79,7 @@ class ToolCall:
 
     @property
     def outlinable(self) -> bool:
+        """Return outlinable for tool call."""
         return (
             self.kind == "text"
             and bool(self.path)
@@ -85,6 +89,7 @@ class ToolCall:
 
     @property
     def label(self) -> str:
+        """Return label for tool call."""
         if self.path:
             return self.path
         return f"({self.name} {self.kind} result)"
@@ -115,6 +120,7 @@ class Turn:
 
 @dataclass
 class Report:
+    """Represent a report report."""
     sessions: int = 0
     usage: Counter = field(default_factory=Counter)
     calls: list[ToolCall] = field(default_factory=list)
@@ -122,10 +128,12 @@ class Report:
 
     @property
     def fresh_input(self) -> int:
+        """Return fresh input for report."""
         return self.usage["input_tokens"] + self.usage["cache_creation_input_tokens"]
 
     @property
     def cache_hit_rate(self) -> float:
+        """Return cache hit rate for report."""
         cached = self.usage["cache_read_input_tokens"]
         total = cached + self.fresh_input
         return cached / total if total else 0.0
@@ -140,6 +148,7 @@ class Report:
         return [(n, t, counts[n]) for n, t in totals.most_common()]
 
     def biggest(self, limit: int = 10) -> list[ToolCall]:
+        """Return biggest for report."""
         return sorted(self.calls, key=lambda c: -c.tokens)[:limit]
 
     def image_cost(self) -> tuple[int, int]:
@@ -210,10 +219,12 @@ class Report:
 
 
 def _digest(text: str) -> str:
+    """Handle digest."""
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:16]
 
 
 def analyze(paths: list[Path], keep_content: bool = True) -> Report:
+    """Analyze the requested value."""
     report = Report()
     for path in paths:
         names: dict[str, str] = {}

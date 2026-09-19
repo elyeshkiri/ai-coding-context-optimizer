@@ -27,10 +27,12 @@ CONDITIONS = ("baseline", "enabled")
 
 
 def prompt_sha256(prompt: str) -> str:
+    """Handle prompt sha256."""
     return hashlib.sha256(prompt.encode("utf-8")).hexdigest()
 
 
 def _load(path: Path) -> dict:
+    """Load the requested value."""
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("experiment suite must be a JSON object")
@@ -38,6 +40,7 @@ def _load(path: Path) -> dict:
 
 
 def _contains_hook(value: Any) -> bool:
+    """Handle contains hook."""
     if isinstance(value, dict):
         return any(_contains_hook(item) for item in value.values())
     if isinstance(value, list):
@@ -46,6 +49,7 @@ def _contains_hook(value: Any) -> bool:
 
 
 def user_token_saver_hook_configured() -> bool:
+    """Handle user token saver hook configured."""
     path = user_settings_path()
     if not path.is_file():
         return False
@@ -62,6 +66,7 @@ def validate_suite(
     require_frozen: bool = True,
     require_broad: bool = True,
 ) -> dict:
+    """Validate suite."""
     suite_path = suite_path.resolve()
     suite = _load(suite_path)
 
@@ -217,6 +222,7 @@ def validate_suite(
 
 
 def build_schedule(suite: dict) -> list[dict]:
+    """Build schedule."""
     design = suite["design"]
     trials = int(design["trials_per_task"])
     seed = int(design["condition_order_seed"])
@@ -239,6 +245,7 @@ def build_schedule(suite: dict) -> list[dict]:
 
 
 def _git(source: Path, *args: str, strip: bool = True) -> str:
+    """Handle git."""
     proc = subprocess.run(
         ["git", "-C", str(source), *args],
         text=True,
@@ -253,6 +260,7 @@ def _git(source: Path, *args: str, strip: bool = True) -> str:
 
 
 def _validate_repository(source: Path, revision: str) -> str:
+    """Validate repository."""
     if not source.is_dir():
         raise ValueError(f"repository path not found: {source}")
     resolved = _git(source, "rev-parse", "--verify", f"{revision}^{{commit}}")
@@ -316,6 +324,7 @@ def _expand_command(
     model: str,
     condition: str,
 ) -> list[str]:
+    """Expand command."""
     values = {
         "worktree": str(worktree),
         "transcript": str(transcript),
@@ -342,6 +351,7 @@ def _run_command(
     stderr_path: Path,
     timeout: int,
 ) -> tuple[int, float]:
+    """Run command."""
     start = time.monotonic()
     try:
         with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
@@ -360,6 +370,7 @@ def _run_command(
 
 
 def _checkpoint(path: Path, payload: dict) -> None:
+    """Handle checkpoint."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -367,6 +378,7 @@ def _checkpoint(path: Path, payload: dict) -> None:
 
 
 def _existing_keys(output_path: Path, suite: dict) -> tuple[dict, set[tuple[str, str, str]]]:
+    """Handle existing keys."""
     if not output_path.is_file():
         payload = {
             "suite_version": suite["suite_version"],
@@ -447,6 +459,7 @@ def run_experiment(
     allow_user_hook: bool = False,
     only_tasks: set[str] | None = None,
 ) -> dict:
+    """Run experiment."""
     suite_path = suite_path.resolve()
     output_path = output_path.resolve()
     suite = validate_suite(

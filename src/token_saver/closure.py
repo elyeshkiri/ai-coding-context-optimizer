@@ -11,6 +11,7 @@ from .semantic_ts import resolve_module_path
 
 @dataclass(frozen=True)
 class ClosureItem:
+    """Represent a closure item."""
     path: str
     distance: int
     reason: str
