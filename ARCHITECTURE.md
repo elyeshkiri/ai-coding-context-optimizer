@@ -69,6 +69,29 @@ This keeps retrieval policy single-sourced while leaving low-level modules such
 as `pack.py`, `repo_index.py`, `context_browser.py`, and `impact.py`
 independently testable.
 
+## Context-packing pipeline boundary
+
+`token_saver.pack` is now the compatibility facade and final bounded-assembly
+stage. Retrieval algorithms are split under `token_saver.packing`:
+
+- `contracts.py` — `RankedFile` and `ContextPack` data contracts;
+- `ranking.py` — query interpretation, BM25/code-aware file scoring, graph
+  expansion, changed/working-set/feedback boosts, and optional embeddings;
+- `symbols.py` — within-file symbol scoring, overload resolution,
+  parent/container credit, exact source windows, and file-section rendering;
+- `render.py` — section fingerprints, visible-symbol accounting, hard-budget
+  fitting, and static retrieval-plan construction.
+
+`pack.py` keeps `build_context_pack`, the historical `rank_files` entry point,
+and private compatibility aliases used by existing tests/callers. Its
+`rank_files` wrapper deliberately resolves changed files through the facade
+before entering the extracted stage, preserving the established monkeypatch
+seam while leaving the ranking implementation host-independent.
+
+The extraction is behavior-preserving: ranking policy and weights remain in the
+same order, and the frozen holdout remains the regression oracle for any future
+changes to these stages.
+
 ## Output boundary
 
 The pre-1.4 `token_saver.output_processors` module remains as a compatibility
@@ -135,8 +158,11 @@ behavior or duplicating repository logic.
    stdio, and protocol routing must consume tools through the registry contract.
 8. **Repository orchestration is single-sourced:** host-facing integrations use
    `RepositoryContextService` rather than rebuilding index/ranking/graph flows.
+9. **Packing stages stay behaviorally separable:** file ranking, symbol-window
+   selection, render/budget helpers, and final assembly may evolve independently
+   without moving policy back into the `pack.py` compatibility facade.
 
 `tests/test_architecture_boundaries.py`, `tests/test_hook_runtime.py`,
-`tests/test_mcp_server_boundaries.py`, and `tests/test_repository_service.py`
-lock in these extension seams so future features can grow by composition instead
-of by adding more central branching.
+`tests/test_mcp_server_boundaries.py`, `tests/test_repository_service.py`, and
+`tests/test_pack_pipeline_boundaries.py` lock in these extension seams so future
+features can grow by composition instead of by adding more central branching.
