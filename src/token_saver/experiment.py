@@ -238,10 +238,13 @@ def _expand_command(
         "model": model,
         "condition": condition,
     }
-    try:
-        return [item.format(**values) for item in command]
-    except KeyError as exc:
-        raise ValueError(f"unknown runner command placeholder: {exc.args[0]}") from exc
+    expanded = []
+    for item in command:
+        value = item
+        for key, replacement in values.items():
+            value = value.replace("{" + key + "}", replacement)
+        expanded.append(value)
+    return expanded
 
 
 def _run_command(
