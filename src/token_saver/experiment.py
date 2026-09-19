@@ -360,13 +360,17 @@ def _existing_keys(output_path: Path, suite: dict) -> tuple[dict, set[tuple[str,
             "suite_version": suite["suite_version"],
             "protocol": suite["protocol"],
             "design": suite["design"],
+            "repositories": suite["repositories"],
+            "runner": suite["runner"],
             "tasks": suite["tasks"],
             "runs": [],
         }
         return payload, set()
 
     payload = _load(output_path)
-    for key in ("suite_version", "protocol", "design", "tasks"):
+    for key in (
+        "suite_version", "protocol", "design", "repositories", "runner", "tasks"
+    ):
         if payload.get(key) != suite.get(key):
             raise ValueError(
                 f"existing result {output_path} does not match suite field {key}"
