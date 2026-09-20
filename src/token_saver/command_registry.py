@@ -38,6 +38,7 @@ from .command_handlers.experiment import (
 )
 from .command_handlers.host import (
     commands_main,
+    fastpath_status_main,
     completion_main,
     doctor_main,
     host_check_main,
@@ -45,6 +46,7 @@ from .command_handlers.host import (
     setup_main,
     uninstall_main,
 )
+from .command_handlers.ingress import ingress_read_main, ingress_show_main
 from .command_handlers.output import (
     output_benchmark_main,
     output_calibrate_main,
@@ -127,6 +129,9 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("completion", completion_main),
         CommandSpec("commands", commands_main),
         CommandSpec("host-check", host_check_main),
+        CommandSpec("fastpath-status", fastpath_status_main),
+        CommandSpec("ingress-show", ingress_show_main),
+        CommandSpec("ingress-read", ingress_read_main),
         CommandSpec("output-policy", output_policy_main),
         CommandSpec("output-benchmark", output_benchmark_main),
         CommandSpec("output-calibrate", output_calibrate_main),
