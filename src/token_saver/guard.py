@@ -116,7 +116,7 @@ def _bounded_text(value: object, limit: int) -> str:
     return text if len(text) <= limit else text[: max(0, limit - 1)] + "…"
 
 
-def _knowledge_reason(path: Path, findings: list[dict]) -> str:
+def _knowledge_reason(root: Path, path: Path, findings: list[dict]) -> str:
     """Render current verified findings as a bounded read-avoidance replacement."""
     lines = [
         (
@@ -124,6 +124,10 @@ def _knowledge_reason(path: Path, findings: list[dict]) -> str:
             f"is still anchored to unchanged source: {path}."
         )
     ]
+    try:
+        relative = path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        relative = ""
     for item in findings[:3]:
         anchors = item.get("anchors")
         anchors = anchors if isinstance(anchors, list) else []
@@ -133,7 +137,7 @@ def _knowledge_reason(path: Path, findings: list[dict]) -> str:
                 for anchor in anchors
                 if isinstance(anchor, dict)
                 and anchor.get("path")
-                and Path(str(anchor["path"])).name == path.name
+                and str(anchor["path"]) == relative
                 and anchor.get("symbol")
             }
         )
@@ -181,7 +185,7 @@ def _knowledge_read_decision(
     if not findings:
         return None
 
-    reason = _knowledge_reason(path, findings)
+    reason = _knowledge_reason(root, path, findings)
     original_tokens = estimate_tokens(text, path.suffix)
     replacement_tokens = estimate_tokens(reason, ".txt")
     net_tokens = original_tokens - replacement_tokens
