@@ -39,6 +39,12 @@ enabled = true
 continuity = true
 dedup = true
 waste_detection = true
+knowledge_read_avoidance = false
+cache_economics = false
+cache_expected_reuses = 2
+cache_write_factor = 1.25
+cache_read_factor = 0.10
+cache_min_relative_savings = 0.05
 ```
 
 ## Hook settings
@@ -115,6 +121,12 @@ responses, or tool output into its continuity snapshot.
 | `efficiency.continuity` | `true` | Restore structured working-state orientation on Claude resume/compact events. |
 | `efficiency.dedup` | `true` | Collapse exact repeated Bash output and block unchanged repeated full-file Reads. |
 | `efficiency.waste_detection` | `true` | Surface bounded repeated-command, identical-failure retry-loop, and no-edit tool-cascade signals. |
+| `efficiency.knowledge_read_avoidance` | `false` | Opt in to replacing full-file Reads with current verified findings anchored to that exact source file. Stale/non-verified findings never block reads. |
+| `efficiency.cache_economics` | `false` | Require the cache-aware relative-cost policy to approve knowledge read avoidance. |
+| `efficiency.cache_expected_reuses` | `2` | Expected later cache reads used by the relative-cost model. |
+| `efficiency.cache_write_factor` | `1.25` | Relative cache-write input cost used for planning; override for the active provider/model. |
+| `efficiency.cache_read_factor` | `0.10` | Relative cache-read input cost used for planning; override for the active provider/model. |
+| `efficiency.cache_min_relative_savings` | `0.05` | Minimum projected lifetime input-cost reduction required when cache economics is enabled. |
 
 Continuity stores only task class, working file paths, bounded redacted command
 labels/fingerprints, validation outcomes, failure fingerprints, and counters.
@@ -126,6 +138,14 @@ recoverable-output store.
 the structured working set but reset transient per-turn counters. Cross-turn
 dedup never substitutes approximate output: it requires the same normalized
 command and exact output digest.
+
+Knowledge-assisted read avoidance is disabled by default while its frozen
+end-to-end holdout remains unexecuted. When enabled, it only considers
+`verified`, non-stale findings whose anchors match the exact requested file.
+The replacement must save at least a bounded token floor; if cache economics is
+also enabled it must additionally clear the configured projected-cost threshold.
+The model can always request a bounded `Read` range when exact implementation
+bytes are needed.
 
 ## Environment overrides
 
@@ -154,6 +174,12 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_CONTINUITY` | `efficiency.continuity` |
 | `TOKEN_SAVER_CROSS_TURN_DEDUP` | `efficiency.dedup` |
 | `TOKEN_SAVER_WASTE_DETECTION` | `efficiency.waste_detection` |
+| `TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE` | `efficiency.knowledge_read_avoidance` |
+| `TOKEN_SAVER_CACHE_ECONOMICS` | `efficiency.cache_economics` |
+| `TOKEN_SAVER_CACHE_EXPECTED_REUSES` | `efficiency.cache_expected_reuses` |
+| `TOKEN_SAVER_CACHE_WRITE_FACTOR` | `efficiency.cache_write_factor` |
+| `TOKEN_SAVER_CACHE_READ_FACTOR` | `efficiency.cache_read_factor` |
+| `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `efficiency.cache_min_relative_savings` |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 
