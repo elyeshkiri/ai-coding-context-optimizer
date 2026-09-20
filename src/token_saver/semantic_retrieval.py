@@ -421,12 +421,20 @@ class SemanticVectorIndex:
             for rel, record in sorted(self.index.records.items()):
                 if existing.get(rel) == record.digest:
                     continue
-                changed_paths.append(rel)
                 path = self.root / rel
                 try:
                     text = path.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
+                current_digest = hashlib.sha256(
+                    text.encode("utf-8", "replace")
+                ).hexdigest()
+                if current_digest != record.digest:
+                    raise RuntimeError(
+                        f"source changed after repository indexing: {rel}; "
+                        "refresh the repository index and retry"
+                    )
+                changed_paths.append(rel)
                 for start, end, body, symbol in _chunk_source(
                     rel,
                     text,
