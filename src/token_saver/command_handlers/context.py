@@ -104,6 +104,11 @@ def ranking_explain_main(argv: list[str]) -> int:
     parser.add_argument("--max-files", type=int, default=8)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--no-changed-boost", action="store_true")
+    parser.add_argument(
+        "--semantic",
+        action="store_true",
+        help="include persistent chunk-level semantic fusion evidence",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -111,6 +116,7 @@ def ranking_explain_main(argv: list[str]) -> int:
             args.query,
             max_files=args.max_files,
             changed_boost=not args.no_changed_boost,
+            embeddings=args.semantic,
         )
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
