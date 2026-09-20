@@ -13,6 +13,8 @@ from .command_handlers.context import (
     ranking_explain_main,
     recall_main,
     remember_main,
+    semantic_index_main,
+    semantic_status_main,
 )
 from .command_handlers.efficiency import (
     cache_economics_main,
@@ -108,6 +110,8 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("remember", remember_main),
         CommandSpec("recall", recall_main),
         CommandSpec("knowledge-status", knowledge_status_main),
+        CommandSpec("semantic-index", semantic_index_main),
+        CommandSpec("semantic-status", semantic_status_main),
         CommandSpec("evaluate", evaluate_main),
         CommandSpec("agent-evaluate", agent_evaluate_main),
         CommandSpec("blind-grade", blind_grade_main),
