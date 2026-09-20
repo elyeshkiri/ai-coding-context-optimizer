@@ -302,3 +302,51 @@ def test_calibration_rejects_duplicate_task_trial_condition(tmp_path):
 
     with pytest.raises(ValueError, match="duplicate baseline calibration run"):
         calibrate_output_budgets(manifest)
+
+
+
+def test_calibration_accepts_experiment_enabled_alias(tmp_path):
+    """Experiment manifests should calibrate without condition-name rewriting."""
+    runs = []
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5,
+    }
+    for task_id, tokens in (("a", 300), ("b", 350), ("c", 400)):
+        runs.extend([
+            {
+                "task": task_id,
+                "trial": 1,
+                "condition": "baseline",
+                "success": True,
+                "output_tokens": 600,
+                "quality": quality,
+                "blocker": False,
+            },
+            {
+                "task": task_id,
+                "trial": 1,
+                "condition": "enabled",
+                "success": True,
+                "output_tokens": tokens,
+                "output_task": "coding",
+                "output_mode": "normal",
+                "quality": quality,
+                "blocker": False,
+            },
+        ])
+    path = tmp_path / "runs.json"
+    path.write_text(
+        json.dumps({
+            "quality_evaluation": {"blinded": True},
+            "runs": runs,
+        }),
+        encoding="utf-8",
+    )
+
+    result = calibrate_output_budgets(path)
+
+    assert result["recommendations"]["coding"]["normal"]["samples"] == 3

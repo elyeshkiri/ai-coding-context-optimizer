@@ -293,3 +293,34 @@ def test_report_skips_malformed_numeric_fields_in_valid_schema_records(
     assert report["summary"]["input_tokens"] == 0
     assert report["summary"]["output_tokens"] == 120
     assert report["summary"]["mean_selected_budget"] is None
+
+
+
+def test_turn_telemetry_preserves_cache_creation_ttl_breakdown(tmp_path, monkeypatch):
+    """Claude cache-write TTL buckets should survive transcript telemetry parsing."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text("", encoding="utf-8")
+    _set_policy(root, "s1")
+    start_output_turn(root, transcript_path=transcript, session_id="s1")
+
+    record = _assistant("m1", 100)
+    record["message"]["usage"]["cache_creation"] = {
+        "ephemeral_5m_input_tokens": 12,
+        "ephemeral_1h_input_tokens": 8,
+    }
+    with transcript.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record) + "\n")
+
+    measured = finish_output_turn(
+        root,
+        transcript_path=transcript,
+        session_id="s1",
+    )
+
+    assert measured is not None
+    assert measured["cache_creation_input_tokens"] == 20
+    assert measured["cache_creation_5m_input_tokens"] == 12
+    assert measured["cache_creation_1h_input_tokens"] == 8

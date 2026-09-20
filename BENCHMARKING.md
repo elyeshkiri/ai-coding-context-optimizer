@@ -316,6 +316,42 @@ three randomized paired trials per task, keep the model/prompt/tool settings
 identical, independently verify task success, and report output-token reduction
 next to cost per success rather than treating response length alone as quality.
 
+### Joined output-effectiveness evidence
+
+The paired experiment artifact now carries transcript-measured fresh input,
+cache creation, cache read, output tokens, and model calls for both arms.
+Enabled runs also carry the selected output task/mode/budget when Claude hooks
+emit policy telemetry. After blind response grading has been attached to the
+same task/trial records, run:
+
+```bash
+token-saver output-effectiveness benchmark-runs.json \
+  --fresh-input-per-million <rate> \
+  --cache-creation-5m-per-million <rate> \
+  --cache-creation-1h-per-million <rate> \
+  --cache-creation-unknown-per-million <rate> \
+  --cache-read-per-million <rate> \
+  --output-per-million <rate> \
+  --require-publishable
+```
+
+The publication gate requires the existing broad design (>=20 distinct frozen
+tasks and >=3 trials/task), recomputes and verifies the frozen task-definition
+SHA-256, and checks each run's model/revision/prompt hash against that frozen
+suite. It also requires no task-success regression, blind correctness/safety
+and weighted-quality parity, complete optimized-arm policy telemetry with a
+measured task/mode/budget, exact telemetry/transcript usage agreement, and
+complete cost evidence. Cache-creation usage is split into 5-minute, 1-hour,
+and unknown-TTL buckets; any nonzero bucket without a supplied rate makes
+derived cost incomplete. A positive point estimate is not enough: the 95%
+task-cluster bootstrap interval for cost-per-success reduction must remain
+strictly above zero. Repeated trials are resampled as one task cluster rather
+than treated as independent evidence.
+
+This is the preferred end-to-end output-cost claim surface. Raw context
+reduction, response length, or a low budget-utilization ratio are not
+substitutes for cost per independently verified successful task.
+
 ### Runtime budget telemetry
 
 For ordinary Claude Code use, `output-telemetry` records actual transcript

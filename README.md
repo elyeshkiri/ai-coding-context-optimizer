@@ -186,6 +186,25 @@ text, assistant text, tool payloads, or transcript content. Telemetry reports
 budget-utilization patterns but deliberately does not treat a finished model
 turn as verified task success or response quality.
 
+For paired experiments with independent verification and blind response grades,
+join all four evidence layers:
+
+```bash
+token-saver output-effectiveness benchmark-runs.json \
+  --fresh-input-per-million <rate> \
+  --cache-creation-5m-per-million <rate> \
+  --cache-creation-1h-per-million <rate> \
+  --cache-creation-unknown-per-million <rate> \
+  --cache-read-per-million <rate> \
+  --output-per-million <rate> \
+  --require-publishable
+```
+
+The report measures **cost per successful task**, checks blind quality parity,
+verifies policy telemetry against the copied transcript, clusters confidence
+intervals by task, and identifies task/mode/budget cohorts that have enough
+quality-preserving cross-task evidence to be candidates for calibration.
+
 Compact an already-generated response:
 
 ```bash

@@ -354,6 +354,91 @@ state. Treat the file named by `--out` as the durable experiment artifact.
 }
 ```
 
+## `output-effectiveness --json`
+
+```json
+{
+  "schema": 1,
+  "source": "benchmark-runs.json",
+  "tasks": 20,
+  "paired_trials": 60,
+  "trials_per_task": {"min": 3, "max": 3},
+  "pricing": {
+    "fresh_input_per_million": 3.0,
+    "cache_creation_5m_per_million": 3.75,
+    "cache_creation_1h_per_million": 6.0,
+    "cache_creation_unknown_per_million": null,
+    "cache_read_per_million": 0.3,
+    "output_per_million": 15.0,
+    "supplied": true
+  },
+  "conditions": {
+    "baseline": {"runs": 60, "success_rate": 0.95},
+    "token-saver": {"runs": 60, "success_rate": 0.95}
+  },
+  "delta": {
+    "success_rate_change": 0.0,
+    "cost_per_success_reduction": 0.22,
+    "output_token_reduction": 0.31
+  },
+  "protocol": {
+    "valid": true,
+    "declared_task_definition_sha256": "...",
+    "computed_task_definition_sha256": "...",
+    "pair_identity_missing": [],
+    "pair_identity_mismatches": [],
+    "frozen_run_mismatches": [],
+    "exact_usage_missing": []
+  },
+  "quality": {
+    "blinded": true,
+    "judge": "independent-response-grader",
+    "parity": true,
+    "tolerance": 0.1
+  },
+  "telemetry": {
+    "optimized_runs": 60,
+    "runs_with_policy_telemetry": 60,
+    "incomplete_runs": [],
+    "usage_mismatches": [],
+    "ungrouped_runs": 0
+  },
+  "budget_groups": {
+    "coding:normal:600": {
+      "runs": 12,
+      "tasks": 4,
+      "success_rate": 1.0,
+      "quality_safe_rate": 1.0,
+      "p90_output_tokens": 420.0,
+      "mean_budget_utilization": 0.61,
+      "eligible_for_calibration": true
+    }
+  },
+  "bootstrap": {
+    "samples": 2000,
+    "seed": 20260920,
+    "task_clusters": 20,
+    "cost_per_success_reduction_ci95": [0.12, 0.30]
+  },
+  "publication_gate": {
+    "required_tasks": 20,
+    "required_trials_per_task": 3,
+    "passed": true,
+    "blockers": []
+  },
+  "claim_allowed": true
+}
+```
+
+The publication gate fails closed when the frozen suite hash or run identity
+does not match, exact transcript usage is incomplete, blind quality is
+missing/regressed, task success regresses, optimized policy telemetry lacks a
+measured task/mode/budget, telemetry usage disagrees with the copied transcript,
+cost evidence is incomplete, or the cost-per-success point estimate / 95% task-
+cluster confidence interval does not show a strictly positive reduction. Budget-group
+`eligible_for_calibration` is only a candidate signal; `output-calibrate`
+still applies its own cross-task quality gate before changing learned bases.
+
 ## `output-calibrate` (always JSON or `--out`)
 
 ```json
@@ -392,6 +477,8 @@ as no learned override and falls back to built-in bases.
     "api_failures": 1,
     "input_tokens": 2200,
     "cache_creation_input_tokens": 18000,
+    "cache_creation_5m_input_tokens": 12000,
+    "cache_creation_1h_input_tokens": 6000,
     "cache_read_input_tokens": 92000,
     "output_tokens": 6400,
     "model_calls": 28,

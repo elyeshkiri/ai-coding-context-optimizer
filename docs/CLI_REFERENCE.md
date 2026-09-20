@@ -50,6 +50,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`output-replay`](commands/output-replay.md) — replay preservation/savings contracts.
 - [`output-benchmark`](commands/output-benchmark.md) — evaluate deterministic output fixtures.
 - [`output-calibrate`](commands/output-calibrate.md) — learn quality-gated adaptive task/mode budgets.
+- [`output-effectiveness`](commands/output-effectiveness.md) — join real usage, success, blind quality, and cost-per-success evidence.
 - [`output-policy`](commands/output-policy.md) — generate model-response policy instructions.
 - [`output-save`](commands/output-save.md) — compact an already-generated response.
 - [`output-telemetry`](commands/output-telemetry.md) — inspect real turn usage against selected output budgets.

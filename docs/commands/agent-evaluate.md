@@ -11,7 +11,8 @@ token-saver agent-evaluate <manifest>
 ## Arguments and options
 
 - `manifest` — paired agent-run JSON. Runs are paired by `task` + `trial`;
-  `trial` defaults to `1` for legacy manifests.
+  `trial` defaults to `1` for legacy manifests. Optimized runs may use
+  condition `token-saver` or experiment-native `enabled`.
 - Runs may optionally include blind response-quality scores for `correctness`,
   `completeness`, `actionability`, `safety`, and `concision`, plus a
   boolean `blocker`. When supplied, every paired run must be scored and the

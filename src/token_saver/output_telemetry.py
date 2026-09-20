@@ -76,6 +76,11 @@ def start_output_turn(
         "offset": _transcript_offset(transcript_path),
         "started_at": int(time.time()),
         "prompt_id": str(prompt_id) if prompt_id else None,
+        "experiment": {
+            "task": os.environ.get("TOKEN_SAVER_BENCHMARK_TASK"),
+            "trial": os.environ.get("TOKEN_SAVER_BENCHMARK_TRIAL"),
+            "condition": os.environ.get("TOKEN_SAVER_BENCHMARK_CONDITION"),
+        },
         "policy": {
             key: policy.get(key)
             for key in (
@@ -105,6 +110,8 @@ def _usage_since(path: Path, offset: int | None) -> dict:
         "input_tokens": 0,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
+        "cache_creation_5m_input_tokens": 0,
+        "cache_creation_1h_input_tokens": 0,
         "output_tokens": 0,
         "model_calls": 0,
         "models": [],
@@ -144,7 +151,12 @@ def _usage_since(path: Path, offset: int | None) -> dict:
             key = f"anonymous-{anonymous}"
         item = messages.setdefault(
             key,
-            {"model": str(message.get("model") or "unknown"), **dict.fromkeys(USAGE_FIELDS, 0)},
+            {
+                "model": str(message.get("model") or "unknown"),
+                **dict.fromkeys(USAGE_FIELDS, 0),
+                "cache_creation_5m_input_tokens": 0,
+                "cache_creation_1h_input_tokens": 0,
+            },
         )
         if item["model"] == "unknown" and message.get("model"):
             item["model"] = str(message["model"])
@@ -152,6 +164,19 @@ def _usage_since(path: Path, offset: int | None) -> dict:
             value = usage.get(field, 0)
             if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
                 item[field] = max(int(item[field]), value)
+        breakdown = usage.get("cache_creation")
+        if isinstance(breakdown, dict):
+            for source, target in (
+                ("ephemeral_5m_input_tokens", "cache_creation_5m_input_tokens"),
+                ("ephemeral_1h_input_tokens", "cache_creation_1h_input_tokens"),
+            ):
+                value = breakdown.get(source, 0)
+                if (
+                    isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and value >= 0
+                ):
+                    item[target] = max(int(item[target]), value)
 
     if not messages:
         return empty
@@ -162,6 +187,12 @@ def _usage_since(path: Path, offset: int | None) -> dict:
             field: sum(int(item[field]) for item in messages.values())
             for field in USAGE_FIELDS
         },
+        "cache_creation_5m_input_tokens": sum(
+            int(item["cache_creation_5m_input_tokens"]) for item in messages.values()
+        ),
+        "cache_creation_1h_input_tokens": sum(
+            int(item["cache_creation_1h_input_tokens"]) for item in messages.values()
+        ),
         "model_calls": len(messages),
         "models": sorted({str(item["model"]) for item in messages.values()}),
     }
@@ -274,6 +305,7 @@ def finish_output_turn(
         "recorded_at": int(time.time()),
         "session": _session_fingerprint(session_id),
         "prompt_id": pending.get("prompt_id"),
+        "experiment": pending.get("experiment"),
         "turn_status": status,
         "error": str(error) if error else None,
         "task": policy.get("task"),
@@ -301,6 +333,27 @@ def finish_output_turn(
 
     update_state(root, mutate, session_id)
     return record
+
+
+def load_output_telemetry_from_state(state_root: Path) -> list[dict]:
+    """Load valid telemetry records from an explicit Token Saver state directory."""
+    telemetry_dir = state_root / "telemetry"
+    if not telemetry_dir.is_dir():
+        return []
+    records: list[dict] = []
+    for path in sorted(telemetry_dir.glob("*.jsonl")):
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            try:
+                item = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(item, dict) and item.get("schema") == TELEMETRY_SCHEMA:
+                records.append(item)
+    return records
 
 
 def load_output_telemetry(root: Path) -> list[dict]:
@@ -370,6 +423,12 @@ def _group_summary(records: list[dict]) -> dict:
     cache_read = [
         _number(record.get("cache_read_input_tokens")) for record in measured
     ]
+    cache_created_5m = [
+        _number(record.get("cache_creation_5m_input_tokens")) for record in measured
+    ]
+    cache_created_1h = [
+        _number(record.get("cache_creation_1h_input_tokens")) for record in measured
+    ]
     budgets = [budget for _record, budget in with_budget]
     utilizations = [
         _number(record.get("budget_utilization"))
@@ -388,6 +447,8 @@ def _group_summary(records: list[dict]) -> dict:
         "input_tokens": int(sum(inputs)),
         "cache_creation_input_tokens": int(sum(cache_created)),
         "cache_read_input_tokens": int(sum(cache_read)),
+        "cache_creation_5m_input_tokens": int(sum(cache_created_5m)),
+        "cache_creation_1h_input_tokens": int(sum(cache_created_1h)),
         "output_tokens": int(sum(outputs)),
         "model_calls": int(sum(_number(record.get("model_calls")) for record in measured)),
         "mean_output_tokens": (sum(outputs) / len(outputs) if outputs else None),
