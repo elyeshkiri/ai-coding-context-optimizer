@@ -334,11 +334,15 @@ token-saver output-effectiveness benchmark-runs.json \
 ```
 
 The publication gate requires the existing broad design (>=20 distinct frozen
-tasks and >=3 trials/task), no task-success regression, blind correctness/safety
-and weighted-quality parity, complete optimized-arm policy telemetry, exact
-telemetry/transcript usage agreement, and a positive cost-per-success
-improvement. The confidence interval resamples whole task clusters so repeated
-trials of one task are not treated as independent evidence.
+tasks and >=3 trials/task), recomputes and verifies the frozen task-definition
+SHA-256, and checks each run's model/revision/prompt hash against that frozen
+suite. It also requires no task-success regression, blind correctness/safety
+and weighted-quality parity, complete optimized-arm policy telemetry with a
+measured task/mode/budget, exact telemetry/transcript usage agreement, and
+complete cost evidence. A positive point estimate is not enough: the 95%
+task-cluster bootstrap interval for cost-per-success reduction must remain
+strictly above zero. Repeated trials are resampled as one task cluster rather
+than treated as independent evidence.
 
 This is the preferred end-to-end output-cost claim surface. Raw context
 reduction, response length, or a low budget-utilization ratio are not
