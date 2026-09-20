@@ -21,7 +21,8 @@ from .benchmark import (
     task_definition_hash,
 )
 from .install import HOOK_COMMAND, install, user_settings_path
-from .sessions import transcript_paths
+from .output_telemetry import load_output_telemetry_from_state
+from .sessions import analyze, transcript_paths
 
 CONDITIONS = ("baseline", "enabled")
 
@@ -450,6 +451,116 @@ def _swebench_reference_passed(task: dict, ref_dir: Path, *, timeout: int) -> se
     return passed_tests(text)
 
 
+def _transcript_usage(path: Path) -> dict:
+    """Return exact transcript usage totals in experiment-friendly fields."""
+    report = analyze([path], keep_content=False)
+    usage = report.usage
+    fresh = int(usage["input_tokens"])
+    cache_created = int(usage["cache_creation_input_tokens"])
+    cache_read = int(usage["cache_read_input_tokens"])
+    output = int(usage["output_tokens"])
+    return {
+        "fresh_input_tokens": fresh,
+        "cache_creation_input_tokens": cache_created,
+        "cache_read_input_tokens": cache_read,
+        "input_tokens": fresh + cache_created + cache_read,
+        "cached_input_tokens": cache_read,
+        "output_tokens": output,
+        "model_calls": len(report.turns),
+    }
+
+
+def _policy_telemetry(
+    state_root: Path,
+    *,
+    task: str,
+    trial: int,
+    condition: str,
+    transcript_usage: dict,
+) -> dict | None:
+    """Summarize benchmark-tagged output-policy telemetry for one run."""
+    records = []
+    for record in load_output_telemetry_from_state(state_root):
+        experiment = record.get("experiment")
+        if not isinstance(experiment, dict):
+            continue
+        if (
+            str(experiment.get("task") or "") == task
+            and str(experiment.get("trial") or "") == str(trial)
+            and str(experiment.get("condition") or "") == condition
+        ):
+            records.append(record)
+    if not records:
+        return None
+
+    measured = [record for record in records if record.get("usage_available") is True]
+    tasks = sorted(
+        {
+            str(record["task"])
+            for record in records
+            if isinstance(record.get("task"), str) and record.get("task")
+        }
+    )
+    modes = sorted(
+        {
+            str(record["mode"])
+            for record in records
+            if isinstance(record.get("mode"), str) and record.get("mode")
+        }
+    )
+    budgets = [
+        int(record["selected_budget"])
+        for record in records
+        if isinstance(record.get("selected_budget"), int)
+        and not isinstance(record.get("selected_budget"), bool)
+        and record["selected_budget"] > 0
+    ]
+    telemetry_usage = {
+        field: sum(int(record.get(field, 0)) for record in measured)
+        for field in (
+            "input_tokens",
+            "cache_creation_input_tokens",
+            "cache_read_input_tokens",
+            "output_tokens",
+            "model_calls",
+        )
+    }
+    expected_usage = {
+        "input_tokens": transcript_usage["fresh_input_tokens"],
+        "cache_creation_input_tokens": transcript_usage["cache_creation_input_tokens"],
+        "cache_read_input_tokens": transcript_usage["cache_read_input_tokens"],
+        "output_tokens": transcript_usage["output_tokens"],
+        "model_calls": transcript_usage["model_calls"],
+    }
+    utilizations = [
+        float(record["budget_utilization"])
+        for record in records
+        if isinstance(record.get("budget_utilization"), (int, float))
+        and not isinstance(record.get("budget_utilization"), bool)
+    ]
+    targets = [
+        bool(record["target_met"])
+        for record in records
+        if isinstance(record.get("target_met"), bool)
+    ]
+    return {
+        "records": len(records),
+        "measured_records": len(measured),
+        "output_task": tasks[0] if len(tasks) == 1 else None,
+        "output_mode": modes[0] if len(modes) == 1 else None,
+        "policy_budget": budgets[0] if budgets and len(set(budgets)) == 1 else None,
+        "selected_budgets": sorted(set(budgets)),
+        "mean_budget_utilization": (
+            sum(utilizations) / len(utilizations) if utilizations else None
+        ),
+        "target_met_rate": (
+            sum(targets) / len(targets) if targets else None
+        ),
+        "usage_matches_transcript": telemetry_usage == expected_usage,
+        "telemetry_usage": telemetry_usage,
+    }
+
+
 def run_experiment(
     suite_path: Path,
     output_path: Path,
@@ -578,6 +689,8 @@ def run_experiment(
                 env["TOKEN_SAVER_BENCHMARK_CONDITION"] = item["condition"]
                 env["TOKEN_SAVER_BENCHMARK_TASK"] = task["id"]
                 env["TOKEN_SAVER_BENCHMARK_TRIAL"] = str(item["trial"])
+                run_state_dir = run_dir / "token-saver-state"
+                env["TOKEN_SAVER_STATE_DIR"] = str(run_state_dir)
                 if item["condition"] == "baseline":
                     env["TOKEN_SAVER_DISABLED"] = "1"
                 else:
@@ -631,6 +744,19 @@ def run_experiment(
                     raise ValueError(
                         f"runner did not create transcript: {transcript}"
                     )
+
+                usage = _transcript_usage(transcript)
+                policy_telemetry = (
+                    _policy_telemetry(
+                        run_state_dir,
+                        task=str(task["id"]),
+                        trial=int(item["trial"]),
+                        condition=str(item["condition"]),
+                        transcript_usage=usage,
+                    )
+                    if item["condition"] == "enabled"
+                    else None
+                )
 
                 # Remove benchmark instrumentation before capturing the solution.
                 # The enabled arm creates .claude/settings.json so its hook can run,
@@ -779,6 +905,18 @@ def run_experiment(
                     "validation": validation,
                     "manual_intervention": False,
                     "seconds": seconds,
+                    **usage,
+                    "tool_calls": 0,
+                    "output_task": (
+                        policy_telemetry["output_task"] if policy_telemetry else None
+                    ),
+                    "output_mode": (
+                        policy_telemetry["output_mode"] if policy_telemetry else None
+                    ),
+                    "policy_budget": (
+                        policy_telemetry["policy_budget"] if policy_telemetry else None
+                    ),
+                    "output_policy_telemetry": policy_telemetry,
                     "agent_exit_code": agent_rc,
                     "verification": verification,
                     "agent_patch": str(agent_patch.relative_to(output_path.parent)),
