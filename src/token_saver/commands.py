@@ -23,6 +23,7 @@ from .command_handlers.evaluation import (
 )
 from .command_handlers.experiment import cost_report_main, experiment_main
 from .command_handlers.host import (
+    claude_plugin_path_main,
     commands_main,
     fastpath_status_main,
     completion_main,
@@ -46,6 +47,7 @@ __all__ = [
     "agent_evaluate_main",
     "browse_main",
     "cache_economics_main",
+    "claude_plugin_path_main",
     "commands_main",
     "completion_main",
     "cost_report_main",
