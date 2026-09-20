@@ -210,17 +210,37 @@ def _protocol_gate(payload: dict) -> tuple[bool, list[str]]:
     return bool(not issues and profiles_ok), issues
 
 
-def validate_session_holdout_definition(payload: dict) -> dict:
-    """Validate frozen session-holdout isolation before any paid run starts."""
-    valid, issues = _protocol_gate(payload)
+def validate_session_holdout_definition(
+    payload: dict,
+    *,
+    require_frozen: bool = True,
+) -> dict:
+    """Validate session-arm isolation before any paid run starts."""
+    if require_frozen:
+        valid, issues = _protocol_gate(payload)
+    else:
+        valid, issues = _profile_gate(payload)
+        protocol = payload.get("protocol")
+        if (
+            not isinstance(protocol, dict)
+            or protocol.get("session_efficiency_isolated") is not True
+        ):
+            issues.append("protocol_not_true:session_efficiency_isolated")
+            valid = False
     if not valid:
         raise ValueError(
-            "invalid frozen session-efficiency holdout definition: "
+            "invalid session-efficiency holdout definition: "
             + ", ".join(issues)
         )
+    protocol = payload.get("protocol")
     return {
         "valid": True,
-        "task_definition_sha256": payload["protocol"]["task_definition_sha256"],
+        "frozen": require_frozen,
+        "task_definition_sha256": (
+            protocol.get("task_definition_sha256")
+            if isinstance(protocol, dict)
+            else None
+        ),
         "comparison": {
             "baseline": "v1.6-session-baseline",
             "treatment": "v1.7-session-efficiency",
