@@ -197,7 +197,8 @@ def test_worked_example_keeps_real_measurements_and_limitations_visible():
     assert "14,214 estimated tokens" in example
     assert "264 estimated tokens" in example
     assert "45.6% more expensive" in example
-    assert "demonstration, **not** a statistically publishable benchmark" in example
+    assert "demonstration, **not** a statistically publishable" in example
+    assert "benchmark. The between-run spread" in example
     assert "independent verifier" in example
 
 
