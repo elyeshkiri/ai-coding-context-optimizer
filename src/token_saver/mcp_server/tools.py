@@ -132,6 +132,7 @@ def _output_policy(context: McpToolContext, arguments: dict) -> dict:
     policy = build_output_policy(
         str(arguments.get("mode", "normal")),
         int(arguments["max_tokens"]) if "max_tokens" in arguments else None,
+        str(arguments.get("task", "general")),
     )
     return policy.to_dict()
 
@@ -247,6 +248,17 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
                     "base": {"type": "string"},
                     "staged": {"type": "boolean"},
                     "max_tokens": {"type": "integer", "minimum": 1},
+                    "task": {
+                        "type": "string",
+                        "enum": [
+                            "general",
+                            "coding",
+                            "debugging",
+                            "review",
+                            "explanation",
+                            "planning",
+                        ],
+                    },
                 },
             },
             _build_diff_context,
