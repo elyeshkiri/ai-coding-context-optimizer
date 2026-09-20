@@ -365,7 +365,9 @@ state. Treat the file named by `--out` as the durable experiment artifact.
   "trials_per_task": {"min": 3, "max": 3},
   "pricing": {
     "fresh_input_per_million": 3.0,
-    "cache_creation_per_million": 3.75,
+    "cache_creation_5m_per_million": 3.75,
+    "cache_creation_1h_per_million": 6.0,
+    "cache_creation_unknown_per_million": null,
     "cache_read_per_million": 0.3,
     "output_per_million": 15.0,
     "supplied": true
