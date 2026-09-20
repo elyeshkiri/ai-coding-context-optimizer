@@ -104,6 +104,17 @@ def test_efficiency_event_metrics_keep_interventions_separate_from_outcomes(tmp_
             "feature": "unchanged_read_block",
             "estimated_tokens_saved": 30,
         },
+        {
+            "schema": 1,
+            "kind": "saving",
+            "feature": "knowledge_read_avoidance",
+            "estimated_tokens_saved": 40,
+            "cache_economics": {
+                "original_cost": 100.0,
+                "replacement_cost": 20.0,
+                "relative_savings": 0.8,
+            },
+        },
         {"schema": 1, "kind": "waste", "feature": "retry_loop"},
         {"schema": 1, "kind": "waste", "feature": "tool_cascade"},
         {"schema": 1, "kind": "continuity", "feature": "checkpoint_restore"},
@@ -117,6 +128,8 @@ def test_efficiency_event_metrics_keep_interventions_separate_from_outcomes(tmp_
 
     assert metrics["dedup_interventions"] == 2
     assert metrics["continuity_restores"] == 1
+    assert metrics["knowledge_read_avoidance"] == 1
+    assert metrics["cache_economic_read_avoidance"] == 1
     assert metrics["waste_signals"] == 2
     assert metrics["retry_loop_signals"] == 1
-    assert metrics["estimated_tool_context_tokens_saved"] == 80
+    assert metrics["estimated_tool_context_tokens_saved"] == 120
