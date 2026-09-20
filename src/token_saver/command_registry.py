@@ -11,6 +11,7 @@ from .command_handlers.context import (
     impact_main,
     ranking_explain_main,
 )
+from .command_handlers.efficiency import continuity_main, dashboard_main
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     blind_grade_main,
@@ -99,6 +100,8 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("experiment", experiment_main),
         CommandSpec("evidence-run", evidence_run_main),
         CommandSpec("cost-report", cost_report_main),
+        CommandSpec("dashboard", dashboard_main),
+        CommandSpec("continuity", continuity_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),
         CommandSpec("uninstall", uninstall_main),
