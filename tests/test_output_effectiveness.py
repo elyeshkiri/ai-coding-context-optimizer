@@ -477,3 +477,20 @@ def test_effectiveness_prices_5m_and_1h_cache_creation_separately(tmp_path):
         result["conditions"]["baseline"]["total_cost_usd"],
         (1550 + 200 + 200) / 1_000_000,
     )
+
+
+
+def test_effectiveness_rejects_negative_programmatic_pricing(tmp_path):
+    """Library callers get the same pricing validation as the CLI."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=3, trials=1)
+
+    try:
+        evaluate_output_effectiveness(
+            manifest,
+            pricing=EffectivenessPricing(output_per_million=-1.0),
+        )
+    except ValueError as exc:
+        assert "output_per_million must be a finite nonnegative number" in str(exc)
+    else:
+        raise AssertionError("negative programmatic pricing must be rejected")
