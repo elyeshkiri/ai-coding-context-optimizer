@@ -167,7 +167,7 @@ token-saver output-calibrate benchmarks/agent-runs.json \
 ```
 
 Calibration accepts only blinded paired evidence, ignores failed/blocked or
-quality-regressing Token Saver runs, and requires at least three valid samples
+quality-regressing Token Saver runs, and requires at least three valid samples from three distinct task IDs
 for a task/mode recommendation. The automatic hook consumes that artifact on
 future tasks; absent or invalid calibration falls back to built-in defaults.
 
