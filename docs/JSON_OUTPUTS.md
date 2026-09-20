@@ -44,7 +44,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "ready": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "token_saver_executable": "/path/to/token-saver",
   "root": "absolute project path",
   "config_path": "/project/.token-saver.toml",
