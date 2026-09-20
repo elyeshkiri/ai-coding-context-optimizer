@@ -5,7 +5,7 @@ Explain deterministic and post-score contributions for ranked files.
 ## Synopsis
 
 ```bash
-token-saver ranking-explain [path] --query TEXT [--max-files N] [--json] [--no-changed-boost]
+token-saver ranking-explain [path] --query TEXT [--max-files N] [--json] [--no-changed-boost] [--semantic]
 ```
 
 ## Arguments and options
@@ -15,6 +15,7 @@ token-saver ranking-explain [path] --query TEXT [--max-files N] [--json] [--no-c
 - `--max-files` default `8`.
 - `--json` emits trace data.
 - `--no-changed-boost` disables changed-file boost.
+- `--semantic` includes persistent chunk-level semantic hits and hybrid-RRF score transitions.
 
 ## Exit codes
 
