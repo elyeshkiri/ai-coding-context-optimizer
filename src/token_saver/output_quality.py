@@ -11,7 +11,7 @@ from .output_processors import process_output
 
 
 def _case_text(case: dict, manifest: Path) -> str:
-    """Handle case text."""
+    """Return inline or file-backed fixture text for one quality case."""
     inline = isinstance(case.get("text"), str)
     from_file = isinstance(case.get("path"), str)
     if inline == from_file:
@@ -29,25 +29,6 @@ def quality_definition_hash(payload: dict) -> str:
     cases = payload.get("cases") if isinstance(payload, dict) else None
     if not isinstance(cases, list) or not cases:
         raise ValueError("quality manifest must contain a non-empty 'cases' list")
-    computed_hash = quality_definition_hash(payload)
-    protocol = payload.get("protocol")
-    declared_hash = (
-        str(protocol.get("definition_sha256") or "").strip()
-        if isinstance(protocol, dict)
-        else ""
-    )
-    frozen_valid = bool(
-        isinstance(protocol, dict)
-        and protocol.get("frozen") is True
-        and isinstance(protocol.get("frozen_at"), str)
-        and bool(protocol.get("frozen_at").strip())
-        and declared_hash == computed_hash
-    )
-    if require_frozen and not frozen_valid:
-        raise ValueError(
-            "frozen output-quality manifest requires frozen=true, frozen_at, "
-            "and matching definition_sha256"
-        )
     canonical = json.dumps(
         cases,
         sort_keys=True,
@@ -57,6 +38,37 @@ def quality_definition_hash(payload: dict) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def _protocol(payload: dict, computed_hash: str) -> dict:
+    """Return normalized freeze metadata for one output-quality manifest."""
+    protocol = payload.get("protocol")
+    declared_hash = (
+        str(protocol.get("definition_sha256") or "").strip()
+        if isinstance(protocol, dict)
+        else ""
+    )
+    frozen_at = (
+        protocol.get("frozen_at")
+        if isinstance(protocol, dict)
+        else None
+    )
+    frozen = bool(
+        isinstance(protocol, dict) and protocol.get("frozen") is True
+    )
+    valid = bool(
+        frozen
+        and isinstance(frozen_at, str)
+        and bool(frozen_at.strip())
+        and declared_hash == computed_hash
+    )
+    return {
+        "frozen": frozen,
+        "frozen_at": frozen_at,
+        "declared_definition_sha256": declared_hash or None,
+        "computed_definition_sha256": computed_hash,
+        "valid": valid,
+    }
+
+
 def evaluate_quality_manifest(
     manifest: Path,
     *,
@@ -64,9 +76,19 @@ def evaluate_quality_manifest(
 ) -> dict:
     """Evaluate one output-quality manifest and optional freeze contract."""
     payload = json.loads(manifest.read_text(encoding="utf-8"))
-    cases = payload.get("cases") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        raise ValueError("quality manifest must be a JSON object")
+    cases = payload.get("cases")
     if not isinstance(cases, list) or not cases:
         raise ValueError("quality manifest must contain a non-empty 'cases' list")
+
+    computed_hash = quality_definition_hash(payload)
+    protocol = _protocol(payload, computed_hash)
+    if require_frozen and not protocol["valid"]:
+        raise ValueError(
+            "frozen output-quality manifest requires frozen=true, frozen_at, "
+            "and matching definition_sha256"
+        )
 
     results: list[dict] = []
     seen: set[str] = set()
@@ -101,12 +123,16 @@ def evaluate_quality_manifest(
             or not isinstance(max_tokens, int)
             or max_tokens <= 0
         ):
-            raise ValueError(f"case {case_id!r} max_tokens must be a positive integer")
+            raise ValueError(
+                f"case {case_id!r} max_tokens must be a positive integer"
+            )
 
         min_reduction = case.get("min_reduction", 0.0)
-        if isinstance(min_reduction, bool) or not isinstance(
-            min_reduction, (int, float)
-        ) or not 0 <= float(min_reduction) <= 1:
+        if (
+            isinstance(min_reduction, bool)
+            or not isinstance(min_reduction, (int, float))
+            or not 0 <= float(min_reduction) <= 1
+        ):
             raise ValueError(
                 f"case {case_id!r} min_reduction must be between 0 and 1"
             )
@@ -130,39 +156,29 @@ def evaluate_quality_manifest(
         reduction_ok = reduction + 1e-12 >= float(min_reduction)
         passed = not missing and budget_ok and reduction_ok
 
-        results.append({
-            "id": case_id,
-            "command": command,
-            "processor": result.processor,
-            "failure_detected": result.failed,
-            "compressed": result.compressed,
-            "original_tokens": original_tokens,
-            "output_tokens": output_tokens,
-            "token_reduction": reduction,
-            "recovered_critical_lines": len(result.recovered_lines),
-            "missing_required": missing,
-            "preservation_ok": not missing,
-            "budget_ok": budget_ok,
-            "reduction_ok": reduction_ok,
-            "passed": passed,
-        })
+        results.append(
+            {
+                "id": case_id,
+                "command": command,
+                "processor": result.processor,
+                "failure_detected": result.failed,
+                "compressed": result.compressed,
+                "original_tokens": original_tokens,
+                "output_tokens": output_tokens,
+                "token_reduction": reduction,
+                "recovered_critical_lines": len(result.recovered_lines),
+                "missing_required": missing,
+                "preservation_ok": not missing,
+                "budget_ok": budget_ok,
+                "reduction_ok": reduction_ok,
+                "passed": passed,
+            }
+        )
 
     original = sum(item["original_tokens"] for item in results)
     output = sum(item["output_tokens"] for item in results)
     return {
-        "protocol": {
-            "frozen": bool(
-                isinstance(protocol, dict) and protocol.get("frozen") is True
-            ),
-            "frozen_at": (
-                protocol.get("frozen_at")
-                if isinstance(protocol, dict)
-                else None
-            ),
-            "declared_definition_sha256": declared_hash or None,
-            "computed_definition_sha256": computed_hash,
-            "valid": frozen_valid,
-        },
+        "protocol": protocol,
         "cases": results,
         "summary": {
             "case_count": len(results),
