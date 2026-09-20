@@ -1,5 +1,23 @@
 # Unreleased
 
+- **Added durable evidence-backed project knowledge.** New
+  `remember`, `recall`, and `knowledge-status` commands plus matching MCP
+  tools persist explicit claims with evidence/applicability/confidence and real
+  repository anchors. Anchor content hashes are revalidated at recall time, so
+  changed/missing source automatically quarantines stale findings; explicit
+  supersession and exact-identity deduplication prevent obsolete conclusions
+  from silently accumulating.
+- **Added progressive MCP schema profiles.** `TOKEN_SAVER_MCP_PROFILE` can
+  advertise `minimal`, `context`, or the backward-compatible `full` tool
+  surface. Unknown profiles fail closed. This reduces recurring MCP tool-schema
+  context for hosts that only need repository context + durable knowledge
+  instead of diff/output specialist tools.
+- **Kept the new memory layer outside existing retrieval claims.** Durable
+  findings are explicitly written/recalled rather than automatically harvested
+  from conversation or injected into normal context packs, preserving current
+  frozen retrieval behavior while creating a separate surface for future causal
+  cross-session savings evaluation.
+
 # 1.8.0 - 2026-09-20
 
 - **Added a frozen causal holdout for the session-efficiency bundle.** The new
