@@ -13,6 +13,23 @@ token-saver session-holdout <suite>
   [--dry-run] [--require-publishable]
 ```
 
+## Arguments and options
+
+- `suite` — frozen session-efficiency suite JSON.
+- `--out FILE` — durable run checkpoint; default `session-holdout-runs.json`.
+- `--rates FILE` — explicit cache-TTL-aware pricing table; otherwise use the
+  suite's `evidence.pricing_file`.
+- `--report FILE` — effectiveness report destination.
+- `--task ID` — repeatable frozen-task filter for development/debugging.
+- `--force-grades` — replace complete existing blind grades.
+- `--allow-development` — permit a narrow/unfrozen smoke suite while retaining
+  condition-isolation validation.
+- `--allow-user-hook` — permit an existing user-level Token Saver hook.
+- `--dry-run` — validate schedule, profiles, grader, and pricing without paid
+  agent calls.
+- `--require-publishable` — exit `1` if the final strict publication gate
+  is blocked.
+
 ## What it compares
 
 The shipped frozen suite compares two profiles of the **same current Token Saver
@@ -49,6 +66,16 @@ dedup, and waste mechanisms actually fired; they are not used as outcome truth.
 identity, independent task success, blind quality parity, control isolation,
 feature activation, complete pricing, positive cost-per-success reduction, and
 strictly positive task-cluster 95% cost/success CI all pass.
+
+## Output contract
+
+The command always prints JSON. Dry-run output contains the comparison labels,
+resolved condition profiles, randomized schedule, grader identity, and pricing
+source. Completed runs write the durable run manifest plus a
+`*.session-effectiveness.json` report containing condition totals, reductions,
+task-cluster confidence intervals, feature activation, blind quality, protocol
+integrity, and publication blockers. See
+[Machine-readable contracts](../JSON_OUTPUTS.md#session-holdout-always-json).
 
 ## Exit codes
 
