@@ -44,7 +44,7 @@ These mechanisms may reduce repeated local work or prevent one oversized prompt
 from reaching the model, but **1.9.0 makes no new end-to-end cost-savings
 percentage claim from their existence alone**.
 
-The unreleased knowledge-efficiency layer has its own evidence boundary.
+The 1.9 knowledge-efficiency layer has its own evidence boundary.
 `knowledge_read_avoidance` and `cache_economics` are disabled by default.
 The checked-in
 `benchmarks/knowledge-efficiency-swebench-24.frozen.json` reuses the same 24
