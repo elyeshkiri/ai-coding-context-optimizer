@@ -14,7 +14,11 @@ from .command_handlers.context import (
     recall_main,
     remember_main,
 )
-from .command_handlers.efficiency import continuity_main, dashboard_main
+from .command_handlers.efficiency import (
+    cache_economics_main,
+    continuity_main,
+    dashboard_main,
+)
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     blind_grade_main,
@@ -111,6 +115,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("session-holdout-evaluate", session_holdout_evaluate_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("dashboard", dashboard_main),
+        CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),
