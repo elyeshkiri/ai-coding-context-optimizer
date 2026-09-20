@@ -32,32 +32,49 @@ _PARITY_TOLERANCE = 0.10
 class EffectivenessPricing:
     """Price exact transcript usage categories in USD per million tokens."""
 
-    fresh_input_per_million: float = 0.0
-    cache_creation_per_million: float = 0.0
-    cache_read_per_million: float = 0.0
-    output_per_million: float = 0.0
+    fresh_input_per_million: float | None = None
+    cache_creation_5m_per_million: float | None = None
+    cache_creation_1h_per_million: float | None = None
+    cache_creation_unknown_per_million: float | None = None
+    cache_read_per_million: float | None = None
+    output_per_million: float | None = None
 
     def supplied(self) -> bool:
-        """Return whether any nonzero pricing rate was supplied."""
+        """Return whether at least one explicit pricing rate was supplied."""
         return any(
-            value > 0
+            value is not None
             for value in (
                 self.fresh_input_per_million,
-                self.cache_creation_per_million,
+                self.cache_creation_5m_per_million,
+                self.cache_creation_1h_per_million,
+                self.cache_creation_unknown_per_million,
                 self.cache_read_per_million,
                 self.output_per_million,
             )
         )
 
-    def cost(self, usage: dict) -> float:
-        """Return USD cost for one exact usage breakdown."""
-        return (
-            usage["fresh_input_tokens"] * self.fresh_input_per_million
-            + usage["cache_creation_input_tokens"]
-            * self.cache_creation_per_million
-            + usage["cache_read_input_tokens"] * self.cache_read_per_million
-            + usage["output_tokens"] * self.output_per_million
-        ) / 1_000_000
+    def cost(self, usage: dict) -> float | None:
+        """Return USD cost, failing closed when a nonzero category lacks a rate."""
+        categories = (
+            ("fresh_input_tokens", self.fresh_input_per_million),
+            ("cache_creation_5m_input_tokens", self.cache_creation_5m_per_million),
+            ("cache_creation_1h_input_tokens", self.cache_creation_1h_per_million),
+            (
+                "cache_creation_unknown_input_tokens",
+                self.cache_creation_unknown_per_million,
+            ),
+            ("cache_read_input_tokens", self.cache_read_per_million),
+            ("output_tokens", self.output_per_million),
+        )
+        total = 0.0
+        for field, rate in categories:
+            tokens = int(usage[field])
+            if tokens <= 0:
+                continue
+            if rate is None:
+                return None
+            total += tokens * rate
+        return total / 1_000_000
 
 
 def _number(value: object, field: str, *, integer: bool = True) -> int | float:
@@ -113,11 +130,37 @@ def _complete_policy_telemetry(telemetry: object) -> bool:
 
 
 def _usage(run: dict) -> dict:
-    """Extract exact usage where available, with a legacy total-input fallback."""
+    """Extract exact cache-TTL-aware usage, with legacy fallback for description."""
     output = int(_number(run.get("output_tokens", 0), "output_tokens"))
     cache_created = int(
         _number(run.get("cache_creation_input_tokens", 0), "cache_creation_input_tokens")
     )
+    cache_5m = int(
+        _number(
+            run.get("cache_creation_5m_input_tokens", 0),
+            "cache_creation_5m_input_tokens",
+        )
+    )
+    cache_1h = int(
+        _number(
+            run.get("cache_creation_1h_input_tokens", 0),
+            "cache_creation_1h_input_tokens",
+        )
+    )
+    explicit_unknown = run.get("cache_creation_unknown_input_tokens")
+    if explicit_unknown is None:
+        cache_unknown = max(0, cache_created - cache_5m - cache_1h)
+    else:
+        cache_unknown = int(
+            _number(
+                explicit_unknown,
+                "cache_creation_unknown_input_tokens",
+            )
+        )
+    if cache_5m + cache_1h + cache_unknown != cache_created:
+        raise ValueError(
+            "cache creation TTL buckets must sum to cache_creation_input_tokens"
+        )
     cache_read = int(
         _number(
             run.get("cache_read_input_tokens", run.get("cached_input_tokens", 0)),
@@ -132,6 +175,9 @@ def _usage(run: dict) -> dict:
     return {
         "fresh_input_tokens": fresh,
         "cache_creation_input_tokens": cache_created,
+        "cache_creation_5m_input_tokens": cache_5m,
+        "cache_creation_1h_input_tokens": cache_1h,
+        "cache_creation_unknown_input_tokens": cache_unknown,
         "cache_read_input_tokens": cache_read,
         "output_tokens": output,
         "model_calls": int(_number(run.get("model_calls", 0), "model_calls")),
@@ -242,6 +288,15 @@ def _condition_summary(runs: list[dict], pricing: EffectivenessPricing) -> dict:
         "fresh_input_tokens": sum(item["fresh_input_tokens"] for item in usages),
         "cache_creation_input_tokens": sum(
             item["cache_creation_input_tokens"] for item in usages
+        ),
+        "cache_creation_5m_input_tokens": sum(
+            item["cache_creation_5m_input_tokens"] for item in usages
+        ),
+        "cache_creation_1h_input_tokens": sum(
+            item["cache_creation_1h_input_tokens"] for item in usages
+        ),
+        "cache_creation_unknown_input_tokens": sum(
+            item["cache_creation_unknown_input_tokens"] for item in usages
         ),
         "cache_read_input_tokens": sum(item["cache_read_input_tokens"] for item in usages),
         "output_tokens": sum(item["output_tokens"] for item in usages),
@@ -622,6 +677,9 @@ def evaluate_output_effectiveness(
             for field in (
                 "fresh_input_tokens",
                 "cache_creation_input_tokens",
+                "cache_creation_5m_input_tokens",
+                "cache_creation_1h_input_tokens",
+                "cache_creation_unknown_input_tokens",
                 "cache_read_input_tokens",
                 "output_tokens",
                 "model_calls",
@@ -692,7 +750,11 @@ def evaluate_output_effectiveness(
         },
         "pricing": {
             "fresh_input_per_million": pricing.fresh_input_per_million,
-            "cache_creation_per_million": pricing.cache_creation_per_million,
+            "cache_creation_5m_per_million": pricing.cache_creation_5m_per_million,
+            "cache_creation_1h_per_million": pricing.cache_creation_1h_per_million,
+            "cache_creation_unknown_per_million": (
+                pricing.cache_creation_unknown_per_million
+            ),
             "cache_read_per_million": pricing.cache_read_per_million,
             "output_per_million": pricing.output_per_million,
             "supplied": pricing.supplied(),
