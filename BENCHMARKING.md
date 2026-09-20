@@ -160,7 +160,7 @@ Query-only freeze:
 
 - commit: `f3247c1d4c8e388de653aea1a5de4fa4624f82ce`;
 - canonical SHA-256:
-  `4a0c3cda63524037e45985244d3a86ec5835e022c439874148b7f8608514ebce`.
+  `8cdf871ea2fcbe59161a332f1f0ce0f93b087a6c3560acebadb5ee338c4169bf`.
 
 Ground truth was then collected without changing those queries. A post-freeze
 answer-identity audit excluded two tasks from the semantic headline rather than
@@ -172,7 +172,7 @@ manifest with exclusion reasons. The headline cohort is therefore **22 of the
 
 Final semantic ground-truth SHA-256:
 
-`df1c60b1bf8bd28d4093177aa974194293ed04e54fa1c657d4203776107d2ae4`
+`dc6ea6c3641db573b5b05473f2bc4ee13e0f05a4f093cb86f803e68c7b265d25`
 
 Every eligible task is evaluated under the same file-count and token limits
 against three arms:
