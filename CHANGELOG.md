@@ -1,5 +1,17 @@
 # Unreleased
 
+- **Added adaptive, quality-calibrated generation budgets.** Automatic output
+  policy now scales task/mode bases using deterministic prompt complexity
+  signals while preserving hard mode bounds and stable budgets across vague
+  follow-ups. New `output.adaptive`, min/max clamp, and calibration-file
+  settings are available with environment overrides. `token-saver
+  output-calibrate` learns task/mode base budgets only from blinded paired runs
+  where both arms succeed and correctness, safety, weighted quality, and blocker
+  constraints remain at parity; at least three valid samples are required.
+  Recommendations use observed p90 output tokens plus a configurable safety
+  margin. Failed, blocked, unblinded, or degraded short responses cannot train
+  the controller.
+
 - **Made generation-time output control automatic for Claude Code.**
   `UserPromptSubmit` now deterministically classifies strong coding, debugging,
   review, planning, and explanation prompts and injects the task-aware response
