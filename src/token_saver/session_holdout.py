@@ -210,6 +210,24 @@ def _protocol_gate(payload: dict) -> tuple[bool, list[str]]:
     return bool(not issues and profiles_ok), issues
 
 
+def validate_session_holdout_definition(payload: dict) -> dict:
+    """Validate frozen session-holdout isolation before any paid run starts."""
+    valid, issues = _protocol_gate(payload)
+    if not valid:
+        raise ValueError(
+            "invalid frozen session-efficiency holdout definition: "
+            + ", ".join(issues)
+        )
+    return {
+        "valid": True,
+        "task_definition_sha256": payload["protocol"]["task_definition_sha256"],
+        "comparison": {
+            "baseline": "v1.6-session-baseline",
+            "treatment": "v1.7-session-efficiency",
+        },
+    }
+
+
 def _condition_summary(runs: list[dict], pricing: EffectivenessPricing) -> dict:
     """Aggregate one condition across exact run and transcript metrics."""
     successes = sum(bool(run["success"]) for run in runs)
