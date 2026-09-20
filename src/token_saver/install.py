@@ -8,7 +8,7 @@ HOOK_COMMAND = "token-saver hook"
 HOOK_TIMEOUT = 10
 
 PRE_MATCHER = "Read|Bash"
-POST_MATCHER = "Bash|Read"
+POST_MATCHER = "Bash|Read|Edit|Write"
 SESSION_MATCHER = "startup|resume|clear|compact"
 PROMPT_MATCHER = "*"
 HOOK_MATCHERS = {
