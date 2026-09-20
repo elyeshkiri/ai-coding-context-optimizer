@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import json
 import math
 import random
@@ -495,17 +496,36 @@ def evaluate_output_effectiveness(
     )
 
     task_definitions = payload.get("tasks")
-    task_definitions_by_id = {
-        str(task.get("id")): task
-        for task in task_definitions
-        if isinstance(task, dict) and str(task.get("id") or "").strip()
-    } if isinstance(task_definitions, list) else {}
+    task_definitions_by_id: dict[str, dict] = {}
+    frozen_definition_issues: list[str] = []
+    if isinstance(task_definitions, list):
+        for definition in task_definitions:
+            if not isinstance(definition, dict):
+                frozen_definition_issues.append("non_object_task_definition")
+                continue
+            task_id = str(definition.get("id") or "").strip()
+            if not task_id:
+                frozen_definition_issues.append("missing_task_id")
+                continue
+            if task_id in task_definitions_by_id:
+                frozen_definition_issues.append(f"{task_id}:duplicate_task_id")
+                continue
+            task_definitions_by_id[task_id] = definition
+            prompt = definition.get("prompt")
+            prompt_hash = str(definition.get("prompt_sha256") or "").strip()
+            if not isinstance(prompt, str) or not prompt_hash:
+                frozen_definition_issues.append(f"{task_id}:prompt_identity")
+            elif hashlib.sha256(prompt.encode("utf-8")).hexdigest() != prompt_hash:
+                frozen_definition_issues.append(f"{task_id}:prompt_sha256")
+    else:
+        frozen_definition_issues.append("missing_task_definitions")
     runner = payload.get("runner")
     frozen_model = (
         str(runner.get("model") or "").strip()
         if isinstance(runner, dict)
         else ""
     )
+    protocol_valid = protocol_valid and not frozen_definition_issues
     frozen_run_mismatches: list[str] = []
     for run in baseline_runs + optimized_runs:
         label = f"{run['task']}/{run['trial']}/{run['condition']}"
@@ -618,6 +638,8 @@ def evaluate_output_effectiveness(
     blockers = []
     if not protocol_valid:
         blockers.append("invalid_or_missing_frozen_experiment_protocol")
+    if frozen_definition_issues:
+        blockers.append("invalid_frozen_task_definitions")
     if frozen_run_mismatches:
         blockers.append("run_metadata_mismatch_with_frozen_suite")
     if pair_identity_missing:
@@ -694,6 +716,7 @@ def evaluate_output_effectiveness(
             "required_true": list(protocol_required_true),
             "declared_task_definition_sha256": declared_hash or None,
             "computed_task_definition_sha256": computed_hash,
+            "frozen_definition_issues": frozen_definition_issues,
             "pair_identity_missing": pair_identity_missing,
             "pair_identity_mismatches": pair_identity_mismatches,
             "frozen_run_mismatches": frozen_run_mismatches,
