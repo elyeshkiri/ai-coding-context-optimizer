@@ -324,3 +324,41 @@ def test_turn_telemetry_preserves_cache_creation_ttl_breakdown(tmp_path, monkeyp
     assert measured["cache_creation_input_tokens"] == 20
     assert measured["cache_creation_5m_input_tokens"] == 12
     assert measured["cache_creation_1h_input_tokens"] == 8
+
+
+
+def test_output_telemetry_report_can_filter_by_recorded_time(tmp_path, monkeypatch):
+    """Dashboard windows should not mix recent savings with all-time billed usage."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    path = telemetry_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    base = {
+        "schema": 1,
+        "turn_status": "completed",
+        "task": "coding",
+        "mode": "normal",
+        "usage_available": True,
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 0,
+        "cache_creation_5m_input_tokens": 0,
+        "cache_creation_1h_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 5,
+        "model_calls": 1,
+        "selected_budget": 100,
+        "budget_utilization": 0.05,
+        "target_met": True,
+    }
+    old = dict(base, recorded_at=100)
+    recent = dict(base, recorded_at=200, output_tokens=7)
+    path.write_text(
+        json.dumps(old) + "\n" + json.dumps(recent) + "\n",
+        encoding="utf-8",
+    )
+
+    report = output_telemetry_report(root, since=150)
+
+    assert report["summary"]["turns"] == 1
+    assert report["summary"]["output_tokens"] == 7
