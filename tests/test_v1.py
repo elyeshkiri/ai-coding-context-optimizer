@@ -443,3 +443,35 @@ def test_agent_evaluator_rejects_unblinded_quality_claim(tmp_path):
     assert result["blind_quality_verified"] is False
     assert result["claim_allowed"] is False
     assert "quality_evidence_not_blinded" in result["claim_blockers"]
+
+
+def test_agent_evaluator_rejects_claim_without_positive_per_success_savings(tmp_path):
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5,
+    }
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({
+        "quality_evaluation": {"blinded": True},
+        "runs": [
+            {
+                "task": "a", "condition": "baseline", "success": True,
+                "input_tokens": 500, "output_tokens": 100,
+                "quality": quality, "blocker": False,
+            },
+            {
+                "task": "a", "condition": "token-saver", "success": True,
+                "input_tokens": 600, "output_tokens": 100,
+                "quality": quality, "blocker": False,
+            },
+        ],
+    }))
+
+    result = evaluate_agent_runs(manifest)
+
+    assert result["tokens_per_success_reduction"] < 0
+    assert result["claim_allowed"] is False
+    assert "no_positive_tokens_per_success_reduction" in result["claim_blockers"]
