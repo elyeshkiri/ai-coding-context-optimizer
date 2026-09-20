@@ -8,7 +8,10 @@ from pathlib import Path
 from .blind_grader import blind_grade_manifest, validate_grader_config
 from .experiment import run_experiment, validate_suite
 from .output_effectiveness import EffectivenessPricing
-from .session_holdout import evaluate_session_holdout
+from .session_holdout import (
+    evaluate_session_holdout,
+    validate_session_holdout_definition,
+)
 
 
 def _atomic_write(path: Path, payload: dict) -> None:
@@ -87,6 +90,7 @@ def run_session_holdout(
         require_broad=not allow_development,
     )
     grader = validate_grader_config(suite)
+    definition = validate_session_holdout_definition(suite)
     runner = suite.get("runner")
     protocol_version = (
         runner.get("session_holdout_protocol_version")
@@ -112,10 +116,7 @@ def run_session_holdout(
         return {
             "schema": 1,
             "stage": "dry-run",
-            "comparison": {
-                "baseline": "v1.6-session-baseline",
-                "treatment": "v1.7-session-efficiency",
-            },
+            "comparison": definition["comparison"],
             "experiment": experiment,
             "grader": grader,
             "pricing_file": str(pricing_file),
