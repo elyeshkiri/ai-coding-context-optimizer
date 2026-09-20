@@ -210,14 +210,24 @@ metrics.
     "baseline": {},
     "token-saver": {}
   },
+  "task_success_parity": true,
   "quality_parity": true,
+  "quality_evidence": {
+    "blinded": true,
+    "judge": "independent-response-grader",
+    "rubric": {},
+    "baseline": {},
+    "token-saver": {}
+  },
+  "output_token_reduction": 0.35,
   "tokens_per_success_reduction": 0.25,
   "claim_allowed": true
 }
 ```
 
-`tokens_per_success_reduction` is `null` when the conditions are not
-comparable or a denominator is unavailable.
+`output_token_reduction` and `tokens_per_success_reduction` are `null`
+when the conditions are not comparable or a denominator is unavailable. Blind
+quality evidence is optional; when present, it becomes part of the parity gate.
 
 ## `ranking-snapshot` (always JSON or `--out`)
 
@@ -305,7 +315,8 @@ state. Treat the file named by `--out` as the durable experiment artifact.
 ```json
 {
   "mode": "normal",
-  "max_tokens": 800,
+  "max_tokens": 600,
+  "task": "coding",
   "instructions": "..."
 }
 ```

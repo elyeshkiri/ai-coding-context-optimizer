@@ -5,14 +5,15 @@ Generate compact model-response policy instructions.
 ## Synopsis
 
 ```bash
-token-saver output-policy [--mode terse|normal|detailed] [--max-tokens N] [--json]
+token-saver output-policy [--mode terse|normal|detailed] [--task TASK] [--max-tokens N] [--json]
 ```
 
 ## Arguments and options
 
 - `--mode` default `normal`.
-- `--max-tokens` overrides mode budget.
-- `--json` emits policy fields.
+- `--task` adapts instructions and the default budget for `general`, `coding`, `debugging`, `review`, `explanation`, or `planning`.
+- `--max-tokens` overrides both mode and task defaults.
+- `--json` emits policy fields, including the resolved task.
 
 ## Exit codes
 

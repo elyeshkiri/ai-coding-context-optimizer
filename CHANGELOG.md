@@ -1,5 +1,18 @@
 # Unreleased
 
+- **Made Output Saver generation policy task-aware and quality-gated.**
+  `output-policy --task` now adapts default budgets and response constraints for
+  coding, debugging, review, explanation, and planning while preserving the
+  historical general-mode budgets. The policy now explicitly removes
+  conversational preambles, tangents, recaps, closing filler, repeated progress
+  narration, and unchanged code while keeping explicit output contracts,
+  diagnostics, safety information, and material caveats as hard escape hatches.
+  Debugging mode separates observations from hypotheses so brevity cannot justify
+  an invented root cause. `agent-evaluate` can now consume optional blind
+  response-quality scores and reports generated-output-token reduction only when
+  task success and quality remain at parity; unblinded quality evidence cannot
+  authorize a savings claim.
+
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
   end-to-end bug narrative, 43 dedicated command-reference pages with flags,
   exit semantics, and machine-output links, explicit JSON CLI contracts, merged

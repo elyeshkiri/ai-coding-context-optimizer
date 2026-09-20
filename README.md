@@ -127,14 +127,21 @@ post-generation compaction**.
 Generate a compact response policy for an agent:
 
 ```bash
-token-saver output-policy --mode terse
-token-saver output-policy --mode normal --max-tokens 700 --json
+token-saver output-policy --mode terse --task coding
+token-saver output-policy --mode normal --task debugging --max-tokens 700 --json
 ```
 
-The policy tells the agent to avoid task restatement, tool narration, repeated
-logs/context, unchanged full-file reproduction, verbose test output, and
-post-success filler. Default targets are 300 tokens for `terse`, 800 for
-`normal`, and 2,000 for `detailed`.
+The policy tells the agent to lead with the useful result, avoid conversational
+preambles, task restatement, tool narration, repeated logs/context, tangents,
+unchanged full-file reproduction, verbose test output, recaps, and closing
+filler. `--task` adapts both wording and default budgets for coding, debugging,
+review, explanation, and planning while preserving the historical
+300/800/2,000-token defaults when no task is selected.
+
+Debugging policy explicitly separates observations from hypotheses so brevity
+does not pressure the model into inventing a root cause. Explicit user output
+contracts, required code/diffs, diagnostics, safety information, and material
+caveats always override the token target.
 
 Compact an already-generated response:
 

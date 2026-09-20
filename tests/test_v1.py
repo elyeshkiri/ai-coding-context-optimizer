@@ -272,3 +272,73 @@ def test_agent_evaluator_reports_reduction_only_at_quality_parity(tmp_path):
     assert result["tokens_per_success_reduction"] == pytest.approx(1 - 500 / 1100)
     assert result["claim_allowed"] is True
 
+
+def test_agent_evaluator_can_gate_savings_on_blind_response_quality(tmp_path):
+    quality = {
+        "correctness": 5,
+        "completeness": 4,
+        "actionability": 4,
+        "safety": 5,
+        "concision": 4,
+    }
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({
+        "quality_evaluation": {
+            "blinded": True,
+            "judge": "independent-response-grader",
+        },
+        "runs": [
+            {
+                "task": "a", "condition": "baseline", "success": True,
+                "input_tokens": 1000, "output_tokens": 400,
+                "quality": quality, "blocker": False,
+            },
+            {
+                "task": "a", "condition": "token-saver", "success": True,
+                "input_tokens": 700, "output_tokens": 200,
+                "quality": {**quality, "concision": 5}, "blocker": False,
+            },
+        ],
+    }))
+    result = evaluate_agent_runs(manifest)
+
+    assert result["task_success_parity"] is True
+    assert result["quality_parity"] is True
+    assert result["quality_evidence"]["blinded"] is True
+    assert result["output_token_reduction"] == pytest.approx(0.5)
+    assert result["claim_allowed"] is True
+
+
+def test_agent_evaluator_suppresses_claim_when_quality_regresses(tmp_path):
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({
+        "quality_evaluation": {"blinded": True},
+        "runs": [
+            {
+                "task": "a", "condition": "baseline", "success": True,
+                "input_tokens": 1000, "output_tokens": 400,
+                "quality": {
+                    "correctness": 5, "completeness": 5, "actionability": 4,
+                    "safety": 5, "concision": 3,
+                },
+                "blocker": False,
+            },
+            {
+                "task": "a", "condition": "token-saver", "success": True,
+                "input_tokens": 600, "output_tokens": 100,
+                "quality": {
+                    "correctness": 4, "completeness": 4, "actionability": 4,
+                    "safety": 5, "concision": 5,
+                },
+                "blocker": False,
+            },
+        ],
+    }))
+    result = evaluate_agent_runs(manifest)
+
+    assert result["task_success_parity"] is True
+    assert result["quality_parity"] is False
+    assert result["output_token_reduction"] is None
+    assert result["tokens_per_success_reduction"] is None
+    assert result["claim_allowed"] is False
+
