@@ -11,7 +11,9 @@ token-saver output-calibrate <manifest> [--margin 1.15] [--out FILE]
 
 ## Arguments and options
 
-- `manifest` — paired agent-run JSON containing blind response-quality scores.
+- `manifest` — paired agent-run JSON containing blind response-quality scores;
+  optimized runs may use condition `token-saver` or experiment-native
+  `enabled`.
 - `--margin` — multiplicative safety margin above observed p90 output tokens;
   default `1.15`, allowed range `1.0..2.0`.
 - `--out` — write the JSON calibration artifact to a file instead of stdout.
