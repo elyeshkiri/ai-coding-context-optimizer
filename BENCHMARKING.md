@@ -328,8 +328,8 @@ token-saver output-calibrate benchmarks/agent-runs.json \
 
 The calibrator considers only pairs where baseline and Token Saver both succeed,
 the Token Saver response has no blocker, and correctness, safety, and weighted
-blind quality remain within the evaluator parity tolerance. At least three valid
-samples are required per task/mode. The recommendation is p90 observed output
+blind quality remain within the evaluator parity tolerance. At least three valid samples spanning at least three distinct task IDs are
+required per task/mode. The recommendation is p90 observed output
 tokens plus a 15% safety margin, bounded by the mode safety range. Failed,
 unblinded, or degraded short runs therefore cannot train the controller toward
 an artificially small budget.
