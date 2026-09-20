@@ -266,6 +266,41 @@ policy, and lets integrations inject a processor registry without modifying the
 pipeline.
 
 
+## Session-efficiency boundary
+
+Session continuity and behavioral optimization live under
+`token_saver.efficiency` rather than in the Claude adapter or repository
+retrieval engine:
+
+- `store.py` — private project-scoped snapshot/event persistence, locking,
+  atomic writes, and bounded retention;
+- `service.py` — structured working-state updates, exact command-output
+  fingerprints, redacted command labels, and bounded behavioral signals;
+- `report.py` — operational aggregation over efficiency events plus exact
+  output-telemetry counters;
+- `dashboard.py` — dependency-free rendering of the same report to local HTML.
+
+The session layer consumes task classification and token estimation but does not
+own repository ranking or output transformation policy. `HookRuntime` reaches
+it only through injected service callables, preserving host independence.
+
+Continuity is intentionally **structured state, not conversation memory**. It
+stores task class, paths, redacted command labels/fingerprints, validation
+status, failures, and counters. Raw prompts, assistant prose, and raw tool output
+are excluded. Resume/compaction may inject a compact orientation snapshot, while
+`clear` discards the active working checkpoint.
+
+Cross-turn output dedup is exact by construction: the normalized command
+identity and output digest must both match. Approximate/similar output continues
+through the ordinary processor registry. Unchanged source-read dedup uses the
+existing verified full-read digest and never applies to ranged Reads.
+
+Behavioral signals are bounded nudges rather than autonomous policy changes.
+Repeated-command/retry-loop detection is scoped to the current user turn, and
+tool-cascade detection requires a configured number of tool calls without an
+edit. The operational event ledger can inform later evaluation, but it never
+changes the frozen retrieval/effectiveness publication gates.
+
 ## Hook boundary
 
 `token_saver.hook` is now the Claude-specific composition root only. It parses
@@ -340,7 +375,12 @@ behavior or duplicating repository logic.
 16. **Gate calibration is empirical:** PR reruns are deduplicated, ground-truth
     cohorts remain separate, and calibration reports observed distributions
     without automatically redefining regressions as allowed noise.
-17. **Documentation is a tested public interface:** package/README/validation
+17. **Session efficiency stays content-minimal:** continuity cannot persist raw
+    prompt/assistant/tool-result content, and cross-turn replacement requires
+    exact command/output identity.
+18. **Operational savings are not publication evidence:** local dashboard
+    estimates remain separate from independently verified cost-per-success.
+19. **Documentation is a tested public interface:** package/README/validation
     versions stay aligned, every shipped CLI command is present in the command
     reference, and relative links in the maintained public documentation set
     must resolve in CI.
