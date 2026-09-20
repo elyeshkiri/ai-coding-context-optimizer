@@ -10,7 +10,11 @@ import statistics
 from pathlib import Path
 
 from .agent_eval import QUALITY_WEIGHTS
-from .benchmark import MIN_PUBLISHABLE_TASKS, MIN_PUBLISHABLE_TRIALS_PER_TASK
+from .benchmark import (
+    MIN_PUBLISHABLE_TASKS,
+    MIN_PUBLISHABLE_TRIALS_PER_TASK,
+    task_definition_hash,
+)
 from .paired_conditions import (
     BASELINE_CONDITION,
     OPTIMIZED_CONDITION,
@@ -76,6 +80,35 @@ def _trial(value: object, task: str, condition: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
         raise ValueError(f"trial must be a positive integer: {task}/{condition}")
     return value
+
+
+def _complete_policy_telemetry(telemetry: object) -> bool:
+    """Return whether one optimized run has measured task/mode/budget telemetry."""
+    if not isinstance(telemetry, dict):
+        return False
+    records = telemetry.get("records")
+    measured = telemetry.get("measured_records")
+    task = telemetry.get("output_task")
+    mode = telemetry.get("output_mode")
+    budget = telemetry.get("policy_budget")
+    selected = telemetry.get("selected_budgets")
+    return bool(
+        isinstance(records, int)
+        and not isinstance(records, bool)
+        and records >= 1
+        and isinstance(measured, int)
+        and not isinstance(measured, bool)
+        and measured >= 1
+        and isinstance(task, str)
+        and bool(task.strip())
+        and isinstance(mode, str)
+        and bool(mode.strip())
+        and isinstance(budget, int)
+        and not isinstance(budget, bool)
+        and budget > 0
+        and isinstance(selected, list)
+        and budget in selected
+    )
 
 
 def _usage(run: dict) -> dict:
@@ -389,9 +422,12 @@ def evaluate_output_effectiveness(
         _quality(run)
         pair[condition] = run
         trials_by_task.setdefault(task, set()).add(trial)
-        manual_intervention = manual_intervention or bool(
-            run.get("manual_intervention", False)
-        )
+        intervention = run.get("manual_intervention", False)
+        if not isinstance(intervention, bool):
+            raise ValueError(
+                f"manual_intervention must be boolean: {task}/{trial}/{condition}"
+            )
+        manual_intervention = manual_intervention or intervention
 
     incomplete = [
         f"{task}/{trial}"
@@ -439,14 +475,52 @@ def evaluate_output_effectiveness(
         "history_isolated",
         "hidden_tests_after_agent",
     )
+    declared_hash = (
+        str(protocol.get("task_definition_sha256") or "").strip()
+        if isinstance(protocol, dict)
+        else ""
+    )
+    try:
+        computed_hash = task_definition_hash(payload)
+    except ValueError:
+        computed_hash = None
     protocol_valid = bool(
         isinstance(protocol, dict)
         and all(protocol.get(name) is True for name in protocol_required_true)
         and isinstance(protocol.get("frozen_at"), str)
         and bool(protocol.get("frozen_at").strip())
-        and isinstance(protocol.get("task_definition_sha256"), str)
-        and len(protocol.get("task_definition_sha256").strip()) == 64
+        and len(declared_hash) == 64
+        and computed_hash is not None
+        and declared_hash == computed_hash
     )
+
+    task_definitions = payload.get("tasks")
+    task_definitions_by_id = {
+        str(task.get("id")): task
+        for task in task_definitions
+        if isinstance(task, dict) and str(task.get("id") or "").strip()
+    } if isinstance(task_definitions, list) else {}
+    runner = payload.get("runner")
+    frozen_model = (
+        str(runner.get("model") or "").strip()
+        if isinstance(runner, dict)
+        else ""
+    )
+    frozen_run_mismatches: list[str] = []
+    for run in baseline_runs + optimized_runs:
+        label = f"{run['task']}/{run['trial']}/{run['condition']}"
+        definition = task_definitions_by_id.get(run["task"])
+        if definition is None:
+            frozen_run_mismatches.append(f"{label}:task_definition")
+            continue
+        expected_prompt = str(definition.get("prompt_sha256") or "").strip()
+        expected_revision = str(definition.get("revision") or "").strip()
+        if expected_prompt and str(run.get("prompt_sha256") or "") != expected_prompt:
+            frozen_run_mismatches.append(f"{label}:prompt_sha256")
+        if expected_revision and str(run.get("revision") or "") != expected_revision:
+            frozen_run_mismatches.append(f"{label}:revision")
+        if frozen_model and str(run.get("model") or "") != frozen_model:
+            frozen_run_mismatches.append(f"{label}:model")
     base_quality = _quality_summary(baseline_runs)
     opt_quality = _quality_summary(optimized_runs)
     quality_complete = base_quality is not None and opt_quality is not None
@@ -468,9 +542,10 @@ def evaluate_output_effectiveness(
     for baseline_run, optimized_run in pairs:
         telemetry = optimized_run.get("output_policy_telemetry")
         key = f"{optimized_run['task']}/{optimized_run['trial']}"
-        if not isinstance(telemetry, dict):
+        if not _complete_policy_telemetry(telemetry):
             incomplete_policy.append(key)
             continue
+        assert isinstance(telemetry, dict)
         if telemetry.get("usage_matches_transcript") is not True:
             usage_mismatches.append(key)
         optimized_evidence.append(
@@ -485,11 +560,24 @@ def evaluate_output_effectiveness(
 
     budget_groups: dict[str, list[dict]] = {}
     ungrouped = 0
+    policy_summary_mismatches: list[str] = []
     for record in optimized_evidence:
         telemetry = record["telemetry"]
         task = telemetry.get("output_task")
         mode = telemetry.get("output_mode")
         budget = telemetry.get("policy_budget")
+        run = record["run"]
+        label = f"{run['task']}/{run['trial']}"
+        for run_field, telemetry_field in (
+            ("output_task", "output_task"),
+            ("output_mode", "output_mode"),
+            ("policy_budget", "policy_budget"),
+        ):
+            if (
+                run.get(run_field) is not None
+                and run.get(run_field) != telemetry.get(telemetry_field)
+            ):
+                policy_summary_mismatches.append(f"{label}:{run_field}")
         if (
             not isinstance(task, str)
             or not isinstance(mode, str)
@@ -530,6 +618,8 @@ def evaluate_output_effectiveness(
     blockers = []
     if not protocol_valid:
         blockers.append("invalid_or_missing_frozen_experiment_protocol")
+    if frozen_run_mismatches:
+        blockers.append("run_metadata_mismatch_with_frozen_suite")
     if pair_identity_missing:
         blockers.append("incomplete_pair_identity")
     if pair_identity_mismatches:
@@ -556,6 +646,10 @@ def evaluate_output_effectiveness(
         blockers.append("incomplete_output_policy_telemetry")
     if usage_mismatches:
         blockers.append("telemetry_transcript_usage_mismatch")
+    if policy_summary_mismatches:
+        blockers.append("output_policy_summary_mismatch")
+    if ungrouped:
+        blockers.append("ungrouped_output_policy_telemetry")
     if not baseline["cost_complete"] or not optimized["cost_complete"]:
         blockers.append("cost_evidence_incomplete")
     elif cost_per_success_reduction is None:
@@ -598,8 +692,11 @@ def evaluate_output_effectiveness(
         "protocol": {
             "valid": protocol_valid,
             "required_true": list(protocol_required_true),
+            "declared_task_definition_sha256": declared_hash or None,
+            "computed_task_definition_sha256": computed_hash,
             "pair_identity_missing": pair_identity_missing,
             "pair_identity_mismatches": pair_identity_mismatches,
+            "frozen_run_mismatches": frozen_run_mismatches,
             "exact_usage_missing": exact_usage_missing,
         },
         "quality": {
@@ -616,6 +713,7 @@ def evaluate_output_effectiveness(
             "incomplete_runs": incomplete_policy,
             "usage_mismatches": usage_mismatches,
             "ungrouped_runs": ungrouped,
+            "policy_summary_mismatches": policy_summary_mismatches,
         },
         "budget_groups": group_report,
         "bootstrap": bootstrap,
