@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from ..fastpath import status as fastpath_status
 from ..host_validate import validate_host
 from ..integration_setup import (
     HOSTS,
@@ -15,6 +16,24 @@ from ..integration_setup import (
     uninstall_integrations,
 )
 from ..serve import serve
+
+
+def fastpath_status_main(argv: list[str]) -> int:
+    """Report optional Rust accelerator availability and active capabilities."""
+    parser = argparse.ArgumentParser(prog="token-saver fastpath-status")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    result = fastpath_status()
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("TOKEN SAVER FASTPATH")
+        print(f"backend: {result['backend']}")
+        capabilities = result["capabilities"]
+        print("capabilities: " + (", ".join(capabilities) if capabilities else "none"))
+        if not result["available"]:
+            print("fallback: Python reference implementation")
+    return 0
 
 
 def host_check_main(argv: list[str]) -> int:
