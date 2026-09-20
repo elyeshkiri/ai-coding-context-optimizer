@@ -191,8 +191,8 @@ def _task_prompts(payload: dict) -> dict[str, str]:
 def _grade_prompt(task_prompt: str, response_a: str, response_b: str) -> str:
     """Build the fixed blinded quality-grading prompt."""
     schema = {
-        "A": {name: 1 for name in QUALITY_DIMENSIONS} | {"blocker": False},
-        "B": {name: 1 for name in QUALITY_DIMENSIONS} | {"blocker": False},
+        "A": dict.fromkeys(QUALITY_DIMENSIONS, 1) | {"blocker": False},
+        "B": dict.fromkeys(QUALITY_DIMENSIONS, 1) | {"blocker": False},
     }
     return f"""You are an independent blind evaluator of two coding-agent final responses.
 
