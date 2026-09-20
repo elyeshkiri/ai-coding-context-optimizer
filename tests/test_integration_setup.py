@@ -82,6 +82,12 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert "knowledge_read_avoidance = false" in config_text
     assert "cache_economics = false" in config_text
     assert "cache_expected_reuses = 2" in config_text
+    assert "[ingress]" in config_text
+    assert "threshold_tokens = 12000" in config_text
+    assert "packet_tokens = 1600" in config_text
+    assert "[retrieval]" in config_text
+    assert "cache = true" in config_text
+    assert "cache_max_entries = 64" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -513,3 +519,50 @@ def test_posttool_hook_observes_edit_and_write_for_continuity(tmp_path):
         )
     )
     assert token_saver["matcher"] == "Bash|Read|Edit|Write"
+
+
+
+def test_ingress_and_retrieval_cache_config_environment_overrides(
+    tmp_path,
+    monkeypatch,
+):
+    """Ingress and retrieval caching should resolve from TOML then environment."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / ".token-saver.toml").write_text(
+        """[ingress]
+enabled = true
+threshold_tokens = 9000
+packet_tokens = 1200
+
+[retrieval]
+cache = false
+cache_max_entries = 12
+""",
+        encoding="utf-8",
+    )
+
+    settings = settings_for(root)
+    assert settings.ingress_enabled is True
+    assert settings.ingress_threshold_tokens == 9000
+    assert settings.ingress_packet_tokens == 1200
+    assert settings.retrieval_cache is False
+    assert settings.retrieval_cache_max_entries == 12
+
+    hook_config = _config_from_env(root)
+    assert hook_config.ingress_enabled is True
+    assert hook_config.ingress_threshold_tokens == 9000
+    assert hook_config.ingress_packet_tokens == 1200
+
+    monkeypatch.setenv("TOKEN_SAVER_INGRESS_OPTIMIZER", "0")
+    monkeypatch.setenv("TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS", "14000")
+    monkeypatch.setenv("TOKEN_SAVER_INGRESS_PACKET_TOKENS", "1800")
+    monkeypatch.setenv("TOKEN_SAVER_RETRIEVAL_CACHE", "1")
+    monkeypatch.setenv("TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES", "90")
+    overridden = settings_for(root)
+
+    assert overridden.ingress_enabled is False
+    assert overridden.ingress_threshold_tokens == 14000
+    assert overridden.ingress_packet_tokens == 1800
+    assert overridden.retrieval_cache is True
+    assert overridden.retrieval_cache_max_entries == 90
