@@ -30,3 +30,16 @@ def test_mcp_compact_output_reports_savings(tmp_path):
     assert payload["text"] == "Done."
     assert payload["output_tokens"] < payload["original_tokens"]
     assert payload["code_preserved"] is True
+
+
+def test_mcp_output_policy_accepts_task_intent(tmp_path):
+    result = call_tool(
+        tmp_path,
+        "output_policy",
+        {"mode": "normal", "task": "review"},
+    )
+    payload = _payload(result)
+
+    assert payload["task"] == "review"
+    assert payload["max_tokens"] == 700
+    assert "actionable findings" in payload["instructions"]
