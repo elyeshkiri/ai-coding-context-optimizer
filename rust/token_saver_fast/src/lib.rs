@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use pyo3::prelude::*;
 
@@ -55,6 +55,37 @@ fn identifier_tokens(text: &str) -> PyResult<Vec<String>> {
 }
 
 #[pyfunction]
+fn bm25_score(
+    counts: HashMap<String, usize>,
+    q_terms: Vec<String>,
+    doc_freq: HashMap<String, usize>,
+    length: usize,
+    avg_len: f64,
+    n_docs: usize,
+) -> PyResult<(f64, usize)> {
+    if !avg_len.is_finite() || avg_len <= 0.0 || n_docs == 0 {
+        return Ok((0.0, 0));
+    }
+    let mut score = 0.0_f64;
+    let mut matched = 0_usize;
+    let k1 = 1.5_f64;
+    let b = 0.75_f64;
+    for term in q_terms {
+        let tf = *counts.get(&term).unwrap_or(&0);
+        if tf == 0 {
+            continue;
+        }
+        matched += tf;
+        let df = *doc_freq.get(&term).unwrap_or(&0) as f64;
+        let idf = (1.0 + (n_docs as f64 - df + 0.5) / (df + 0.5)).ln();
+        let tf_f = tf as f64;
+        let denom = tf_f + k1 * (1.0 - b + b * length as f64 / avg_len);
+        score += idf * (tf_f * (k1 + 1.0) / denom);
+    }
+    Ok((score, matched))
+}
+
+#[pyfunction]
 fn jaccard_similarity(left: Vec<String>, right: Vec<String>) -> PyResult<f64> {
     let a: HashSet<String> = left.into_iter().collect();
     let b: HashSet<String> = right.into_iter().collect();
@@ -87,6 +118,7 @@ fn _token_saver_fast(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(estimate_tokens, m)?)?;
     m.add_function(wrap_pyfunction!(identifier_tokens, m)?)?;
     m.add_function(wrap_pyfunction!(jaccard_similarity, m)?)?;
+    m.add_function(wrap_pyfunction!(bm25_score, m)?)?;
     m.add_function(wrap_pyfunction!(char_ngrams, m)?)?;
     Ok(())
 }
@@ -105,6 +137,16 @@ mod tests {
     fn identifiers_are_sorted_and_unique() {
         let values = identifier_tokens("Foo foo $bar baz_2 if").unwrap();
         assert_eq!(values, vec!["$bar", "baz_2", "foo"]);
+    }
+
+    #[test]
+    fn bm25_matches_positive_reference_case() {
+        let counts = HashMap::from([("auth".into(), 3_usize)]);
+        let df = HashMap::from([("auth".into(), 2_usize)]);
+        let (score, matched) =
+            bm25_score(counts, vec!["auth".into()], df, 10, 12.0, 5).unwrap();
+        assert!(score > 0.0);
+        assert_eq!(matched, 3);
     }
 
     #[test]
