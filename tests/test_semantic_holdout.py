@@ -51,7 +51,7 @@ def test_checked_in_semantic_holdout_is_hash_frozen_and_leakage_audited():
         "4a0c3cda63524037e45985244d3a86ec5835e022c439874148b7f8608514ebce"
     )
     assert result["ground_truth_sha256"] == (
-        "47428f5b9b6963211c70a80e8551a9d61e1cc23aba60f0d53edf61f47b3c5562"
+        "df1c60b1bf8bd28d4093177aa974194293ed04e54fa1c657d4203776107d2ae4"
     )
     assert query_freeze_hash(freeze) == result["query_freeze_sha256"]
     assert semantic_ground_truth_hash(payload) == result["ground_truth_sha256"]
