@@ -348,6 +348,13 @@ def _group_summary(records: list[dict]) -> dict:
         and record["selected_budget"] > 0
     ]
     outputs = [float(record.get("output_tokens", 0)) for record in measured]
+    inputs = [float(record.get("input_tokens", 0)) for record in measured]
+    cache_created = [
+        float(record.get("cache_creation_input_tokens", 0)) for record in measured
+    ]
+    cache_read = [
+        float(record.get("cache_read_input_tokens", 0)) for record in measured
+    ]
     budgets = [float(record["selected_budget"]) for record in with_budget]
     utilizations = [
         float(record["budget_utilization"])
@@ -361,6 +368,9 @@ def _group_summary(records: list[dict]) -> dict:
         "measured_turns": len(measured),
         "completed_turns": sum(record.get("turn_status") == "completed" for record in records),
         "api_failures": sum(record.get("turn_status") == "api_failure" for record in records),
+        "input_tokens": int(sum(inputs)),
+        "cache_creation_input_tokens": int(sum(cache_created)),
+        "cache_read_input_tokens": int(sum(cache_read)),
         "output_tokens": int(sum(outputs)),
         "model_calls": sum(int(record.get("model_calls", 0)) for record in measured),
         "mean_output_tokens": (sum(outputs) / len(outputs) if outputs else None),
