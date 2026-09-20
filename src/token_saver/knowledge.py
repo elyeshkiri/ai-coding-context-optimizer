@@ -292,6 +292,50 @@ class FindingStore:
         )
         return [item for _, item in ranked[:limit]]
 
+    def for_path(
+        self,
+        path: Path | str,
+        *,
+        verified_only: bool = True,
+        limit: int = 3,
+    ) -> list[dict]:
+        """Return current findings anchored to one exact repository file."""
+        if limit < 1:
+            raise ValueError("knowledge path limit must be at least 1")
+        candidate = Path(path)
+        if not candidate.is_absolute():
+            candidate = self.root / candidate
+        resolved = candidate.resolve()
+        try:
+            relative = resolved.relative_to(self.root).as_posix()
+        except ValueError as exc:
+            raise ValueError(f"knowledge lookup is outside repository: {path}") from exc
+
+        matches: list[dict] = []
+        for item in _load(self.root)["findings"]:
+            if not isinstance(item, dict):
+                continue
+            materialized = self._materialize(item)
+            if materialized["state"] != "active":
+                continue
+            if verified_only and materialized.get("confidence") != "verified":
+                continue
+            anchors = materialized.get("anchors")
+            anchors = anchors if isinstance(anchors, list) else []
+            if not any(
+                isinstance(anchor, dict) and anchor.get("path") == relative
+                for anchor in anchors
+            ):
+                continue
+            matches.append(materialized)
+        matches.sort(
+            key=lambda item: (
+                -int(item.get("updated_at", 0)),
+                str(item.get("id", "")),
+            )
+        )
+        return matches[:limit]
+
     def status(self) -> dict:
         """Return durable-knowledge counts without exposing finding contents."""
         counts = {"active": 0, "stale": 0, "superseded": 0}
