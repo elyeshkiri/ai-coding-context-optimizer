@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from token_saver.generation_policy import (
     automatic_output_policy,
     classify_output_task,
@@ -209,3 +211,38 @@ def test_fixed_task_config_does_not_recalculate_on_ambiguous_followup(
         task="coding",
     ) is None
     assert load_state(root, "s1")["output_policy"]["max_tokens"] == budget
+
+
+def test_automatic_policy_consumes_quality_calibration_artifact(tmp_path, monkeypatch):
+    """A valid project calibration should become the adaptive task/mode base."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / ".token-saver.output-calibration.json").write_text(
+        json.dumps({
+            "schema": 1,
+            "recommendations": {
+                "coding": {
+                    "normal": {
+                        "recommended_tokens": 700,
+                        "samples": 6,
+                        "p90_output_tokens": 600,
+                        "margin": 1.15,
+                    }
+                }
+            },
+        }),
+        encoding="utf-8",
+    )
+
+    note = automatic_output_policy(
+        root,
+        "Implement caching",
+        session_id="s1",
+    )
+
+    assert note is not None
+    stored = load_state(root, "s1")["output_policy"]
+    assert stored["calibrated"] is True
+    assert stored["calibration_samples"] == 6
+    assert stored["max_tokens"] == 490
