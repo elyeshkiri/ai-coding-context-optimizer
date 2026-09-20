@@ -15,6 +15,7 @@ from pathlib import Path
 from .delta_context import apply_delta
 from .estimate import estimate_tokens
 from .output import OutputPipeline
+from .output_telemetry import finish_output_turn, start_output_turn
 from .generation_policy import automatic_output_policy
 from .guard import _digest, run as guard_run
 from .hook_runtime import (
@@ -52,6 +53,7 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         output_policy_min_tokens=settings.output_min_tokens,
         output_policy_max_tokens=settings.output_max_tokens,
         output_policy_calibration_file=settings.output_calibration_file,
+        output_telemetry_enabled=settings.output_telemetry,
     )
 
 
@@ -75,6 +77,8 @@ def _services() -> HookServices:
         record_read=record_read,
         digest=_digest,
         estimate_tokens=estimate_tokens,
+        telemetry_start=start_output_turn,
+        telemetry_finish=finish_output_turn,
     )
 
 
