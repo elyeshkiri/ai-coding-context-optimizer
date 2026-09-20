@@ -113,6 +113,64 @@ the first release. Future experiments can compare source retrieval alone against
 source retrieval plus current findings without contaminating the frozen
 retrieval baselines.
 
+### Safe prompt-ingress boundary
+
+Claude's `UserPromptSubmit` hook can block a prompt or add context but cannot
+replace the submitted prompt. Token Saver therefore does not implement ingress
+optimization by appending a summary (which would keep the large original in
+context) or by returning an unsupported transformed-prompt field.
+
+The opt-in path is instead:
+
+```text
+oversized prompt
+  -> UserPromptSubmit threshold
+  -> exact local stage + SHA-256
+  -> decision=block, suppressOriginalPrompt=true
+  -> small follow-up /token-saver:ingress <id>
+  -> bounded exact head/tail packet
+  -> exact ingress-read ranges only when needed
+```
+
+The original prompt never reaches the model on the blocked turn. No omission is
+presented as complete content, and stage integrity is checked before range
+recovery.
+
+### Persistent retrieval-cache boundary
+
+The application-level repository service enables a bounded persistent pack
+cache. Its key covers the repository content fingerprint (sorted indexed source
+digests + semantic refs + index version), query, retrieval/budget settings,
+resolved changed/priority/exclusion sets, local ranking feedback, and any session
+working-set state. This means a source/index/config/feedback change naturally
+misses the old key.
+
+The cache stores the final bounded context pack and ranking evidence but does
+not duplicate hydrated full source text inside cached ranked-file objects.
+Embedding reranking and custom ranking-stage registries bypass caching until
+their external/model/plugin identities can be safely fingerprinted.
+
+### Optional Rust acceleration boundary
+
+`fastpath.py` is the only Python-to-native boundary. It first checks the
+`TOKEN_SAVER_RUST_FASTPATH` kill switch, imports the optional
+`_token_saver_fast` extension when available, and otherwise runs the exact
+Python reference logic.
+
+The first native primitives are deliberately pure:
+
+- offline character-ratio token estimation;
+- index identifier extraction;
+- BM25 score accumulation;
+- identifier-set Jaccard similarity;
+- padded character n-grams.
+
+Python AST and Tree-sitter structural symbol extraction remain the authoritative
+path: those parsers are already native-backed or semantically sensitive. CI
+builds the Rust wheel and reruns context-quality/retrieval tests with the native
+backend required, making output parity—not mere compilation—the acceptance
+criterion.
+
 ### Knowledge-assisted read boundary
 
 The existing PreToolUse source guard is the only automatic consumer of durable
