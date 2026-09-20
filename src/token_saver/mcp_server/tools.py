@@ -58,6 +58,8 @@ def _build_context(context: McpToolContext, arguments: dict) -> dict:
         "selected_symbols": pack.selected_symbols,
         "redactions": pack.redactions,
         "closure_files": pack.closure_files,
+        "cache_hit": pack.cache_hit,
+        "cache_key": pack.cache_key,
     }
 
 
