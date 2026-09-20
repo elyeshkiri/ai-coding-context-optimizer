@@ -7,7 +7,6 @@ import json
 import math
 from pathlib import Path
 import random
-import statistics
 
 from .agent_eval import evaluate_agent_runs
 from .benchmark import (
@@ -332,7 +331,7 @@ def _bootstrap(
             "samples": _BOOTSTRAP_SAMPLES,
             "seed": _BOOTSTRAP_SEED,
             "task_clusters": len(clusters),
-            "intervals": {name: None for name in metrics},
+            "intervals": dict.fromkeys(metrics),
         }
 
     rng = random.Random(_BOOTSTRAP_SEED)
