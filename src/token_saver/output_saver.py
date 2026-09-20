@@ -21,6 +21,38 @@ _MODE_BUDGETS = {
     "normal": 800,
     "detailed": 2000,
 }
+
+# Task-aware defaults are opt-in. Existing callers that do not provide a task
+# keep the historical mode budgets above.
+_TASK_BUDGETS = {
+    "coding": {"terse": 250, "normal": 600, "detailed": 1600},
+    "debugging": {"terse": 350, "normal": 750, "detailed": 1800},
+    "review": {"terse": 300, "normal": 700, "detailed": 1700},
+    "explanation": {"terse": 450, "normal": 1000, "detailed": 2400},
+    "planning": {"terse": 350, "normal": 800, "detailed": 1800},
+}
+_TASK_RULES = {
+    "coding": (
+        "Lead with the concrete code result or changed file/symbol. "
+        "Do not reproduce unchanged code."
+    ),
+    "debugging": (
+        "Lead with the observed failure location and evidence. "
+        "Separate facts from hypotheses; do not invent a root cause just to sound decisive."
+    ),
+    "review": (
+        "Lead with actionable findings and file/symbol references. "
+        "Omit praise, process narration, and recap unless explicitly requested."
+    ),
+    "explanation": (
+        "Answer directly, then explain only the concepts needed to understand the answer. "
+        "Prefer one useful example over repeated restatement."
+    ),
+    "planning": (
+        "Use a short numbered sequence of bounded actions. "
+        "Keep the visible working set small and omit speculative side quests."
+    ),
+}
 _FENCE_RE = re.compile(r"(^\s*```[^\n]*\n.*?^\s*```\s*$)", re.MULTILINE | re.DOTALL)
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 _FILLER = {
@@ -49,12 +81,14 @@ class OutputPolicy:
     mode: str
     max_tokens: int
     instructions: str
+    task: str = "general"
 
     def to_dict(self) -> dict:
         """Return a dictionary representation."""
         return {
             "mode": self.mode,
             "max_tokens": self.max_tokens,
+            "task": self.task,
             "instructions": self.instructions,
         }
 
@@ -107,26 +141,48 @@ def _resolve_budget(mode: str, max_tokens: int | None) -> tuple[str, int]:
     return normalized, budget
 
 
-def build_output_policy(mode: str = "normal", max_tokens: int | None = None) -> OutputPolicy:
+def build_output_policy(
+    mode: str = "normal",
+    max_tokens: int | None = None,
+    task: str | None = None,
+) -> OutputPolicy:
     """Return instructions meant to be injected before response generation."""
     normalized, budget = _resolve_budget(mode, max_tokens)
+    task_normalized = "general" if task is None else task.strip().lower()
+    if task_normalized != "general" and task_normalized not in _TASK_BUDGETS:
+        raise ValueError(
+            f"unknown output task {task!r}; expected one of: "
+            + ", ".join(["general", *sorted(_TASK_BUDGETS)])
+        )
+    if max_tokens is None and task_normalized in _TASK_BUDGETS:
+        budget = _TASK_BUDGETS[task_normalized][normalized]
     detail = {
         "terse": "Prefer a compact status/result. Omit explanation unless it changes the decision.",
         "normal": "Include only the reasoning needed to understand the result and important tradeoffs.",
         "detailed": "Detailed explanation is allowed, but avoid repetition and unchanged code.",
     }[normalized]
+    task_rule = _TASK_RULES.get(task_normalized)
     instructions = "\n".join([
         f"OUTPUT BUDGET: target <= {budget} tokens.",
+        f"OUTPUT TASK: {task_normalized}.",
         detail,
+        *( [task_rule] if task_rule else [] ),
+        "Start with the answer, result, command, path, or finding; skip conversational preambles.",
         "Do not restate the task or narrate tool calls.",
+        "Suppress tangents and unrelated improvements unless they materially affect the requested task.",
+        "Keep lists compact (normally <= 5 visible items) unless completeness is required.",
         "Do not repeat logs, test output, repository context, or facts already present in structured state.",
         "For code changes, prefer file/symbol references or a minimal patch over reproducing complete unchanged files.",
+        "If progress state is needed, use compact status markers instead of re-explaining prior steps.",
         "Summarize validation as compact facts (for example: tests: 42 passed, 0 failed).",
         "Use structured fields between agents instead of prose when the receiver is another machine.",
-        "Stop once the acceptance criteria are satisfied; do not add offers, retrospectives, or next-step filler.",
-        "Never omit an error, failed validation, safety issue, or material caveat merely to satisfy the token target.",
+        "Do not add a recap, closing pleasantry, or invitation to continue after the useful answer is complete.",
+        "Only include a next action when unresolved work actually requires one.",
+        "Explicit user output contracts, required code/diffs, diagnostics, safety information, and material caveats override the token target.",
+        "When evidence is incomplete, state the uncertainty briefly instead of manufacturing a confident explanation.",
+        "Stop once the acceptance criteria are satisfied.",
     ])
-    return OutputPolicy(normalized, budget, instructions)
+    return OutputPolicy(normalized, budget, instructions, task_normalized)
 
 
 def _is_filler(paragraph: str) -> bool:
