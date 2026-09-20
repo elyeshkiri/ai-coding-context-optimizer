@@ -198,7 +198,12 @@ def test_runtime_injects_generation_policy_with_session_config(tmp_path):
     )
 
     assert code == 0
-    assert response == {"systemMessage": "generation contract"}
+    assert response == {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": "generation contract",
+        }
+    }
     assert calls == [
         (
             Path(tmp_path),
