@@ -68,7 +68,9 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
 
     assert first["configured_hosts"] == ["claude", "cursor", "codex"]
     assert second["configured_hosts"] == ["claude", "cursor", "codex"]
-    assert (root / ".token-saver.toml").is_file()
+    config_text = (root / ".token-saver.toml").read_text(encoding="utf-8")
+    assert "[output]" in config_text
+    assert 'task = "auto"' in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -184,6 +186,11 @@ delta = true
 min_lines = 88
 keep_tail = 4
 allow = ["generated/*"]
+
+[output]
+enabled = false
+mode = "terse"
+task = "review"
 """,
         encoding="utf-8",
     )
@@ -194,17 +201,29 @@ allow = ["generated/*"]
     assert settings.delta is True
     assert settings.min_lines == 88
     assert settings.keep_tail == 4
+    assert settings.output_policy is False
+    assert settings.output_mode == "terse"
+    assert settings.output_task == "review"
 
     hook_config = _config_from_env(root)
     assert hook_config.delta_enabled is True
     assert hook_config.min_lines == 88
     assert hook_config.keep_tail == 4
+    assert hook_config.output_policy_enabled is False
+    assert hook_config.output_policy_mode == "terse"
+    assert hook_config.output_policy_task == "review"
 
     monkeypatch.setenv("TOKEN_SAVER_DELTA", "0")
     monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "33")
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_POLICY", "1")
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MODE", "detailed")
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TASK", "coding")
     overridden = settings_for(root)
     assert overridden.delta is False
     assert overridden.min_lines == 33
+    assert overridden.output_policy is True
+    assert overridden.output_mode == "detailed"
+    assert overridden.output_task == "coding"
 
 
 def test_guard_uses_project_config(tmp_path):
