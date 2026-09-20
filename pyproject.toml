@@ -14,6 +14,7 @@ dev = ["pytest>=7", "build>=1", "ruff==0.16.8", "interrogate>=1.7,<2"]
 exact = ["anthropic>=0.40", "tiktoken>=0.7,<1"]
 google = ["google-genai>=1,<2"]
 embeddings = ["sentence-transformers>=3,<6"]
+semantic-ann = ["hnswlib>=0.8,<1"]
 
 [project.scripts]
 token-saver = "token_saver.entry:main"
