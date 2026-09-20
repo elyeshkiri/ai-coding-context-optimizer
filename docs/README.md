@@ -1,6 +1,6 @@
 # Token Saver documentation
 
-Use this page as the documentation map for Token Saver 1.9.
+Use this page as the documentation map for Token Saver 1.10.
 
 ## Start here
 
