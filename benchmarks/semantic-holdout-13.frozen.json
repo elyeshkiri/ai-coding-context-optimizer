@@ -12,10 +12,11 @@
     "query_freeze_file": "semantic-holdout-13.query-freeze.json",
     "query_freeze_commit": "f3247c1d4c8e388de653aea1a5de4fa4624f82ce",
     "query_freeze_sha256": "4a0c3cda63524037e45985244d3a86ec5835e022c439874148b7f8608514ebce",
-    "ground_truth_sha256": "47428f5b9b6963211c70a80e8551a9d61e1cc23aba60f0d53edf61f47b3c5562",
+    "ground_truth_sha256": "__RESEAL_AFTER_MODEL_REVISION__",
     "baseline": "distinct-term-overlap@12",
     "embedding_model": "all-MiniLM-L6-v2",
-    "first_run_burns_suite": true
+    "first_run_burns_suite": true,
+    "embedding_model_revision": "bc57282bc374d33e0d6c4de27f12dc1c2a87f37a"
   },
   "repositories": {
     "uvicorn": {
