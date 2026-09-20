@@ -23,7 +23,7 @@ def _quality_summary(runs: list[dict]) -> dict | None:
     if not all(with_quality):
         raise ValueError("quality evidence must be present for every paired run or omitted entirely")
 
-    totals = {name: 0.0 for name in QUALITY_WEIGHTS}
+    totals = dict.fromkeys(QUALITY_WEIGHTS, 0.0)
     blockers = 0
     for run in runs:
         quality = run.get("quality")
