@@ -208,7 +208,15 @@ def test_runtime_injects_generation_policy_with_session_config(tmp_path):
         (
             Path(tmp_path),
             "continue",
-            {"session_id": "session-1", "mode": "terse", "task": "coding"},
+            {
+                "session_id": "session-1",
+                "mode": "terse",
+                "task": "coding",
+                "adaptive": True,
+                "min_tokens": None,
+                "max_tokens": None,
+                "calibration_file": ".token-saver.output-calibration.json",
+            },
         )
     ]
 

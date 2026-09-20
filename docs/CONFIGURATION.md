@@ -30,6 +30,8 @@ allow = []
 enabled = true
 mode = "normal"
 task = "auto"
+adaptive = true
+calibration_file = ".token-saver.output-calibration.json"
 ```
 
 ## Hook settings
@@ -59,6 +61,10 @@ follow-ups inherit the current session class without another policy injection.
 | `output.enabled` | `true` | Enable automatic generation-policy injection where the host supports prompt hooks. |
 | `output.mode` | `"normal"` | Default response mode: `terse`, `normal`, or `detailed`. |
 | `output.task` | `"auto"` | Task policy: `auto`, `general`, `coding`, `debugging`, `review`, `explanation`, or `planning`. |
+| `output.adaptive` | `true` | Scale the task/mode base budget using deterministic prompt-complexity signals. |
+| `output.min_tokens` | unset | Optional project floor for adaptive budgets, still bounded by the selected mode's safety range. |
+| `output.max_tokens` | unset | Optional project ceiling for adaptive budgets, still bounded by the selected mode's safety range. |
+| `output.calibration_file` | `".token-saver.output-calibration.json"` | Optional learned-budget artifact produced by `output-calibrate`; missing/invalid files fall back to built-in bases. |
 
 The full policy is injected only when the resolved task/mode changes, on the
 first prompt in a session, or after a clear/compact context reset. Token Saver
@@ -66,6 +72,13 @@ stores only the resolved task, mode, and budget in local session state; it does
 not persist the user prompt for this feature. Explicit requests such as
 "keep it short" or "give a comprehensive explanation" override the configured
 mode for the active task.
+
+Adaptive budgets use only visible prompt structure: request length, multi-part
+lists, code/diagnostic evidence, and broad repository/architecture scope. A
+vague follow-up inherits the current budget exactly instead of being rescored.
+Built-in mode safety bounds prevent unbounded expansion or collapse. When a
+valid calibration artifact is present, its quality-verified task/mode budget
+becomes the learned base before complexity scaling.
 
 Example allowlist:
 
@@ -92,6 +105,10 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_OUTPUT_POLICY` | `output.enabled` |
 | `TOKEN_SAVER_OUTPUT_MODE` | `output.mode` |
 | `TOKEN_SAVER_OUTPUT_TASK` | `output.task` |
+| `TOKEN_SAVER_OUTPUT_ADAPTIVE` | `output.adaptive` |
+| `TOKEN_SAVER_OUTPUT_MIN_TOKENS` | `output.min_tokens` |
+| `TOKEN_SAVER_OUTPUT_MAX_TOKENS` | `output.max_tokens` |
+| `TOKEN_SAVER_OUTPUT_CALIBRATION_FILE` | `output.calibration_file` |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 

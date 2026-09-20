@@ -1,5 +1,17 @@
 # Unreleased
 
+- **Added adaptive, quality-calibrated generation budgets.** Automatic output
+  policy now scales task/mode bases using deterministic prompt complexity
+  signals while preserving hard mode bounds and stable budgets across vague
+  follow-ups. New `output.adaptive`, min/max clamp, and calibration-file
+  settings are available with environment overrides. `token-saver
+  output-calibrate` learns task/mode base budgets only from blinded paired runs
+  where both arms succeed and correctness, safety, weighted quality, and blocker
+  constraints remain at parity; at least three valid samples spanning three distinct task IDs are required.
+  Recommendations use observed p90 output tokens plus a configurable safety
+  margin. Failed, blocked, unblinded, or degraded short responses cannot train
+  the controller.
+
 - **Made generation-time output control automatic for Claude Code.**
   `UserPromptSubmit` now deterministically classifies strong coding, debugging,
   review, planning, and explanation prompts and injects the task-aware response
@@ -29,7 +41,7 @@
   evidence now prevents `claim_allowed=true`.
 
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
-  end-to-end bug narrative, 43 dedicated command-reference pages with flags,
+  end-to-end bug narrative, 44 dedicated command-reference pages with flags,
   exit semantics, and machine-output links, explicit JSON CLI contracts, merged
   top-level `--help` discovery, and a holdout query-construction protocol that
   separates semantic natural-language evaluation from identifier-bearing

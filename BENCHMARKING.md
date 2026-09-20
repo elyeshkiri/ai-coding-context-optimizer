@@ -316,6 +316,24 @@ three randomized paired trials per task, keep the model/prompt/tool settings
 identical, independently verify task success, and report output-token reduction
 next to cost per success rather than treating response length alone as quality.
 
+### Calibrating adaptive output budgets
+
+Token Saver can turn the same blind paired evidence into conservative learned
+task/mode bases. Add `output_task` and `output_mode` to Token Saver runs, then:
+
+```bash
+token-saver output-calibrate benchmarks/agent-runs.json \
+  --out .token-saver.output-calibration.json
+```
+
+The calibrator considers only pairs where baseline and Token Saver both succeed,
+the Token Saver response has no blocker, and correctness, safety, and weighted
+blind quality remain within the evaluator parity tolerance. At least three valid samples spanning at least three distinct task IDs are
+required per task/mode. The recommendation is p90 observed output
+tokens plus a 15% safety margin, bounded by the mode safety range. Failed,
+unblinded, or degraded short runs therefore cannot train the controller toward
+an artificially small budget.
+
 ## Live host validation is a separate manual gate
 
 Start with the consolidated configuration/index check, then run the deeper host

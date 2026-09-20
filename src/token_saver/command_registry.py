@@ -30,6 +30,7 @@ from .command_handlers.host import (
 )
 from .command_handlers.output import (
     output_benchmark_main,
+    output_calibrate_main,
     output_explain_main,
     output_policy_main,
     output_replay_main,
@@ -97,6 +98,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("host-check", host_check_main),
         CommandSpec("output-policy", output_policy_main),
         CommandSpec("output-benchmark", output_benchmark_main),
+        CommandSpec("output-calibrate", output_calibrate_main),
         CommandSpec("output-explain", output_explain_main),
         CommandSpec("output-replay", output_replay_main),
         CommandSpec("output-save", output_save_main),

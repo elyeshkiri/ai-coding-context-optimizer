@@ -49,6 +49,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`output-explain`](commands/output-explain.md) — explain processor selection/failure routing.
 - [`output-replay`](commands/output-replay.md) — replay preservation/savings contracts.
 - [`output-benchmark`](commands/output-benchmark.md) — evaluate deterministic output fixtures.
+- [`output-calibrate`](commands/output-calibrate.md) — learn quality-gated adaptive task/mode budgets.
 - [`output-policy`](commands/output-policy.md) — generate model-response policy instructions.
 - [`output-save`](commands/output-save.md) — compact an already-generated response.
 - [`output`](commands/output.md) — page a saved original command result.

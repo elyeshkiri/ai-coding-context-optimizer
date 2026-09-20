@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from ..output_benchmark import evaluate_output_manifest
+from ..output_budget import calibrate_output_budgets
 from ..output_processors import explain_processor
 from ..output_quality import evaluate_quality_manifest
 from ..output_saver import (
@@ -16,6 +17,35 @@ from ..output_saver import (
     compact_structured_result,
 )
 
+
+
+
+def output_calibrate_main(argv: list[str]) -> int:
+    """Build a quality-gated adaptive output-budget calibration artifact."""
+    parser = argparse.ArgumentParser(prog="token-saver output-calibrate")
+    parser.add_argument("manifest", help="paired agent-run JSON with blind quality scores")
+    parser.add_argument(
+        "--margin",
+        type=float,
+        default=1.15,
+        help="safety margin applied above observed p90 output tokens (default: 1.15)",
+    )
+    parser.add_argument(
+        "--out",
+        help="optional JSON artifact path; stdout is used when omitted",
+    )
+    args = parser.parse_args(argv)
+    try:
+        result = calibrate_output_budgets(Path(args.manifest), margin=args.margin)
+        rendered = json.dumps(result, indent=2) + "\n"
+        if args.out:
+            Path(args.out).write_text(rendered, encoding="utf-8")
+        else:
+            sys.stdout.write(rendered)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    return 0
 
 def output_policy_main(argv: list[str]) -> int:
     """Run the output policy command."""
