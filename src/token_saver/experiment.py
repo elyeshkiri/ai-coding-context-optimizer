@@ -467,6 +467,7 @@ def _transcript_usage(path: Path) -> dict:
         "cached_input_tokens": cache_read,
         "output_tokens": output,
         "model_calls": len(report.turns),
+        "tool_calls": len(report.calls),
     }
 
 
@@ -906,7 +907,6 @@ def run_experiment(
                     "manual_intervention": False,
                     "seconds": seconds,
                     **usage,
-                    "tool_calls": 0,
                     "output_task": (
                         policy_telemetry["output_task"] if policy_telemetry else None
                     ),
