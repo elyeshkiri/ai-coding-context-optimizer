@@ -26,6 +26,7 @@ def _services(**overrides):
         ),
         "store_output": lambda response: "stored",
         "user_nudge": lambda root, prompt: None,
+        "generation_policy": lambda root, prompt, **kwargs: None,
         "reset_session": lambda root, **kwargs: None,
         "record_read": lambda root, path, digest, **kwargs: None,
         "digest": lambda text: "digest",
@@ -167,6 +168,71 @@ def test_runtime_injects_session_and_prompt_services(tmp_path):
     assert code == 0
     assert response == {"systemMessage": "use bounded context"}
     assert prompt_calls == [(Path(tmp_path), "fix the bug")]
+
+
+def test_runtime_injects_generation_policy_with_session_config(tmp_path):
+    """Prompt hooks should pass session and policy config to the generator."""
+    calls = []
+
+    def generation_policy(root, prompt, **kwargs):
+        """Capture automatic generation-policy calls."""
+        calls.append((root, prompt, kwargs))
+        return "generation contract"
+
+    runtime = HookRuntime(
+        _services(generation_policy=generation_policy),
+        HookConfig(
+            output_policy_enabled=True,
+            output_policy_mode="terse",
+            output_policy_task="coding",
+        ),
+    )
+
+    code, response = runtime.run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "prompt": "continue",
+            "session_id": "session-1",
+        }
+    )
+
+    assert code == 0
+    assert response == {"systemMessage": "generation contract"}
+    assert calls == [
+        (
+            Path(tmp_path),
+            "continue",
+            {"session_id": "session-1", "mode": "terse", "task": "coding"},
+        )
+    ]
+
+
+def test_runtime_can_disable_generation_policy_without_disabling_other_nudges(tmp_path):
+    """Output-policy opt-out should leave existing lifecycle advice untouched."""
+    generation_calls = []
+
+    runtime = HookRuntime(
+        _services(
+            generation_policy=lambda *args, **kwargs: generation_calls.append(
+                (args, kwargs)
+            ),
+            user_nudge=lambda root, prompt: "lifecycle nudge",
+        ),
+        HookConfig(output_policy_enabled=False),
+    )
+
+    code, response = runtime.run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "prompt": "implement this",
+        }
+    )
+
+    assert code == 0
+    assert response == {"systemMessage": "lifecycle nudge"}
+    assert generation_calls == []
 
 
 def test_runtime_records_verified_full_read_with_injected_state_services(tmp_path):
