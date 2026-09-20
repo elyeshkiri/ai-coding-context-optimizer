@@ -219,16 +219,6 @@ def deduplicate_output(
         "[token-saver cross-turn dedup: exact output unchanged from the prior "
         f"run of '{label}'; {tokens} estimated tokens omitted]\n"
     )
-    saved = max(0, tokens - estimate_tokens(stub))
-    append_event(
-        root,
-        {
-            "kind": "saving",
-            "feature": "cross_turn_dedup",
-            "estimated_tokens_saved": saved,
-            "session": key,
-        },
-    )
     return stub
 
 
@@ -444,16 +434,15 @@ def observe_tool(
             if delivered_text.startswith("[token-saver cross-turn dedup:")
             else "output_compression"
         )
-        if feature != "cross_turn_dedup":
-            append_event(
-                root,
-                {
-                    "kind": "saving",
-                    "feature": feature,
-                    "estimated_tokens_saved": original_tokens - delivered_tokens,
-                    "session": key,
-                },
-            )
+        append_event(
+            root,
+            {
+                "kind": "saving",
+                "feature": feature,
+                "estimated_tokens_saved": original_tokens - delivered_tokens,
+                "session": key,
+            },
+        )
     return note
 
 
