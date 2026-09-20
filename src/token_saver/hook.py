@@ -48,6 +48,10 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         output_policy_enabled=settings.output_policy,
         output_policy_mode=settings.output_mode,
         output_policy_task=settings.output_task,
+        output_policy_adaptive=settings.output_adaptive,
+        output_policy_min_tokens=settings.output_min_tokens,
+        output_policy_max_tokens=settings.output_max_tokens,
+        output_policy_calibration_file=settings.output_calibration_file,
     )
 
 
