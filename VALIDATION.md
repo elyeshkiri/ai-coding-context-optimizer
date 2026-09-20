@@ -16,6 +16,28 @@ Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 - the hash-frozen session/output quality replay suite with preservation,
   no-hallucination, and minimum-reduction contracts.
 
+The unreleased knowledge-efficiency layer has its own evidence boundary.
+`knowledge_read_avoidance` and `cache_economics` are disabled by default.
+The checked-in
+`benchmarks/knowledge-efficiency-swebench-24.frozen.json` reuses the same 24
+SWE-bench Verified tasks at three randomized paired trials per task. Both arms
+run the same current Token Saver binary, explicitly persist verified findings
+during an identical no-edit investigation phase, and then enter a fresh
+implementation session. Continuity, exact cross-turn deduplication, repeated-read
+deduplication, and behavioral waste signals are disabled in both arms; only
+knowledge-assisted full-read avoidance and its cache-economics acceptance gate
+differ.
+
+The accompanying paid/manual workflow represents **144 arm-runs / 288 Claude
+task phases**, plus independent hidden verification and blind response grading.
+It has **not been executed**. The stored mechanism tests and frozen protocol
+therefore establish correctness/isolation only; they do not establish a real
+reduction in tool calls, input tokens, billed cost, or cost per successful task.
+**No knowledge-efficiency savings percentage is claimed** until the paid paired
+run passes success parity, blind-quality parity, treatment-exposure/control-
+isolation checks, complete cache-TTL-aware pricing, and a task-cluster 95%
+confidence interval whose cost-per-success reduction lower bound is above zero.
+
 Version 1.8.0 adds a separate frozen session-efficiency
 holdout rather than treating operational dashboard estimates as evidence. The
 holdout reuses the existing 24 SWE-bench Verified task definitions, runs three
