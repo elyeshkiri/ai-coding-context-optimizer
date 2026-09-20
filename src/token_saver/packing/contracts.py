@@ -73,3 +73,5 @@ class ContextPack:
     redactions: list[str] = field(default_factory=list)
     closure_files: list[str] = field(default_factory=list)
     retrieval_plan: dict[str, int] = field(default_factory=dict)
+    cache_hit: bool = False
+    cache_key: str | None = None
