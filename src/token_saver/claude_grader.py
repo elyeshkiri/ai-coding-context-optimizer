@@ -54,7 +54,7 @@ def run(*, model: str, image: str, prompt: str) -> str:
         "--permission-mode",
         "plan",
         "--disallowedTools",
-        "Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,NotebookEdit,Task",
+        "*",
         "--output-format",
         "json",
     ]
