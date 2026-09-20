@@ -1,5 +1,16 @@
 # Unreleased
 
+- **Made generation-time output control automatic for Claude Code.**
+  `UserPromptSubmit` now deterministically classifies strong coding, debugging,
+  review, planning, and explanation prompts and injects the task-aware response
+  policy before generation. Ambiguous follow-ups inherit the active session
+  policy without another full injection; task/mode changes and clear/compact
+  resets re-inject it. Explicit terse/detailed requests override the configured
+  mode. New `[output]` project settings and environment overrides control the
+  feature, and only resolved task/mode/budget metadata is stored locally — user
+  prompt text is not persisted. The generated Claude token-budget skill is also
+  synchronized with the checked-in template.
+
 - **Made Output Saver generation policy task-aware and quality-gated.**
   `output-policy --task` now adapts default budgets and response constraints for
   coding, debugging, review, explanation, and planning while preserving the

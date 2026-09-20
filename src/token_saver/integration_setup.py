@@ -34,6 +34,11 @@ delta = false
 min_lines = 40
 keep_tail = 15
 allow = []
+
+[output]
+enabled = true
+mode = "normal"
+task = "auto"
 """
 
 

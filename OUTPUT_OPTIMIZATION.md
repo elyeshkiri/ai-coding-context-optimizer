@@ -10,6 +10,13 @@ text as disposable. Version 1.5.0 introduces three related capabilities:
 The design goal is simple: **remove repeated or low-value output only when the
 information needed to solve the task remains available**.
 
+Generation-time response control is a separate path from terminal-output
+compression. With Claude Code setup, `UserPromptSubmit` classifies the task and
+injects the task-aware `output-policy` contract before completion generation.
+The policy is remembered per host session and re-injected only when task/mode
+changes or context is reset. This is the path that can reduce billable model
+output; post-generation compaction cannot refund tokens already emitted.
+
 ## 1. Failure-aware output processor registry
 
 Bash stdout is routed through a priority-ordered processor registry. The first

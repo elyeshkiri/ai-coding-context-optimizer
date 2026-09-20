@@ -67,6 +67,41 @@ def test_session_start_without_transcripts_is_silent(tmp_path):
     assert response is None
 
 
+def test_user_prompt_auto_policy_injects_once_per_task(tmp_path, monkeypatch):
+    """Claude prompt hooks should inject a task policy once, then inherit it silently."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    payload = {
+        "hook_event_name": "UserPromptSubmit",
+        "cwd": str(tmp_path),
+        "session_id": "session-1",
+        "prompt": "Implement automatic output policy injection",
+    }
+
+    code, response = run(payload)
+    assert code == 0
+    assert response is not None
+    context = response["hookSpecificOutput"]["additionalContext"]
+    assert "OUTPUT TASK: coding." in context
+
+    followup = dict(payload, prompt="go for the next move")
+    assert run(followup) == (0, None)
+
+
+def test_user_prompt_auto_policy_can_be_disabled(tmp_path, monkeypatch):
+    """The generation-policy hook should have an independent project/env kill switch."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_POLICY", "0")
+
+    assert run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "session_id": "session-1",
+            "prompt": "Implement automatic output policy injection",
+        }
+    ) == (0, None)
+
+
 def test_small_output_is_left_alone():
     """Rewriting a short result risks losing detail for no gain."""
     assert _updated(_payload("\n".join(f"line {i}" for i in range(30)))) is None

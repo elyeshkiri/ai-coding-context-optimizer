@@ -31,6 +31,9 @@ _TASK_BUDGETS = {
     "explanation": {"terse": 450, "normal": 1000, "detailed": 2400},
     "planning": {"terse": 350, "normal": 800, "detailed": 1800},
 }
+OUTPUT_MODES = tuple(_MODE_BUDGETS)
+OUTPUT_TASKS = ("general", *_TASK_BUDGETS)
+
 _TASK_RULES = {
     "coding": (
         "Lead with the concrete code result or changed file/symbol. "

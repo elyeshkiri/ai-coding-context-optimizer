@@ -133,6 +133,8 @@ def record_diagnostic_snapshot(
 def reset_session(root: Path, *, reads: bool = True, reminder: bool = True, session_id: str | None = None) -> None:
     """Reset session."""
     def mutate(data):
-        if reads: data.update(reads={}, usage={}, diagnostics={})
-        if reminder: data["reminder"] = ""
+        if reads:
+            data.update(reads={}, usage={}, diagnostics={}, output_policy={})
+        if reminder:
+            data["reminder"] = ""
     update(root, mutate, session_id)

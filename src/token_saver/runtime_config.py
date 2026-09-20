@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
+
+from .generation_policy import OUTPUT_TASK_OPTIONS
+from .output_saver import OUTPUT_MODES
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - Python 3.10
@@ -26,6 +30,9 @@ class RuntimeSettings:
     min_lines: int = 40
     max_lines: int | None = None
     keep_tail: int = 15
+    output_policy: bool = True
+    output_mode: str = "normal"
+    output_task: str = "auto"
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -54,6 +61,14 @@ def _positive_int(value: object, fallback: int) -> int:
     )
 
 
+def _choice(value: object, fallback: str, choices: tuple[str, ...]) -> str:
+    """Normalize a string choice while preserving fallback for invalid values."""
+    if not isinstance(value, str):
+        return fallback
+    normalized = value.strip().lower()
+    return normalized if normalized in choices else fallback
+
+
 def _optional_positive_int(
     value: object, fallback: int | None
 ) -> int | None:
@@ -79,6 +94,9 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     hooks = payload.get("hooks", {})
     if not isinstance(hooks, dict):
         raise ValueError(f"Expected [hooks] table in Token Saver config: {path}")
+    output = payload.get("output", {})
+    if not isinstance(output, dict):
+        raise ValueError(f"Expected [output] table in Token Saver config: {path}")
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -98,6 +116,9 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         min_lines=_positive_int(hooks.get("min_lines"), 40),
         max_lines=_optional_positive_int(hooks.get("max_lines"), None),
         keep_tail=max(0, keep_tail),
+        output_policy=_bool(output.get("enabled"), True),
+        output_mode=_choice(output.get("mode"), "normal", OUTPUT_MODES),
+        output_task=_choice(output.get("task"), "auto", OUTPUT_TASK_OPTIONS),
     )
 
 
@@ -107,6 +128,15 @@ def _env_bool(name: str, fallback: bool) -> bool:
     if raw is None:
         return fallback
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_choice(name: str, fallback: str, choices: tuple[str, ...]) -> str:
+    """Read a normalized string-choice environment override."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return fallback
+    normalized = raw.strip().lower()
+    return normalized if normalized in choices else fallback
 
 
 def _env_int(
@@ -149,4 +179,11 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         min_lines=int(min_lines or base.min_lines),
         max_lines=max_lines,
         keep_tail=int(keep_tail if keep_tail is not None else base.keep_tail),
+        output_policy=_env_bool("TOKEN_SAVER_OUTPUT_POLICY", base.output_policy),
+        output_mode=_env_choice(
+            "TOKEN_SAVER_OUTPUT_MODE", base.output_mode, OUTPUT_MODES
+        ),
+        output_task=_env_choice(
+            "TOKEN_SAVER_OUTPUT_TASK", base.output_task, OUTPUT_TASK_OPTIONS
+        ),
     )
