@@ -437,8 +437,10 @@ class SemanticVectorIndex:
                 path = self.root / rel
                 try:
                     text = path.read_text(encoding="utf-8", errors="replace")
-                except OSError:
-                    continue
+                except OSError as exc:
+                    raise RuntimeError(
+                        f"unable to read indexed source for semantic refresh: {rel}"
+                    ) from exc
                 current_digest = hashlib.sha256(
                     text.encode("utf-8", "replace")
                 ).hexdigest()
