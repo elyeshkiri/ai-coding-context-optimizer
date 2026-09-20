@@ -164,6 +164,7 @@ def _apply_embedding_rerank_index(
         fused = lexical_component + semantic_component
         boost = fusion_weight * fused + similarity_weight * max(0.0, hit.score)
         item.score += boost
+        item.semantic_ranges = [(hit.start_line, hit.end_line)]
         item.reasons.append(hit.evidence())
         item.reasons.append(
             f"hybrid-rrf:{lexical_rank[item.rel]}:{hit.rank}:{boost:.3f}"
