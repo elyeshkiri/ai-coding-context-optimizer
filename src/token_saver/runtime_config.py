@@ -33,6 +33,10 @@ class RuntimeSettings:
     output_policy: bool = True
     output_mode: str = "normal"
     output_task: str = "auto"
+    output_adaptive: bool = True
+    output_min_tokens: int | None = None
+    output_max_tokens: int | None = None
+    output_calibration_file: str = ".token-saver.output-calibration.json"
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -67,6 +71,14 @@ def _choice(value: object, fallback: str, choices: tuple[str, ...]) -> str:
         return fallback
     normalized = value.strip().lower()
     return normalized if normalized in choices else fallback
+
+
+def _string(value: object, fallback: str) -> str:
+    """Normalize a non-empty string setting."""
+    if not isinstance(value, str):
+        return fallback
+    normalized = value.strip()
+    return normalized or fallback
 
 
 def _optional_positive_int(
@@ -119,6 +131,13 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         output_policy=_bool(output.get("enabled"), True),
         output_mode=_choice(output.get("mode"), "normal", OUTPUT_MODES),
         output_task=_choice(output.get("task"), "auto", OUTPUT_TASK_OPTIONS),
+        output_adaptive=_bool(output.get("adaptive"), True),
+        output_min_tokens=_optional_positive_int(output.get("min_tokens"), None),
+        output_max_tokens=_optional_positive_int(output.get("max_tokens"), None),
+        output_calibration_file=_string(
+            output.get("calibration_file"),
+            ".token-saver.output-calibration.json",
+        ),
     )
 
 
@@ -128,6 +147,15 @@ def _env_bool(name: str, fallback: bool) -> bool:
     if raw is None:
         return fallback
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_string(name: str, fallback: str) -> str:
+    """Read a non-empty string environment override."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return fallback
+    normalized = raw.strip()
+    return normalized or fallback
 
 
 def _env_choice(name: str, fallback: str, choices: tuple[str, ...]) -> str:
@@ -185,5 +213,18 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         output_task=_env_choice(
             "TOKEN_SAVER_OUTPUT_TASK", base.output_task, OUTPUT_TASK_OPTIONS
+        ),
+        output_adaptive=_env_bool(
+            "TOKEN_SAVER_OUTPUT_ADAPTIVE", base.output_adaptive
+        ),
+        output_min_tokens=_env_int(
+            "TOKEN_SAVER_OUTPUT_MIN_TOKENS", base.output_min_tokens
+        ),
+        output_max_tokens=_env_int(
+            "TOKEN_SAVER_OUTPUT_MAX_TOKENS", base.output_max_tokens
+        ),
+        output_calibration_file=_env_string(
+            "TOKEN_SAVER_OUTPUT_CALIBRATION_FILE",
+            base.output_calibration_file,
         ),
     )
