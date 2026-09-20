@@ -111,9 +111,9 @@ The previously recorded broad 24-task SWE-bench run remains
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the
 experiment, telemetry, blind-grading, cache-pricing, and publication-gate path
 and wires the same frozen **24 tasks × 3 trials** into a paid/manual workflow.
-That workflow has not yet been executed for this release candidate. **No 144-run
-aggregate savings claim is made for 1.6.0** until the new frozen workflow
-actually completes and its strict publication gate passes.
+That workflow has not yet been executed for this release candidate.
+**No 144-run aggregate savings claim is made for 1.6.0** until the new frozen
+workflow actually completes and its strict publication gate passes.
 
 ## Frozen external holdout program
 
