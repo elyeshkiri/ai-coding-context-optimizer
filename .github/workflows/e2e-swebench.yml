@@ -1,6 +1,12 @@
 name: Frozen SWE-bench Cost Evidence
 
 on:
+  workflow_dispatch:
+    inputs:
+      confirm_paid_run:
+        description: "Type RUN_144 to confirm the paid 24-task x 3-trial evaluation"
+        required: true
+        type: string
   push:
     branches:
       - bench/run-swebench-24
@@ -10,7 +16,9 @@ permissions:
 
 jobs:
   preflight:
-    if: contains(github.event.head_commit.message, '[run-e2e]')
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_paid_run == 'RUN_144') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[run-e2e]'))
     runs-on: ubuntu-latest
     env:
       HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
@@ -118,25 +126,34 @@ jobs:
             --allow-development \
             --out results/smoke-runs.json
 
-      - name: Require real transcript accounting
+      - name: Blind-grade the paid smoke pair
         run: |
-          token-saver benchmark \
+          token-saver blind-grade results/smoke-runs.json \
+            > results/smoke-blind-grade.json
+
+      - name: Require transcript, telemetry, grading, and pricing evidence
+        run: |
+          token-saver output-effectiveness \
             results/smoke-runs.json \
-            --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json \
-            > results/smoke-report.json
+            --fresh-input-per-million 2 \
+            --cache-creation-5m-per-million 2.5 \
+            --cache-creation-1h-per-million 4 \
+            --cache-read-per-million 0.2 \
+            --output-per-million 10 \
+            --json > results/smoke-effectiveness.json
           python - <<'PY'
           import json
 
           runs = json.load(open("results/smoke-runs.json"))
-          report = json.load(open("results/smoke-report.json"))
+          report = json.load(open("results/smoke-effectiveness.json"))
           assert len(runs["runs"]) == 2
           assert {r["condition"] for r in runs["runs"]} == {"baseline", "enabled"}
-          for arm in ("baseline", "enabled"):
-              row = report["results"][arm]
-              assert row["runs"] == 1
-              assert row["usd"] > 0
-              assert row["model_calls"] > 0
-          print("paid smoke passed: two real calls, transcripts, grading and pricing are usable")
+          assert all("quality" in run for run in runs["runs"])
+          assert report["quality"]["blinded"] is True
+          assert report["telemetry"]["runs_with_policy_telemetry"] == 1
+          assert report["conditions"]["baseline"]["cost_complete"] is True
+          assert report["conditions"]["token-saver"]["cost_complete"] is True
+          print("paid smoke passed: agent, telemetry, blind judge, and pricing are usable")
           PY
 
       - name: Upload smoke evidence
@@ -274,7 +291,7 @@ jobs:
           ev = p["publication_gate"]
           print("# Frozen SWE-bench cost evidence")
           print()
-          print(f"- tasks: {p['unique_tasks']}")
+          print(f"- tasks: {p['tasks']}")
           print(f"- paired trials: {p['paired_trials']}")
           print(f"- baseline success: {b['success_rate']:.1%}")
           print(f"- enabled success: {e['success_rate']:.1%}")
