@@ -10,7 +10,7 @@ token-saver session-holdout-evaluate <manifest>
   --rates FILE [--model MODEL] [--json] [--require-publishable]
 ```
 
-## Options
+## Arguments and options
 
 - `--rates FILE` — cache-TTL-aware model pricing table.
 - `--model MODEL` — override the model key; otherwise use `runner.model`.
@@ -25,6 +25,14 @@ bootstrap confidence intervals.
 Token Saver intervention counts are surfaced only under `feature_activation`.
 They prove treatment exposure but do not replace transcript-derived outcome
 metrics.
+
+## Output contract
+
+With `--json`, the command returns the complete session-effectiveness report
+documented under
+[Machine-readable contracts](../JSON_OUTPUTS.md#session-holdout-evaluate---json).
+Without `--json`, it prints compact before/after totals and the publication
+verdict.
 
 ## Exit codes
 
