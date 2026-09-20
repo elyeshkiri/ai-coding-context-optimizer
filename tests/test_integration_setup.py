@@ -71,6 +71,8 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     config_text = (root / ".token-saver.toml").read_text(encoding="utf-8")
     assert "[output]" in config_text
     assert 'task = "auto"' in config_text
+    assert "adaptive = true" in config_text
+    assert 'calibration_file = ".token-saver.output-calibration.json"' in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -191,6 +193,10 @@ allow = ["generated/*"]
 enabled = false
 mode = "terse"
 task = "review"
+adaptive = false
+min_tokens = 300
+max_tokens = 900
+calibration_file = "custom-calibration.json"
 """,
         encoding="utf-8",
     )
@@ -204,6 +210,10 @@ task = "review"
     assert settings.output_policy is False
     assert settings.output_mode == "terse"
     assert settings.output_task == "review"
+    assert settings.output_adaptive is False
+    assert settings.output_min_tokens == 300
+    assert settings.output_max_tokens == 900
+    assert settings.output_calibration_file == "custom-calibration.json"
 
     hook_config = _config_from_env(root)
     assert hook_config.delta_enabled is True
@@ -212,18 +222,33 @@ task = "review"
     assert hook_config.output_policy_enabled is False
     assert hook_config.output_policy_mode == "terse"
     assert hook_config.output_policy_task == "review"
+    assert hook_config.output_policy_adaptive is False
+    assert hook_config.output_policy_min_tokens == 300
+    assert hook_config.output_policy_max_tokens == 900
+    assert hook_config.output_policy_calibration_file == "custom-calibration.json"
 
     monkeypatch.setenv("TOKEN_SAVER_DELTA", "0")
     monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "33")
     monkeypatch.setenv("TOKEN_SAVER_OUTPUT_POLICY", "1")
     monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MODE", "detailed")
     monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TASK", "coding")
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_ADAPTIVE", "1")
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MIN_TOKENS", "450")
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MAX_TOKENS", "1400")
+    monkeypatch.setenv(
+        "TOKEN_SAVER_OUTPUT_CALIBRATION_FILE",
+        "learned.json",
+    )
     overridden = settings_for(root)
     assert overridden.delta is False
     assert overridden.min_lines == 33
     assert overridden.output_policy is True
     assert overridden.output_mode == "detailed"
     assert overridden.output_task == "coding"
+    assert overridden.output_adaptive is True
+    assert overridden.output_min_tokens == 450
+    assert overridden.output_max_tokens == 1400
+    assert overridden.output_calibration_file == "learned.json"
 
 
 def test_guard_uses_project_config(tmp_path):
