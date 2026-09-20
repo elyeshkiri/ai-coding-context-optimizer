@@ -21,6 +21,61 @@ manifest under version control so ranking changes can be compared reproducibly.
 
 ## Multi-repository holdout benchmark
 
+### Query-construction protocol
+
+A frozen hash prevents post-hoc edits to the **query text**, expected files, and
+expected symbols. It does not make an easy query difficult. New holdouts must
+therefore declare which retrieval behavior they are measuring before the first
+Token Saver run.
+
+For a **semantic natural-language holdout**, construct each query from the
+upstream issue, bug report, user request, or behavior description **before
+looking up the answer identity**. The query must not contain:
+
+- the target symbol/member name;
+- the target's containing class/type/module name when that name directly
+  identifies the answer;
+- the target file basename/path;
+- the exact qualified symbol identity used as ground truth;
+- a distinctive implementation literal copied from the answer solely to make
+  retrieval easier.
+
+Example:
+
+```text
+acceptable:   "reject malformed email addresses before schema validation"
+not semantic: "where is emailRegex in regexes.ts"
+```
+
+If the real user task already contains an identifier (for example, a compiler
+error names `refreshSession`), keep it: removing genuine task evidence would
+make the benchmark artificial. Classify that task/suite as **identifier-bearing**
+rather than semantic-natural-language and report it separately.
+
+Do not present identifier-bearing recall as a continuation of a
+natural-language difficulty trend. The two answer different questions:
+
+- semantic suites test whether Token Saver can discover the identity from a
+  behavior/problem description;
+- identifier-bearing suites test exact navigation, overload resolution,
+  scoping, and identity recovery once some answer vocabulary is already known.
+
+For future headline semantic holdouts:
+
+1. pre-register the query source/rule and freeze the exact query text;
+2. keep target symbol, containing type, file path, and qualified identity out of
+   the query unless they genuinely appeared in the upstream task;
+3. record any unavoidable identifier-bearing tasks explicitly;
+4. run a trivial lexical baseline (for example grep/ctags/exact identifier
+   lookup where applicable) on the same frozen tasks;
+5. report Token Saver recall alongside that baseline rather than quoting only an
+   absolute recall percentage;
+6. never rewrite queries after seeing retrieval misses.
+
+The query source/rule belongs in the same committed evidence package as the
+manifest. The manifest's query strings themselves are part of the ground-truth
+freeze hash, so changing the wording after freeze changes benchmark identity.
+
 The repository-local selector benchmark is useful for regressions, but because
 Token Saver is developed against this codebase it is not independent evidence of
 generalization. For unseen evaluation, define ground truth before running the

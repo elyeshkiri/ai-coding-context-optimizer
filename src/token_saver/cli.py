@@ -22,6 +22,26 @@ from .snippet import extract_from_path
 from .state import load as load_state
 from .state import state_path
 
+LEGACY_COMMANDS = (
+    "audit",
+    "benchmark",
+    "budget",
+    "check",
+    "estimate",
+    "filter",
+    "hook",
+    "install",
+    "map",
+    "mcp-prune",
+    "outline",
+    "output",
+    "outputs-prune",
+    "policy",
+    "sessions",
+    "snippet",
+    "status",
+)
+
 # share of a context window that always-on content should not exceed
 ALWAYS_ON_WARN = 0.02
 ALWAYS_ON_FAIL = 0.05

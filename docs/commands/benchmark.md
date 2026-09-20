@@ -1,0 +1,28 @@
+# `token-saver benchmark`
+
+Evaluate recorded paired tasks with supplied model rates.
+
+## Synopsis
+
+```bash
+token-saver benchmark <manifest> [--rates FILE] [--require-publishable] [--print-task-definition-hash]
+```
+
+## Arguments and options
+
+- `manifest` — paired benchmark artifact.
+- `--rates` pricing JSON; required unless printing the task-definition hash.
+- `--require-publishable` enforces frozen broad-protocol requirements.
+- `--print-task-definition-hash` prints the freeze hash without evaluating costs.
+
+## Exit codes
+
+`0` success; `1` malformed evidence/pricing or failed publication requirements.
+
+## Output contract
+
+JSON when evaluating; a single hash when printing the task-definition hash. See [Machine-readable contracts](../JSON_OUTPUTS.md#legacy-benchmark-always-json).
+
+## Authoritative runtime help
+
+Run `token-saver benchmark --help` for argparse's exact usage text for the installed version.

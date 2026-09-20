@@ -14,11 +14,16 @@ python -m pip install --upgrade claude-token-saver
 The PyPI distribution is `claude-token-saver`; the executable remains
 `token-saver`.
 
-Verify the executable:
+Verify the executable and discover the complete command surface:
 
 ```bash
+token-saver --help
 token-saver commands
 ```
+
+`--help` includes both registry-backed and legacy-compatible commands; you no
+longer need README knowledge to discover `setup`, `doctor`, `pack`, or
+`uninstall`.
 
 ## 2. Configure a project
 
@@ -140,7 +145,9 @@ Codex configuration, and a user-modified generated Claude skill.
 
 ## Next
 
+- [Worked end-to-end example](WORKED_EXAMPLE.md)
 - [CLI reference](CLI_REFERENCE.md)
+- [Machine-readable CLI contracts](JSON_OUTPUTS.md)
 - [Integrations](../INTEGRATIONS.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Validation](../VALIDATION.md)

@@ -1,5 +1,14 @@
 # Unreleased
 
+- **Closed the remaining documentation completeness gaps.** Added a reproducible
+  end-to-end bug narrative, 43 dedicated command-reference pages with flags,
+  exit semantics, and machine-output links, explicit JSON CLI contracts, merged
+  top-level `--help` discovery, and a holdout query-construction protocol that
+  separates semantic natural-language evaluation from identifier-bearing
+  lookup. Documentation tests now enforce those surfaces and keep the known
+  validation limitations visible.
+
+
 # 1.5.0 - 2026-09-20
 
 - **Made file reranking an explicit extension surface.** Ranking now composes

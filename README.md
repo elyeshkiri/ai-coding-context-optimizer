@@ -59,7 +59,9 @@ Anthropic.
 Start with the task-oriented docs instead of searching this README:
 
 - [5-minute quickstart](docs/QUICKSTART.md)
+- [Worked end-to-end example](docs/WORKED_EXAMPLE.md)
 - [CLI reference](docs/CLI_REFERENCE.md)
+- [Machine-readable CLI contracts](docs/JSON_OUTPUTS.md)
 - [Configuration reference](docs/CONFIGURATION.md)
 - [Claude Code / Cursor / Codex integrations](INTEGRATIONS.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)

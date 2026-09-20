@@ -5,7 +5,9 @@ Use this page as the documentation map for Token Saver 1.5.
 ## Start here
 
 - [Quickstart](QUICKSTART.md) — install, configure, verify, and run the first useful commands.
-- [CLI reference](CLI_REFERENCE.md) — command groups and when to use each command.
+- [CLI reference](CLI_REFERENCE.md) — complete command index with per-command references.
+- [Machine-readable CLI contracts](JSON_OUTPUTS.md) — stable JSON fields and exit/gating behavior.
+- [Worked end-to-end example](WORKED_EXAMPLE.md) — one real bug from setup through measured paired runs.
 - [Configuration](CONFIGURATION.md) — project TOML, environment overrides, and host-managed files.
 - [Troubleshooting](TROUBLESHOOTING.md) — setup, MCP, hooks, indexing, output recovery, and benchmark failures.
 - [Upgrading](UPGRADING.md) — safe upgrade, repair, migration, and rollback workflow.

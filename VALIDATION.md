@@ -120,6 +120,27 @@ written before evaluation, normalized into a path-independent payload, sealed
 with SHA-256, and enforced with `--require-holdout`. Once a suite is evaluated,
 it is considered burned for tuning.
 
+### Query difficulty and comparability
+
+The frozen suites do **not** all measure the same query difficulty.
+
+The original 6-task external holdout uses natural-language behavior descriptions
+without embedding the target symbol/type identity. By contrast, later suites
+including #11 and #12 contain many **identifier-bearing queries** whose wording
+names the target class/type and member (for example, asking for a named method
+on a named type). Their strong exact-identity numbers therefore validate
+navigation, scoping, overload resolution, and identity recovery under
+identifier-bearing tasks; they must not be read as evidence that semantic
+natural-language retrieval improved monotonically from the early suites to
+100%.
+
+This distinction is now part of the benchmark protocol. Future headline
+semantic holdouts must follow the no-identifier-leakage query-construction rule
+in [BENCHMARKING.md](BENCHMARKING.md#query-construction-protocol), and should
+publish a trivial lexical baseline on the same frozen tasks. Identifier-bearing
+tasks remain valid when that vocabulary genuinely appears in the upstream user
+task, but are reported as a separate query class.
+
 ### Holdout #12 — latest fresh external evidence
 
 Holdout #12 follows the pre-declared design from the #11 review: **72
