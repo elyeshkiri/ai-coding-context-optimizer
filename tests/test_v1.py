@@ -259,7 +259,7 @@ def test_agent_evaluator_requires_pairs_and_suppresses_claim_without_quality(tmp
     assert result["claim_allowed"] is False
 
 
-def test_agent_evaluator_reports_reduction_only_at_quality_parity(tmp_path):
+def test_agent_evaluator_reports_measurements_but_no_claim_without_blind_quality(tmp_path):
     manifest = tmp_path / "runs.json"
     manifest.write_text(json.dumps({"runs": [
         {"task": "a", "condition": "baseline", "success": True,
@@ -268,9 +268,12 @@ def test_agent_evaluator_reports_reduction_only_at_quality_parity(tmp_path):
          "input_tokens": 400, "output_tokens": 100},
     ]}))
     result = evaluate_agent_runs(manifest)
+
     assert result["quality_parity"] is True
+    assert result["raw_output_token_reduction"] == pytest.approx(0.0)
     assert result["tokens_per_success_reduction"] == pytest.approx(1 - 500 / 1100)
-    assert result["claim_allowed"] is True
+    assert result["claim_allowed"] is False
+    assert "missing_blind_quality_evidence" in result["claim_blockers"]
 
 
 def test_agent_evaluator_can_gate_savings_on_blind_response_quality(tmp_path):
@@ -305,8 +308,11 @@ def test_agent_evaluator_can_gate_savings_on_blind_response_quality(tmp_path):
     assert result["task_success_parity"] is True
     assert result["quality_parity"] is True
     assert result["quality_evidence"]["blinded"] is True
-    assert result["output_token_reduction"] == pytest.approx(0.5)
+    assert result["blind_quality_verified"] is True
+    assert result["raw_output_token_reduction"] == pytest.approx(0.5)
+    assert result["output_tokens_per_success_reduction"] == pytest.approx(0.5)
     assert result["claim_allowed"] is True
+    assert result["claim_blockers"] == []
 
 
 def test_agent_evaluator_suppresses_claim_when_quality_regresses(tmp_path):
@@ -338,7 +344,102 @@ def test_agent_evaluator_suppresses_claim_when_quality_regresses(tmp_path):
 
     assert result["task_success_parity"] is True
     assert result["quality_parity"] is False
-    assert result["output_token_reduction"] is None
-    assert result["tokens_per_success_reduction"] is None
+    assert result["raw_output_token_reduction"] == pytest.approx(0.75)
+    assert result["tokens_per_success_reduction"] == pytest.approx(1 - 700 / 1400)
     assert result["claim_allowed"] is False
+    assert "quality_regression" in result["claim_blockers"]
 
+
+
+def test_agent_evaluator_supports_multiple_trials_per_task(tmp_path):
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 4,
+    }
+    runs = []
+    for trial, baseline_output, optimized_output in (
+        (1, 400, 200),
+        (2, 500, 250),
+        (3, 600, 300),
+    ):
+        runs.extend([
+            {
+                "task": "auth", "trial": trial, "condition": "baseline",
+                "success": True, "input_tokens": 1000,
+                "output_tokens": baseline_output, "quality": quality,
+                "blocker": False,
+            },
+            {
+                "task": "auth", "trial": trial, "condition": "token-saver",
+                "success": True, "input_tokens": 700,
+                "output_tokens": optimized_output,
+                "quality": {**quality, "concision": 5}, "blocker": False,
+            },
+        ])
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({
+        "quality_evaluation": {"blinded": True, "judge": "grader"},
+        "runs": runs,
+    }))
+
+    result = evaluate_agent_runs(manifest)
+
+    assert result["tasks"] == 1
+    assert result["paired_trials"] == 3
+    assert result["conditions"]["baseline"]["runs"] == 3
+    assert result["conditions"]["token-saver"]["runs"] == 3
+    assert result["output_tokens_per_success_reduction"] == pytest.approx(0.5)
+    assert result["paired"]["paired_trial_count"] == 3
+    assert result["paired"]["unique_task_count"] == 1
+    assert result["paired"]["trials_per_task"] == {"min": 3, "max": 3}
+    assert result["paired"]["output_token_reduction"]["mean"] == pytest.approx(0.5)
+    assert len(result["paired"]["output_token_reduction"]["mean_ci95"]) == 2
+    assert result["claim_allowed"] is True
+
+
+def test_agent_evaluator_pairs_by_task_trial_and_rejects_duplicate_condition(tmp_path):
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({"runs": [
+        {"task": "a", "trial": 1, "condition": "baseline", "success": True},
+        {"task": "a", "trial": 1, "condition": "baseline", "success": True},
+        {"task": "a", "trial": 1, "condition": "token-saver", "success": True},
+    ]}))
+
+    with pytest.raises(ValueError, match="duplicate baseline run for task/trial: a/1"):
+        evaluate_agent_runs(manifest)
+
+
+def test_agent_evaluator_rejects_unblinded_quality_claim(tmp_path):
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5,
+    }
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({
+        "quality_evaluation": {"blinded": False},
+        "runs": [
+            {
+                "task": "a", "condition": "baseline", "success": True,
+                "input_tokens": 1000, "output_tokens": 400,
+                "quality": quality, "blocker": False,
+            },
+            {
+                "task": "a", "condition": "token-saver", "success": True,
+                "input_tokens": 700, "output_tokens": 200,
+                "quality": quality, "blocker": False,
+            },
+        ],
+    }))
+
+    result = evaluate_agent_runs(manifest)
+
+    assert result["quality_parity"] is True
+    assert result["blind_quality_verified"] is False
+    assert result["claim_allowed"] is False
+    assert "quality_evidence_not_blinded" in result["claim_blockers"]
