@@ -260,6 +260,51 @@ and output tokens, retries, elapsed time, context failures, success rate, and
 tokens per success. It suppresses the reduction headline whenever Token Saver's
 success rate is below baseline.
 
+For generation-time output-policy experiments, the same manifest can carry
+optional **blind response-quality evidence**. Score both conditions on identical
+tasks/trials after relabelling them so the grader cannot see which response came
+from Token Saver. The built-in rubric weights correctness 40%, completeness
+20%, actionability 15%, safety 15%, and concision 10%.
+
+```json
+{
+  "quality_evaluation": {
+    "blinded": true,
+    "judge": "independent-response-grader"
+  },
+  "runs": [
+    {
+      "task": "fix-session-refresh",
+      "condition": "baseline",
+      "success": true,
+      "input_tokens": 18000,
+      "output_tokens": 1200,
+      "quality": {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 4,
+        "safety": 5,
+        "concision": 3
+      },
+      "blocker": false
+    }
+  ]
+}
+```
+
+When quality scores are supplied, every paired run must be scored. Token Saver
+then requires task-success parity, no material correctness/safety regression,
+no increase in blockers, and weighted-quality parity before reporting token
+reductions. `output_token_reduction` isolates generated completion-token
+savings; `tokens_per_success_reduction` still measures total input + output
+efficiency per successful task. Unblinded quality evidence is reported but
+cannot authorize a savings claim.
+
+For a publishable output-cost claim, use at least 20 distinct frozen tasks and
+three randomized paired trials per task, keep the model/prompt/tool settings
+identical, independently verify task success, and report output-token reduction
+next to cost per success rather than treating response length alone as quality.
+
 ## Live host validation is a separate manual gate
 
 Start with the consolidated configuration/index check, then run the deeper host
