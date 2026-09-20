@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import sqlite3
 from typing import Protocol
@@ -135,7 +136,12 @@ def _load_encoder(model: str) -> Encoder:
             "pip install 'claude-token-saver[embeddings]'"
         ) from exc
     try:
-        return SentenceTransformer(model, local_files_only=True)
+        revision = os.environ.get("TOKEN_SAVER_SEMANTIC_MODEL_REVISION") or None
+        return SentenceTransformer(
+            model,
+            revision=revision,
+            local_files_only=True,
+        )
     except OSError as exc:
         raise RuntimeError(
             f"local embedding model {model} is not downloaded"
