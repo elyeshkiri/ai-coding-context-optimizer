@@ -33,6 +33,9 @@ def _run(task: str, trial: int, condition: str, *, optimized: bool) -> dict:
         "condition": condition,
         "success": True,
         "manual_intervention": False,
+        "model": "synthetic-model",
+        "prompt_sha256": f"prompt-{task}",
+        "revision": "deadbeef",
         "fresh_input_tokens": fresh,
         "cache_creation_input_tokens": 100 if optimized else 200,
         "cache_read_input_tokens": 300 if optimized else 400,
@@ -77,6 +80,15 @@ def _manifest(path, *, tasks: int, trials: int) -> None:
     path.write_text(
         json.dumps(
             {
+                "protocol": {
+                    "task_definitions_frozen": True,
+                    "condition_order_randomized": True,
+                    "independent_verification": True,
+                    "history_isolated": True,
+                    "hidden_tests_after_agent": True,
+                    "frozen_at": "2026-09-20T00:00:00Z",
+                    "task_definition_sha256": "a" * 64,
+                },
                 "quality_evaluation": {
                     "blinded": True,
                     "judge": "independent-grader",
@@ -130,6 +142,7 @@ def test_publishable_effectiveness_requires_full_20_by_3_evidence(tmp_path):
     result = evaluate_output_effectiveness(manifest, pricing=_pricing())
 
     assert result["paired_trials"] == 60
+    assert result["protocol"]["valid"] is True
     assert result["publication_gate"]["passed"] is True
     assert result["publication_gate"]["blockers"] == []
     assert result["claim_allowed"] is True
@@ -230,3 +243,51 @@ def test_agent_evaluate_accepts_raw_experiment_enabled_alias(tmp_path):
     assert result["paired_trials"] == 3
     assert result["task_success_parity"] is True
     assert result["blind_quality_verified"] is True
+
+
+
+def test_publishable_gate_rejects_missing_frozen_protocol_even_with_good_metrics(
+    tmp_path,
+):
+    """Good cost/quality numbers are not publishable without frozen experiment design."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload.pop("protocol")
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(manifest, pricing=_pricing())
+
+    assert result["protocol"]["valid"] is False
+    assert (
+        "invalid_or_missing_frozen_experiment_protocol"
+        in result["publication_gate"]["blockers"]
+    )
+
+
+def test_publishable_gate_requires_ci_to_exclude_zero(tmp_path):
+    """A positive point estimate alone is insufficient when task-level variance is wide."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    # Make half the optimized tasks materially more expensive while preserving
+    # a small positive overall point estimate.
+    for run in payload["runs"]:
+        if run["condition"] == "enabled" and int(run["task"].split("-")[1]) < 10:
+            run["fresh_input_tokens"] = 1500
+            run["input_tokens"] = (
+                run["fresh_input_tokens"]
+                + run["cache_creation_input_tokens"]
+                + run["cache_read_input_tokens"]
+            )
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(manifest, pricing=_pricing())
+
+    interval = result["bootstrap"]["cost_per_success_reduction_ci95"]
+    assert interval is not None
+    if result["delta"]["cost_per_success_reduction"] > 0 and interval[0] <= 0:
+        assert (
+            "cost_per_success_ci_not_strictly_positive"
+            in result["publication_gate"]["blockers"]
+        )
