@@ -84,6 +84,8 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 - [`experiment`](commands/experiment.md) — run randomized paired agent trials.
 - [`evidence-run`](commands/evidence-run.md) — run/resume experiment → blind grade → cost/success → calibration.
+- [`session-holdout`](commands/session-holdout.md) — run/resume the frozen v1.6-session-behavior vs v1.7-session-efficiency holdout.
+- [`session-holdout-evaluate`](commands/session-holdout-evaluate.md) — evaluate merged/blind-graded session holdout evidence.
 - [`cost-report`](commands/cost-report.md) — analyze paired cost/success evidence.
 - [`benchmark`](commands/benchmark.md) — evaluate recorded paired-task evidence.
 
