@@ -14,7 +14,7 @@ token-saver semantic-index [path] --json
 - `path` — repository root; defaults to `.`.
 - `--json` — emit machine-readable index status.
 
-The command requires the local embedding dependency and an already-downloaded `all-MiniLM-L6-v2` model. Install the optional exact-scan semantic dependency with `pip install 'claude-token-saver[embeddings]'`. Install `hnswlib` through `pip install 'claude-token-saver[semantic-ann]'` to persist an HNSW sidecar; otherwise Token Saver uses exact cosine scan over the same persistent vectors.
+The command requires an already-downloaded `all-MiniLM-L6-v2` model. `pip install 'claude-token-saver[semantic]'` installs both SentenceTransformers and optional HNSW acceleration. The backward-compatible `[embeddings]` extra installs only SentenceTransformers and uses exact cosine scan; `[semantic-ann]` can add HNSW separately.
 
 Only vectors and source coordinates are stored. Source text is not duplicated into the semantic database.
 
