@@ -21,9 +21,8 @@ fn estimate_tokens(text: &str, ratio: f64) -> PyResult<usize> {
 #[pyfunction]
 fn identifier_tokens(text: &str) -> PyResult<Vec<String>> {
     static IDENT: OnceLock<Regex> = OnceLock::new();
-    let pattern = IDENT.get_or_init(|| {
-        Regex::new(r"\b[A-Za-z_$][\w$]*\b").expect("static identifier regex")
-    });
+    let pattern =
+        IDENT.get_or_init(|| Regex::new(r"\b[A-Za-z_$][\w$]*\b").expect("static identifier regex"));
     let mut out: HashSet<String> = pattern
         .find_iter(text)
         .map(|matched| matched.as_str())
@@ -118,31 +117,23 @@ mod tests {
 
     #[test]
     fn identifiers_are_sorted_and_unique() {
-        let values =
-            identifier_tokens("Foo foo $bar baz_2 if 2wrong abc$def caféValue").unwrap();
-        assert_eq!(
-            values,
-            vec!["abc$def", "bar", "baz_2", "cafévalue", "foo"]
-        );
+        let values = identifier_tokens("Foo foo $bar baz_2 if 2wrong abc$def caféValue").unwrap();
+        assert_eq!(values, vec!["abc$def", "bar", "baz_2", "cafévalue", "foo"]);
     }
 
     #[test]
     fn bm25_matches_positive_reference_case() {
         let counts = HashMap::from([("auth".into(), 3_usize)]);
         let df = HashMap::from([("auth".into(), 2_usize)]);
-        let (score, matched) =
-            bm25_score(counts, vec!["auth".into()], df, 10, 12.0, 5).unwrap();
+        let (score, matched) = bm25_score(counts, vec!["auth".into()], df, 10, 12.0, 5).unwrap();
         assert!(score > 0.0);
         assert_eq!(matched, 3);
     }
 
     #[test]
     fn jaccard_handles_overlap() {
-        let score = jaccard_similarity(
-            vec!["a".into(), "b".into()],
-            vec!["b".into(), "c".into()],
-        )
-        .unwrap();
+        let score =
+            jaccard_similarity(vec!["a".into(), "b".into()], vec!["b".into(), "c".into()]).unwrap();
         assert!((score - (1.0 / 3.0)).abs() < 1e-9);
     }
 
