@@ -24,6 +24,12 @@ _SECRET_RE = re.compile(
     r"(?i)(?:(password|passwd|token|secret|api[_-]?key|authorization)\s*[=:]\s*)(\S+)"
 )
 _URL_CREDS_RE = re.compile(r"(https?://[^:/\s]+:)[^@/\s]+@")
+_SECRET_FLAG_RE = re.compile(
+    r"(?i)(--(?:password|passwd|token|secret|api[-_]?key|authorization)\s+)(\S+)"
+)
+_AUTH_HEADER_RE = re.compile(
+    r"(?i)(authorization\s*:\s*)(?:bearer\s+)?(\S+)"
+)
 
 
 def _session_key(session_id: str | None) -> str:
@@ -52,6 +58,8 @@ def _safe_command_label(command: str) -> str:
         return match.group(0).replace(match.group(2), "<redacted>")
 
     compact = _SECRET_RE.sub(redact, compact)
+    compact = _SECRET_FLAG_RE.sub(redact, compact)
+    compact = _AUTH_HEADER_RE.sub(redact, compact)
     compact = _URL_CREDS_RE.sub(r"\1<redacted>@", compact)
     return compact[:180]
 
