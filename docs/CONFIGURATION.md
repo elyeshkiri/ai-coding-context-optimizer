@@ -45,6 +45,15 @@ cache_expected_reuses = 2
 cache_write_factor = 1.25
 cache_read_factor = 0.10
 cache_min_relative_savings = 0.05
+
+[ingress]
+enabled = false
+threshold_tokens = 12000
+packet_tokens = 1600
+
+[retrieval]
+cache = true
+cache_max_entries = 64
 ```
 
 ## Hook settings
@@ -147,6 +156,37 @@ also enabled it must additionally clear the configured projected-cost threshold.
 The model can always request a bounded `Read` range when exact implementation
 bytes are needed.
 
+## Prompt ingress
+
+Prompt ingress is a separate opt-in persistence boundary from the ordinary
+output-policy hook.
+
+| TOML key | Default | Meaning |
+|---|---:|---|
+| `ingress.enabled` | `false` | Block/stage prompts that exceed the threshold before Claude processes them. |
+| `ingress.threshold_tokens` | `12000` | Offline-estimated prompt size at which staging activates. |
+| `ingress.packet_tokens` | `1600` | Maximum target size for the bounded exact-excerpt stage packet. |
+
+Claude Code's `UserPromptSubmit` hook cannot replace the prompt. Token Saver
+therefore blocks the oversized turn, stores the exact original locally with a
+SHA-256 integrity digest, and asks for a small follow-up using the stage id.
+There is no automatic prefix-only truncation fallback.
+
+## Retrieval cache
+
+| TOML key | Default | Meaning |
+|---|---:|---|
+| `retrieval.cache` | `true` | Reuse completed context packs only when repository content and all keyed retrieval evidence match. |
+| `retrieval.cache_max_entries` | `64` | Maximum project-local cached packs retained before oldest-entry pruning. |
+
+Cache keys include indexed source digests/index version, query/budget options,
+changed and constrained file sets, feedback, and session working-set state.
+Embedding reranking and custom ranking-stage registries bypass this cache version
+because their external identities are not yet included in the key.
+
+The optional Rust extension has no TOML switch because fallback is automatic.
+Set `TOKEN_SAVER_RUST_FASTPATH=0` to force Python for diagnosis/parity checks.
+
 ## Environment overrides
 
 Environment variables take precedence over TOML:
@@ -180,6 +220,12 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_CACHE_WRITE_FACTOR` | `efficiency.cache_write_factor` |
 | `TOKEN_SAVER_CACHE_READ_FACTOR` | `efficiency.cache_read_factor` |
 | `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `efficiency.cache_min_relative_savings` |
+| `TOKEN_SAVER_INGRESS_OPTIMIZER` | `ingress.enabled` |
+| `TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS` | `ingress.threshold_tokens` |
+| `TOKEN_SAVER_INGRESS_PACKET_TOKENS` | `ingress.packet_tokens` |
+| `TOKEN_SAVER_RETRIEVAL_CACHE` | `retrieval.cache` |
+| `TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES` | `retrieval.cache_max_entries` |
+| `TOKEN_SAVER_RUST_FASTPATH` | native acceleration override (no TOML equivalent) |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 
