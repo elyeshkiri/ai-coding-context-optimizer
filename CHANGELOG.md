@@ -1,5 +1,36 @@
 # Unreleased
 
+# 1.10.0 - 2026-09-20
+
+- **Promoted embeddings from file-level reranking to persistent chunk-level
+  semantic discovery.** `--semantic` / `--embeddings` now derives overlapping
+  source chunks from the versioned repository index, persists normalized vectors
+  plus file/line/symbol coordinates in private SQLite state, caches exact query
+  vectors, and incrementally re-embeds only changed file digests. Source text is
+  never duplicated into the vector database.
+- **Added deterministic lexical/vector fusion without weakening exact-source
+  authority.** Chunk hits contribute bounded semantic-similarity and RRF-style
+  rank evidence after BM25/structural/graph scoring. Exact structural symbol
+  authority remains substantially stronger than fuzzy semantic affinity, and the
+  final context pack is still rendered from current repository bytes rather than
+  vector-store summaries.
+- **Added optional persisted HNSW acceleration with exact-scan fallback.** The
+  semantic database remains authoritative; when `hnswlib` is installed Token
+  Saver builds a versioned HNSW sidecar from those vectors. Missing/stale ANN
+  state falls back to exact cosine scan instead of changing retrieval semantics.
+- **Added semantic index observability and integrity gates.** New
+  `semantic-index` and `semantic-status` commands expose synchronized
+  file/chunk counts, dimensions, backend and local path. Semantic refresh refuses
+  to persist vectors if repository bytes changed after structural indexing,
+  preventing cross-index evidence races.
+- **Kept the evidence claim narrower than the feature.** Existing frozen
+  retrieval/ranking gates continue to run with semantic retrieval disabled by
+  default. Unit tests prove persistence, invalidation, warm model-free reuse,
+  hybrid ranking evidence and exact-source rendering, but 1.10.0 does not claim
+  improved external natural-language recall until a new no-identifier-leakage
+  semantic holdout is frozen and run.
+
+
 # 1.9.0 - 2026-09-20
 
 - **Added safe opt-in pre-model prompt ingress staging.** Claude Code cannot
