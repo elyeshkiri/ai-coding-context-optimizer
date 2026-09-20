@@ -57,6 +57,7 @@ class RankedFile:
     term_hits: int = 0
     changed: bool = False
     score_trace: list[RankingScoreEvent] = field(default_factory=list)
+    semantic_ranges: list[tuple[int, int]] = field(default_factory=list)
 
 
 @dataclass
