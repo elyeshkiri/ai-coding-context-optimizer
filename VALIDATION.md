@@ -1,4 +1,4 @@
-# Validation for 1.5.0
+# Validation for 1.6.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**. Passing one layer is not presented as proof
