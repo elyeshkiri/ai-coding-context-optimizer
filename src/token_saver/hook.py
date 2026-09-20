@@ -24,6 +24,7 @@ from .estimate import estimate_tokens
 from .output import OutputPipeline
 from .output_telemetry import finish_output_turn, start_output_turn
 from .generation_policy import automatic_output_policy
+from .ingress import maybe_stage_prompt
 from .guard import _digest, run as guard_run
 from .hook_runtime import (
     MIN_NET_TOKENS,
@@ -65,6 +66,9 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         continuity_enabled=settings.continuity_enabled,
         cross_turn_dedup_enabled=settings.cross_turn_dedup,
         waste_detection_enabled=settings.waste_detection,
+        ingress_enabled=settings.ingress_enabled,
+        ingress_threshold_tokens=settings.ingress_threshold_tokens,
+        ingress_packet_tokens=settings.ingress_packet_tokens,
     )
 
 
@@ -95,6 +99,7 @@ def _services() -> HookServices:
         efficiency_prompt=observe_prompt,
         deduplicate_output=deduplicate_output,
         observe_tool=observe_tool,
+        ingress_optimizer=maybe_stage_prompt,
     )
 
 
