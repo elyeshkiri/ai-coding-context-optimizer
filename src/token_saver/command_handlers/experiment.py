@@ -11,6 +11,7 @@ from ..benchmark import task_definition_hash
 from ..cost_report import Pricing, compare_cost_files, compare_paired_agent_file
 from ..evidence_pipeline import run_evidence_pipeline
 from ..experiment import run_experiment, validate_suite
+from ..session_holdout_pipeline import run_session_holdout
 
 
 def experiment_main(argv: list[str]) -> int:
@@ -92,6 +93,40 @@ def evidence_run_main(argv: list[str]) -> int:
             rates_path=Path(args.rates) if args.rates else None,
             report_path=Path(args.report) if args.report else None,
             calibration_path=Path(args.calibration) if args.calibration else None,
+            allow_development=args.allow_development,
+            allow_user_hook=args.allow_user_hook,
+            only_tasks=set(args.tasks) if args.tasks else None,
+            force_grades=args.force_grades,
+            dry_run=args.dry_run,
+            require_publishable=args.require_publishable,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1 if args.require_publishable and "not publishable" in str(exc) else 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def session_holdout_main(argv: list[str]) -> int:
+    """Run/resume the frozen v1.6-vs-v1.7 session-efficiency holdout."""
+    parser = argparse.ArgumentParser(prog="token-saver session-holdout")
+    parser.add_argument("suite")
+    parser.add_argument("--out", default="session-holdout-runs.json")
+    parser.add_argument("--rates")
+    parser.add_argument("--report")
+    parser.add_argument("--allow-development", action="store_true")
+    parser.add_argument("--allow-user-hook", action="store_true")
+    parser.add_argument("--task", action="append", dest="tasks")
+    parser.add_argument("--force-grades", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--require-publishable", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        result = run_session_holdout(
+            Path(args.suite),
+            Path(args.out),
+            rates_path=Path(args.rates) if args.rates else None,
+            report_path=Path(args.report) if args.report else None,
             allow_development=args.allow_development,
             allow_user_hook=args.allow_user_hook,
             only_tasks=set(args.tasks) if args.tasks else None,
