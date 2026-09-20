@@ -20,6 +20,40 @@ def test_output_policy_accepts_explicit_budget():
     assert policy.max_tokens == 123
 
 
+def test_output_policy_adapts_budget_and_rules_to_coding():
+    policy = build_output_policy("normal", task="coding")
+
+    assert policy.task == "coding"
+    assert policy.max_tokens == 600
+    assert "OUTPUT TASK: coding." in policy.instructions
+    assert "skip conversational preambles" in policy.instructions
+    assert "Do not reproduce unchanged code" in policy.instructions
+    assert "Do not add a recap" in policy.instructions
+
+
+def test_output_policy_debugging_separates_evidence_from_hypothesis():
+    policy = build_output_policy("terse", task="debugging")
+
+    assert policy.max_tokens == 350
+    assert "Separate facts from hypotheses" in policy.instructions
+    assert "do not invent a root cause" in policy.instructions
+    assert "manufacturing a confident explanation" in policy.instructions
+
+
+def test_output_policy_explicit_budget_overrides_task_default():
+    policy = build_output_policy("normal", 123, "explanation")
+
+    assert policy.task == "explanation"
+    assert policy.max_tokens == 123
+
+
+def test_output_policy_rejects_unknown_task():
+    import pytest
+
+    with pytest.raises(ValueError, match="unknown output task"):
+        build_output_policy("normal", task="side-quest")
+
+
 def test_compaction_removes_filler_and_exact_duplicate_prose_but_preserves_code():
     code = """```diff
 - const enabled = false;
