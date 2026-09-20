@@ -31,6 +31,8 @@ from .command_handlers.experiment import (
     cost_report_main,
     evidence_run_main,
     experiment_main,
+    knowledge_holdout_evaluate_main,
+    knowledge_holdout_main,
     session_holdout_evaluate_main,
     session_holdout_main,
 )
@@ -112,6 +114,8 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("experiment", experiment_main),
         CommandSpec("evidence-run", evidence_run_main),
         CommandSpec("session-holdout", session_holdout_main),
+        CommandSpec("knowledge-holdout", knowledge_holdout_main),
+        CommandSpec("knowledge-holdout-evaluate", knowledge_holdout_evaluate_main),
         CommandSpec("session-holdout-evaluate", session_holdout_evaluate_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("dashboard", dashboard_main),
