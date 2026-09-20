@@ -432,7 +432,7 @@ class BuildProcessor:
             preprocess(text),
             re.compile(
                 r"(\berror\b|\bwarning\b|FAILED|BUILD (?:SUCCESS|FAIL)|"
-                r"Finished|Compiling|:\d+(?::\d+)?\b)",
+                r"Finished|:\d+(?::\d+)?\b)",
                 re.I,
             ),
             limit=max(70, max_lines),
