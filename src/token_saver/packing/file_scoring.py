@@ -10,6 +10,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from ..fastpath import bm25_score as _fast_bm25_score
 from ..lexical import document_counts, identifier_terms, symbol_terms, terms
 from ..repo_index import RepositoryIndex
 from ..skeleton import file_priority
