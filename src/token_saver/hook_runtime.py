@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .output.contracts import OutputPolicy, OutputResult
+from .output.pipeline import detect_failure
 
 HookResponse = tuple[int, dict | None]
 GuardService = Callable[[dict], HookResponse]
@@ -191,7 +192,7 @@ class HookRuntime:
         command = str((payload.get("tool_input") or {}).get("command", ""))
         replacement = dict(response)
         original = response["stdout"]
-        failed = bool(self.exit_code(response))
+        failed = detect_failure(original, self.exit_code(response))
         n_lines = len(original.splitlines())
         min_lines = max(1, self.config.min_lines)
         keep_tail = max(0, self.config.keep_tail)
