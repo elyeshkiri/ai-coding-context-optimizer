@@ -37,8 +37,8 @@ def test_claude_grader_disables_side_effect_tools(monkeypatch):
 
     assert result == '{"A":{},"B":{}}'
     command = captured["command"]
-    assert "--permission-mode" in command
-    assert command[command.index("--permission-mode") + 1] == "plan"
+    assert "--bare" in command
+    assert "--disable-slash-commands" in command
     denied = command[command.index("--disallowedTools") + 1]
     assert denied == "*"
     assert captured["kwargs"]["check"] is False
