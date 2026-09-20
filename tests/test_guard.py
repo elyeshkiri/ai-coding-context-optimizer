@@ -44,15 +44,25 @@ def test_allowlist_skips_package_json(tmp_path):
     assert decide_read({"file_path": str(p)}) is None
 
 
-def test_duplicate_read_off_by_default(tmp_path):
+def test_duplicate_read_denied_by_efficiency_dedup_default(tmp_path):
     from token_saver.state import record_read
     from token_saver.guard import _digest
 
     p = _big_source(tmp_path / "mod.py")
     record_read(tmp_path, p, _digest(p.read_text()))
     decision = decide_read({"file_path": str(p)}, cwd=tmp_path)
-    reason = decision["hookSpecificOutput"]["permissionDecisionReason"]
-    assert "unchanged" not in reason
+    assert decision is not None
+    assert "unchanged" in decision["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def test_duplicate_read_dedup_can_be_disabled(tmp_path, monkeypatch):
+    from token_saver.state import record_read
+    from token_saver.guard import _digest
+
+    monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "0")
+    p = _big_source(tmp_path / "mod.py", n=10)
+    record_read(tmp_path, p, _digest(p.read_text()))
+    assert decide_read({"file_path": str(p)}, cwd=tmp_path) is None
 
 
 def test_duplicate_read_denied_when_enabled(tmp_path, monkeypatch):
@@ -196,7 +206,7 @@ def test_install_upgrades_old_post_matcher(tmp_path):
     merged = merge_hooks(old)
     posts = merged["hooks"]["PostToolUse"]
     matchers = [e.get("matcher") for e in posts]
-    assert "Bash|Read" in matchers
+    assert "Bash|Read|Edit|Write" in matchers
     assert "Bash|Grep|WebFetch" not in matchers
 
 

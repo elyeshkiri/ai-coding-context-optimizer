@@ -9,7 +9,18 @@ from .text import ensure_newline, filter_text, preprocess
 _PYTEST = re.compile(r"\b(pytest|py\.test|python\s+-m\s+pytest)\b", re.I)
 _JEST = re.compile(r"\b(jest|vitest|npm\s+test|pnpm\s+test|yarn\s+test)\b", re.I)
 _GIT_LOG = re.compile(r"\bgit\s+log\b", re.I)
-_NPM_INSTALL = re.compile(r"\b(npm|pnpm|yarn|bun)\s+(i|install|ci)\b", re.I)
+_NPM_INSTALL = re.compile(r"\b(npm|pnpm|yarn|bun|pip|pip3|uv)\s+(i|install|ci|sync)\b", re.I)
+_GIT_STATUS = re.compile(r"\bgit\s+status\b", re.I)
+_SEARCH = re.compile(r"(^|[;&|]\s*|\b)(rg|grep|find)\b", re.I)
+_LINT = re.compile(r"\b(ruff|eslint|pylint|clippy)\b", re.I)
+_TYPECHECK = re.compile(r"\b(tsc|mypy|pyright)\b", re.I)
+_COMPILED_TEST = re.compile(r"\b(go\s+test|cargo\s+test)\b", re.I)
+_BUILD = re.compile(
+    r"\b(cargo\s+build|go\s+build|gradle|gradlew|mvn|maven|"
+    r"npm\s+run\s+build|pnpm\s+(?:run\s+)?build|yarn\s+build)\b",
+    re.I,
+)
+_CONTAINER_LOG = re.compile(r"\b(docker\s+logs|kubectl\s+logs)\b", re.I)
 _FAIL_BLOCK = re.compile(
     r"^=+ FAILURES =+[\s\S]*?(?=^=+ (?:short test summary|warnings summary)|\Z)",
     re.M | re.I,
@@ -203,6 +214,265 @@ class PackageInstallProcessor:
         )
 
 
+class GitStatusProcessor:
+    """Compress git status output while retaining changed-file inventory."""
+
+    name = "git-status"
+    priority = 31
+    handles_failure = False
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command invokes git status."""
+        return bool(_GIT_STATUS.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep branch state plus bounded changed/untracked file lines."""
+        del command, failed, keep_tail
+        candidate = keep_matching(
+            preprocess(text),
+            re.compile(
+                r"(^On branch|^Your branch|^Changes|^Untracked|^nothing to commit|"
+                r"^\s*[MADRCU?!]{1,2}\s+|^\s*(modified|deleted|new file|renamed):)",
+                re.I,
+            ),
+            limit=max(40, max_lines),
+            label="git status",
+        )
+        return candidate or filter_text(
+            preprocess(text), max_lines, 10, prepared=True
+        )
+
+
+class SearchProcessor:
+    """Compress large grep/ripgrep/find result sets to bounded unique hits."""
+
+    name = "search"
+    priority = 35
+    handles_failure = True
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command is a supported search invocation."""
+        return bool(_SEARCH.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep first unique result lines plus an omitted-result count."""
+        del command, failed, keep_tail
+        lines = preprocess(text).splitlines()
+        unique: list[str] = []
+        seen: set[str] = set()
+        for line in lines:
+            if line in seen:
+                continue
+            seen.add(line)
+            unique.append(line)
+            if len(unique) >= max(25, max_lines):
+                break
+        omitted = len(lines) - len(unique)
+        if omitted <= 0:
+            return ensure_newline(text)
+        result = (
+            f"[filtered search: {len(lines)} lines → {len(unique)} unique hits, "
+            f"{omitted} omitted]\n"
+            + "\n".join(unique)
+            + "\n"
+        )
+        return result if len(result) < len(text) else text
+
+
+class LintProcessor:
+    """Compress common linter output while preserving file diagnostics."""
+
+    name = "lint"
+    priority = 36
+    handles_failure = True
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command invokes a supported linter."""
+        return bool(_LINT.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep location-bearing diagnostics and summary lines."""
+        del command, failed, keep_tail
+        candidate = keep_matching(
+            preprocess(text),
+            re.compile(
+                r"(:\d+(?::\d+)?\b|\berror\b|\bwarning\b|"
+                r"\bproblems?\b|\bfound\s+\d+\b|\bE\d{3,4}\b|\bW\d{3,4}\b)",
+                re.I,
+            ),
+            limit=max(60, max_lines),
+            label="lint",
+        )
+        return candidate or filter_text(
+            preprocess(text), max_lines, 12, prepared=True
+        )
+
+
+class TypecheckProcessor:
+    """Compress compiler/typechecker diagnostics without hiding locations."""
+
+    name = "typecheck"
+    priority = 37
+    handles_failure = True
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command invokes a supported typechecker."""
+        return bool(_TYPECHECK.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep typed diagnostics, source locations, and summaries."""
+        del command, failed, keep_tail
+        candidate = keep_matching(
+            preprocess(text),
+            re.compile(
+                r"(error\s+TS\d+|:\d+(?::\d+)?\b|\berror:|"
+                r"\bnote:|Found \d+ error|Success: no issues)",
+                re.I,
+            ),
+            limit=max(60, max_lines),
+            label="typecheck",
+        )
+        return candidate or filter_text(
+            preprocess(text), max_lines, 12, prepared=True
+        )
+
+
+class CompiledTestProcessor:
+    """Compress Go/Cargo test output to failures and final package summaries."""
+
+    name = "compiled-test"
+    priority = 38
+    handles_failure = True
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command invokes Go or Cargo tests."""
+        return bool(_COMPILED_TEST.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep test failures, panic/error lines, and package/result summaries."""
+        del command, failed, keep_tail
+        candidate = keep_matching(
+            preprocess(text),
+            re.compile(
+                r"(--- FAIL:|\bFAIL\b|\bPASS\b|panicked at|\berror\b|"
+                r"test result:|^ok\s|^\?\s|^FAIL\s)",
+                re.I,
+            ),
+            limit=max(60, max_lines),
+            label="compiled tests",
+        )
+        return candidate or filter_text(
+            preprocess(text), max_lines, 12, prepared=True
+        )
+
+
+class BuildProcessor:
+    """Compress common build output while retaining diagnostic evidence."""
+
+    name = "build"
+    priority = 39
+    handles_failure = True
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command invokes a supported build system."""
+        return bool(_BUILD.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep build errors/warnings and terminal status lines."""
+        del command, failed
+        candidate = keep_matching(
+            preprocess(text),
+            re.compile(
+                r"(\berror\b|\bwarning\b|FAILED|BUILD (?:SUCCESS|FAIL)|"
+                r"Finished|:\d+(?::\d+)?\b)",
+                re.I,
+            ),
+            limit=max(70, max_lines),
+            label="build",
+        )
+        return candidate or filter_text(
+            preprocess(text), max_lines, max(keep_tail, 15), prepared=True
+        )
+
+
+class ContainerLogProcessor:
+    """Bound successful Docker/Kubernetes log dumps while preserving their tail."""
+
+    name = "container-log"
+    priority = 41
+    handles_failure = False
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command requests Docker or Kubernetes logs."""
+        return bool(_CONTAINER_LOG.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Retain a bounded head/tail view for successful log commands."""
+        del command, failed
+        return filter_text(
+            preprocess(text),
+            max_lines,
+            max(keep_tail, 20),
+            prepared=True,
+        )
+
+
 class GenericProcessor:
     """Provide a conservative fallback for unknown command families."""
 
@@ -236,6 +506,13 @@ def default_processors() -> list:
         PytestProcessor(),
         JsTestProcessor(),
         GitLogProcessor(),
+        GitStatusProcessor(),
+        SearchProcessor(),
+        LintProcessor(),
+        TypecheckProcessor(),
+        CompiledTestProcessor(),
+        BuildProcessor(),
         PackageInstallProcessor(),
+        ContainerLogProcessor(),
         GenericProcessor(),
     ]

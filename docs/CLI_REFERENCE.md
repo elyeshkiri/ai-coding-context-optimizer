@@ -62,6 +62,8 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 - [`audit`](commands/audit.md) — measure always-on project/user context.
 - [`sessions`](commands/sessions.md) — analyze Claude transcript token/tool evidence.
+- [`dashboard`](commands/dashboard.md) — local savings, usage, continuity, and waste telemetry.
+- [`continuity`](commands/continuity.md) — inspect the structured resume/compaction checkpoint.
 - [`budget`](commands/budget.md) — compare measured context with budget guidance.
 - [`policy`](commands/policy.md) — generate lifecycle advice from transcripts.
 - [`status`](commands/status.md) — inspect Token Saver's session ledger.

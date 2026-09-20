@@ -75,6 +75,10 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert "adaptive = true" in config_text
     assert 'calibration_file = ".token-saver.output-calibration.json"' in config_text
     assert "telemetry = true" in config_text
+    assert "[efficiency]" in config_text
+    assert "continuity = true" in config_text
+    assert "dedup = true" in config_text
+    assert "waste_detection = true" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -422,3 +426,63 @@ def test_setup_preflight_prevents_partial_multi_host_mutation(tmp_path):
         "mcpServers": {"docs": {"command": "docs"}}
     }
     assert not (root / ".token-saver.toml").exists()
+
+
+
+def test_efficiency_config_and_environment_overrides(tmp_path, monkeypatch):
+    """Session-efficiency controls should resolve from TOML then environment."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / ".token-saver.toml").write_text(
+        """[efficiency]
+enabled = false
+continuity = false
+dedup = false
+waste_detection = false
+""",
+        encoding="utf-8",
+    )
+
+    settings = settings_for(root)
+    assert settings.efficiency_enabled is False
+    assert settings.continuity_enabled is False
+    assert settings.cross_turn_dedup is False
+    assert settings.waste_detection is False
+
+    hook_config = _config_from_env(root)
+    assert hook_config.efficiency_enabled is False
+    assert hook_config.continuity_enabled is False
+    assert hook_config.cross_turn_dedup_enabled is False
+    assert hook_config.waste_detection_enabled is False
+
+    monkeypatch.setenv("TOKEN_SAVER_EFFICIENCY", "1")
+    monkeypatch.setenv("TOKEN_SAVER_CONTINUITY", "1")
+    monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "1")
+    monkeypatch.setenv("TOKEN_SAVER_WASTE_DETECTION", "1")
+    overridden = settings_for(root)
+
+    assert overridden.efficiency_enabled is True
+    assert overridden.continuity_enabled is True
+    assert overridden.cross_turn_dedup is True
+    assert overridden.waste_detection is True
+
+
+def test_posttool_hook_observes_edit_and_write_for_continuity(tmp_path):
+    """Setup should subscribe to Edit/Write without adding more hook processes."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    setup_integrations(root, ("claude",), which=_which({"claude"}))
+
+    settings = json.loads(
+        (root / ".claude" / "settings.json").read_text(encoding="utf-8")
+    )
+    post = settings["hooks"]["PostToolUse"]
+    token_saver = next(
+        entry
+        for entry in post
+        if any(
+            hook.get("command") == "token-saver hook"
+            for hook in entry.get("hooks", [])
+        )
+    )
+    assert token_saver["matcher"] == "Bash|Read|Edit|Write"

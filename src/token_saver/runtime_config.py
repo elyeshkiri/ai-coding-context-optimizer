@@ -38,6 +38,10 @@ class RuntimeSettings:
     output_max_tokens: int | None = None
     output_calibration_file: str = ".token-saver.output-calibration.json"
     output_telemetry: bool = True
+    efficiency_enabled: bool = True
+    continuity_enabled: bool = True
+    cross_turn_dedup: bool = True
+    waste_detection: bool = True
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -110,6 +114,11 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     output = payload.get("output", {})
     if not isinstance(output, dict):
         raise ValueError(f"Expected [output] table in Token Saver config: {path}")
+    efficiency = payload.get("efficiency", {})
+    if not isinstance(efficiency, dict):
+        raise ValueError(
+            f"Expected [efficiency] table in Token Saver config: {path}"
+        )
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -140,6 +149,10 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
             ".token-saver.output-calibration.json",
         ),
         output_telemetry=_bool(output.get("telemetry"), True),
+        efficiency_enabled=_bool(efficiency.get("enabled"), True),
+        continuity_enabled=_bool(efficiency.get("continuity"), True),
+        cross_turn_dedup=_bool(efficiency.get("dedup"), True),
+        waste_detection=_bool(efficiency.get("waste_detection"), True),
     )
 
 
@@ -231,5 +244,17 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         output_telemetry=_env_bool(
             "TOKEN_SAVER_OUTPUT_TELEMETRY", base.output_telemetry
+        ),
+        efficiency_enabled=_env_bool(
+            "TOKEN_SAVER_EFFICIENCY", base.efficiency_enabled
+        ),
+        continuity_enabled=_env_bool(
+            "TOKEN_SAVER_CONTINUITY", base.continuity_enabled
+        ),
+        cross_turn_dedup=_env_bool(
+            "TOKEN_SAVER_CROSS_TURN_DEDUP", base.cross_turn_dedup
+        ),
+        waste_detection=_env_bool(
+            "TOKEN_SAVER_WASTE_DETECTION", base.waste_detection
         ),
     )

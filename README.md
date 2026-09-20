@@ -1,4 +1,4 @@
-# Token Saver 1.6.0
+# Token Saver 1.7.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -117,6 +117,48 @@ are mapped through Token Saver's repository index to the containing symbol and
 nearby dependency/call-graph edges. Only bounded structured diagnostics are
 stored in session state; raw command output is not persisted by Delta. Delta
 replaces the normal compressed output only when the rendered delta is smaller.
+
+## Session efficiency: preserve work, not conversation
+
+Token Saver 1.7 adds a host-neutral session-efficiency layer around the existing
+repository/retrieval and output pipelines.
+
+With Claude Code project hooks installed it now:
+
+- restores a compact **structured continuity checkpoint** after resume/compaction;
+- collapses exact repeated Bash output for the same command and blocks unchanged
+  repeated full-file Reads;
+- detects bounded retry loops, repeated commands, and long no-edit tool cascades;
+- tracks working files plus recent test/lint/typecheck/build outcomes without
+  storing raw prompt or assistant text;
+- records accepted tool-context reductions in a private local event ledger.
+
+Inspect the current working checkpoint:
+
+```bash
+token-saver continuity .
+token-saver continuity . --json
+```
+
+Inspect local efficiency telemetry in the terminal/JSON or generate a
+dependency-free HTML dashboard:
+
+```bash
+token-saver dashboard . --days 7
+token-saver dashboard . --json
+token-saver dashboard . --html .token-saver-dashboard.html
+```
+
+The dashboard deliberately separates exact available Claude usage counters from
+**estimated before/after tool-context tokens saved**. It does not turn those
+operational estimates into a cost-per-success or quality claim; the frozen
+`evidence-run` pipeline remains the publication-grade surface.
+
+Command compression also expands beyond pytest/Jest/git-log/package installs to
+git status, grep/ripgrep/find, Ruff/ESLint/Pylint/Clippy, tsc/mypy/pyright,
+Go/Cargo tests, common build systems, Python package installs, and
+Docker/Kubernetes logs. Unknown failures still pass through conservatively and
+critical-diagnostic recovery remains registry-wide.
 
 ## Output Saver: reduce generated tokens too
 

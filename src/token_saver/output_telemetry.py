@@ -465,9 +465,20 @@ def _group_summary(records: list[dict]) -> dict:
     }
 
 
-def output_telemetry_report(root: Path) -> dict:
+def output_telemetry_report(
+    root: Path,
+    *,
+    since: int | None = None,
+) -> dict:
     """Aggregate local telemetry without inferring task success or quality."""
     records = load_output_telemetry(root)
+    if since is not None:
+        records = [
+            record
+            for record in records
+            if isinstance(record.get("recorded_at"), int)
+            and record["recorded_at"] >= since
+        ]
     by_task_mode: dict[str, list[dict]] = defaultdict(list)
     for record in records:
         task = str(record.get("task") or "unknown")

@@ -1,4 +1,4 @@
-# Validation for 1.6.0
+# Validation for 1.7.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**. Passing one layer is not presented as proof
@@ -12,14 +12,22 @@ Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 - PR base-vs-candidate ranking snapshots/diffs;
 - Ruff correctness checks;
 - 100% docstring coverage via interrogate;
-- GitHub Actions workflow linting.
+- GitHub Actions workflow linting;
+- the hash-frozen session/output quality replay suite with preservation,
+  no-hallucination, and minimum-reduction contracts.
 
-Version 1.6.0 adds the complete output-evidence control plane on top of those
-retrieval and lifecycle foundations: automatic task-aware budgets, runtime
-usage telemetry, cache-TTL-aware cost accounting, deterministic blind A/B
-response grading, and a resumable experiment -> verification -> grading ->
-cost-per-success -> calibration pipeline. It does **not** retune the frozen
-retrieval baseline merely to improve release metrics.
+Version 1.7.0 adds a modular session-efficiency control plane: structured
+continuity across resume/compaction, exact cross-turn command/read deduplication,
+bounded retry/cascade waste signals, broader command-aware output processors,
+and local operational savings dashboards. A new hash-frozen output-quality
+fixture is enforced in CI alongside the existing external retrieval holdout and
+ranking regression checks. It does **not** retune the frozen retrieval baseline
+merely to improve release metrics.
+
+Version 1.6.0 added the complete output-evidence control plane: automatic
+task-aware budgets, runtime usage telemetry, cache-TTL-aware cost accounting,
+deterministic blind A/B response grading, and the resumable experiment ->
+verification -> grading -> cost-per-success -> calibration pipeline.
 
 ## Test suite and self-benchmark
 
@@ -28,11 +36,11 @@ retrieval baseline merely to improve release metrics.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **92% mean relevant-file recall, 92% mean
   relevant-symbol recall, 88% symbol recall in expected files, and 98.71% mean
-  estimated context reduction** on the 1.6 release candidate.
+  estimated context reduction** on the 1.7 release candidate.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
-- Package metadata for this release is **claude-token-saver 1.6.0**; the import
+- Package metadata for this release is **claude-token-saver 1.7.0**; the import
   remains `token_saver` and the CLI remains `token-saver`.
 
 ## Ranking observability and regression validation
@@ -112,7 +120,7 @@ than a trustworthy product-effect estimate. Version 1.6.0 repairs the
 experiment, telemetry, blind-grading, cache-pricing, and publication-gate path
 and wires the same frozen **24 tasks × 3 trials** into a paid/manual workflow.
 That workflow has not yet been executed for this release candidate.
-**No 144-run aggregate savings claim is made for 1.6.0** until the new frozen
+**No 144-run aggregate savings claim is made for 1.7.0** until the frozen
 workflow actually completes and its strict publication gate passes.
 
 ## Frozen external holdout program

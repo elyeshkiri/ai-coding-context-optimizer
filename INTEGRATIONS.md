@@ -73,7 +73,12 @@ The Claude Code integration uses four distinct boundaries:
 - `PreToolUse` protects against unbounded large source reads and lone
   `cat <large-source>` dumps;
 - `PostToolUse` can reduce large Bash stdout through the failure-aware output
-  processor registry while keeping the original result recoverable locally;
+  processor registry, collapse exact repeated command output, and observe
+  Read/Edit/Write working-state changes while keeping replaced Bash output
+  recoverable locally;
+- `SessionStart` resume/compact can inject a bounded structured continuity
+  checkpoint containing working files, redacted recent commands, and validation
+  status without copying conversation text;
 - `Stop` and `StopFailure` read the current turn's appended transcript usage
   counters and record content-free budget telemetry locally.
 
@@ -131,6 +136,12 @@ task = "auto"
 adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
 telemetry = true
+
+[efficiency]
+enabled = true
+continuity = true
+dedup = true
+waste_detection = true
 ```
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.

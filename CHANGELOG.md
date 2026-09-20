@@ -1,5 +1,35 @@
 # Unreleased
 
+# 1.7.0 - 2026-09-20
+
+- **Added a modular session-efficiency control plane.** Claude hooks now retain a
+  bounded structured working checkpoint across resume/compaction, including task
+  class, working file paths, recent redacted command labels, failures, and
+  validation status. The checkpoint deliberately stores no raw user prompt,
+  assistant response, or tool output and is exposed through `token-saver
+  continuity`.
+- **Added exact cross-turn deduplication and behavioral waste guards.** Repeated
+  identical Bash output for the same command can collapse to a recoverable
+  stub, unchanged repeated full-file Reads are blocked, and bounded detectors
+  surface repeated-command, identical-failure retry-loop, and no-edit
+  tool-cascade signals. Each behavior has independent project/environment kill
+  switches.
+- **Expanded command-aware output compression without weakening failure safety.**
+  The existing processor registry now covers git status, grep/ripgrep/find,
+  Ruff/ESLint/Pylint/Clippy, tsc/mypy/pyright, Go/Cargo tests, common build
+  systems, Python package installs, and Docker/Kubernetes logs in addition to
+  the existing pytest/Jest/git-log/install families. Unknown failures still
+  pass through conservatively and registry-wide critical-line recovery remains
+  the final safety layer.
+- **Added local savings dashboards and frozen output-quality evidence.**
+  `token-saver dashboard` exposes terminal/JSON reporting and can write a
+  dependency-free local HTML dashboard. Estimated tool-context savings,
+  continuity restores, behavioral signals, and exact transcript usage stay
+  explicitly separated; the dashboard is not a cost-per-success claim. CI now
+  enforces a hash-frozen multi-family output fixture with exact preservation,
+  minimum-reduction, and no-hallucination contracts while retaining the
+  existing frozen retrieval holdout and ranking-regression gates.
+
 # 1.6.0 - 2026-09-20
 
 - **Completed the output-cost evidence feature from agent run through publication

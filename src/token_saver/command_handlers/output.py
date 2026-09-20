@@ -15,7 +15,7 @@ from ..output_effectiveness import (
 )
 from ..output_processors import explain_processor
 from ..output_telemetry import load_output_telemetry, output_telemetry_report
-from ..output_quality import evaluate_quality_manifest
+from ..output_quality import evaluate_quality_manifest, quality_definition_hash
 from ..output_saver import (
     build_output_policy,
     compact_output,
@@ -314,12 +314,24 @@ def output_explain_main(argv: list[str]) -> int:
 
 
 def output_replay_main(argv: list[str]) -> int:
-    """Run the output replay command."""
+    """Run output quality replay with optional immutable fixture validation."""
     parser = argparse.ArgumentParser(prog="token-saver output-replay")
     parser.add_argument("manifest")
+    parser.add_argument("--require-frozen", action="store_true")
+    parser.add_argument("--print-definition-hash", action="store_true")
     args = parser.parse_args(argv)
+    path = Path(args.manifest)
     try:
-        result = evaluate_quality_manifest(Path(args.manifest))
+        if args.print_definition_hash:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("quality manifest must be a JSON object")
+            print(quality_definition_hash(payload))
+            return 0
+        result = evaluate_quality_manifest(
+            path,
+            require_frozen=args.require_frozen,
+        )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         return 2

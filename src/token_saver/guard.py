@@ -20,6 +20,7 @@ import re
 import shlex
 from pathlib import Path
 
+from .efficiency.store import append_event
 from .estimate import estimate_tokens
 from .skeleton import CODE_SUFFIXES, skeletonize
 from .runtime_config import settings_for
@@ -131,8 +132,16 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
     digest = _digest(text)
     n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
     max_lines = settings.read_max_lines
-    reread_on = settings.reread
-    if reread_on and n_lines > max_lines and seen_read(root, path, digest, session_id):
+    reread_on = settings.reread or settings.cross_turn_dedup
+    if reread_on and seen_read(root, path, digest, session_id):
+        append_event(
+            root,
+            {
+                "kind": "saving",
+                "feature": "unchanged_read_block",
+                "estimated_tokens_saved": estimate_tokens(text, path.suffix),
+            },
+        )
         return {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
