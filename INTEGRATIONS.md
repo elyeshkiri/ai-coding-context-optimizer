@@ -63,12 +63,20 @@ For a user-wide hook installation:
 token-saver install . --user
 ```
 
-The Claude Code integration uses two distinct boundaries:
+The Claude Code integration uses three distinct boundaries:
 
+- `UserPromptSubmit` automatically selects and injects a generation-time output
+  policy when the task/mode changes, so completion tokens can be avoided before
+  they are generated;
 - `PreToolUse` protects against unbounded large source reads and lone
   `cat <large-source>` dumps;
 - `PostToolUse` can reduce large Bash stdout through the failure-aware output
   processor registry while keeping the original result recoverable locally.
+
+The prompt classifier is deterministic and conservative. Ambiguous follow-ups
+inherit the current session policy without another full policy injection.
+`clear`/compaction session events reset the remembered policy because the host
+may have rebuilt context. User prompt text is not persisted by this feature.
 
 Inspect which processor would handle a command:
 
@@ -106,7 +114,16 @@ delta = false
 min_lines = 40
 keep_tail = 15
 allow = []
+
+[output]
+enabled = true
+mode = "normal"
+task = "auto"
 ```
+
+Automatic generation-policy injection currently uses Claude Code's prompt hook.
+Cursor and Codex still receive the same policy through the `output_policy` MCP
+tool when an orchestrator chooses to call it.
 
 ## Troubleshooting and repair
 
