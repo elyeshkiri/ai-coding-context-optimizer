@@ -116,6 +116,13 @@ def evaluate_quality_manifest(
             raise ValueError(
                 f"case {case_id!r} must_preserve must be a list of non-empty strings"
             )
+        forbidden = case.get("must_not_contain", [])
+        if not isinstance(forbidden, list) or not all(
+            isinstance(item, str) and item for item in forbidden
+        ):
+            raise ValueError(
+                f"case {case_id!r} must_not_contain must be a list of non-empty strings"
+            )
 
         max_tokens = case.get("max_tokens")
         if max_tokens is not None and (
@@ -152,9 +159,14 @@ def evaluate_quality_manifest(
             else 1.0 - output_tokens / original_tokens
         )
         missing = [value for value in required if value not in result.text]
+        introduced = [
+            value
+            for value in forbidden
+            if value not in text and value in result.text
+        ]
         budget_ok = max_tokens is None or output_tokens <= max_tokens
         reduction_ok = reduction + 1e-12 >= float(min_reduction)
-        passed = not missing and budget_ok and reduction_ok
+        passed = not missing and not introduced and budget_ok and reduction_ok
 
         results.append(
             {
@@ -168,7 +180,9 @@ def evaluate_quality_manifest(
                 "token_reduction": reduction,
                 "recovered_critical_lines": len(result.recovered_lines),
                 "missing_required": missing,
+                "introduced_forbidden": introduced,
                 "preservation_ok": not missing,
+                "no_hallucination": not introduced,
                 "budget_ok": budget_ok,
                 "reduction_ok": reduction_ok,
                 "passed": passed,
@@ -191,6 +205,9 @@ def evaluate_quality_manifest(
             ),
             "preservation_rate": (
                 sum(item["preservation_ok"] for item in results) / len(results)
+            ),
+            "no_hallucination_rate": (
+                sum(item["no_hallucination"] for item in results) / len(results)
             ),
         },
     }
