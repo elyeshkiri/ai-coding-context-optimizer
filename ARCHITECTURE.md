@@ -163,7 +163,9 @@ normal exact-source symbol/window rendering
 The SQLite store has separate `files`, `chunks`, `query_vectors`, metadata,
 and ANN-label tables. A warm repository with a repeated exact query can serve
 semantic ranking without loading the embedding model: file vectors and the query
-vector are both persistent.
+vector are both persistent. Semantic state identity includes both model name and
+the optional `TOKEN_SAVER_SEMANTIC_MODEL_REVISION`; the latter is also written
+to metadata and included in exact-query vector keys.
 
 Every file vector set is keyed by the content digest already present in
 `RepositoryIndex`. Before embedding a changed file, Token Saver hashes the live

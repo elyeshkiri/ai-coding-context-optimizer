@@ -67,6 +67,11 @@ A changed file is re-hashed before embedding and must still match the structural
 repository-index digest. A mismatch fails the semantic refresh rather than
 storing vectors under stale evidence identity.
 
+When `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` is set, that immutable revision is
+part of the local vector-store and query-vector cache identity. This prevents a
+pinned evaluation or deployment from silently reusing embeddings produced by
+different weights under the same model name.
+
 ## Retrieval cache state
 
 Persistent retrieval cache entries contain completed bounded context packs and

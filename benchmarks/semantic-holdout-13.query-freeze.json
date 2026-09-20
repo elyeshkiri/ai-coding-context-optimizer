@@ -1,0 +1,262 @@
+{
+  "suite_version": 1,
+  "status": "query-frozen-before-ground-truth",
+  "protocol": {
+    "semantic_natural_language": true,
+    "query_frozen_before_ground_truth": true,
+    "development_excluded": true,
+    "no_identifier_leakage": true,
+    "query_rule": "Each query is paraphrased only from the linked upstream issue behavior before inspecting the fix, target source file, target symbol, containing class/type/module, or qualified identity. Queries must not contain those answer identities or distinctive implementation literals. After this file is committed, ground-truth lookup is permitted, but the query text is immutable.",
+    "note": "This is the pre-ground-truth query freeze. It intentionally contains no expected files or symbols. The commit containing this file is the audit boundary after which answer lookup may begin."
+  },
+  "repositories": {
+    "uvicorn": {
+      "repository": "Kludex/uvicorn",
+      "clone_url": "https://github.com/Kludex/uvicorn.git",
+      "revision": "a56c7cce64aaa37e5864f882a5cbce8aa1dac47a"
+    },
+    "afero": {
+      "repository": "spf13/afero",
+      "clone_url": "https://github.com/spf13/afero.git",
+      "revision": "768f1fb0e5535b77d90e44c531aacd652aabd96a"
+    },
+    "regex": {
+      "repository": "rust-lang/regex",
+      "clone_url": "https://github.com/rust-lang/regex.git",
+      "revision": "72d650cb0a880a01ab6dc2137c0888e8f89740f7"
+    },
+    "resilience4j": {
+      "repository": "resilience4j/resilience4j",
+      "clone_url": "https://github.com/resilience4j/resilience4j.git",
+      "revision": "a8a33164256ddb6e4bbc168f5c47ac34a348ee7f"
+    },
+    "fastify": {
+      "repository": "fastify/fastify",
+      "clone_url": "https://github.com/fastify/fastify.git",
+      "revision": "630acd0b6cf8a91322ff05c3d95feb991091866d"
+    },
+    "command_line": {
+      "repository": "dotnet/command-line-api",
+      "clone_url": "https://github.com/dotnet/command-line-api.git",
+      "revision": "1f13873cf84d5547d1b8d4f9d68dcb06b3ea0a69"
+    }
+  },
+  "tasks": [
+    {
+      "id": "uvicorn-connection-close-token",
+      "repository": "uvicorn",
+      "source_issue": {
+        "number": 3074,
+        "url": "https://github.com/Kludex/uvicorn/issues/3074"
+      },
+      "query": "HTTP connection-close tokens should be interpreted case-insensitively, including comma-separated values, so the server closes the connection and reflects the close directive."
+    },
+    {
+      "id": "uvicorn-websocket-denial-headers",
+      "repository": "uvicorn",
+      "source_issue": {
+        "number": 3040,
+        "url": "https://github.com/Kludex/uvicorn/issues/3040"
+      },
+      "query": "A WebSocket handshake denial response must not add duplicate content type or content length headers when the application already supplied them."
+    },
+    {
+      "id": "uvicorn-reload-long-lived-connection",
+      "repository": "uvicorn",
+      "source_issue": {
+        "number": 2943,
+        "url": "https://github.com/Kludex/uvicorn/issues/2943"
+      },
+      "query": "Hot-reload restart and shutdown must not block forever waiting for workers that keep long-lived streaming or WebSocket connections open."
+    },
+    {
+      "id": "uvicorn-forwarded-address-port",
+      "repository": "uvicorn",
+      "source_issue": {
+        "number": 2789,
+        "url": "https://github.com/Kludex/uvicorn/issues/2789"
+      },
+      "query": "Forwarded client addresses that already contain a port must be parsed without appending a second zero port or corrupting host and port information."
+    },
+    {
+      "id": "afero-short-positioned-read",
+      "repository": "afero",
+      "source_issue": {
+        "number": 352,
+        "url": "https://github.com/spf13/afero/issues/352"
+      },
+      "query": "A positioned read that returns fewer bytes than requested must also return a non-null error explaining why the buffer was not completely filled."
+    },
+    {
+      "id": "afero-directory-rename-children",
+      "repository": "afero",
+      "source_issue": {
+        "number": 141,
+        "url": "https://github.com/spf13/afero/issues/141"
+      },
+      "query": "Renaming an in-memory directory must move its children so files remain reachable beneath the new directory name."
+    },
+    {
+      "id": "afero-truncate-write-position",
+      "repository": "afero",
+      "source_issue": {
+        "number": 235,
+        "url": "https://github.com/spf13/afero/issues/235"
+      },
+      "query": "Truncating an in-memory file to zero must keep the write position consistent so the next write does not insert a run of zero bytes first."
+    },
+    {
+      "id": "afero-readdir-nonpositive-count",
+      "repository": "afero",
+      "source_issue": {
+        "number": 204,
+        "url": "https://github.com/spf13/afero/issues/204"
+      },
+      "query": "Reading directory entries with a non-positive count must return all remaining entries in one result rather than applying the positive-count paging behavior."
+    },
+    {
+      "id": "regex-overlapping-alternatives-leftmost",
+      "repository": "regex",
+      "source_issue": {
+        "number": 1354,
+        "url": "https://github.com/rust-lang/regex/issues/1354"
+      },
+      "query": "When overlapping alternatives can both match, the search must return the earliest leftmost match rather than a later suffix match."
+    },
+    {
+      "id": "regex-optional-group-leftmost",
+      "repository": "regex",
+      "source_issue": {
+        "number": 1345,
+        "url": "https://github.com/rust-lang/regex/issues/1345"
+      },
+      "query": "A search combining a negated character class with an optional parenthesized group must preserve leftmost-match semantics instead of starting inside the parentheses."
+    },
+    {
+      "id": "regex-zero-repeat-capture-slots",
+      "repository": "regex",
+      "source_issue": {
+        "number": 1327,
+        "url": "https://github.com/rust-lang/regex/issues/1327"
+      },
+      "query": "Searching capture slots must not panic when a capture group is repeated zero times, even if the caller provides more slot capacity than the pattern will populate."
+    },
+    {
+      "id": "regex-byte-unicode-empty-match-advance",
+      "repository": "regex",
+      "source_issue": {
+        "number": 1275,
+        "url": "https://github.com/rust-lang/regex/issues/1275"
+      },
+      "query": "When byte-oriented matching is configured to honor Unicode, iteration over empty matches must advance on Unicode character boundaries rather than every raw UTF-8 byte."
+    },
+    {
+      "id": "resilience-null-async-success",
+      "repository": "resilience4j",
+      "source_issue": {
+        "number": 2372,
+        "url": "https://github.com/resilience4j/resilience4j/issues/2372"
+      },
+      "query": "A successfully completed asynchronous operation with a null value must still be recorded as a success rather than disappearing from success metrics."
+    },
+    {
+      "id": "resilience-retry-predicate-throws",
+      "repository": "resilience4j",
+      "source_issue": {
+        "number": 2198,
+        "url": "https://github.com/resilience4j/resilience4j/issues/2198"
+      },
+      "query": "If the predicate used to decide whether an asynchronous failure should be retried throws, the returned promise must complete exceptionally instead of hanging forever."
+    },
+    {
+      "id": "resilience-negative-retry-delay",
+      "repository": "resilience4j",
+      "source_issue": {
+        "number": 1843,
+        "url": "https://github.com/resilience4j/resilience4j/issues/1843"
+      },
+      "query": "When retry scheduling is stopped by a negative delay after an operation fails, callers should receive the original failure rather than a null-pointer error."
+    },
+    {
+      "id": "resilience-concurrent-cache-miss",
+      "repository": "resilience4j",
+      "source_issue": {
+        "number": 1809,
+        "url": "https://github.com/resilience4j/resilience4j/issues/1809"
+      },
+      "query": "Concurrent cache misses for the same key should coordinate so the underlying computation runs once and other callers share the result."
+    },
+    {
+      "id": "fastify-bodyless-trailer-transfer-encoding",
+      "repository": "fastify",
+      "source_issue": {
+        "number": 7030,
+        "url": "https://github.com/fastify/fastify/issues/7030"
+      },
+      "query": "Responses whose status forbids a body must not retain chunked transfer encoding merely because trailers were registered."
+    },
+    {
+      "id": "fastify-http2-shutdown-sessions",
+      "repository": "fastify",
+      "source_issue": {
+        "number": 5716,
+        "url": "https://github.com/fastify/fastify/issues/5716"
+      },
+      "query": "Graceful shutdown of an HTTP/2 server must close active sessions instead of only refusing new sessions and waiting indefinitely."
+    },
+    {
+      "id": "fastify-inject-stream-error-memory",
+      "repository": "fastify",
+      "source_issue": {
+        "number": 6410,
+        "url": "https://github.com/fastify/fastify/issues/6410"
+      },
+      "query": "An injected test request must not enter unbounded memory growth when a streamed response fails after headers and some body data have already been sent."
+    },
+    {
+      "id": "fastify-json-string-response",
+      "repository": "fastify",
+      "source_issue": {
+        "number": 6291,
+        "url": "https://github.com/fastify/fastify/issues/6291"
+      },
+      "query": "When a response is explicitly marked as JSON, sending a string value should serialize it as JSON rather than writing the raw string unchanged."
+    },
+    {
+      "id": "command-line-windows-trailing-quote",
+      "repository": "command_line",
+      "source_issue": {
+        "number": 2843,
+        "url": "https://github.com/dotnet/command-line-api/issues/2843"
+      },
+      "query": "On Windows, arguments ending in one or more quote characters must survive parsing instead of being unconditionally trimmed."
+    },
+    {
+      "id": "command-line-option-action-exit-code",
+      "repository": "command_line",
+      "source_issue": {
+        "number": 2772,
+        "url": "https://github.com/dotnet/command-line-api/issues/2772"
+      },
+      "query": "An action attached directly to an option must propagate its integer result instead of silently discarding the returned exit code."
+    },
+    {
+      "id": "command-line-option-action-without-parent",
+      "repository": "command_line",
+      "source_issue": {
+        "number": 2771,
+        "url": "https://github.com/dotnet/command-line-api/issues/2771"
+      },
+      "query": "An option-level action must still run when its parent command has no action of its own."
+    },
+    {
+      "id": "command-line-clear-custom-parser",
+      "repository": "command_line",
+      "source_issue": {
+        "number": 2743,
+        "url": "https://github.com/dotnet/command-line-api/issues/2743"
+      },
+      "query": "After a caller clears a previously assigned custom argument parser, parsing must fall back to the default converter instead of continuing to call the old parser."
+    }
+  ]
+}

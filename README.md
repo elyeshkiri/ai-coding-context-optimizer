@@ -161,7 +161,11 @@ token-saver semantic-status .
 ```
 
 At Token Saver runtime the model loader uses `local_files_only=True`; semantic
-retrieval does not silently fetch a model from the network. The SQLite index
+retrieval does not silently fetch a model from the network. For reproducible
+evaluation or controlled deployments, set
+`TOKEN_SAVER_SEMANTIC_MODEL_REVISION=<immutable-model-revision>`. The revision
+participates in vector-store and cached-query identity, so different model
+weights cannot silently share semantic state. The SQLite index
 stores vectors plus repository-relative path/line/symbol coordinates, **not
 source text**. If `hnswlib` is unavailable the same vectors use exact cosine
 scan instead of changing retrieval semantics.
@@ -970,6 +974,7 @@ simple.
 | `TOKEN_SAVER_CACHE_READ_FACTOR` | `0.10` | relative cache-read input factor; provider/model override recommended |
 | `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `0.05` | minimum projected relative savings for the runtime cache gate |
 | `TOKEN_SAVER_CACHE_TTL_MIN` | `5` | advisory cache-gap classification only |
+| `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` | unset | optional immutable SentenceTransformer revision; partitions semantic vector/query caches |
 | `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | local state and recoverable output storage |
 
 ## Design principles

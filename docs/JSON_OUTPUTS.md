@@ -174,10 +174,15 @@ the same status shape documented below; otherwise it is `null`.
   "chunks": 918,
   "dimensions": 384,
   "model": "all-MiniLM-L6-v2",
+  "model_revision": null,
   "backend": "hnsw",
   "path": "/private/token-saver/semantic-index/.../....sqlite3"
 }
 ```
+
+`model_revision` is `null` for the ordinary floating local-model configuration
+and contains the pinned revision when `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` is
+set. The revision participates in the vector-store and query-cache identity.
 
 `semantic-index` synchronizes changed repository evidence before returning the
 document. `semantic-status` returns the same shape without loading the
