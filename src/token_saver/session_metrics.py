@@ -189,6 +189,14 @@ def efficiency_event_metrics(state_root: Path) -> dict:
         ),
         "cross_turn_output_dedups": savings["cross_turn_dedup"],
         "unchanged_read_blocks": savings["unchanged_read_block"],
+        "knowledge_read_avoidance": savings["knowledge_read_avoidance"],
+        "cache_economic_read_avoidance": sum(
+            1
+            for event in events
+            if event.get("kind") == "saving"
+            and event.get("feature") == "knowledge_read_avoidance"
+            and isinstance(event.get("cache_economics"), dict)
+        ),
         "waste_signals": sum(waste.values()),
         "retry_loop_signals": waste["retry_loop"],
         "repeated_command_signals": waste["repeated_command"],
