@@ -123,7 +123,15 @@ def test_stdio_transport_depends_only_on_protocol_runtime(tmp_path):
 def test_serve_facade_preserves_existing_default_tool_surface(tmp_path):
     """Legacy serve imports should still expose and execute the default MCP tools."""
     names = {tool["name"] for tool in TOOLS}
-    assert {"browse_context", "output_policy", "build_diff_context"} <= names
+    assert {
+        "browse_context",
+        "output_policy",
+        "build_diff_context",
+        "semantic_index_status",
+        "refresh_semantic_index",
+    } <= names
+    build_context = next(tool for tool in TOOLS if tool["name"] == "build_context")
+    assert "semantic" in build_context["inputSchema"]["properties"]
 
     result = call_tool(
         tmp_path,
