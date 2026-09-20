@@ -48,6 +48,12 @@ enabled = true
 continuity = true
 dedup = true
 waste_detection = true
+knowledge_read_avoidance = false
+cache_economics = false
+cache_expected_reuses = 2
+cache_write_factor = 1.25
+cache_read_factor = 0.10
+cache_min_relative_savings = 0.05
 """
 
 

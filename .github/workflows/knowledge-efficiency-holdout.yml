@@ -1,0 +1,270 @@
+name: Frozen Knowledge-Efficiency Holdout
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_paid_run:
+        description: "Type RUN_KNOWLEDGE_288 to confirm 144 arm-runs / 288 Claude task phases plus blind grading"
+        required: true
+        type: string
+  push:
+    branches:
+      - bench/run-knowledge-efficiency-24
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_paid_run == 'RUN_KNOWLEDGE_288') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[run-knowledge-holdout]'))
+    runs-on: ubuntu-latest
+    env:
+      HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID != '' }}
+    outputs:
+      tasks: ${{ steps.matrix.outputs.tasks }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Require paid-agent credentials
+        run: |
+          if [ "$HAS_ANTHROPIC_API_KEY" != "true" ]; then
+            echo "::error::ANTHROPIC_API_KEY is required."
+            exit 1
+          fi
+          if [ "$HAS_ANTHROPIC_WORKSPACE_ID" != "true" ]; then
+            echo "::error::ANTHROPIC_WORKSPACE_ID is required."
+            exit 1
+          fi
+      - name: Verify Docker
+        run: docker version
+      - name: Validate frozen knowledge holdout before spending
+        run: |
+          token-saver knowledge-holdout             benchmarks/knowledge-efficiency-swebench-24.frozen.json             --out /tmp/session-runs.json             --dry-run > /tmp/session-schedule.json
+          python - <<'PY'
+          import json
+          p = json.load(open("/tmp/session-schedule.json"))
+          e = p["experiment"]
+          assert p["comparison"]["baseline"] == "knowledge-memory-control"
+          assert p["comparison"]["treatment"] == "knowledge-read-avoidance-cache-economics"
+          assert e["task_count"] == 24
+          assert e["paired_trials"] == 72
+          assert e["run_count"] == 144
+          profiles = e["condition_profiles"]
+          assert profiles["baseline"]["install_token_saver"] is True
+          assert profiles["enabled"]["install_token_saver"] is True
+          assert p["grader"]["judge"] == "claude-sonnet-5"
+          print("frozen knowledge schedule:", e["task_count"], "tasks,", e["run_count"], "arm-runs")
+          PY
+      - name: Build task matrix
+        id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          p = json.load(open("benchmarks/knowledge-efficiency-swebench-24.frozen.json"))
+          print("tasks=" + json.dumps([t["id"] for t in p["tasks"]], separators=(",", ":")))
+          PY
+
+  smoke:
+    needs: preflight
+    if: needs.preflight.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+      SMOKE_TASK: pytest-dev__pytest-5809
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Build pinned Claude Code image
+        run: |
+          docker build             -f benchmarks/e2e-agent.Dockerfile             -t token-saver-e2e-agent:2.1.276             .
+      - name: Prepare smoke repository
+        run: |
+          python scripts/prepare_e2e_repos.py             benchmarks/knowledge-efficiency-swebench-24.frozen.json             --task "$SMOKE_TASK"
+      - name: Build nonpublishable one-task smoke suite
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = Path("benchmarks/knowledge-efficiency-swebench-24.frozen.json")
+          suite = json.loads(source.read_text(encoding="utf-8"))
+          task_id = "pytest-dev__pytest-5809"
+          task = next(task for task in suite["tasks"] if task["id"] == task_id)
+          repo_id = task["repository"]
+          suite["tasks"] = [task]
+          suite["repositories"] = {repo_id: suite["repositories"][repo_id]}
+          suite["design"]["trials_per_task"] = 1
+          suite["protocol"]["task_definitions_frozen"] = False
+          Path("benchmarks/knowledge-efficiency-smoke.runtime.json").write_text(
+              json.dumps(suite, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Execute two-arm two-phase paid smoke
+        run: |
+          mkdir -p results
+          token-saver knowledge-holdout             benchmarks/knowledge-efficiency-smoke.runtime.json             --allow-development             --out results/smoke-runs.json             --report results/smoke-knowledge-effectiveness.json             > results/smoke-summary.json
+      - name: Require real knowledge/control/quality/cost plumbing
+        run: |
+          python - <<'PY'
+          import json
+          runs = json.load(open("results/smoke-runs.json"))
+          report = json.load(open("results/smoke-knowledge-effectiveness.json"))
+          assert len(runs["runs"]) == 2
+          assert {r["condition"] for r in runs["runs"]} == {"baseline", "enabled"}
+          assert all("quality" in run for run in runs["runs"])
+          baseline = next(r for r in runs["runs"] if r["condition"] == "baseline")
+          enabled = next(r for r in runs["runs"] if r["condition"] == "enabled")
+          assert baseline["session_efficiency_telemetry"]["knowledge_seed_findings"] >= 1
+          assert enabled["session_efficiency_telemetry"]["knowledge_seed_findings"] >= 1
+          assert baseline["session_efficiency_telemetry"]["knowledge_read_avoidance"] == 0
+          assert baseline["session_efficiency_telemetry"]["cache_economic_read_avoidance"] == 0
+          assert baseline["session_metrics"]["tool_calls"] == baseline["tool_calls"]
+          assert enabled["session_metrics"]["tool_calls"] == enabled["tool_calls"]
+          assert report["conditions"]["baseline"]["cost_complete"] is True
+          assert report["conditions"]["knowledge-efficiency"]["cost_complete"] is True
+          assert report["quality"]["blind_quality_verified"] is True
+          print("paid smoke passed: explicit knowledge seeding, control isolation, blind quality, and pricing are usable")
+          PY
+      - name: Upload smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-efficiency-paid-smoke
+          path: results/
+          if-no-files-found: error
+          retention-days: 30
+
+  run-task:
+    needs: [preflight, smoke]
+    if: needs.preflight.result == 'success' && needs.smoke.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 420
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        task: ${{ fromJson(needs.preflight.outputs.tasks) }}
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+      TASK_ID: ${{ matrix.task }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Build pinned Claude Code image
+        run: |
+          docker build             -f benchmarks/e2e-agent.Dockerfile             -t token-saver-e2e-agent:2.1.276             .
+      - name: Prepare only this frozen repository revision
+        run: |
+          python scripts/prepare_e2e_repos.py             benchmarks/knowledge-efficiency-swebench-24.frozen.json             --task "$TASK_ID"
+      - name: Execute three paired two-phase trials
+        run: |
+          mkdir -p results
+          token-saver experiment             benchmarks/knowledge-efficiency-swebench-24.frozen.json             --task "$TASK_ID"             --out "results/${TASK_ID}-runs.json"
+      - name: Upload task evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-e2e-${{ matrix.task }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    needs: [preflight, smoke, run-task]
+    if: needs.preflight.result == 'success' && needs.smoke.result == 'success' && needs.run-task.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Build pinned Claude grader image
+        run: |
+          docker build             -f benchmarks/e2e-agent.Dockerfile             -t token-saver-e2e-agent:2.1.276             .
+      - name: Download all task evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: knowledge-e2e-*
+          path: collected
+          merge-multiple: true
+      - name: Merge exactly 144 frozen arm-runs
+        run: |
+          python scripts/merge_e2e_results.py             benchmarks/knowledge-efficiency-swebench-24.frozen.json             collected/knowledge-holdout-runs.json             collected/*-runs.json
+      - name: Blind-grade all 72 paired final responses
+        run: |
+          token-saver blind-grade collected/knowledge-holdout-runs.json             > collected/blind-grade-result.json
+      - name: Evaluate knowledge-efficiency outcomes
+        run: |
+          token-saver knowledge-holdout-evaluate             collected/knowledge-holdout-runs.json             --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json             --json > collected/knowledge-effectiveness.json
+      - name: Write knowledge-efficiency summary
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          p = json.load(open("collected/knowledge-effectiveness.json"))
+          b = p["conditions"]["baseline"]
+          e = p["conditions"]["knowledge-efficiency"]
+          r = p["reductions"]
+          ci = p["bootstrap"]["intervals"]
+          activation = p["feature_activation"]["treatment"]
+          print("# Frozen knowledge-efficiency holdout")
+          print()
+          print(f"- tasks: {p['tasks']}")
+          print(f"- paired trials: {p['paired_trials']}")
+          print(f"- baseline success: {b['success_rate']:.1%}")
+          print(f"- treatment success: {e['success_rate']:.1%}")
+          print(f"- tool calls: {b['tool_calls']} -> {e['tool_calls']} ({r['tool_calls']})")
+          print(f"- input tokens: {b['input_tokens']} -> {e['input_tokens']} ({r['input_tokens']})")
+          print(f"- duplicate reads: {b['duplicate_read_calls']} -> {e['duplicate_read_calls']} ({r['duplicate_read_calls']})")
+          print(f"- baseline cost/success: {b['cost_per_success_usd']}")
+          print(f"- treatment cost/success: {e['cost_per_success_usd']}")
+          print(f"- cost/success reduction: {r['cost_per_success']}")
+          print(f"- tool-call CI95: {ci['tool_calls']}")
+          print(f"- input-token CI95: {ci['input_tokens']}")
+          print(f"- duplicate-read reduction is reported descriptively; CI focus remains cost/success")
+          print(f"- cost/success CI95: {ci['cost_per_success_usd']}")
+          print(f"- seeded findings: {activation['totals']['knowledge_seed_findings']}")
+          print(f"- knowledge read avoidances: {activation['totals']['knowledge_read_avoidance']}")
+          print(f"- cache-economic avoidances: {activation['totals']['cache_economic_read_avoidance']}")
+          print(f"- blind quality verified: {p['quality']['blind_quality_verified']}")
+          print(f"- publication gate: {p['publication_gate']['passed']}")
+          print(f"- blockers: {p['publication_gate']['blockers']}")
+          PY
+      - name: Require publication gate
+        run: |
+          python - <<'PY'
+          import json
+          p = json.load(open("collected/knowledge-effectiveness.json"))
+          if not p["publication_gate"]["passed"]:
+              raise SystemExit(
+                  "knowledge holdout not publishable: "
+                  + ", ".join(p["publication_gate"]["blockers"])
+              )
+          PY
+      - name: Upload merged session evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frozen-knowledge-efficiency-24-aggregate
+          path: collected/
+          retention-days: 90

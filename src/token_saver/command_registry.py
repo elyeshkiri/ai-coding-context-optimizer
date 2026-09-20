@@ -14,7 +14,11 @@ from .command_handlers.context import (
     recall_main,
     remember_main,
 )
-from .command_handlers.efficiency import continuity_main, dashboard_main
+from .command_handlers.efficiency import (
+    cache_economics_main,
+    continuity_main,
+    dashboard_main,
+)
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     blind_grade_main,
@@ -27,6 +31,8 @@ from .command_handlers.experiment import (
     cost_report_main,
     evidence_run_main,
     experiment_main,
+    knowledge_holdout_evaluate_main,
+    knowledge_holdout_main,
     session_holdout_evaluate_main,
     session_holdout_main,
 )
@@ -108,9 +114,12 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("experiment", experiment_main),
         CommandSpec("evidence-run", evidence_run_main),
         CommandSpec("session-holdout", session_holdout_main),
+        CommandSpec("knowledge-holdout", knowledge_holdout_main),
+        CommandSpec("knowledge-holdout-evaluate", knowledge_holdout_evaluate_main),
         CommandSpec("session-holdout-evaluate", session_holdout_evaluate_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("dashboard", dashboard_main),
+        CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),

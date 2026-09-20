@@ -168,6 +168,7 @@ def efficiency_event_metrics(state_root: Path) -> dict:
     savings = Counter()
     waste = Counter()
     continuity = 0
+    knowledge_seed_findings = 0
     estimated_saved = 0
     for event in events:
         kind = event.get("kind")
@@ -181,14 +182,27 @@ def efficiency_event_metrics(state_root: Path) -> dict:
             waste[feature] += 1
         elif kind == "continuity":
             continuity += 1
+        elif kind == "knowledge" and feature == "finding_seed":
+            value = event.get("finding_count")
+            if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+                knowledge_seed_findings += value
     return {
         "events": len(events),
         "continuity_restores": continuity,
+        "knowledge_seed_findings": knowledge_seed_findings,
         "dedup_interventions": (
             savings["cross_turn_dedup"] + savings["unchanged_read_block"]
         ),
         "cross_turn_output_dedups": savings["cross_turn_dedup"],
         "unchanged_read_blocks": savings["unchanged_read_block"],
+        "knowledge_read_avoidance": savings["knowledge_read_avoidance"],
+        "cache_economic_read_avoidance": sum(
+            1
+            for event in events
+            if event.get("kind") == "saving"
+            and event.get("feature") == "knowledge_read_avoidance"
+            and isinstance(event.get("cache_economics"), dict)
+        ),
         "waste_signals": sum(waste.values()),
         "retry_loop_signals": waste["retry_loop"],
         "repeated_command_signals": waste["repeated_command"],

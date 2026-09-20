@@ -20,13 +20,17 @@ import re
 import shlex
 from pathlib import Path
 
+from .cache_economics import assess_context_rewrite
 from .efficiency.store import append_event
 from .estimate import estimate_tokens
+from .knowledge import FindingStore
 from .skeleton import CODE_SUFFIXES, skeletonize
 from .runtime_config import settings_for
 from .state import seen_read
 
 OUTLINE_PREVIEW_TOKENS = 900
+KNOWLEDGE_PREVIEW_TOKENS = 500
+KNOWLEDGE_MIN_NET_TOKENS = 80
 ALLOW_NAMES = {
     "package.json",
     "tsconfig.json",
@@ -106,6 +110,120 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:16]
 
 
+def _bounded_text(value: object, limit: int) -> str:
+    """Return one compact single-line field for a guard explanation."""
+    text = " ".join(str(value or "").split())
+    return text if len(text) <= limit else text[: max(0, limit - 1)] + "…"
+
+
+def _knowledge_reason(root: Path, path: Path, findings: list[dict]) -> str:
+    """Render current verified findings as a bounded read-avoidance replacement."""
+    lines = [
+        (
+            "token-saver avoided a full Read because verified project knowledge "
+            f"is still anchored to unchanged source: {path}."
+        )
+    ]
+    try:
+        relative = path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        relative = ""
+    for item in findings[:3]:
+        anchors = item.get("anchors")
+        anchors = anchors if isinstance(anchors, list) else []
+        symbols = sorted(
+            {
+                str(anchor.get("symbol"))
+                for anchor in anchors
+                if isinstance(anchor, dict)
+                and anchor.get("path")
+                and str(anchor["path"]) == relative
+                and anchor.get("symbol")
+            }
+        )
+        suffix = f" [symbols: {', '.join(symbols)}]" if symbols else ""
+        lines.append(
+            "- "
+            + _bounded_text(item.get("claim"), 240)
+            + suffix
+            + " Evidence: "
+            + _bounded_text(item.get("evidence"), 280)
+            + " Applies when: "
+            + _bounded_text(item.get("applicability"), 180)
+        )
+    lines.append(
+        "If exact implementation bytes are required for an edit or verification, "
+        "request a bounded Read with offset+limit instead of the whole file."
+    )
+    rendered: list[str] = []
+    used = 0
+    for line in lines:
+        cost = estimate_tokens(line + "\n", ".txt")
+        if used + cost > KNOWLEDGE_PREVIEW_TOKENS:
+            break
+        rendered.append(line)
+        used += cost
+    return "\n".join(rendered)
+
+
+def _knowledge_read_decision(
+    root: Path,
+    path: Path,
+    text: str,
+    settings,
+) -> dict | None:
+    """Return a read-avoidance decision when current verified knowledge is cheaper."""
+    if not (
+        settings.efficiency_enabled
+        and settings.knowledge_read_avoidance
+    ):
+        return None
+    try:
+        findings = FindingStore(root).for_path(path, verified_only=True, limit=3)
+    except ValueError:
+        return None
+    if not findings:
+        return None
+
+    reason = _knowledge_reason(root, path, findings)
+    original_tokens = estimate_tokens(text, path.suffix)
+    replacement_tokens = estimate_tokens(reason, ".txt")
+    net_tokens = original_tokens - replacement_tokens
+    if net_tokens < KNOWLEDGE_MIN_NET_TOKENS:
+        return None
+
+    economics = None
+    if settings.cache_economics:
+        economics = assess_context_rewrite(
+            original_frontier_tokens=original_tokens,
+            replacement_frontier_tokens=replacement_tokens,
+            cached_prefix_tokens=0,
+            invalidates_cached_prefix=False,
+            expected_reuses=settings.cache_expected_reuses,
+            cache_write_factor=settings.cache_write_factor,
+            cache_read_factor=settings.cache_read_factor,
+            min_relative_savings=settings.cache_min_relative_savings,
+        )
+        if not economics.accepted:
+            return None
+
+    event = {
+        "kind": "saving",
+        "feature": "knowledge_read_avoidance",
+        "estimated_tokens_saved": net_tokens,
+        "finding_count": len(findings),
+    }
+    if economics is not None:
+        event["cache_economics"] = {
+            "original_cost": economics.original_cost,
+            "replacement_cost": economics.replacement_cost,
+            "relative_savings": economics.relative_savings,
+            "expected_reuses": economics.expected_reuses,
+        }
+    append_event(root, event)
+    return _deny(reason)
+
+
 def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | None = None) -> dict | None:
     """Return a deny payload, or None to allow the Read through."""
     base = cwd or Path.cwd()
@@ -132,6 +250,10 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
     digest = _digest(text)
     n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
     max_lines = settings.read_max_lines
+    knowledge_decision = _knowledge_read_decision(root, path, text, settings)
+    if knowledge_decision is not None:
+        return knowledge_decision
+
     reread_on = settings.reread or (
         settings.efficiency_enabled and settings.cross_turn_dedup
     )

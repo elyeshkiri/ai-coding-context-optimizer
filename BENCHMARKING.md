@@ -677,3 +677,62 @@ benchmark, not a proof that savings generalize to every repository or model.
 Before publishing savings, retain the frozen task definitions, repeated trials,
 model and host versions, prices, independent checks, and raw results needed to
 reproduce the claim.
+
+
+## Frozen knowledge-efficiency holdout
+
+Knowledge-assisted read avoidance is evaluated separately from retrieval recall
+and from the existing session-efficiency bundle. The frozen definition is:
+
+```text
+benchmarks/knowledge-efficiency-swebench-24.frozen.json
+24 SWE-bench Verified tasks
+3 trials per task
+2 conditions
+= 144 arm-runs
+= 288 fresh Claude task phases
+```
+
+The causal contract intentionally equalizes memory creation. Phase 1 is
+investigation-only in both arms and requires the agent to persist 1–3
+`verified` Token Saver findings backed by source it actually inspected.
+Repository state must remain unchanged. Phase 2 uses a fresh Claude home/session
+and receives no conversation transcript or continuity checkpoint.
+
+The control and treatment install the **same current Token Saver binary**.
+Both disable continuity, cross-turn command/read dedup, reread blocking, and
+behavioral waste detection. The control disables knowledge read avoidance and
+cache economics; the treatment enables those two switches. This tests the
+combined **knowledge read-avoidance + cache gate** effect without attributing
+savings to unrelated 1.7 session features.
+
+Outcome metrics come from independent evidence:
+
+- raw transcripts: total tool calls, input tokens, and duplicate Reads;
+- hidden task verifier: task success;
+- blinded judge: response quality parity;
+- transcript cache-usage fields plus frozen rates: billed cost/cost per success;
+- Token Saver's efficiency ledger: feature exposure only (knowledge seeds,
+  read-avoidance interventions, and cache-economics-approved interventions).
+
+The ledger never grades its own success. A publishable claim requires at least
+20 tasks, three trials per task, all paired identities intact, no manual
+intervention, success parity, blind-quality verification, complete pricing,
+verified knowledge seeding in every arm-run, zero control avoidance activation,
+observed treatment activation, positive cost-per-success reduction, and a
+task-cluster 95% confidence interval with a strictly positive lower bound.
+
+Run the frozen preflight without paid execution:
+
+```bash
+token-saver knowledge-holdout \
+  benchmarks/knowledge-efficiency-swebench-24.frozen.json \
+  --out /tmp/knowledge-holdout-runs.json \
+  --dry-run
+```
+
+The paid workflow is
+`.github/workflows/knowledge-efficiency-holdout.yml` and requires the explicit
+`RUN_KNOWLEDGE_288` confirmation. Until it completes successfully, the
+mechanism has **no publishable end-to-end savings percentage**.
+

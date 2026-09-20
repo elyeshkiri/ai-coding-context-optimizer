@@ -67,6 +67,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`sessions`](commands/sessions.md) — analyze Claude transcript token/tool evidence.
 - [`dashboard`](commands/dashboard.md) — local savings, usage, continuity, and waste telemetry.
 - [`continuity`](commands/continuity.md) — inspect the structured resume/compaction checkpoint.
+- [`cache-economics`](commands/cache-economics.md) — compare context rewrites after prompt-cache costs.
 - [`budget`](commands/budget.md) — compare measured context with budget guidance.
 - [`policy`](commands/policy.md) — generate lifecycle advice from transcripts.
 - [`status`](commands/status.md) — inspect Token Saver's session ledger.
@@ -89,6 +90,8 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`evidence-run`](commands/evidence-run.md) — run/resume experiment → blind grade → cost/success → calibration.
 - [`session-holdout`](commands/session-holdout.md) — run/resume the frozen v1.6-session-behavior vs v1.7-session-efficiency holdout.
 - [`session-holdout-evaluate`](commands/session-holdout-evaluate.md) — evaluate merged/blind-graded session holdout evidence.
+- [`knowledge-holdout`](commands/knowledge-holdout.md) — run/resume the frozen knowledge read-avoidance/cache-economics holdout.
+- [`knowledge-holdout-evaluate`](commands/knowledge-holdout-evaluate.md) — evaluate completed knowledge-efficiency evidence.
 - [`cost-report`](commands/cost-report.md) — analyze paired cost/success evidence.
 - [`benchmark`](commands/benchmark.md) — evaluate recorded paired-task evidence.
 

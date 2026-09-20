@@ -112,6 +112,23 @@ authorization-header, and URL-credential forms, but it is defense in depth
 rather than a secret-management guarantee. Do not pass secrets on command lines
 when avoidable, and treat the local state directory as potentially sensitive.
 
+## Durable project-knowledge state
+
+`remember` / `remember_finding` persist the exact claim, evidence,
+applicability text, confidence label, file/symbol anchors, and source digests
+that the caller explicitly submits. This state is local, project-scoped,
+private-permission, and bounded, but unlike continuity state it **can contain
+human/model-authored prose**. Do not place credentials, production secrets,
+private customer data, or other material you would not store on the local
+machine into a finding.
+
+Automatic knowledge-assisted read avoidance never harvests conversation text.
+It reads only explicit stored findings, requires current verified anchors, and
+does not send knowledge to Token Saver infrastructure. The frozen paid
+knowledge-efficiency workflow has the same external model/grader and artifact
+retention considerations as the session holdout below; do not reuse the public
+workflow for private prompts/repositories unless those boundaries are acceptable.
+
 ## Session state
 
 Token Saver keeps bounded local state for features such as remembered reads,

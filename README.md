@@ -273,6 +273,64 @@ impact, feedback, index, and knowledge-status operations while omitting diff and
 output-specialist schemas. Unknown profile names fail closed instead of silently
 selecting another surface.
 
+## Knowledge-assisted read avoidance and cache economics
+
+The durable finding store can now participate in the source-read guard, but only
+behind an explicit opt-in:
+
+```bash
+TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE=1 claude
+TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE=1 \
+TOKEN_SAVER_CACHE_ECONOMICS=1 claude
+```
+
+For an unbounded source `Read`, Token Saver checks for `verified`, active
+findings anchored to that exact file. A changed/missing anchor, a probable or
+speculative finding, an allowlisted/non-source file, or a bounded range never
+qualifies. The replacement must be materially smaller than the file and tells
+the agent to request an exact `offset+limit` range whenever implementation
+bytes are needed.
+
+The optional cache-economics gate evaluates projected relative input cost rather
+than assuming that fewer raw tokens are always cheaper. It models an already
+cached prefix separately from the new frontier and charges prefix recreation
+when a proposed transformation invalidates cached history:
+
+```bash
+token-saver cache-economics \
+  --original-frontier-tokens 4000 \
+  --replacement-frontier-tokens 800 \
+  --cached-prefix-tokens 12000 \
+  --invalidates-cached-prefix \
+  --expected-reuses 2
+```
+
+The default 1.25 cache-write and 0.10 cache-read factors are planning defaults,
+not universal provider pricing. Override them for the active provider/model.
+
+### Frozen knowledge-efficiency holdout
+
+The feature is **not enabled by default and no end-to-end savings percentage is
+claimed yet**. A separate frozen causal experiment reuses the 24 SWE-bench
+Verified tasks at three trials per task. Both arms run the same current Token
+Saver binary, disable continuity/dedup/waste features, perform the same
+investigation phase, and explicitly persist verified findings. A fresh
+implementation session then compares memory-control against knowledge-assisted
+read avoidance plus the cache-economics gate.
+
+```bash
+token-saver knowledge-holdout \
+  benchmarks/knowledge-efficiency-swebench-24.frozen.json \
+  --out knowledge-holdout-runs.json \
+  --require-publishable
+```
+
+Publication requires independent task success, blind response-quality parity,
+complete cache-TTL-aware pricing, verified knowledge seeding in every arm-run,
+zero control read-avoidance activation, observed treatment activation, and a
+strictly positive task-cluster 95% confidence interval for cost-per-success
+reduction.
+
 ## Output Saver: reduce generated tokens too
 
 Token Saver can now control the other side of the bill: model output. The output
@@ -764,6 +822,12 @@ simple.
 | `TOKEN_SAVER_MAX_LINES` | adaptive | filtered output line target |
 | `TOKEN_SAVER_KEEP_TAIL` | `15` | tail retained by generic filtering |
 | `TOKEN_SAVER_DELTA` | `0` | opt-in graph-aware pytest/Ruff diagnostic Delta |
+| `TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE` | `0` | opt-in verified-knowledge replacement for redundant full-file Reads |
+| `TOKEN_SAVER_CACHE_ECONOMICS` | `0` | require cache-aware projected-cost approval for knowledge read avoidance |
+| `TOKEN_SAVER_CACHE_EXPECTED_REUSES` | `2` | expected future cache reads in the planning model |
+| `TOKEN_SAVER_CACHE_WRITE_FACTOR` | `1.25` | relative cache-write input factor; provider/model override recommended |
+| `TOKEN_SAVER_CACHE_READ_FACTOR` | `0.10` | relative cache-read input factor; provider/model override recommended |
+| `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `0.05` | minimum projected relative savings for the runtime cache gate |
 | `TOKEN_SAVER_CACHE_TTL_MIN` | `5` | advisory cache-gap classification only |
 | `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | local state and recoverable output storage |
 

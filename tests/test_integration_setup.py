@@ -79,6 +79,9 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert "continuity = true" in config_text
     assert "dedup = true" in config_text
     assert "waste_detection = true" in config_text
+    assert "knowledge_read_avoidance = false" in config_text
+    assert "cache_economics = false" in config_text
+    assert "cache_expected_reuses = 2" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -439,6 +442,12 @@ enabled = false
 continuity = false
 dedup = false
 waste_detection = false
+knowledge_read_avoidance = true
+cache_economics = true
+cache_expected_reuses = 4
+cache_write_factor = 1.5
+cache_read_factor = 0.2
+cache_min_relative_savings = 0.12
 """,
         encoding="utf-8",
     )
@@ -448,6 +457,12 @@ waste_detection = false
     assert settings.continuity_enabled is False
     assert settings.cross_turn_dedup is False
     assert settings.waste_detection is False
+    assert settings.knowledge_read_avoidance is True
+    assert settings.cache_economics is True
+    assert settings.cache_expected_reuses == 4
+    assert settings.cache_write_factor == 1.5
+    assert settings.cache_read_factor == 0.2
+    assert settings.cache_min_relative_savings == 0.12
 
     hook_config = _config_from_env(root)
     assert hook_config.efficiency_enabled is False
@@ -459,12 +474,24 @@ waste_detection = false
     monkeypatch.setenv("TOKEN_SAVER_CONTINUITY", "1")
     monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "1")
     monkeypatch.setenv("TOKEN_SAVER_WASTE_DETECTION", "1")
+    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "0")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_ECONOMICS", "0")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_EXPECTED_REUSES", "7")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_WRITE_FACTOR", "1.75")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_READ_FACTOR", "0.15")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS", "0.2")
     overridden = settings_for(root)
 
     assert overridden.efficiency_enabled is True
     assert overridden.continuity_enabled is True
     assert overridden.cross_turn_dedup is True
     assert overridden.waste_detection is True
+    assert overridden.knowledge_read_avoidance is False
+    assert overridden.cache_economics is False
+    assert overridden.cache_expected_reuses == 7
+    assert overridden.cache_write_factor == 1.75
+    assert overridden.cache_read_factor == 0.15
+    assert overridden.cache_min_relative_savings == 0.2
 
 
 def test_posttool_hook_observes_edit_and_write_for_continuity(tmp_path):

@@ -1,5 +1,24 @@
 # Unreleased
 
+- **Added opt-in knowledge-assisted read avoidance.** The PreToolUse source
+  guard can now replace an unbounded full-file Read with compact verified findings
+  anchored to that exact unchanged file. Stale, superseded, probable/speculative,
+  ranged, allowlisted, and non-source reads never qualify, and the replacement
+  explicitly routes edits/verification back to bounded exact source ranges.
+- **Added cache-aware rewrite economics.** A pure `cache_economics` policy and
+  `cache-economics` CLI model cached-prefix reuse separately from the uncached
+  frontier, including the penalty when a transformation recreates cached history.
+  Provider/model ratios are configurable rather than presented as universal
+  pricing. The runtime gate remains opt-in.
+- **Added a frozen causal knowledge-efficiency holdout.** The new 24-task ×
+  3-trial SWE-bench Verified design gives both arms the same explicit verified
+  phase-1 findings and a fresh phase-2 session; continuity, cross-turn dedup, and
+  waste detection are disabled in both arms. Only knowledge read avoidance plus
+  its cache-economics gate differ. A paid/manual 144-arm-run / 288-Claude-phase
+  workflow, independent verification, blind grading, cache-TTL-aware pricing,
+  and task-cluster cost-per-success gate are checked in. The paid run has not
+  been executed, so **no knowledge-efficiency savings percentage is claimed**.
+
 - **Added durable evidence-backed project knowledge.** New
   `remember`, `recall`, and `knowledge-status` commands plus matching MCP
   tools persist explicit claims with evidence/applicability/confidence and real

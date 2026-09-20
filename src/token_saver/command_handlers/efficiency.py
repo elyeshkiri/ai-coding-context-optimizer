@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import sys
 
+from ..cache_economics import assess_context_rewrite
 from ..efficiency import continuity_report, dashboard_report
 from ..efficiency.dashboard import render_dashboard_html
 
@@ -112,4 +113,50 @@ def continuity_main(argv: list[str]) -> int:
         if isinstance(item, dict) and item.get("label")
     ]
     print("recent failures: " + ("; ".join(failures) if failures else "none"))
+    return 0
+
+
+
+def cache_economics_main(argv: list[str]) -> int:
+    """Estimate whether one context rewrite is cheaper after cache effects."""
+    parser = argparse.ArgumentParser(prog="token-saver cache-economics")
+    parser.add_argument("--original-frontier-tokens", type=int, required=True)
+    parser.add_argument("--replacement-frontier-tokens", type=int, required=True)
+    parser.add_argument("--cached-prefix-tokens", type=int, default=0)
+    parser.add_argument("--invalidates-cached-prefix", action="store_true")
+    parser.add_argument("--expected-reuses", type=int, default=1)
+    parser.add_argument("--cache-write-factor", type=float, default=1.25)
+    parser.add_argument("--cache-read-factor", type=float, default=0.10)
+    parser.add_argument("--min-relative-savings", type=float, default=0.0)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        decision = assess_context_rewrite(
+            original_frontier_tokens=args.original_frontier_tokens,
+            replacement_frontier_tokens=args.replacement_frontier_tokens,
+            cached_prefix_tokens=args.cached_prefix_tokens,
+            invalidates_cached_prefix=args.invalidates_cached_prefix,
+            expected_reuses=args.expected_reuses,
+            cache_write_factor=args.cache_write_factor,
+            cache_read_factor=args.cache_read_factor,
+            min_relative_savings=args.min_relative_savings,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    payload = decision.to_dict()
+    if args.json:
+        print(json.dumps(payload, indent=2))
+        return 0
+    verdict = "ACCEPT" if decision.accepted else "PRESERVE"
+    print(f"CACHE ECONOMICS: {verdict}")
+    print(f"original relative cost:    {decision.original_cost:.2f}")
+    print(f"replacement relative cost: {decision.replacement_cost:.2f}")
+    if decision.relative_savings is not None:
+        print(f"relative savings:          {decision.relative_savings:.2%}")
+    print(
+        "cached prefix: "
+        f"{decision.cached_prefix_tokens} tokens; "
+        f"invalidated={decision.invalidates_cached_prefix}"
+    )
     return 0

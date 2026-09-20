@@ -887,6 +887,47 @@ Without `--include-stale`, only `state == "active"` findings appear.
 Emits `schema`, `total`, `active`, `stale`, `superseded`, and the private
 local `path`. Finding contents are intentionally absent.
 
+## `cache-economics --json`
+
+```json
+{
+  "accepted": true,
+  "original_cost": 6200.0,
+  "replacement_cost": 1400.0,
+  "relative_savings": 0.774,
+  "cached_prefix_tokens": 12000,
+  "original_frontier_tokens": 4000,
+  "replacement_frontier_tokens": 800,
+  "invalidates_cached_prefix": false,
+  "expected_reuses": 2,
+  "cache_write_factor": 1.25,
+  "cache_read_factor": 0.1,
+  "min_relative_savings": 0.05
+}
+```
+
+Costs are relative input-cost units. The command does not imply universal
+provider pricing.
+
+## Knowledge-efficiency holdout reports
+
+`knowledge-holdout` emits the same pipeline-summary class as
+`session-holdout`: `schema`, `stage`, suite/run/report paths, task and
+paired-trial counts, `reductions`, `feature_activation`,
+`publication_gate`, and `claim_allowed`.
+
+`knowledge-holdout-evaluate --json` emits the full paired report with:
+
+- `comparison`, `tasks`, `paired_trials`, and `trials_per_task`;
+- `conditions.baseline` and `conditions.knowledge-efficiency`;
+- reductions for `tool_calls`, `input_tokens`, `duplicate_read_calls`, and
+  `cost_per_success`;
+- task-cluster `bootstrap` intervals;
+- treatment/control `feature_activation`;
+- independent `quality` evidence;
+- frozen `protocol` identity;
+- `publication_gate` and `claim_allowed`.
+
 ## Compatibility rule
 
 Scripts should:
