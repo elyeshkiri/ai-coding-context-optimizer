@@ -5,7 +5,7 @@ Build a task-aware bounded source context pack.
 ## Synopsis
 
 ```bash
-token-saver pack [path] [-q|--query TEXT] [--max-tokens N] [--max-files N] [--context-lines N] [--no-gitignore] [--no-changed-boost] [--graph-hops N] [--closure-items N] [--duplicate-threshold F] [--session ID] [--embeddings] [--typescript-semantic] [--strict-semantic] [--no-index-cache] [--target-symbol NAME] [--json] [--explain] [-o FILE]
+token-saver pack [path] [-q|--query TEXT] [--max-tokens N] [--max-files N] [--context-lines N] [--no-gitignore] [--no-changed-boost] [--graph-hops N] [--closure-items N] [--duplicate-threshold F] [--session ID] [--embeddings] [--typescript-semantic] [--strict-semantic] [--no-index-cache] [--no-retrieval-cache] [--target-symbol NAME] [--json] [--explain] [-o FILE]
 ```
 
 ## Arguments and options
@@ -16,6 +16,8 @@ token-saver pack [path] [-q|--query TEXT] [--max-tokens N] [--max-files N] [--co
 - `--embeddings` uses an already-downloaded local model.
 - `--typescript-semantic` enables compiler-resolved JS/TS edges.
 - `--strict-semantic` refuses semantic fallback.
+- `--no-index-cache` disables persistent repository-index reuse.
+- `--no-retrieval-cache` bypasses the completed-pack cache for this invocation.
 - `--target-symbol` prioritizes one exact symbol.
 - `--json` emits metadata + text; `--explain` writes scores to stderr; `-o` writes output.
 
