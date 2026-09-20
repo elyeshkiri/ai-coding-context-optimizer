@@ -255,10 +255,19 @@ Record independently validated baseline and Token Saver runs using the schema in
 token-saver agent-evaluate benchmarks/agent-runs.json
 ```
 
-The evaluator requires exactly one run per condition and task. It reports input
-and output tokens, retries, elapsed time, context failures, success rate, and
-tokens per success. It suppresses the reduction headline whenever Token Saver's
-success rate is below baseline.
+The evaluator pairs runs by `(task, trial, condition)`. `trial` defaults to
+`1` for backward-compatible single-pair manifests, but repeated experiments
+should number trials explicitly. It reports input and output tokens, output
+tokens per successful run, retries, elapsed time, context failures, success
+rate, and total tokens per success. It also summarizes paired per-trial
+reductions with median, p10/p90, standard deviation, and a deterministic 95%
+bootstrap confidence interval.
+
+Raw token reductions remain measurable without a quality grader, but
+`claim_allowed` is **false unless blind quality evidence is present**, task
+success is at parity, correctness/safety and weighted quality remain within the
+documented tolerance, blockers do not increase, and the per-success denominator
+is available.
 
 For generation-time output-policy experiments, the same manifest can carry
 optional **blind response-quality evidence**. Score both conditions on identical
@@ -275,6 +284,7 @@ from Token Saver. The built-in rubric weights correctness 40%, completeness
   "runs": [
     {
       "task": "fix-session-refresh",
+      "trial": 1,
       "condition": "baseline",
       "success": true,
       "input_tokens": 18000,
@@ -294,11 +304,12 @@ from Token Saver. The built-in rubric weights correctness 40%, completeness
 
 When quality scores are supplied, every paired run must be scored. Token Saver
 then requires task-success parity, no material correctness/safety regression,
-no increase in blockers, and weighted-quality parity before reporting token
-reductions. `output_token_reduction` isolates generated completion-token
-savings; `tokens_per_success_reduction` still measures total input + output
-efficiency per successful task. Unblinded quality evidence is reported but
-cannot authorize a savings claim.
+no increase in blockers, and weighted-quality parity before authorizing a
+savings claim. `raw_output_token_reduction` remains a descriptive measurement;
+`output_tokens_per_success_reduction` is the stronger generated-output metric,
+and `tokens_per_success_reduction` measures total input + output efficiency per
+successful run. Unblinded or missing quality evidence is reported through
+`claim_blockers` and cannot authorize a savings claim.
 
 For a publishable output-cost claim, use at least 20 distinct frozen tasks and
 three randomized paired trials per task, keep the model/prompt/tool settings

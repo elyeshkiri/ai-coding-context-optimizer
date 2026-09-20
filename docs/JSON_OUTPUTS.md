@@ -206,9 +206,20 @@ metrics.
 ```json
 {
   "tasks": 10,
+  "paired_trials": 30,
   "conditions": {
-    "baseline": {},
-    "token-saver": {}
+    "baseline": {
+      "runs": 30,
+      "successes": 28,
+      "output_tokens_per_success": 910.0,
+      "tokens_per_success": 12400.0
+    },
+    "token-saver": {
+      "runs": 30,
+      "successes": 28,
+      "output_tokens_per_success": 590.0,
+      "tokens_per_success": 8800.0
+    }
   },
   "task_success_parity": true,
   "quality_parity": true,
@@ -219,15 +230,37 @@ metrics.
     "baseline": {},
     "token-saver": {}
   },
-  "output_token_reduction": 0.35,
-  "tokens_per_success_reduction": 0.25,
-  "claim_allowed": true
+  "blind_quality_verified": true,
+  "raw_output_token_reduction": 0.35,
+  "output_tokens_per_success_reduction": 0.35,
+  "tokens_per_success_reduction": 0.29,
+  "paired": {
+    "paired_trial_count": 30,
+    "unique_task_count": 10,
+    "trials_per_task": {"min": 3, "max": 3},
+    "output_token_reduction": {
+      "count": 30,
+      "mean": 0.34,
+      "median": 0.35,
+      "p10": 0.18,
+      "p90": 0.48,
+      "stdev": 0.12,
+      "mean_ci95": [0.30, 0.38]
+    },
+    "total_token_reduction": {},
+    "successful_pair_output_token_reduction": {},
+    "bootstrap": {"samples": 2000, "seed": 1729}
+  },
+  "claim_allowed": true,
+  "claim_blockers": []
 }
 ```
 
-`output_token_reduction` and `tokens_per_success_reduction` are `null`
-when the conditions are not comparable or a denominator is unavailable. Blind
-quality evidence is optional; when present, it becomes part of the parity gate.
+`trial` defaults to `1` for legacy manifests; repeated runs should provide it
+explicitly. Raw reductions are descriptive and can be reported without a quality
+grader. `claim_allowed` requires blind quality evidence, task-success parity,
+quality parity, and an available tokens-per-success comparison.
+`claim_blockers` identifies missing or failed evidence gates.
 
 ## `ranking-snapshot` (always JSON or `--out`)
 

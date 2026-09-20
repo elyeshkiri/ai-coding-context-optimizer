@@ -11,7 +11,11 @@
   an invented root cause. `agent-evaluate` can now consume optional blind
   response-quality scores and reports generated-output-token reduction only when
   task success and quality remain at parity; unblinded quality evidence cannot
-  authorize a savings claim.
+  authorize a savings claim. Agent evaluation now pairs by task + trial,
+  supports repeated paired runs, reports output tokens per success plus
+  deterministic paired bootstrap intervals, and returns explicit
+  `claim_blockers`. Raw reductions remain observable, but missing blind quality
+  evidence now prevents `claim_allowed=true`.
 
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
   end-to-end bug narrative, 43 dedicated command-reference pages with flags,
