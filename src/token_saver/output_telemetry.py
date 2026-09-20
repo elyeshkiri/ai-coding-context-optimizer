@@ -76,6 +76,11 @@ def start_output_turn(
         "offset": _transcript_offset(transcript_path),
         "started_at": int(time.time()),
         "prompt_id": str(prompt_id) if prompt_id else None,
+        "experiment": {
+            "task": os.environ.get("TOKEN_SAVER_BENCHMARK_TASK"),
+            "trial": os.environ.get("TOKEN_SAVER_BENCHMARK_TRIAL"),
+            "condition": os.environ.get("TOKEN_SAVER_BENCHMARK_CONDITION"),
+        },
         "policy": {
             key: policy.get(key)
             for key in (
@@ -274,6 +279,7 @@ def finish_output_turn(
         "recorded_at": int(time.time()),
         "session": _session_fingerprint(session_id),
         "prompt_id": pending.get("prompt_id"),
+        "experiment": pending.get("experiment"),
         "turn_status": status,
         "error": str(error) if error else None,
         "task": policy.get("task"),
@@ -301,6 +307,27 @@ def finish_output_turn(
 
     update_state(root, mutate, session_id)
     return record
+
+
+def load_output_telemetry_from_state(state_root: Path) -> list[dict]:
+    """Load valid telemetry records from an explicit Token Saver state directory."""
+    telemetry_dir = state_root / "telemetry"
+    if not telemetry_dir.is_dir():
+        return []
+    records: list[dict] = []
+    for path in sorted(telemetry_dir.glob("*.jsonl")):
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            try:
+                item = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(item, dict) and item.get("schema") == TELEMETRY_SCHEMA:
+                records.append(item)
+    return records
 
 
 def load_output_telemetry(root: Path) -> list[dict]:
