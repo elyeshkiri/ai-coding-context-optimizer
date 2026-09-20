@@ -136,6 +136,51 @@ The original prompt never reaches the model on the blocked turn. No omission is
 presented as complete content, and stage integrity is checked before range
 recovery.
 
+### Persistent chunk-semantic retrieval boundary
+
+Semantic retrieval is an optional post-score discovery/reranking stage. It does
+not replace the deterministic repository index and does not own final context
+rendering.
+
+```text
+RepositoryIndex digests/definitions
+        ↓
+64-line chunks / 12-line overlap
+        ↓
+local SentenceTransformer
+        ↓
+private SQLite vectors + source coordinates
+        ├── exact cosine fallback
+        └── optional persisted HNSW sidecar
+        ↓
+best chunk hit per file
+        ↓
+bounded RRF-style lexical/vector boost
+        ↓
+normal exact-source symbol/window rendering
+```
+
+The SQLite store has separate `files`, `chunks`, `query_vectors`, metadata,
+and ANN-label tables. A warm repository with a repeated exact query can serve
+semantic ranking without loading the embedding model: file vectors and the query
+vector are both persistent.
+
+Every file vector set is keyed by the content digest already present in
+`RepositoryIndex`. Before embedding a changed file, Token Saver hashes the live
+bytes again; if they no longer match the structural index digest, semantic sync
+fails and requires an index refresh rather than persisting cross-version
+evidence.
+
+HNSW is acceleration only. SQLite vectors are authoritative, the sidecar has a
+chunk-identity signature, and missing/stale/unavailable HNSW falls back to exact
+cosine scan. This keeps ANN availability out of retrieval correctness.
+
+The fusion stage runs after deterministic BM25/structural scoring and graph
+closure. It records both `semantic-chunk:...` and `hybrid-rrf:...` evidence.
+Its weight is intentionally bounded below exact structural-symbol authority, so
+semantic similarity can surface weak-lexical natural-language candidates without
+overriding an explicit API/container/member identity.
+
 ### Persistent retrieval-cache boundary
 
 The application-level repository service enables a bounded persistent pack
@@ -228,8 +273,10 @@ stage. Retrieval algorithms are split under `token_saver.packing`:
   signature/overload intent, and conservative repository typo expansion;
 - `file_scoring.py` — deterministic BM25, path/symbol/structural authority,
   changed/working-set/feedback boosts, candidate filtering, and final sort key;
-- `graph_rerank.py` — dependency/semantic-ref closure boosts and optional
-  local embedding reranking;
+- `graph_rerank.py` — dependency/semantic-ref closure plus optional
+  persistent chunk-semantic/RRF fusion;
+- `semantic_retrieval.py` — incremental vector persistence, query-vector
+  caching, exact cosine/HNSW retrieval, and source-coordinate evidence;
 - `ranking.py` — compatibility facade plus the `rank_files` stage orchestrator;
 - `symbol_scoring.py` — within-file lexical/structural scoring, overload
   resolution, fuzzy/call-graph evidence, and parent/container credit;
