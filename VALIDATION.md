@@ -26,9 +26,8 @@ The 1.10 semantic mechanism is covered by deterministic tests that establish:
 Those tests establish implementation correctness and safety. They do **not**
 establish a new external natural-language recall number.
 
-A qualifying benchmark is now frozen as semantic holdout #13, but its first
-real evaluation has **not been executed**. Its 24 query/revision definitions
-were committed before ground-truth lookup at
+Semantic holdout #13 has now been consumed exactly once as fresh evidence.
+Its 24 query/revision definitions were committed before ground-truth lookup at
 `f3247c1d4c8e388de653aea1a5de4fa4624f82ce`, with query-freeze SHA-256
 `8cdf871ea2fcbe59161a332f1f0ce0f93b087a6c3560acebadb5ee338c4169bf`.
 After answer lookup, two tasks were conservatively classified as
@@ -36,20 +35,29 @@ identifier-bearing and excluded without changing their query text, leaving
 **22 eligible natural-language tasks** across six previously unused
 repositories/language ecosystems.
 
-The final holdout definition is sealed as
+The final definition is sealed as
 `dc6ea6c3641db573b5b05473f2bc4ee13e0f05a4f093cb86f803e68c7b265d25`.
-It compares Token Saver lexical/structural retrieval, the hybrid semantic
-pipeline, and a distinct-term-overlap trivial lexical baseline. The semantic
-arm pins `all-MiniLM-L6-v2` revision
-`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a` and canonical evidence uses exact
-cosine rather than HNSW.
+The first real run was GitHub Actions **35537362040**, using pinned
+`all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a` with exact cosine:
 
-The first run is intentionally manual and burns the suite for tuning; it
-requires `RUN_SEMANTIC_HOLDOUT_13`. Until that run exists, **1.10.0 makes no
-claim that external semantic recall improved from the published structural
-baseline**. Even a positive retrieval result would not by itself establish
-API-cost reduction, coding-task success, or cost per successful task. Passing
-one evidence layer is not presented as proof of another.
+| Arm | File recall |
+| --- | ---: |
+| Token Saver hybrid semantic | **50.00% (11/22)** |
+| Token Saver lexical/structural | **45.45% (10/22)** |
+| Trivial distinct-term lexical | **40.91% (9/22)** |
+
+The semantic arm recovered one task missed by Token Saver lexical/structural
+and introduced zero regressions. Mean estimated context reduction remained
+essentially unchanged (97.8374% semantic vs 97.8373% lexical).
+
+This is modest positive retrieval evidence, not proof of a strong semantic
+generalization advantage and not an API-cost/task-success claim. Holdout #13 is
+now **burned**. The semantic-retrieval-v3 changes (structure-aware chunks,
+multi-hit file aggregation, lexical-independent semantic fusion, and bounded
+semantic-witness graph expansion) are deliberately not tuned or scored against
+#13. A fresh holdout #14 is required before those changes can support any new
+external-generalization claim.
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
