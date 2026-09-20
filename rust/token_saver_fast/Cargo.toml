@@ -1,0 +1,11 @@
+[package]
+name = "token-saver-fast"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_token_saver_fast"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
