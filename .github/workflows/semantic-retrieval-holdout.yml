@@ -39,6 +39,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e '.[dev,embeddings]'
 
+      - name: Require exact cosine evidence backend
+        run: |
+          python -m pip uninstall -y hnswlib || true
+          python - <<'PY'
+          from token_saver.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None, "semantic evidence must not use ANN"
+          PY
+
       - name: Validate immutable query and ground-truth seals
         run: |
           python scripts/run_semantic_holdout.py --validate-only
