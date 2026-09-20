@@ -176,6 +176,58 @@ def _semantic_file_score(hits) -> float:
     )
 
 
+def _apply_semantic_graph_expansion(
+    index: RepositoryIndex,
+    ranked: list[RankedFile],
+    semantic_order: list[str],
+) -> None:
+    """Credit exact/one-hop providers discovered from semantic witness files."""
+    if not semantic_order:
+        return
+    by_rel = {item.rel: item for item in ranked}
+    seeds = semantic_order[:12]
+
+    related = [
+        *authoritative_providers(index, seeds),
+        *dependency_closure(
+            index,
+            seeds,
+            max_hops=1,
+            max_items=24,
+            min_confidence=0.8,
+        ),
+    ]
+    strongest = {}
+    for item in related:
+        current = strongest.get(item.path)
+        if current is None or item.confidence > current.confidence:
+            strongest[item.path] = item
+
+    for rel, relation in strongest.items():
+        item = by_rel.get(rel)
+        if item is None:
+            continue
+        # Keep graph carry-over smaller than direct semantic evidence. Exact
+        # semantic-ref/call edges still get enough credit to surface a terse
+        # provider when a descriptive caller/test became the semantic witness.
+        boost = min(10.0, 2.5 * relation.confidence)
+        before = item.score
+        item.score += boost
+        evidence = (
+            f"semantic-graph:{relation.reason}:"
+            f"{relation.source}@{relation.distance}:{relation.confidence:.2f}"
+        )
+        item.reasons.append(evidence)
+        item.score_trace.append(
+            RankingScoreEvent.from_scores(
+                "semantic-graph",
+                before,
+                item.score,
+                (evidence,),
+            )
+        )
+
+
 def _apply_embedding_rerank_index(
     index: RepositoryIndex,
     query: str,
@@ -273,6 +325,8 @@ def _apply_embedding_rerank_index(
                 evidence,
             )
         )
+
+    _apply_semantic_graph_expansion(index, ranked, semantic_order)
 
 
 def _apply_embedding_rerank(
