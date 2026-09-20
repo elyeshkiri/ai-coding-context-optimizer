@@ -42,6 +42,7 @@ def capabilities() -> tuple[str, ...]:
     return (
         "estimate_tokens",
         "identifier_tokens",
+        "bm25_score",
         "jaccard_similarity",
         "char_ngrams",
     )
@@ -69,6 +70,45 @@ def identifier_tokens(text: str) -> list[str]:
             if len(value) > 2
         }
     )
+
+
+def bm25_score(
+    counts: dict[str, int],
+    q_terms: list[str],
+    doc_freq: dict[str, int],
+    length: int,
+    avg_len: float,
+    n_docs: int,
+) -> tuple[float, int]:
+    """Accumulate BM25 scores with an exact Python fallback."""
+    ext = _extension()
+    if ext is not None:
+        score, matched = ext.bm25_score(
+            counts,
+            q_terms,
+            doc_freq,
+            length,
+            avg_len,
+            n_docs,
+        )
+        return float(score), int(matched)
+    if avg_len <= 0 or n_docs <= 0:
+        return 0.0, 0
+    import math
+
+    score = 0.0
+    matched = 0
+    for term in q_terms:
+        tf = counts.get(term, 0)
+        if not tf:
+            continue
+        matched += tf
+        df = doc_freq.get(term, 0)
+        idf = math.log(1.0 + (n_docs - df + 0.5) / (df + 0.5))
+        k1, b = 1.5, 0.75
+        denom = tf + k1 * (1.0 - b + b * length / avg_len)
+        score += idf * (tf * (k1 + 1.0) / denom)
+    return score, matched
 
 
 def jaccard_similarity(left: Iterable[str], right: Iterable[str]) -> float:
