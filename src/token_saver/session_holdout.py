@@ -157,6 +157,26 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
         }
         if control_other != treatment_other:
             issues.append("non_efficiency_condition_env_diff")
+    command = runner.get("command")
+    if (
+        not isinstance(command, list)
+        or "token_saver.session_holdout_docker" not in command
+    ):
+        issues.append("session_holdout_runner_missing")
+    if runner.get("session_holdout_protocol_version") != 1:
+        issues.append("session_holdout_protocol_version_mismatch")
+    if runner.get("forced_fresh_session_boundary") is not True:
+        issues.append("fresh_session_boundary_not_forced")
+    if runner.get("continuity_source") != "SessionStart:resume":
+        issues.append("continuity_source_mismatch")
+    if runner.get("phase1_mode") != "investigation-no-edit":
+        issues.append("phase1_mode_mismatch")
+    if runner.get("phase2_mode") != "fresh-session-implementation":
+        issues.append("phase2_mode_mismatch")
+    for field in ("phase1_turns", "phase2_turns"):
+        value = runner.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            issues.append(f"invalid_runner_field:{field}")
     return not issues, issues
 
 
@@ -414,6 +434,7 @@ def evaluate_session_holdout(
     agent = evaluate_agent_runs(path)
     protocol_valid, protocol_issues = _protocol_gate(payload)
     activation = _activation(enabled_runs)
+    baseline_activation = _activation(baseline_runs)
     bootstrap = _bootstrap(pairs, pricing)
 
     reductions = {
@@ -451,6 +472,13 @@ def evaluate_session_holdout(
         blockers.append("blind_quality_not_verified")
     if not baseline["cost_complete"] or not enabled["cost_complete"]:
         blockers.append("cost_evidence_incomplete")
+    if any(value for value in baseline_activation["totals"].values()):
+        blockers.append("control_session_efficiency_not_disabled")
+    if (
+        activation["totals"].get("continuity_restores", 0)
+        < len(enabled_runs)
+    ):
+        blockers.append("forced_continuity_restore_missing")
     if not activation["all_feature_families_observed"]:
         blockers.append("session_feature_coverage_incomplete")
     cost_reduction = reductions["cost_per_success"]
@@ -479,7 +507,10 @@ def evaluate_session_holdout(
         },
         "reductions": reductions,
         "bootstrap": bootstrap,
-        "feature_activation": activation,
+        "feature_activation": {
+            "treatment": activation,
+            "control": baseline_activation,
+        },
         "quality": {
             "task_success_parity": agent["task_success_parity"],
             "quality_parity": agent["quality_parity"],
