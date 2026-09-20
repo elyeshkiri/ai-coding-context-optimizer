@@ -377,6 +377,34 @@ This is the preferred end-to-end output-cost claim surface. Raw context
 reduction, response length, or a low budget-utilization ratio are not
 substitutes for cost per independently verified successful task.
 
+### Frozen session-efficiency output-quality gate
+
+The session-efficiency layer does not replace retrieval or end-to-end evidence.
+Its expanded command processors have a separate deterministic frozen fixture:
+
+```bash
+token-saver output-replay \
+  benchmarks/output-quality-session-v17.frozen.json \
+  --require-frozen
+```
+
+The fixture definition is SHA-256 frozen and covers search, lint, typecheck,
+compiled tests, build diagnostics, git status, and container logs. Each case can
+require exact preserved evidence, minimum token reduction, and strings that the
+transformer must not introduce. CI runs this gate in addition to the external
+retrieval holdout and base-vs-candidate ranking checks.
+
+Cross-turn dedup itself is intentionally simpler than fuzzy compression: it only
+fires when the normalized command and exact output digest match. Unchanged
+full-file Read dedup uses the existing verified read digest. These mechanics are
+covered by deterministic tests; any real end-to-end savings claim still belongs
+to the randomized `evidence-run` protocol with task success and blind quality.
+
+The local `dashboard` is also an operational surface, not a benchmark. Its
+tool-context savings are estimated from observed before/after text, while its
+Claude usage counters come from available transcript billing fields. Those
+categories stay separate and are never promoted to cost-per-success evidence.
+
 ### Runtime budget telemetry
 
 For ordinary Claude Code use, `output-telemetry` records actual transcript
