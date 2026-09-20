@@ -115,6 +115,12 @@ def test_efficiency_event_metrics_keep_interventions_separate_from_outcomes(tmp_
                 "relative_savings": 0.8,
             },
         },
+        {
+            "schema": 1,
+            "kind": "knowledge",
+            "feature": "finding_seed",
+            "finding_count": 2,
+        },
         {"schema": 1, "kind": "waste", "feature": "retry_loop"},
         {"schema": 1, "kind": "waste", "feature": "tool_cascade"},
         {"schema": 1, "kind": "continuity", "feature": "checkpoint_restore"},
@@ -128,6 +134,7 @@ def test_efficiency_event_metrics_keep_interventions_separate_from_outcomes(tmp_
 
     assert metrics["dedup_interventions"] == 2
     assert metrics["continuity_restores"] == 1
+    assert metrics["knowledge_seed_findings"] == 2
     assert metrics["knowledge_read_avoidance"] == 1
     assert metrics["cache_economic_read_avoidance"] == 1
     assert metrics["waste_signals"] == 2
