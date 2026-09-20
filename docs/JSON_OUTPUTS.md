@@ -169,7 +169,7 @@ the same status shape documented below; otherwise it is `null`.
 
 ```json
 {
-  "schema": 1,
+  "schema": 2,
   "files": 240,
   "chunks": 918,
   "dimensions": 384,
