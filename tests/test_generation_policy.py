@@ -42,14 +42,14 @@ def test_automatic_policy_injects_once_and_inherits_ambiguous_followups(
     )
     assert first is not None
     assert "OUTPUT TASK: coding." in first
-    assert "target <= 600 tokens" in first
+    assert "target <= 420 tokens" in first
 
     assert automatic_output_policy(root, "go for the next move", session_id="s1") is None
 
     stored = load_state(root, "s1")["output_policy"]
     assert stored["task"] == "coding"
     assert stored["mode"] == "normal"
-    assert stored["max_tokens"] == 600
+    assert stored["max_tokens"] == 420
 
 
 def test_automatic_policy_reinjects_when_task_changes(tmp_path, monkeypatch):
@@ -103,10 +103,10 @@ def test_explicit_detail_request_changes_mode_and_budget(tmp_path, monkeypatch):
 
     assert note is not None
     assert "OUTPUT TASK: explanation." in note
-    assert "target <= 2400 tokens" in note
+    assert "target <= 1680 tokens" in note
     stored = load_state(root, "s1")["output_policy"]
     assert stored["mode"] == "detailed"
-    assert stored["max_tokens"] == 2400
+    assert stored["max_tokens"] == 1680
 
 
 def test_policy_state_is_isolated_by_session(tmp_path, monkeypatch):
@@ -138,3 +138,48 @@ def test_new_session_reset_reenables_policy_injection(tmp_path, monkeypatch):
     restored = automatic_output_policy(root, "continue", session_id="s1")
     assert restored is not None
     assert "OUTPUT TASK: general." in restored
+
+
+def test_strong_same_task_prompt_can_raise_budget_but_ambiguous_followup_does_not(
+    tmp_path, monkeypatch
+):
+    """Complexity changes should be deliberate and stable across vague follow-ups."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+
+    first = automatic_output_policy(root, "Implement caching", session_id="s1")
+    assert first is not None
+    assert load_state(root, "s1")["output_policy"]["max_tokens"] == 420
+
+    complex_prompt = """Implement the repository-wide cache refactor end-to-end:
+- migrate the existing cache API
+- update multiple modules
+- add integration tests
+- update CI and release validation
+"""
+    changed = automatic_output_policy(root, complex_prompt, session_id="s1")
+    assert changed is not None
+    raised = load_state(root, "s1")["output_policy"]["max_tokens"]
+    assert raised > 420
+
+    assert automatic_output_policy(root, "continue", session_id="s1") is None
+    assert load_state(root, "s1")["output_policy"]["max_tokens"] == raised
+
+
+def test_automatic_policy_can_disable_adaptation(tmp_path, monkeypatch):
+    """Static task budgets remain available as an explicit compatibility mode."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+
+    note = automatic_output_policy(
+        root,
+        "Implement caching",
+        session_id="s1",
+        adaptive=False,
+    )
+
+    assert note is not None
+    assert "target <= 600 tokens" in note
+    assert load_state(root, "s1")["output_policy"]["adaptive"] is False
