@@ -26,6 +26,39 @@ DigestService = Callable[[str], str]
 EstimateTokensService = Callable[[str], int]
 TelemetryStartService = Callable[..., None]
 TelemetryFinishService = Callable[..., dict | None]
+EfficiencySessionStartService = Callable[..., None]
+ContinuityContextService = Callable[..., str | None]
+EfficiencyPromptService = Callable[..., None]
+DeduplicateOutputService = Callable[..., str | None]
+ObserveToolService = Callable[..., str | None]
+
+
+def _noop_session_start(*args, **kwargs) -> None:
+    """Ignore an efficiency session-start event."""
+    del args, kwargs
+
+
+def _noop_context(*args, **kwargs) -> str | None:
+    """Return no optional hook context."""
+    del args, kwargs
+    return None
+
+
+def _noop_prompt(*args, **kwargs) -> None:
+    """Ignore an efficiency prompt event."""
+    del args, kwargs
+
+
+def _noop_dedup(*args, **kwargs) -> str | None:
+    """Return no cross-turn deduplication replacement."""
+    del args, kwargs
+    return None
+
+
+def _noop_observe(*args, **kwargs) -> str | None:
+    """Return no behavioral-efficiency nudge."""
+    del args, kwargs
+    return None
 
 
 class OutputPipelineService(Protocol):
@@ -68,6 +101,10 @@ class HookConfig:
     output_policy_max_tokens: int | None = None
     output_policy_calibration_file: str = ".token-saver.output-calibration.json"
     output_telemetry_enabled: bool = True
+    efficiency_enabled: bool = True
+    continuity_enabled: bool = True
+    cross_turn_dedup_enabled: bool = True
+    waste_detection_enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -86,6 +123,11 @@ class HookServices:
     estimate_tokens: EstimateTokensService
     telemetry_start: TelemetryStartService
     telemetry_finish: TelemetryFinishService
+    efficiency_session_start: EfficiencySessionStartService = _noop_session_start
+    continuity_context: ContinuityContextService = _noop_context
+    efficiency_prompt: EfficiencyPromptService = _noop_prompt
+    deduplicate_output: DeduplicateOutputService = _noop_dedup
+    observe_tool: ObserveToolService = _noop_observe
 
 
 def cap_for(n_lines: int) -> int:
@@ -125,10 +167,10 @@ class HookRuntime:
         return None
 
     def run_post(self, payload: dict) -> HookResponse:
-        """Process a post-tool event, replacing only beneficial Bash stdout."""
+        """Process a post-tool event and record local efficiency evidence."""
 
         tool = str(payload.get("tool_name") or "")
-        if tool in {"Read", "Edit"} or tool not in self.config.filterable_tools:
+        if tool not in self.config.filterable_tools:
             return 0, None
 
         response = payload.get("tool_response")
@@ -145,25 +187,39 @@ class HookRuntime:
         ):
             return 0, None
 
+        root = self.cwd(payload)
         command = str((payload.get("tool_input") or {}).get("command", ""))
         replacement = dict(response)
         original = response["stdout"]
+        failed = bool(self.exit_code(response))
         n_lines = len(original.splitlines())
         min_lines = max(1, self.config.min_lines)
         keep_tail = max(0, self.config.keep_tail)
+        changed = False
 
-        if n_lines < min_lines:
-            if not self.config.delta_enabled:
-                return 0, None
-            replacement["stdout"], _delta_meta = self.services.apply_delta(
-                self.cwd(payload),
-                command,
-                original,
-                original,
-                session_id=payload.get("session_id"),
-            )
-            if replacement["stdout"] == original:
-                return 0, None
+        deduped = self.services.deduplicate_output(
+            root,
+            command,
+            original,
+            session_id=payload.get("session_id"),
+            enabled=(
+                self.config.efficiency_enabled
+                and self.config.cross_turn_dedup_enabled
+            ),
+        )
+        if deduped is not None:
+            replacement["stdout"] = deduped
+            changed = replacement["stdout"] != original
+        elif n_lines < min_lines:
+            if self.config.delta_enabled:
+                replacement["stdout"], _delta_meta = self.services.apply_delta(
+                    root,
+                    command,
+                    original,
+                    original,
+                    session_id=payload.get("session_id"),
+                )
+                changed = replacement["stdout"] != original
         else:
             max_lines = self.config.max_lines
             if max_lines is None:
@@ -180,12 +236,33 @@ class HookRuntime:
             replacement["stdout"] = output_result.text
             if self.config.delta_enabled:
                 replacement["stdout"], _delta_meta = self.services.apply_delta(
-                    self.cwd(payload),
+                    root,
                     command,
                     original,
                     replacement["stdout"],
                     session_id=payload.get("session_id"),
                 )
+            changed = replacement["stdout"] != original
+
+        behavior_note = self.services.observe_tool(
+            root,
+            payload,
+            original_text=original,
+            delivered_text=replacement["stdout"],
+            failed=failed,
+            enabled=self.config.efficiency_enabled,
+            waste_detection=self.config.waste_detection_enabled,
+        )
+
+        if not changed:
+            if behavior_note:
+                return 0, {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUse",
+                        "additionalContext": behavior_note,
+                    }
+                }
+            return 0, None
 
         note = (
             "\n[token-saver: filtered output; original saved. "
@@ -196,25 +273,47 @@ class HookRuntime:
             self.services.estimate_tokens(original)
             - self.services.estimate_tokens(candidate)
             < self.config.min_net_tokens
+            or len(candidate.encode()) >= len(original.encode())
         ):
-            return 0, None
-        if len(candidate.encode()) >= len(original.encode()):
+            if behavior_note:
+                return 0, {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUse",
+                        "additionalContext": behavior_note,
+                    }
+                }
             return 0, None
 
         output_id = self.services.store_output(response)
         replacement["stdout"] += note.format(id=output_id)
-        return 0, {
-            "hookSpecificOutput": {
-                "hookEventName": "PostToolUse",
-                "updatedToolOutput": replacement,
-            }
+        specific = {
+            "hookEventName": "PostToolUse",
+            "updatedToolOutput": replacement,
         }
+        if behavior_note:
+            specific["additionalContext"] = behavior_note
+        return 0, {"hookSpecificOutput": specific}
 
     def run_session_start(self, payload: dict) -> HookResponse:
-        """Reset session-scoped state without injecting model context."""
+        """Reset transient state and restore compact structured continuity."""
 
         root = self.cwd(payload)
         source = str(payload.get("source") or "").lower()
+        continuity = self.services.continuity_context(
+            root,
+            session_id=payload.get("session_id"),
+            source=source,
+            enabled=(
+                self.config.efficiency_enabled
+                and self.config.continuity_enabled
+            ),
+        )
+        self.services.efficiency_session_start(
+            root,
+            session_id=payload.get("session_id"),
+            source=source,
+            enabled=self.config.efficiency_enabled,
+        )
         new_convo = source in {"", "startup", "clear", "compact"}
         self.services.reset_session(
             root,
@@ -222,7 +321,14 @@ class HookRuntime:
             reminder=True,
             session_id=payload.get("session_id"),
         )
-        return 0, None
+        if not continuity:
+            return 0, None
+        return 0, {
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": continuity,
+            }
+        }
 
     def run_user_prompt(self, payload: dict) -> HookResponse:
         """Inject compact lifecycle and generation policy only when needed."""
@@ -230,6 +336,13 @@ class HookRuntime:
         root = self.cwd(payload)
         prompt = str(payload.get("prompt") or payload.get("user_prompt") or "")
         response: dict = {}
+
+        self.services.efficiency_prompt(
+            root,
+            prompt,
+            session_id=payload.get("session_id"),
+            enabled=self.config.efficiency_enabled,
+        )
 
         if self.config.output_policy_enabled:
             generation_note = self.services.generation_policy(
@@ -276,45 +389,72 @@ class HookRuntime:
             )
         return 0, None
 
-    def run_post_read(self, payload: dict) -> None:
-        """Record a verified full-file read while ignoring ranged reads."""
+    def run_post_read(self, payload: dict) -> HookResponse:
+        """Record a verified full-file read plus structured efficiency state."""
 
+        root = self.cwd(payload)
         tool_input = payload.get("tool_input") or {}
         if not isinstance(tool_input, dict):
-            return
-        if any(
+            return 0, None
+        ranged = any(
             key in tool_input for key in ("offset", "limit", "start_line", "end_line")
-        ):
-            return
+        )
         raw = (
             tool_input.get("file_path")
             or tool_input.get("path")
             or tool_input.get("filePath")
         )
-        if not raw:
-            return
+        if raw and not ranged:
+            path = Path(str(raw))
+            if not path.is_absolute():
+                path = root / path
+            if path.is_file():
+                try:
+                    text = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    text = ""
+                response = payload.get("tool_response")
+                info = response.get("file") if isinstance(response, dict) else None
+                if text and isinstance(info, dict) and info.get("content") == text:
+                    self.services.record_read(
+                        root,
+                        path,
+                        self.services.digest(text),
+                        session_id=payload.get("session_id"),
+                    )
 
-        path = Path(str(raw))
-        if not path.is_absolute():
-            path = self.cwd(payload) / path
-        if not path.is_file():
-            return
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            return
-
-        response = payload.get("tool_response")
-        info = response.get("file") if isinstance(response, dict) else None
-        if not isinstance(info, dict) or info.get("content") != text:
-            return
-
-        self.services.record_read(
-            self.cwd(payload),
-            path,
-            self.services.digest(text),
-            session_id=payload.get("session_id"),
+        note = self.services.observe_tool(
+            root,
+            payload,
+            enabled=self.config.efficiency_enabled,
+            waste_detection=self.config.waste_detection_enabled,
         )
+        if not note:
+            return 0, None
+        return 0, {
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "additionalContext": note,
+            }
+        }
+
+    def run_post_state_only(self, payload: dict) -> HookResponse:
+        """Record Edit/Write activity without rewriting the tool result."""
+
+        note = self.services.observe_tool(
+            self.cwd(payload),
+            payload,
+            enabled=self.config.efficiency_enabled,
+            waste_detection=self.config.waste_detection_enabled,
+        )
+        if not note:
+            return 0, None
+        return 0, {
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "additionalContext": note,
+            }
+        }
 
     def run(self, payload: dict) -> HookResponse:
         """Route one normalized hook payload to the appropriate service."""
@@ -338,6 +478,7 @@ class HookRuntime:
         ):
             return self.services.guard(payload)
         if event == "PostToolUse" and payload.get("tool_name") == "Read":
-            self.run_post_read(payload)
-            return 0, None
+            return self.run_post_read(payload)
+        if event == "PostToolUse" and payload.get("tool_name") in {"Edit", "Write"}:
+            return self.run_post_state_only(payload)
         return self.run_post(payload)
