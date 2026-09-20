@@ -25,10 +25,14 @@ token-saver output-effectiveness <manifest> \
 - `--require-publishable` exits `1` unless all publication gates pass.
 
 For a publishable cost-per-success claim, the manifest must include at least
-20 distinct tasks and three trials per task, blind quality scores for every
-paired run, no task-success or quality regression, complete optimized-arm
-output-policy telemetry that agrees with the copied transcript usage, and
-complete positive cost-per-success evidence.
+20 distinct tasks and three trials per task. Token Saver recomputes
+`protocol.task_definition_sha256`, checks each run's model/revision/prompt hash
+against the frozen suite, requires blind quality scores for every paired run,
+no task-success or quality regression, and complete optimized-arm policy
+telemetry with at least one measured turn plus a concrete task/mode/budget.
+Telemetry must agree with the copied transcript. The cost-per-success point
+estimate must improve **and** the task-cluster 95% confidence interval must
+remain strictly above zero.
 
 ## Exit codes
 
