@@ -65,6 +65,7 @@ class SemanticIndexStats:
     chunks: int
     dimensions: int
     model: str
+    model_revision: str | None
     backend: str
     path: str
 
@@ -76,6 +77,7 @@ class SemanticIndexStats:
             "chunks": self.chunks,
             "dimensions": self.dimensions,
             "model": self.model,
+            "model_revision": self.model_revision,
             "backend": self.backend,
             "path": self.path,
         }
@@ -86,18 +88,29 @@ def _project_id(root: Path) -> str:
     return hashlib.sha256(str(root.resolve()).encode()).hexdigest()[:24]
 
 
-def _model_id(model: str) -> str:
-    """Return a filesystem-safe model identity."""
-    return hashlib.sha256(model.encode()).hexdigest()[:16]
+def _model_revision() -> str | None:
+    """Return the optional immutable local embedding-model revision."""
+    return os.environ.get("TOKEN_SAVER_SEMANTIC_MODEL_REVISION") or None
 
 
-def semantic_index_path(root: Path, model: str = DEFAULT_MODEL) -> Path:
-    """Return the private SQLite semantic-index path."""
+def _model_id(model: str, revision: str | None = None) -> str:
+    """Return a filesystem-safe model plus revision identity."""
+    identity = f"{model}\0{revision or ''}"
+    return hashlib.sha256(identity.encode()).hexdigest()[:16]
+
+
+def semantic_index_path(
+    root: Path,
+    model: str = DEFAULT_MODEL,
+    revision: str | None = None,
+) -> Path:
+    """Return the private SQLite semantic-index path for model weights."""
+    resolved_revision = _model_revision() if revision is None else revision
     return (
         state_dir()
         / "semantic-index"
         / _project_id(root)
-        / f"{_model_id(model)}.sqlite3"
+        / f"{_model_id(model, resolved_revision)}.sqlite3"
     )
 
 
@@ -136,7 +149,7 @@ def _load_encoder(model: str) -> Encoder:
             "pip install 'claude-token-saver[embeddings]'"
         ) from exc
     try:
-        revision = os.environ.get("TOKEN_SAVER_SEMANTIC_MODEL_REVISION") or None
+        revision = _model_revision()
         return SentenceTransformer(
             model,
             revision=revision,
@@ -309,10 +322,15 @@ class SemanticVectorIndex:
         self.root = root.resolve()
         self.index = index
         self.model = model
+        self.model_revision = _model_revision()
         self.chunk_lines = chunk_lines
         self.overlap = overlap
         self._encoder = encoder
-        self.path = semantic_index_path(self.root, model)
+        self.path = semantic_index_path(
+            self.root,
+            model,
+            self.model_revision,
+        )
 
     def _get_encoder(self) -> Encoder:
         """Load the local encoder lazily."""
@@ -325,6 +343,7 @@ class SemanticVectorIndex:
         expected = {
             "schema": str(SEMANTIC_SCHEMA),
             "model": self.model,
+            "model_revision": self.model_revision or "",
             "chunk_lines": str(self.chunk_lines),
             "overlap": str(self.overlap),
         }
@@ -523,7 +542,9 @@ class SemanticVectorIndex:
     def _query_vector(self, conn: sqlite3.Connection, query: str) -> list[float]:
         """Return a persistent query vector keyed by exact query and model."""
         digest = hashlib.sha256(query.encode()).hexdigest()
-        key = hashlib.sha256(f"{self.model}\0{digest}".encode()).hexdigest()
+        key = hashlib.sha256(
+            f"{self.model}\0{self.model_revision or ''}\0{digest}".encode()
+        ).hexdigest()
         row = conn.execute(
             "SELECT query_text_sha256, vector_json FROM query_vectors WHERE query_hash = ?",
             (key,),
@@ -683,6 +704,7 @@ class SemanticVectorIndex:
                 chunks=chunks,
                 dimensions=int(meta.get("dimensions", "0")),
                 model=meta.get("model", self.model),
+                model_revision=meta.get("model_revision") or self.model_revision,
                 backend=_effective_backend(self.path, meta),
                 path=str(self.path),
             )
@@ -693,13 +715,15 @@ class SemanticVectorIndex:
 
 def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
     """Return semantic index status without requiring the embedding dependency."""
-    path = semantic_index_path(root.resolve(), model)
+    revision = _model_revision()
+    path = semantic_index_path(root.resolve(), model, revision)
     if not path.is_file():
         return SemanticIndexStats(
             files=0,
             chunks=0,
             dimensions=0,
             model=model,
+            model_revision=revision,
             backend="sqlite-cosine",
             path=str(path),
         ).to_dict()
@@ -715,6 +739,7 @@ def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
             chunks=chunks,
             dimensions=int(meta.get("dimensions", "0")),
             model=meta.get("model", model),
+            model_revision=meta.get("model_revision") or revision,
             backend=_effective_backend(path, meta),
             path=str(path),
         ).to_dict()
