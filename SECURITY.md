@@ -20,6 +20,37 @@ Context rendering applies the project's existing secret-redaction path where
 documented, but users should still avoid committing credentials or treating an
 AI-agent context layer as a secret-management system.
 
+## Oversized-prompt ingress state
+
+Prompt ingress optimization is **disabled by default** because its safety model
+requires storing the exact blocked prompt locally so omitted ranges remain
+recoverable. When enabled and the threshold fires, Token Saver writes:
+
+- the exact original prompt;
+- a SHA-256 integrity digest;
+- a bounded exact-excerpt packet and line-range metadata.
+
+State is project-scoped under the private Token Saver state directory, written
+with private permissions, and bounded to the newest 40 staged prompts. It is not
+uploaded to Token Saver infrastructure. Unlike output-policy telemetry and
+session continuity, this store intentionally contains user prompt content.
+Treat it as sensitive, relocate `TOKEN_SAVER_STATE_DIR` when appropriate, and
+do not enable ingress staging for material that must not be persisted locally.
+
+The hook blocks the oversized prompt before Claude processes it. Token Saver
+does not send a lossy substitute automatically and never silently truncates a
+failed compression attempt.
+
+## Retrieval cache state
+
+Persistent retrieval cache entries contain completed bounded context packs and
+ranking metadata, so they may include source excerpts that were selected for an
+agent. Cache identity incorporates indexed source digests and index version;
+changed repository evidence gets a new key rather than reusing stale context.
+The cache is local/private and bounded by `retrieval.cache_max_entries`.
+Disable it with `TOKEN_SAVER_RETRIEVAL_CACHE=0` when local persistence is not
+appropriate.
+
 ## Claude transcripts
 
 `token-saver sessions` reads Claude Code transcript files under the local
