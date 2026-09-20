@@ -380,3 +380,158 @@ def test_runtime_disabled_short_circuits_all_services():
         None,
     )
     assert called == []
+
+
+
+def test_runtime_restores_structured_continuity_on_resume(tmp_path):
+    """Resume should inject continuity through SessionStart additionalContext."""
+    starts = []
+    runtime = HookRuntime(
+        _services(
+            continuity_context=lambda root, **kwargs: "checkpoint context",
+            efficiency_session_start=lambda root, **kwargs: starts.append(
+                (root, kwargs)
+            ),
+        )
+    )
+
+    code, response = runtime.run(
+        {
+            "hook_event_name": "SessionStart",
+            "cwd": str(tmp_path),
+            "source": "resume",
+            "session_id": "session-1",
+        }
+    )
+
+    assert code == 0
+    assert response == {
+        "hookSpecificOutput": {
+            "hookEventName": "SessionStart",
+            "additionalContext": "checkpoint context",
+        }
+    }
+    assert starts == [
+        (
+            Path(tmp_path),
+            {
+                "session_id": "session-1",
+                "source": "resume",
+                "enabled": True,
+            },
+        )
+    ]
+
+
+def test_runtime_exact_dedup_bypasses_normal_output_processor(tmp_path):
+    """Exact cross-turn duplicate output should skip ordinary compression."""
+    calls = []
+
+    class UnexpectedPipeline:
+        """Fail if normal compression runs after exact dedup matched."""
+
+        def process(self, text, command="", *, exit_code=None, policy=None):
+            """Record an unexpected call before returning passthrough."""
+            calls.append((text, command, exit_code, policy))
+            return OutputResult(text, "unexpected", False, False)
+
+    observed = []
+    original = "\n".join("same output " + "x" * 80 for _ in range(80))
+    runtime = HookRuntime(
+        _services(
+            output_pipeline=UnexpectedPipeline(),
+            deduplicate_output=lambda *args, **kwargs: "[duplicate]\n",
+            observe_tool=lambda *args, **kwargs: observed.append(kwargs) or None,
+        ),
+        HookConfig(min_lines=1, min_net_tokens=0),
+    )
+    payload = _bash_payload(original)
+    payload["cwd"] = str(tmp_path)
+
+    code, response = runtime.run(payload)
+
+    assert code == 0
+    assert calls == []
+    assert response is not None
+    delivered = response["hookSpecificOutput"]["updatedToolOutput"]["stdout"]
+    assert delivered.startswith("[duplicate]")
+    assert observed[-1]["original_text"] == original
+    assert observed[-1]["delivered_text"].startswith("[duplicate]")
+
+
+def test_runtime_behavior_signal_can_surface_without_output_rewrite(tmp_path):
+    """Behavior detection should be able to nudge without changing tool output."""
+    runtime = HookRuntime(
+        _services(
+            observe_tool=lambda *args, **kwargs: "reassess repeated retries",
+        ),
+        HookConfig(min_lines=1000),
+    )
+    payload = _bash_payload("short output\n")
+    payload["cwd"] = str(tmp_path)
+
+    code, response = runtime.run(payload)
+
+    assert code == 0
+    assert response == {
+        "hookSpecificOutput": {
+            "hookEventName": "PostToolUse",
+            "additionalContext": "reassess repeated retries",
+        }
+    }
+
+
+def test_runtime_records_prompt_task_state_without_changing_prompt_response(tmp_path):
+    """Efficiency prompt observation should coexist with no generation policy."""
+    calls = []
+    runtime = HookRuntime(
+        _services(
+            efficiency_prompt=lambda root, prompt, **kwargs: calls.append(
+                (root, prompt, kwargs)
+            )
+        ),
+        HookConfig(output_policy_enabled=False, output_telemetry_enabled=False),
+    )
+
+    result = runtime.run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "session_id": "s1",
+            "prompt": "implement the feature",
+        }
+    )
+
+    assert result == (0, None)
+    assert calls == [
+        (
+            Path(tmp_path),
+            "implement the feature",
+            {"session_id": "s1", "enabled": True},
+        )
+    ]
+
+
+def test_runtime_observes_edit_without_rewriting_tool_result(tmp_path):
+    """Edit/Write post events should feed continuity state only."""
+    calls = []
+    runtime = HookRuntime(
+        _services(
+            observe_tool=lambda root, payload, **kwargs: calls.append(
+                (root, payload["tool_name"], kwargs)
+            )
+            or None
+        )
+    )
+    payload = {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Edit",
+        "cwd": str(tmp_path),
+        "session_id": "s1",
+        "tool_input": {"file_path": "src/app.py"},
+        "tool_response": {"ok": True},
+    }
+
+    assert runtime.run(payload) == (0, None)
+    assert calls[0][0] == Path(tmp_path)
+    assert calls[0][1] == "Edit"
