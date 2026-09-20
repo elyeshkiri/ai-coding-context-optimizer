@@ -30,9 +30,15 @@ def merge_hooks(existing: dict) -> dict:
     from copy import deepcopy
     out = deepcopy(existing)
     hooks = out.setdefault("hooks", {})
-    events = {"PreToolUse": PRE_MATCHER, "PostToolUse": POST_MATCHER,
-              "SessionStart": SESSION_MATCHER, "UserPromptSubmit": ""}
-    for event in (*events, "Stop"):
+    events = {
+        "PreToolUse": PRE_MATCHER,
+        "PostToolUse": POST_MATCHER,
+        "SessionStart": SESSION_MATCHER,
+        "UserPromptSubmit": "",
+        "Stop": "",
+        "StopFailure": "",
+    }
+    for event in events:
         entries = []
         for entry in hooks.get(event, []):
             others = [h for h in entry.get("hooks", []) if h.get("command") != HOOK_COMMAND]
