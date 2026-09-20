@@ -49,6 +49,11 @@ class RuntimeSettings:
     cache_write_factor: float = 1.25
     cache_read_factor: float = 0.10
     cache_min_relative_savings: float = 0.05
+    ingress_enabled: bool = False
+    ingress_threshold_tokens: int = 12000
+    ingress_packet_tokens: int = 1600
+    retrieval_cache: bool = True
+    retrieval_cache_max_entries: int = 64
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -151,6 +156,12 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         raise ValueError(
             f"Expected [efficiency] table in Token Saver config: {path}"
         )
+    ingress = payload.get("ingress", {})
+    if not isinstance(ingress, dict):
+        raise ValueError(f"Expected [ingress] table in Token Saver config: {path}")
+    retrieval = payload.get("retrieval", {})
+    if not isinstance(retrieval, dict):
+        raise ValueError(f"Expected [retrieval] table in Token Saver config: {path}")
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -205,6 +216,20 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         cache_min_relative_savings=_fraction(
             efficiency.get("cache_min_relative_savings"),
             0.05,
+        ),
+        ingress_enabled=_bool(ingress.get("enabled"), False),
+        ingress_threshold_tokens=_positive_int(
+            ingress.get("threshold_tokens"),
+            12000,
+        ),
+        ingress_packet_tokens=_positive_int(
+            ingress.get("packet_tokens"),
+            1600,
+        ),
+        retrieval_cache=_bool(retrieval.get("cache"), True),
+        retrieval_cache_max_entries=_positive_int(
+            retrieval.get("cache_max_entries"),
+            64,
         ),
     )
 
@@ -363,5 +388,37 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
             base.cache_min_relative_savings,
             minimum=0.0,
             maximum=1.0,
+        ),
+        ingress_enabled=_env_bool(
+            "TOKEN_SAVER_INGRESS_OPTIMIZER",
+            base.ingress_enabled,
+        ),
+        ingress_threshold_tokens=int(
+            _env_int(
+                "TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS",
+                base.ingress_threshold_tokens,
+                minimum=200,
+            )
+            or base.ingress_threshold_tokens
+        ),
+        ingress_packet_tokens=int(
+            _env_int(
+                "TOKEN_SAVER_INGRESS_PACKET_TOKENS",
+                base.ingress_packet_tokens,
+                minimum=200,
+            )
+            or base.ingress_packet_tokens
+        ),
+        retrieval_cache=_env_bool(
+            "TOKEN_SAVER_RETRIEVAL_CACHE",
+            base.retrieval_cache,
+        ),
+        retrieval_cache_max_entries=int(
+            _env_int(
+                "TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES",
+                base.retrieval_cache_max_entries,
+                minimum=1,
+            )
+            or base.retrieval_cache_max_entries
         ),
     )
