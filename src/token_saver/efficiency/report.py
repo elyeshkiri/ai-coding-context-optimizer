@@ -70,3 +70,33 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
             ),
         },
     }
+
+
+
+def continuity_report(root: Path) -> dict:
+    """Return the latest structured checkpoint without transcript content."""
+    snapshot = load_snapshot(root)
+    sessions = snapshot.get("sessions")
+    last = snapshot.get("last_session")
+    session = (
+        sessions.get(last)
+        if isinstance(sessions, dict) and isinstance(last, str)
+        else None
+    )
+    if not isinstance(session, dict):
+        session = {}
+    return {
+        "schema": 1,
+        "root": str(root.resolve()),
+        "available": bool(session),
+        "task": session.get("task"),
+        "working_files": list(session.get("working_files", [])),
+        "commands": list(session.get("commands", [])),
+        "failures": list(session.get("failures", [])),
+        "validations": list(session.get("validations", [])),
+        "last_activity": session.get("last_activity"),
+        "privacy": (
+            "No raw user prompt, assistant response, or tool output is stored "
+            "in the continuity snapshot."
+        ),
+    }
