@@ -185,6 +185,17 @@ def test_experiment_runs_both_arms_and_independent_verifier(
     assert all(run["manual_intervention"] is False for run in result["runs"])
     assert all(run["verification"][0]["exit_code"] == 0 for run in result["runs"])
     assert all((tmp_path / run["transcripts"][0]).is_file() for run in result["runs"])
+    assert all(run["output_tokens"] == 10 for run in result["runs"])
+    assert all(run["model_calls"] == 1 for run in result["runs"])
+    assert all(
+        run["input_tokens"] == (100 if run["condition"] == "baseline" else 60)
+        for run in result["runs"]
+    )
+    assert all(run["cache_creation_input_tokens"] == 0 for run in result["runs"])
+    assert all(run["cache_read_input_tokens"] == 0 for run in result["runs"])
+    # The synthetic path-mode runner writes a transcript directly and does not
+    # execute Claude hooks, so policy telemetry is correctly absent.
+    assert all(run["output_policy_telemetry"] is None for run in result["runs"])
 
     # Re-running resumes from the checkpoint instead of duplicating paid trials.
     resumed = run_experiment(
