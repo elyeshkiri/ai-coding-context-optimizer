@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from token_saver.agent_eval import evaluate_agent_runs
+from token_saver.benchmark import task_definition_hash
 from token_saver.command_handlers.output import output_effectiveness_main
 from token_saver.output_effectiveness import (
     EffectivenessPricing,
@@ -69,33 +70,58 @@ def _run(task: str, trial: int, condition: str, *, optimized: bool) -> dict:
 def _manifest(path, *, tasks: int, trials: int) -> None:
     """Write a complete blind paired effectiveness manifest."""
     runs = []
+    task_definitions = []
     for task_index in range(tasks):
         task = f"task-{task_index}"
+        task_definitions.append(
+            {
+                "id": task,
+                "repository": "fixture",
+                "revision": "deadbeef",
+                "prompt": f"Synthetic prompt for {task}",
+                "prompt_sha256": f"prompt-{task}",
+                "verifier": [["synthetic-verifier"]],
+            }
+        )
         for trial in range(1, trials + 1):
             runs.append(_run(task, trial, "baseline", optimized=False))
             # Raw experiment output uses "enabled"; this is intentional.
             runs.append(_run(task, trial, "enabled", optimized=True))
-    path.write_text(
-        json.dumps(
-            {
-                "protocol": {
-                    "task_definitions_frozen": True,
-                    "condition_order_randomized": True,
-                    "independent_verification": True,
-                    "history_isolated": True,
-                    "hidden_tests_after_agent": True,
-                    "frozen_at": "2026-09-20T00:00:00Z",
-                    "task_definition_sha256": "a" * 64,
-                },
-                "quality_evaluation": {
-                    "blinded": True,
-                    "judge": "independent-grader",
-                },
-                "runs": runs,
+
+    payload = {
+        "suite_version": 1,
+        "design": {
+            "trials_per_task": trials,
+            "condition_order_seed": 1729,
+        },
+        "repositories": {
+            "fixture": {
+                "path": "../fixture",
+                "revision": "deadbeef",
             }
-        ),
-        encoding="utf-8",
-    )
+        },
+        "runner": {
+            "model": "synthetic-model",
+            "command": ["synthetic-runner"],
+        },
+        "tasks": task_definitions,
+        "protocol": {
+            "task_definitions_frozen": True,
+            "condition_order_randomized": True,
+            "independent_verification": True,
+            "history_isolated": True,
+            "hidden_tests_after_agent": True,
+            "frozen_at": "2026-09-20T00:00:00Z",
+            "task_definition_sha256": "",
+        },
+        "quality_evaluation": {
+            "blinded": True,
+            "judge": "independent-grader",
+        },
+        "runs": runs,
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _pricing() -> EffectivenessPricing:
@@ -290,3 +316,80 @@ def test_publishable_gate_requires_ci_to_exclude_zero(tmp_path):
         "cost_per_success_ci_not_strictly_positive"
         in result["publication_gate"]["blockers"]
     )
+
+
+
+def test_publishable_gate_recomputes_frozen_task_hash(tmp_path):
+    """A forged or stale freeze hash must block publication."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["protocol"]["task_definition_sha256"] = "0" * 64
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(manifest, pricing=_pricing())
+
+    assert result["protocol"]["valid"] is False
+    assert result["protocol"]["declared_task_definition_sha256"] == "0" * 64
+    assert result["protocol"]["computed_task_definition_sha256"] != "0" * 64
+    assert (
+        "invalid_or_missing_frozen_experiment_protocol"
+        in result["publication_gate"]["blockers"]
+    )
+
+
+def test_publishable_gate_rejects_incomplete_policy_telemetry(tmp_path):
+    """A dictionary-shaped telemetry field is not enough without measured policy data."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["runs"][1]["output_policy_telemetry"] = {
+        "usage_matches_transcript": True
+    }
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(manifest, pricing=_pricing())
+
+    assert "task-0/1" in result["telemetry"]["incomplete_runs"]
+    assert (
+        "incomplete_output_policy_telemetry"
+        in result["publication_gate"]["blockers"]
+    )
+
+
+def test_publishable_gate_matches_runs_to_frozen_task_definition(tmp_path):
+    """Paired runs cannot drift together away from the frozen suite metadata."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    for run in payload["runs"][:2]:
+        run["prompt_sha256"] = "same-but-wrong"
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(manifest, pricing=_pricing())
+
+    assert result["protocol"]["pair_identity_mismatches"] == []
+    assert any(
+        item.endswith(":prompt_sha256")
+        for item in result["protocol"]["frozen_run_mismatches"]
+    )
+    assert (
+        "run_metadata_mismatch_with_frozen_suite"
+        in result["publication_gate"]["blockers"]
+    )
+
+
+def test_manual_intervention_must_be_boolean(tmp_path):
+    """String values such as 'false' must not silently count as true."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=3, trials=1)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["runs"][0]["manual_intervention"] = "false"
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    try:
+        evaluate_output_effectiveness(manifest, pricing=_pricing())
+    except ValueError as exc:
+        assert "manual_intervention must be boolean" in str(exc)
+    else:
+        raise AssertionError("non-boolean manual_intervention must be rejected")
