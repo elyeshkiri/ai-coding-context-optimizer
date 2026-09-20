@@ -40,6 +40,9 @@ def _run(task: str, trial: int, condition: str, *, optimized: bool) -> dict:
         "revision": "deadbeef",
         "fresh_input_tokens": fresh,
         "cache_creation_input_tokens": 100 if optimized else 200,
+        "cache_creation_5m_input_tokens": 100 if optimized else 200,
+        "cache_creation_1h_input_tokens": 0,
+        "cache_creation_unknown_input_tokens": 0,
         "cache_read_input_tokens": 300 if optimized else 400,
         "input_tokens": fresh + (100 if optimized else 200) + (300 if optimized else 400),
         "cached_input_tokens": 300 if optimized else 400,
@@ -133,7 +136,9 @@ def _pricing() -> EffectivenessPricing:
     """Return deterministic synthetic rates for cost tests."""
     return EffectivenessPricing(
         fresh_input_per_million=2.0,
-        cache_creation_per_million=3.0,
+        cache_creation_5m_per_million=3.0,
+        cache_creation_1h_per_million=4.0,
+        cache_creation_unknown_per_million=3.5,
         cache_read_per_million=0.5,
         output_per_million=6.0,
     )
@@ -233,8 +238,12 @@ def test_output_effectiveness_cli_enforces_publication_gate(tmp_path, capsys):
             str(manifest),
             "--fresh-input-per-million",
             "2",
-            "--cache-creation-per-million",
+            "--cache-creation-5m-per-million",
             "3",
+            "--cache-creation-1h-per-million",
+            "4",
+            "--cache-creation-unknown-per-million",
+            "3.5",
             "--cache-read-per-million",
             "0.5",
             "--output-per-million",
@@ -416,4 +425,53 @@ def test_publishable_gate_rejects_invalid_frozen_prompt_hash(tmp_path):
     assert (
         "invalid_frozen_task_definitions"
         in result["publication_gate"]["blockers"]
+    )
+
+
+
+def test_effectiveness_fails_closed_when_nonzero_cache_bucket_has_no_rate(tmp_path):
+    """Missing a used cache-write rate must not silently price those tokens at zero."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+
+    result = evaluate_output_effectiveness(
+        manifest,
+        pricing=EffectivenessPricing(
+            fresh_input_per_million=2.0,
+            cache_read_per_million=0.5,
+            output_per_million=6.0,
+        ),
+    )
+
+    assert result["conditions"]["baseline"]["cost_complete"] is False
+    assert "cost_evidence_incomplete" in result["publication_gate"]["blockers"]
+
+
+def test_effectiveness_prices_5m_and_1h_cache_creation_separately(tmp_path):
+    """Different cache-write TTLs should use their own rates."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=3, trials=1)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    baseline = payload["runs"][0]
+    baseline["cache_creation_5m_input_tokens"] = 50
+    baseline["cache_creation_1h_input_tokens"] = 150
+    baseline["cache_creation_unknown_input_tokens"] = 0
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(
+        manifest,
+        pricing=EffectivenessPricing(
+            fresh_input_per_million=0.0,
+            cache_creation_5m_per_million=1.0,
+            cache_creation_1h_per_million=10.0,
+            cache_creation_unknown_per_million=1.0,
+            cache_read_per_million=0.0,
+            output_per_million=0.0,
+        ),
+    )
+
+    # First baseline run costs 50*1 + 150*10 micro-dollars, while the other
+    # two each cost 200*1. The condition total proves the TTL split is honored.
+    assert result["conditions"]["baseline"]["total_cost_usd"] == (
+        (1550 + 200 + 200) / 1_000_000
     )
