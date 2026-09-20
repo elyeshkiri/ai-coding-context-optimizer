@@ -13,6 +13,13 @@ import sys
 from pathlib import Path
 
 from .delta_context import apply_delta
+from .efficiency import (
+    continuity_context,
+    deduplicate_output,
+    observe_prompt,
+    observe_tool,
+    start_session,
+)
 from .estimate import estimate_tokens
 from .output import OutputPipeline
 from .output_telemetry import finish_output_turn, start_output_turn
@@ -54,6 +61,10 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         output_policy_max_tokens=settings.output_max_tokens,
         output_policy_calibration_file=settings.output_calibration_file,
         output_telemetry_enabled=settings.output_telemetry,
+        efficiency_enabled=settings.efficiency_enabled,
+        continuity_enabled=settings.continuity_enabled,
+        cross_turn_dedup_enabled=settings.cross_turn_dedup,
+        waste_detection_enabled=settings.waste_detection,
     )
 
 
@@ -79,6 +90,11 @@ def _services() -> HookServices:
         estimate_tokens=estimate_tokens,
         telemetry_start=start_output_turn,
         telemetry_finish=finish_output_turn,
+        efficiency_session_start=start_session,
+        continuity_context=continuity_context,
+        efficiency_prompt=observe_prompt,
+        deduplicate_output=deduplicate_output,
+        observe_tool=observe_tool,
     )
 
 
