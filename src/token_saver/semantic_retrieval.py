@@ -12,7 +12,6 @@ from dataclasses import dataclass
 import hashlib
 import json
 import math
-import os
 from pathlib import Path
 import sqlite3
 from typing import Protocol
@@ -657,7 +656,7 @@ def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
             chunks=0,
             dimensions=0,
             model=model,
-            backend=meta.get("ann_backend", "sqlite-cosine"),
+            backend="sqlite-cosine",
             path=str(path),
         ).to_dict()
     conn = _connect(path)
@@ -672,7 +671,7 @@ def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
             chunks=chunks,
             dimensions=int(meta.get("dimensions", "0")),
             model=meta.get("model", model),
-            backend="sqlite-cosine",
+            backend=meta.get("ann_backend", "sqlite-cosine"),
             path=str(path),
         ).to_dict()
     finally:
