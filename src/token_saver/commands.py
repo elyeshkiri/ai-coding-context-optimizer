@@ -13,6 +13,7 @@ from .command_handlers.context import (
     recall_main,
     remember_main,
 )
+from .command_handlers.efficiency import cache_economics_main
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     evaluate_main,
@@ -42,6 +43,7 @@ from .command_handlers.patch import pack_diff_main, review_main
 __all__ = [
     "agent_evaluate_main",
     "browse_main",
+    "cache_economics_main",
     "commands_main",
     "completion_main",
     "cost_report_main",
