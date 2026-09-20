@@ -8,7 +8,7 @@
     "hidden_tests_after_agent": true,
     "development_excluded": true,
     "frozen_at": "2026-09-20T19:15:00+02:00",
-    "task_definition_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "task_definition_sha256": "84173a6258f41b53f955e5f342e08f087b968583af50a314e34ff2526ff71691",
     "knowledge_efficiency_isolated": true
   },
   "design": {
