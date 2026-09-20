@@ -10,7 +10,9 @@ token-saver cost-report <baseline> [optimized] [--input-per-million F] [--output
 
 ## Arguments and options
 
-- Single-file mode accepts paired agent runs; two-file mode compares separate baseline/optimized files.
+- Single-file mode accepts paired agent runs; optimized runs may use
+  `token-saver` or experiment-native `enabled`. Two-file mode compares
+  separate baseline/optimized files.
 - Pricing flags default to `0.0`.
 - `--allow-unpaired` is only valid in two-file mode.
 - `--json` emits the full comparison.
