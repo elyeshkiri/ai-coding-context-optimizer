@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from .contracts import McpToolContext
 from .services import IndexService
-from .tools import DEFAULT_TOOL_REGISTRY, McpToolRegistry
+from .tools import McpToolRegistry, tool_registry_for_profile
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_VERSION = "1.0.0"
@@ -34,10 +35,18 @@ class McpProtocol:
         *,
         registry: McpToolRegistry | None = None,
         index_service: IndexService | None = None,
+        profile: str | None = None,
     ):
         """Compose one protocol session from repository scope and services."""
         self.root = root
-        self.registry = registry or DEFAULT_TOOL_REGISTRY
+        if registry is not None:
+            self.registry = registry
+        else:
+            selected_profile = profile or os.environ.get(
+                "TOKEN_SAVER_MCP_PROFILE",
+                "full",
+            )
+            self.registry = tool_registry_for_profile(selected_profile)
         self.index_service = index_service or IndexService(root)
 
     def call_tool(self, name: str, arguments: dict) -> dict:
