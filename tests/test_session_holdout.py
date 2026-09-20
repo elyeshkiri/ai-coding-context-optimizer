@@ -13,6 +13,7 @@ from token_saver.session_holdout import (
     evaluate_session_holdout,
     validate_session_holdout_definition,
 )
+from token_saver.session_holdout_pipeline import run_session_holdout
 
 
 def _profiles() -> dict:
@@ -282,3 +283,29 @@ def test_checked_in_session_holdout_is_broad_frozen_and_isolated():
         definition["task_definition_sha256"]
         == "7bfbd63b28219e715c2361469c8134aad5930fac808b858b199f69c4b10e922d"
     )
+
+
+
+def test_checked_in_session_holdout_pipeline_dry_run_needs_no_external_repos(
+    tmp_path
+):
+    """Preflight should validate schedule/grader/pricing before paid setup."""
+    root = Path(__file__).resolve().parents[1]
+    suite = root / "benchmarks" / "session-efficiency-swebench-24.frozen.json"
+
+    result = run_session_holdout(
+        suite,
+        tmp_path / "runs.json",
+        dry_run=True,
+    )
+
+    assert result["stage"] == "dry-run"
+    assert result["experiment"]["task_count"] == 24
+    assert result["experiment"]["paired_trials"] == 72
+    assert result["experiment"]["run_count"] == 144
+    assert result["comparison"] == {
+        "baseline": "v1.6-session-baseline",
+        "treatment": "v1.7-session-efficiency",
+    }
+    assert result["grader"]["judge"] == "claude-sonnet-5"
+    assert result["pricing_model"] == "claude-sonnet-5"
