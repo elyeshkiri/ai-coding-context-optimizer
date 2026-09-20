@@ -168,3 +168,107 @@ def browse_main(argv: list[str]) -> int:
                 continue
             print("commands: list | show N | quit")
     return 0
+
+
+
+def remember_main(argv: list[str]) -> int:
+    """Persist one explicit evidence-backed project finding."""
+    parser = argparse.ArgumentParser(prog="token-saver remember")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--claim", required=True)
+    parser.add_argument("--anchor", action="append", required=True)
+    parser.add_argument("--evidence", required=True)
+    parser.add_argument("--applicability", required=True)
+    parser.add_argument(
+        "--confidence",
+        choices=["speculative", "probable", "verified"],
+        default="verified",
+    )
+    parser.add_argument("--invalidator", action="append")
+    parser.add_argument("--supersedes", action="append")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        result = RepositoryContextService(Path(args.path)).remember_finding(
+            claim=args.claim,
+            anchors=args.anchor,
+            evidence=args.evidence,
+            applicability=args.applicability,
+            confidence=args.confidence,
+            invalidators=args.invalidator,
+            supersedes=args.supersedes,
+            source="cli",
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"REMEMBERED {result['id']} [{result['confidence']}]")
+        print(result["claim"])
+        for anchor in result["anchors"]:
+            symbol = f"::{anchor['symbol']}" if anchor.get("symbol") else ""
+            print(f"- {anchor['path']}{symbol}")
+    return 0
+
+
+def recall_main(argv: list[str]) -> int:
+    """Recall durable project findings relevant to one query."""
+    parser = argparse.ArgumentParser(prog="token-saver recall")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--query", required=True)
+    parser.add_argument("--limit", type=int, default=5)
+    parser.add_argument("--include-stale", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        findings = RepositoryContextService(Path(args.path)).recall_findings(
+            args.query,
+            limit=args.limit,
+            include_stale=args.include_stale,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(findings, indent=2))
+        return 0
+    print(f"PROJECT KNOWLEDGE: {args.query}")
+    if not findings:
+        print("no matching current findings")
+        return 0
+    for item in findings:
+        print(
+            f"{item['score']:>5.2f} {item['id']} "
+            f"[{item['confidence']}/{item['state']}] {item['claim']}"
+        )
+        for anchor in item["anchors"]:
+            symbol = f"::{anchor['symbol']}" if anchor.get("symbol") else ""
+            print(f"    {anchor['path']}{symbol}")
+        if item["stale_reasons"]:
+            print("    stale: " + ", ".join(item["stale_reasons"]))
+    return 0
+
+
+def knowledge_status_main(argv: list[str]) -> int:
+    """Report durable project-knowledge counts and local storage path."""
+    parser = argparse.ArgumentParser(prog="token-saver knowledge-status")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        result = RepositoryContextService(Path(args.path)).knowledge_status()
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("PROJECT KNOWLEDGE")
+        print(
+            f"total={result['total']} active={result['active']} "
+            f"stale={result['stale']} superseded={result['superseded']}"
+        )
+        print(result["path"])
+    return 0

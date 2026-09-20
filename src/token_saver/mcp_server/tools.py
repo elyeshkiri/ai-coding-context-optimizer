@@ -29,6 +29,13 @@ class McpToolRegistry:
         """Return registered tool names in deterministic order."""
         return tuple(self._specs)
 
+    def select(self, names: Iterable[str]) -> McpToolRegistry:
+        """Return a registry containing only named tools in original order."""
+        allowed = set(names)
+        return McpToolRegistry(
+            spec for name, spec in self._specs.items() if name in allowed
+        )
+
     def call(self, name: str, context: McpToolContext, arguments: dict) -> object:
         """Call a registered application handler or reject an unknown tool."""
         spec = self._specs.get(name)
@@ -105,6 +112,46 @@ def _refresh_index(context: McpToolContext, arguments: dict) -> dict:
     del arguments
     context.repository.refresh()
     return context.repository.status()
+
+
+def _remember_finding(context: McpToolContext, arguments: dict) -> dict:
+    """Persist one explicit evidence-backed project finding."""
+    anchors = arguments.get("anchors")
+    invalidators = arguments.get("invalidators")
+    supersedes = arguments.get("supersedes")
+    return context.repository.remember_finding(
+        claim=str(arguments.get("claim", "")),
+        anchors=[str(value) for value in anchors] if isinstance(anchors, list) else [],
+        evidence=str(arguments.get("evidence", "")),
+        applicability=str(arguments.get("applicability", "")),
+        confidence=str(arguments.get("confidence", "verified")),
+        invalidators=(
+            [str(value) for value in invalidators]
+            if isinstance(invalidators, list)
+            else None
+        ),
+        supersedes=(
+            [str(value) for value in supersedes]
+            if isinstance(supersedes, list)
+            else None
+        ),
+        source="mcp",
+    )
+
+
+def _recall_findings(context: McpToolContext, arguments: dict) -> list[dict]:
+    """Recall current evidence-backed findings relevant to one query."""
+    return context.repository.recall_findings(
+        str(arguments.get("query", "")),
+        limit=int(arguments.get("limit", 5)),
+        include_stale=bool(arguments.get("include_stale", False)),
+    )
+
+
+def _knowledge_status(context: McpToolContext, arguments: dict) -> dict:
+    """Return knowledge counts without exposing finding contents."""
+    del arguments
+    return context.repository.knowledge_status()
 
 
 def _build_diff_context(context: McpToolContext, arguments: dict) -> dict:
@@ -240,6 +287,58 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
             _refresh_index,
         ),
         McpToolSpec(
+            "remember_finding",
+            "Persist a durable evidence-backed project finding anchored to current source files.",
+            {
+                "type": "object",
+                "required": ["claim", "anchors", "evidence", "applicability"],
+                "properties": {
+                    "claim": {"type": "string"},
+                    "anchors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {"type": "string"},
+                    },
+                    "evidence": {"type": "string"},
+                    "applicability": {"type": "string"},
+                    "confidence": {
+                        "type": "string",
+                        "enum": ["speculative", "probable", "verified"],
+                    },
+                    "invalidators": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "supersedes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+            _remember_finding,
+        ),
+        McpToolSpec(
+            "recall_findings",
+            "Recall durable project findings; changed source anchors are excluded as stale by default.",
+            {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+                    "include_stale": {"type": "boolean"},
+                },
+            },
+            _recall_findings,
+        ),
+        McpToolSpec(
+            "knowledge_status",
+            "Report active, stale, and superseded project-knowledge counts.",
+            {"type": "object", "properties": {}},
+            _knowledge_status,
+        ),
+        McpToolSpec(
             "build_diff_context",
             "Build context around the current Git patch and its impact closure.",
             {
@@ -310,3 +409,45 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
         ),
     ]
 )
+
+
+MCP_TOOL_PROFILES = {
+    "minimal": (
+        "build_context",
+        "find_symbol",
+        "browse_context",
+        "recall_findings",
+        "remember_finding",
+    ),
+    "context": (
+        "build_context",
+        "find_symbol",
+        "browse_context",
+        "explain_ranking",
+        "analyze_change_impact",
+        "report_context_feedback",
+        "index_status",
+        "refresh_index",
+        "recall_findings",
+        "remember_finding",
+        "knowledge_status",
+    ),
+}
+
+
+def tool_registry_for_profile(profile: str) -> McpToolRegistry:
+    """Return the bounded default MCP registry for one advertised profile."""
+    normalized = profile.strip().lower()
+    if normalized == "full":
+        return DEFAULT_TOOL_REGISTRY
+    names = MCP_TOOL_PROFILES.get(normalized)
+    if names is None:
+        allowed = ", ".join([*MCP_TOOL_PROFILES, "full"])
+        raise ValueError(f"unknown MCP tool profile {profile!r}; expected one of: {allowed}")
+    registry = DEFAULT_TOOL_REGISTRY.select(names)
+    missing = [name for name in names if name not in registry.names()]
+    if missing:
+        raise RuntimeError(
+            "MCP tool profile references unavailable tools: " + ", ".join(missing)
+        )
+    return registry

@@ -89,6 +89,39 @@ This keeps retrieval policy single-sourced while leaving low-level modules such
 as `pack.py`, `repo_index.py`, `context_browser.py`, and `impact.py`
 independently testable.
 
+## Durable project-knowledge boundary
+
+`token_saver.knowledge.FindingStore` is a separate persistence/application
+component for conclusions that were already established in prior work. It is not
+part of repository ranking and does not mutate `RepositoryIndex`.
+
+A finding contains a compact claim, concrete evidence, an applicability rule,
+confidence, optional human-readable invalidators/supersession, and one or more
+repository anchors. Each anchor captures the file content digest at write time.
+Recall recomputes those digests: changed or missing source makes the finding
+`stale`, while explicit replacement makes it `superseded`. Normal recall
+serves only active findings.
+
+`RepositoryContextService` owns the host-facing `remember_finding`,
+`recall_findings`, and `knowledge_status` operations, so CLI and MCP share
+one validation/invalidation policy. The durable store is private, local,
+project-scoped, bounded to the newest records, and never stores raw conversation
+history implicitly.
+
+This boundary intentionally keeps memory out of the validated ranking path for
+the first release. Future experiments can compare source retrieval alone against
+source retrieval plus current findings without contaminating the frozen
+retrieval baselines.
+
+### MCP schema profiles
+
+The MCP registry supports bounded advertisement profiles without changing tool
+implementations. `minimal` exposes the common context/knowledge loop,
+`context` adds repository-analysis and index operations, and `full` preserves
+the complete historical tool surface. The protocol resolves
+`TOKEN_SAVER_MCP_PROFILE` only when the default registry is composed; injected
+custom registries remain untouched for tests and embedders.
+
 ## Context-packing pipeline boundary
 
 `token_saver.pack` is now the compatibility facade and final bounded-assembly

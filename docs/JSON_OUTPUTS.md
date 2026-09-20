@@ -864,6 +864,29 @@ The legacy benchmark prints the paired benchmark report returned by
 quality/cost results, task-level comparisons, and confidence intervals. Use
 `--require-publishable` when consuming it as evidence for a public claim.
 
+## Durable project knowledge
+
+### `remember --json`
+
+Emits one finding object with:
+
+- `id`, `claim`, `evidence`, `applicability`, `confidence`;
+- `anchors[]` containing `path`, optional `symbol`, stored `digest`, and
+  current `current_digest`;
+- `invalidators[]`, `supersedes[]`, `source`;
+- `created_at`, `updated_at`, `version`;
+- current `state` and `stale_reasons[]`.
+
+### `recall --json`
+
+Emits an array of the same finding objects plus deterministic lexical `score`.
+Without `--include-stale`, only `state == "active"` findings appear.
+
+### `knowledge-status --json`
+
+Emits `schema`, `total`, `active`, `stale`, `superseded`, and the private
+local `path`. Finding contents are intentionally absent.
+
 ## Compatibility rule
 
 Scripts should:

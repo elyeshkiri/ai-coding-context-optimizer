@@ -47,6 +47,18 @@ class RepositoryContextServiceContract(Protocol):
         """Record local ranking feedback."""
         ...
 
+    def remember_finding(self, **kwargs) -> dict:
+        """Persist one explicit evidence-backed project finding."""
+        ...
+
+    def recall_findings(self, query: str, **kwargs) -> list[dict]:
+        """Recall current project findings relevant to a query."""
+        ...
+
+    def knowledge_status(self) -> dict:
+        """Return project-knowledge counts without exposing contents."""
+        ...
+
 
 IndexServiceContract = RepositoryContextServiceContract
 
