@@ -21,7 +21,7 @@ DEDUP_MIN_TOKENS = 120
 TOOL_CASCADE_THRESHOLD = 12
 REPEAT_COMMAND_THRESHOLD = 3
 _SECRET_RE = re.compile(
-    r"(?i)(?:(password|passwd|token|secret|api[_-]?key|authorization)\s*[=:]\s*)(\S+)"
+    r"(?i)(?:(password|passwd|token|secret|api[_-]?key)\s*[=:]\s*)(\S+)"
 )
 _URL_CREDS_RE = re.compile(r"(https?://[^:/\s]+:)[^@/\s]+@")
 _SECRET_FLAG_RE = re.compile(
