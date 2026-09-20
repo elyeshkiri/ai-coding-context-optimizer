@@ -289,7 +289,15 @@ def build_context_pack(
     candidates = [
         item
         for item in ranked
-        if item.term_hits or item.changed or item.semantic_ranges
+        if (
+            item.term_hits
+            or item.changed
+            or item.semantic_ranges
+            or any(
+                reason.startswith("semantic-graph:")
+                for reason in item.reasons
+            )
+        )
     ] or ranked
     if priority_files:
         candidates = sorted(candidates, key=lambda item: item.rel not in priority_files)

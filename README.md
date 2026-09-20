@@ -137,15 +137,17 @@ The flow is:
 ```text
 versioned structural index
         ↓
-overlapping source chunks
+symbol-aware chunks + overlapping fallback windows
         ↓
 persistent local vectors
         ↓
 exact cosine or optional HNSW
         ↓
-bounded lexical/vector rank fusion
+multi-hit semantic file ranking
         ↓
-existing symbol/window selector
+bounded semantic → dependency-provider expansion
+        ↓
+existing exact-source symbol/window selector
         ↓
 live exact source bytes
 ```
@@ -171,9 +173,12 @@ source text**. If `hnswlib` is unavailable the same vectors use exact cosine
 scan instead of changing retrieval semantics.
 
 Semantic evidence is deliberately bounded below exact structural authority.
-A semantically similar chunk can rescue a natural-language candidate with weak
-lexical overlap, but an exact requested API identity still carries much more
-weight.
+The semantic stage aggregates up to three non-redundant chunks per file and its
+boost is independent of lexical rank, so a weak-lexical candidate is not
+penalized twice. Top semantic witnesses can also contribute a small one-hop
+dependency/provider boost, allowing a descriptive caller/test to surface a
+terse implementation. Exact requested API identity still carries much more
+weight than any semantic contribution.
 
 ## Persistent retrieval cache and optional Rust fastpath
 

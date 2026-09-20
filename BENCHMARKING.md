@@ -191,19 +191,26 @@ Token Saver's semantic vector/query-cache identity. The evidence workflow
 explicitly removes `hnswlib`, so the canonical first run uses exact cosine
 over the persistent vectors rather than approximate nearest-neighbor search.
 
-The first real evaluation **burns this suite for tuning**. It is therefore not
-part of ordinary pull-request CI. The manual workflow requires the exact
-confirmation:
+The first real evaluation ran once in GitHub Actions
+**35537362040** and permanently burned this suite for tuning. The exact-cosine
+result over the 22 eligible tasks was:
 
-```text
-RUN_SEMANTIC_HOLDOUT_13
-```
+| Arm | File recall |
+| --- | ---: |
+| Token Saver hybrid semantic | **50.00% (11/22)** |
+| Token Saver lexical/structural | **45.45% (10/22)** |
+| Trivial lexical baseline | **40.91% (9/22)** |
 
-Before that first run, deterministic tests validate the two freeze hashes,
-literal answer-identity leakage rules, exclusion accounting, the trivial
-baseline, and the causal three-arm harness using a fake encoder. After the
-first real run, misses may inform a *future* holdout design but must not be used
-to tune against holdout #13 and then rerun it as fresh evidence.
+Hybrid semantic retrieval recovered one task missed by Token Saver's lexical
+arm and regressed none. Mean estimated context reduction was effectively flat
+(97.8374% vs 97.8373%).
+
+The result is useful precisely because it is not inflated: the semantic
+mechanism shows a real but small improvement, while several repositories still
+have difficult behavior-only misses. Holdout #13 must not be used as the tuning
+loop for those misses. New semantic ranking/chunking changes are developed on
+separate fixtures/development corpora and require a **fresh holdout #14** for
+new generalization evidence.
 
 This is a retrieval benchmark. File-recall improvement on these tasks does not
 by itself establish lower API cost, coding-task success, or cost per successful

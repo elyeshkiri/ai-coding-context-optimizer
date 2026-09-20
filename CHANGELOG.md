@@ -1,5 +1,27 @@
 # Unreleased
 
+- **Strengthened semantic/vector discovery without tuning against burned
+  holdout #13.** Semantic indexing now emits declaration-aware chunks carrying
+  kind, parent and signature metadata in addition to overlapping fallback
+  windows. File-level semantic evidence aggregates up to three non-overlapping
+  hits instead of keeping only the single best chunk.
+- **Removed lexical-rank double counting from hybrid fusion.** Semantic file
+  rank is now independent of the already-applied BM25/structural rank, allowing
+  semantically strong low-lexical files to receive the intended rescue boost.
+  Semantic contributions remain bounded far below exact structural identity.
+- **Added bounded post-semantic graph expansion.** Top semantic witness files
+  can contribute a small one-hop provider/dependency boost, so a descriptive
+  test/caller may surface a terse implementation without turning semantic
+  retrieval into broad transitive graph traversal.
+- **Recorded the evidence boundary from semantic holdout #13.** Its one fresh
+  run (GitHub Actions `35537362040`) measured 50.00% hybrid-semantic file
+  recall vs 45.45% Token Saver lexical/structural and 40.91% trivial lexical
+  across 22 eligible no-identifier tasks, with one semantic recovery and zero
+  semantic regressions. That suite is now burned and is not used to tune or
+  score the changes above; a future fresh #14 is required for a new
+  generalization claim.
+
+
 - **Froze semantic holdout #13 before consuming it.** Twenty-four public
   issue-derived behavior queries across six repositories were committed before
   target-file/fix lookup. A post-freeze leakage audit conservatively excludes

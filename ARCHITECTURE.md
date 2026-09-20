@@ -145,7 +145,8 @@ rendering.
 ```text
 RepositoryIndex digests/definitions
         ↓
-64-line chunks / 12-line overlap
+symbol-aware declaration chunks
+        + 64-line / 12-line-overlap fallback windows
         ↓
 local SentenceTransformer
         ↓
@@ -153,9 +154,11 @@ private SQLite vectors + source coordinates
         ├── exact cosine fallback
         └── optional persisted HNSW sidecar
         ↓
-best chunk hit per file
+up to 3 non-overlapping hits per file
         ↓
-bounded RRF-style lexical/vector boost
+semantic-only file rank + bounded similarity/corroboration boost
+        ↓
+bounded one-hop provider expansion from semantic witnesses
         ↓
 normal exact-source symbol/window rendering
 ```
@@ -177,11 +180,22 @@ HNSW is acceleration only. SQLite vectors are authoritative, the sidecar has a
 chunk-identity signature, and missing/stale/unavailable HNSW falls back to exact
 cosine scan. This keeps ANN availability out of retrieval correctness.
 
-The fusion stage runs after deterministic BM25/structural scoring and graph
-closure. It records both `semantic-chunk:...` and `hybrid-rrf:...` evidence.
-Its weight is intentionally bounded below exact structural-symbol authority, so
-semantic similarity can surface weak-lexical natural-language candidates without
-overriding an explicit API/container/member identity.
+The fusion stage runs after deterministic BM25/structural scoring and the
+ordinary graph closure. Symbol-aware chunks carry declaration kind, parent,
+signature, and exact implementation bytes; fallback windows preserve coverage
+for module-level behavior, prose/configuration, and parser gaps.
+
+At file level, up to three non-overlapping hits are retained with diminishing
+corroboration weight. Semantic rank is computed independently of lexical rank:
+BM25 has already influenced the base score, so adding lexical rank again would
+systematically weaken semantic rescue. The stage records `semantic-chunk:...`
+and `semantic-file-rank:...` evidence. A final bounded one-hop expansion can
+credit exact providers/callees reachable from the strongest semantic witness
+files, recorded as `semantic-graph:...`.
+
+Direct semantic and semantic-graph contributions remain far below explicit
+structural-symbol authority, so semantic discovery can rescue weak-lexical files
+without overriding a requested API/container/member identity.
 
 ### Persistent retrieval-cache boundary
 
