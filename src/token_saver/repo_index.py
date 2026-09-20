@@ -15,6 +15,7 @@ import re
 import tempfile
 from pathlib import Path
 
+from .fastpath import identifier_tokens, jaccard_similarity
 from .lexical import document_counts
 from .security import ENV_TEMPLATE_NAMES, inspect_path
 from .semantic_ts import extract_module_refs, resolve_module_path
@@ -483,7 +484,7 @@ def _extract(
             else:
                 symbols = {a or b for a, b in _DECL.findall(text)}
                 definitions = _extract_generic_definitions(text)
-    tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
+    tokens = identifier_tokens(text)
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
 
 
@@ -637,5 +638,4 @@ def record_for_text(rel: str, text: str) -> FileRecord:
 
 def similarity(left: FileRecord, right: FileRecord) -> float:
     """Jaccard similarity over identifiers; robust to whitespace/comment churn."""
-    a, b = set(left.tokens), set(right.tokens)
-    return len(a & b) / len(a | b) if a and b else 0.0
+    return jaccard_similarity(left.tokens, right.tokens)
