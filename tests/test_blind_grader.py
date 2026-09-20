@@ -169,3 +169,18 @@ def test_blind_grader_rejects_partial_existing_pair(tmp_path):
 
     with pytest.raises(ValueError, match="partial quality evidence"):
         blind_grade_manifest(manifest)
+
+
+
+def test_blind_grader_separate_output_resumes_its_checkpoint(tmp_path):
+    """--out should resume the graded destination rather than regrading the source."""
+    manifest, counter = _manifest(tmp_path, pair_count=2)
+    graded = tmp_path / "graded.json"
+
+    blind_grade_manifest(manifest, output_path=graded)
+    blind_grade_manifest(manifest, output_path=graded)
+
+    assert counter.read_text() == "2"
+    payload = json.loads(graded.read_text(encoding="utf-8"))
+    assert payload["quality_evaluation"]["completed_pairs"] == 2
+    assert len(payload["blind_grading"]["records"]) == 2
