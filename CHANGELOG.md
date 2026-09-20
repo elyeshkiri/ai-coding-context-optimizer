@@ -2,7 +2,8 @@
 
 - **Added joined output-effectiveness evidence and closed the experiment-analysis
   condition gap.** Paired experiments now embed exact transcript usage
-  (fresh input, cache creation, cache read, output, model calls) for every run
+  (fresh input, cache creation split by 5-minute/1-hour/unknown TTL, cache
+  read, output, model calls, tool calls) for every run
   and isolate enabled-arm Token Saver state per artifact. When Claude hook
   telemetry is available, enabled runs also embed selected output task/mode/
   budget plus a telemetry-vs-transcript integrity check. New
