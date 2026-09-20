@@ -220,7 +220,7 @@ class HookRuntime:
 
         root = self.cwd(payload)
         prompt = str(payload.get("prompt") or payload.get("user_prompt") or "")
-        notes: list[str] = []
+        response: dict = {}
 
         if self.config.output_policy_enabled:
             generation_note = self.services.generation_policy(
@@ -231,15 +231,16 @@ class HookRuntime:
                 task=self.config.output_policy_task,
             )
             if generation_note:
-                notes.append(generation_note)
+                response["hookSpecificOutput"] = {
+                    "hookEventName": "UserPromptSubmit",
+                    "additionalContext": generation_note,
+                }
 
         lifecycle_note = self.services.user_nudge(root, prompt)
         if lifecycle_note:
-            notes.append(lifecycle_note)
+            response["systemMessage"] = lifecycle_note
 
-        if not notes:
-            return 0, None
-        return 0, {"systemMessage": "\n".join(notes)}
+        return (0, response) if response else (0, None)
 
     def run_post_read(self, payload: dict) -> None:
         """Record a verified full-file read while ignoring ranged reads."""
