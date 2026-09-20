@@ -1,7 +1,37 @@
 # Validation for 1.10.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
-and **end-to-end agent economics**. Passing one layer is not presented as proof
+and **end-to-end agent economics**.
+
+Version 1.10.0 adds a new semantic-retrieval mechanism but deliberately does
+not rewrite the historical retrieval headline from mechanism tests alone.
+Semantic retrieval remains opt-in, so the existing deterministic/frozen default
+retrieval gates continue to measure the validated structural/lexical baseline.
+
+The 1.10 semantic mechanism is covered by deterministic tests that establish:
+
+- chunk vectors and exact-query vectors persist across fresh service instances;
+- a repeated unchanged repository/query can reuse semantic state without
+  invoking the encoder again;
+- changed repository digests re-embed only changed files;
+- live source bytes must still match the structural RepositoryIndex digest
+  before vectors can be persisted;
+- semantic hits contribute explicit chunk coordinates and hybrid-RRF ranking
+  evidence;
+- final context still contains exact live source rather than a generated
+  semantic summary;
+- optional HNSW is an acceleration sidecar over authoritative SQLite vectors,
+  with exact cosine scan as the semantic fallback.
+
+Those tests establish implementation correctness and safety. They do **not**
+establish a new external natural-language recall number. Per the existing
+query-construction protocol, a future headline semantic claim requires a frozen
+holdout whose task wording is authored without target symbol, containing
+container/type, target path/basename, or exact qualified-identity leakage, plus
+a trivial lexical baseline on the same tasks. Until that holdout is run,
+1.10.0 makes no claim that external semantic recall improved from the published
+1.9 structural baseline. It also makes no new API-cost reduction claim from
+vector retrieval alone. Passing one layer is not presented as proof
 of another.
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
