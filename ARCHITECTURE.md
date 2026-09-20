@@ -39,6 +39,7 @@ Command implementations are grouped vertically under
 `token_saver.command_handlers`:
 
 - `context.py` — repository browsing, ranking explanations, impact, and feedback;
+- `efficiency.py` — local session continuity and operational dashboard surfaces;
 - `evaluation.py` — context/agent evaluation plus ranking snapshot/diff/calibration workflows;
 - `experiment.py` — paired experiments and cost-per-success reporting;
 - `host.py` — host setup/doctor/uninstall, validation, completion, and MCP serving;
