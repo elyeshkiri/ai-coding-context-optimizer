@@ -20,13 +20,15 @@ from typing import Protocol
 from .repo_index import RepositoryIndex
 from .state import state_dir
 
-SEMANTIC_SCHEMA = 1
+SEMANTIC_SCHEMA = 2
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
 DEFAULT_CHUNK_LINES = 64
 DEFAULT_CHUNK_OVERLAP = 12
-DEFAULT_TOP_K = 40
+DEFAULT_TOP_K = 96
 DEFAULT_MIN_SCORE = 0.12
 MAX_EMBED_CHARS = 12000
+SYMBOL_CONTEXT_LINES = 3
+MAX_SYMBOL_CHUNK_LINES = 96
 
 
 class Encoder(Protocol):
@@ -212,6 +214,91 @@ def _symbol_for_range(record, start: int, end: int) -> str | None:
     return matches[0].qualified or matches[0].name
 
 
+def _append_semantic_chunk(
+    chunks: list[tuple[int, int, str, str | None]],
+    seen: set[tuple[int, int, str]],
+    *,
+    rel: str,
+    lines: list[str],
+    start: int,
+    end: int,
+    symbol_record=None,
+) -> None:
+    """Append one deduplicated exact-source chunk with structural metadata."""
+    if not lines:
+        return
+    start = max(1, min(start, len(lines)))
+    end = max(start, min(end, len(lines)))
+    symbol = None
+    metadata = [f"path: {rel}"]
+    if symbol_record is not None:
+        symbol = symbol_record.qualified or symbol_record.name
+        metadata.append(f"symbol: {symbol}")
+        if symbol_record.kind:
+            metadata.append(f"kind: {symbol_record.kind}")
+        if symbol_record.parent:
+            metadata.append(f"parent: {symbol_record.parent}")
+        if symbol_record.signature:
+            metadata.append(f"signature: {symbol_record.signature}")
+    body = "\n".join(lines[start - 1 : end])
+    rendered = ("\n".join(metadata) + "\n" + body)[:MAX_EMBED_CHARS]
+    identity = (start, end, rendered)
+    if identity in seen:
+        return
+    seen.add(identity)
+    chunks.append((start, end, rendered, symbol))
+
+
+def _symbol_chunks(
+    rel: str,
+    lines: list[str],
+    record,
+    *,
+    chunk_lines: int,
+    overlap: int,
+    chunks: list[tuple[int, int, str, str | None]],
+    seen: set[tuple[int, int, str]],
+) -> None:
+    """Add symbol-aware chunks that keep signatures and bodies semantically tight."""
+    for symbol in sorted(
+        record.definitions or [],
+        key=lambda item: (item.start_line, item.end_line, item.name),
+    ):
+        raw_start = max(1, symbol.start_line - SYMBOL_CONTEXT_LINES)
+        raw_end = min(len(lines), symbol.end_line + SYMBOL_CONTEXT_LINES)
+        if raw_end < raw_start:
+            continue
+        if raw_end - raw_start + 1 <= MAX_SYMBOL_CHUNK_LINES:
+            _append_semantic_chunk(
+                chunks,
+                seen,
+                rel=rel,
+                lines=lines,
+                start=raw_start,
+                end=raw_end,
+                symbol_record=symbol,
+            )
+            continue
+
+        # Large functions/classes are split into overlapping windows but retain
+        # the same structural metadata, which gives the encoder both intent
+        # vocabulary (signature/parent/kind) and local implementation context.
+        step = max(1, chunk_lines - overlap)
+        for start in range(raw_start, raw_end + 1, step):
+            end = min(raw_end, start + chunk_lines - 1)
+            _append_semantic_chunk(
+                chunks,
+                seen,
+                rel=rel,
+                lines=lines,
+                start=start,
+                end=end,
+                symbol_record=symbol,
+            )
+            if end >= raw_end:
+                break
+
+
 def _chunk_source(
     rel: str,
     text: str,
@@ -220,7 +307,13 @@ def _chunk_source(
     chunk_lines: int,
     overlap: int,
 ) -> list[tuple[int, int, str, str | None]]:
-    """Create deterministic overlapping source chunks with semantic prefixes."""
+    """Create structural plus sliding semantic chunks from exact source bytes.
+
+    Symbol-aware chunks are emitted first so function/class signatures, parent
+    identity, declaration kind, and implementation body stay together. Sliding
+    windows remain as a language-agnostic fallback for module-level behavior,
+    prose, configuration, and parser gaps.
+    """
     if chunk_lines <= 0:
         raise ValueError("semantic chunk_lines must be positive")
     if overlap < 0 or overlap >= chunk_lines:
@@ -228,18 +321,41 @@ def _chunk_source(
     lines = text.splitlines()
     if not lines:
         return []
-    step = chunk_lines - overlap
+
     chunks: list[tuple[int, int, str, str | None]] = []
+    seen: set[tuple[int, int, str]] = set()
+    _symbol_chunks(
+        rel,
+        lines,
+        record,
+        chunk_lines=chunk_lines,
+        overlap=overlap,
+        chunks=chunks,
+        seen=seen,
+    )
+
+    step = chunk_lines - overlap
     for offset in range(0, len(lines), step):
         start = offset + 1
         end = min(len(lines), offset + chunk_lines)
         symbol = _symbol_for_range(record, start, end)
-        prefix = f"path: {rel}\n"
-        if symbol:
-            prefix += f"symbol: {symbol}\n"
-        body = "\n".join(lines[offset:end])
-        rendered = (prefix + body)[:MAX_EMBED_CHARS]
-        chunks.append((start, end, rendered, symbol))
+        symbol_record = next(
+            (
+                candidate
+                for candidate in record.definitions or []
+                if (candidate.qualified or candidate.name) == symbol
+            ),
+            None,
+        )
+        _append_semantic_chunk(
+            chunks,
+            seen,
+            rel=rel,
+            lines=lines,
+            start=start,
+            end=end,
+            symbol_record=symbol_record,
+        )
         if end >= len(lines):
             break
     return chunks
@@ -482,8 +598,12 @@ class SemanticVectorIndex:
                     chunk_lines=self.chunk_lines,
                     overlap=self.overlap,
                 ):
+                    body_digest = hashlib.sha256(body.encode()).hexdigest()
                     chunk_id = hashlib.sha256(
-                        f"{rel}\0{record.digest}\0{start}\0{end}".encode()
+                        (
+                            f"{rel}\0{record.digest}\0{start}\0{end}\0"
+                            f"{body_digest}"
+                        ).encode()
                     ).hexdigest()
                     pending.append(
                         (chunk_id, rel, record.digest, start, end, symbol, body)
