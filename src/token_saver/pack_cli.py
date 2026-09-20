@@ -105,6 +105,9 @@ def main(argv: list[str] | None = None) -> int:
             "retrieval_plan": pack.retrieval_plan,
             "cache_hit": pack.cache_hit,
             "cache_key": pack.cache_key,
+            "semantic_index": (
+                repository.semantic_index_status() if args.embeddings else None
+            ),
             "typescript_semantic_edges": semantic_edges,
         }
         rendered = json.dumps(payload, indent=2)
