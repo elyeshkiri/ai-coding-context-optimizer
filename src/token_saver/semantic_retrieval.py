@@ -101,6 +101,20 @@ def semantic_index_path(root: Path, model: str = DEFAULT_MODEL) -> Path:
     )
 
 
+def _ann_path(database_path: Path) -> Path:
+    """Return the optional persisted HNSW sidecar path."""
+    return database_path.with_suffix(".hnsw")
+
+
+def _hnswlib():
+    """Return optional hnswlib module without making it a hard dependency."""
+    try:
+        import hnswlib
+    except ImportError:
+        return None
+    return hnswlib
+
+
 def _load_encoder(model: str) -> Encoder:
     """Load one already-downloaded local sentence-transformer model."""
     try:
@@ -229,6 +243,10 @@ def _connect(path: Path) -> sqlite3.Connection:
             query_text_sha256 TEXT NOT NULL,
             vector_json TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS ann_labels (
+            label INTEGER PRIMARY KEY,
+            chunk_id TEXT NOT NULL UNIQUE
+        );
         """
     )
     try:
@@ -294,8 +312,88 @@ class SemanticVectorIndex:
         if current and any(current.get(key) != value for key, value in expected.items()):
             conn.execute("DELETE FROM chunks")
             conn.execute("DELETE FROM query_vectors")
+            conn.execute("DELETE FROM ann_labels")
             conn.execute("DELETE FROM meta")
+            try:
+                _ann_path(self.path).unlink()
+            except FileNotFoundError:
+                pass
         _write_meta(conn, expected)
+
+    def _ann_signature(self, conn: sqlite3.Connection) -> str:
+        """Hash ordered chunk identities to version the ANN sidecar."""
+        digest = hashlib.sha256()
+        for row in conn.execute("SELECT chunk_id FROM chunks ORDER BY chunk_id"):
+            digest.update(str(row["chunk_id"]).encode())
+            digest.update(b"\n")
+        return digest.hexdigest()
+
+    def _rebuild_ann(self, conn: sqlite3.Connection, dimensions: int) -> str:
+        """Rebuild optional HNSW acceleration from authoritative SQLite vectors."""
+        library = _hnswlib()
+        if library is None or dimensions <= 0:
+            try:
+                _ann_path(self.path).unlink()
+            except FileNotFoundError:
+                pass
+            conn.execute("DELETE FROM ann_labels")
+            _write_meta(conn, {"ann_signature": "", "ann_backend": "sqlite-cosine"})
+            return "sqlite-cosine"
+
+        rows = list(
+            conn.execute(
+                "SELECT chunk_id, vector_json FROM chunks ORDER BY chunk_id"
+            )
+        )
+        if not rows:
+            conn.execute("DELETE FROM ann_labels")
+            try:
+                _ann_path(self.path).unlink()
+            except FileNotFoundError:
+                pass
+            _write_meta(conn, {"ann_signature": "", "ann_backend": "sqlite-cosine"})
+            return "sqlite-cosine"
+
+        vectors = [
+            [float(value) for value in json.loads(row["vector_json"])]
+            for row in rows
+        ]
+        ann = library.Index(space="cosine", dim=dimensions)
+        ann.init_index(
+            max_elements=len(rows),
+            ef_construction=120,
+            M=16,
+        )
+        labels = list(range(len(rows)))
+        ann.add_items(vectors, labels)
+        ann.set_ef(min(max(64, len(rows)), 256))
+        ann.save_index(str(_ann_path(self.path)))
+        conn.execute("DELETE FROM ann_labels")
+        conn.executemany(
+            "INSERT INTO ann_labels(label, chunk_id) VALUES (?, ?)",
+            [(label, str(row["chunk_id"])) for label, row in zip(labels, rows)],
+        )
+        _write_meta(
+            conn,
+            {
+                "ann_signature": self._ann_signature(conn),
+                "ann_backend": "hnsw",
+            },
+        )
+        return "hnsw"
+
+    def _ensure_ann(self, conn: sqlite3.Connection, dimensions: int) -> str:
+        """Keep optional ANN acceleration synchronized with authoritative vectors."""
+        meta = _meta(conn)
+        signature = self._ann_signature(conn)
+        if (
+            _hnswlib() is not None
+            and _ann_path(self.path).is_file()
+            and meta.get("ann_backend") == "hnsw"
+            and meta.get("ann_signature") == signature
+        ):
+            return "hnsw"
+        return self._rebuild_ann(conn, dimensions)
 
     def sync(self) -> SemanticIndexStats:
         """Incrementally embed changed files and remove deleted-file vectors."""
@@ -309,7 +407,8 @@ class SemanticVectorIndex:
                     "SELECT path, MIN(file_digest) AS file_digest FROM chunks GROUP BY path"
                 )
             }
-            for stale in sorted(set(existing) - current_paths):
+            stale_paths = sorted(set(existing) - current_paths)
+            for stale in stale_paths:
                 conn.execute("DELETE FROM chunks WHERE path = ?", (stale,))
 
             pending: list[tuple[str, str, int, int, str | None, str]] = []
@@ -369,6 +468,10 @@ class SemanticVectorIndex:
                 )
             if dimensions:
                 _write_meta(conn, {"dimensions": str(dimensions)})
+            if stale_paths or changed_paths:
+                self._rebuild_ann(conn, dimensions)
+            else:
+                self._ensure_ann(conn, dimensions)
             conn.commit()
             return self.status(conn=conn)
         finally:
@@ -395,6 +498,73 @@ class SemanticVectorIndex:
         conn.commit()
         return vector
 
+    def _query_ann(
+        self,
+        conn: sqlite3.Connection,
+        query_vector: list[float],
+        *,
+        top_k: int,
+        min_score: float,
+    ) -> list[SemanticHit] | None:
+        """Return ANN hits when a synchronized HNSW sidecar is available."""
+        library = _hnswlib()
+        meta = _meta(conn)
+        dimensions = int(meta.get("dimensions", "0"))
+        if (
+            library is None
+            or dimensions <= 0
+            or meta.get("ann_backend") != "hnsw"
+            or meta.get("ann_signature") != self._ann_signature(conn)
+            or not _ann_path(self.path).is_file()
+        ):
+            return None
+        count = int(conn.execute("SELECT COUNT(*) AS n FROM chunks").fetchone()["n"])
+        if count <= 0:
+            return []
+        ann = library.Index(space="cosine", dim=dimensions)
+        ann.load_index(str(_ann_path(self.path)), max_elements=count)
+        ann.set_ef(min(max(64, top_k * 3), max(64, count)))
+        labels, distances = ann.knn_query(
+            [query_vector],
+            k=min(top_k, count),
+        )
+        label_values = [int(value) for value in labels[0]]
+        distance_values = [float(value) for value in distances[0]]
+        mapping = {
+            int(row["label"]): str(row["chunk_id"])
+            for row in conn.execute(
+                "SELECT label, chunk_id FROM ann_labels"
+            )
+        }
+        hits: list[SemanticHit] = []
+        for label, distance in zip(label_values, distance_values):
+            chunk_id = mapping.get(label)
+            if chunk_id is None:
+                continue
+            score = 1.0 - distance
+            if score < min_score:
+                continue
+            row = conn.execute(
+                """
+                SELECT path, start_line, end_line, symbol
+                FROM chunks WHERE chunk_id = ?
+                """,
+                (chunk_id,),
+            ).fetchone()
+            if row is None:
+                continue
+            hits.append(
+                SemanticHit(
+                    path=str(row["path"]),
+                    start_line=int(row["start_line"]),
+                    end_line=int(row["end_line"]),
+                    score=score,
+                    rank=len(hits) + 1,
+                    symbol=str(row["symbol"]) if row["symbol"] else None,
+                )
+            )
+        return hits
+
     def query(
         self,
         query: str,
@@ -411,6 +581,14 @@ class SemanticVectorIndex:
         conn = _connect(self.path)
         try:
             query_vector = self._query_vector(conn, query)
+            ann_hits = self._query_ann(
+                conn,
+                query_vector,
+                top_k=top_k,
+                min_score=min_score,
+            )
+            if ann_hits is not None:
+                return ann_hits
             scored: list[tuple[float, sqlite3.Row]] = []
             for row in conn.execute(
                 """
@@ -462,7 +640,7 @@ class SemanticVectorIndex:
                 chunks=chunks,
                 dimensions=int(meta.get("dimensions", "0")),
                 model=meta.get("model", self.model),
-                backend="sqlite-cosine",
+                backend=meta.get("ann_backend", "sqlite-cosine"),
                 path=str(self.path),
             )
         finally:
@@ -479,7 +657,7 @@ def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
             chunks=0,
             dimensions=0,
             model=model,
-            backend="sqlite-cosine",
+            backend=meta.get("ann_backend", "sqlite-cosine"),
             path=str(path),
         ).to_dict()
     conn = _connect(path)
