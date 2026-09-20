@@ -21,6 +21,8 @@ from .packing.observability import explain_ranked_files
 from .packing.ranking_stages import RankingStageRegistry
 from .repo_index import INDEX_VERSION, RepositoryIndex, build_index
 from .semantic_ts import enrich_index_with_typescript
+from .retrieval_cache import status as retrieval_cache_status
+from .runtime_config import settings_for
 
 
 @dataclass
@@ -32,10 +34,17 @@ class RepositoryContextService:
     refreshed_at: float | None = None
     use_gitignore: bool = True
     persist_index: bool = True
+    retrieval_cache_enabled: bool | None = None
+    retrieval_cache_max_entries: int | None = None
 
     def __post_init__(self) -> None:
         """Normalize repository scope once at the application boundary."""
         self.root = self.root.resolve()
+        settings = settings_for(self.root)
+        if self.retrieval_cache_enabled is None:
+            self.retrieval_cache_enabled = settings.retrieval_cache
+        if self.retrieval_cache_max_entries is None:
+            self.retrieval_cache_max_entries = settings.retrieval_cache_max_entries
 
     def refresh(self) -> RepositoryIndex:
         """Rebuild the repository index using this service's persistence policy."""
@@ -60,6 +69,7 @@ class RepositoryContextService:
             "reused": index.reused,
             "refreshed_at": self.refreshed_at,
             "index_version": INDEX_VERSION,
+            "retrieval_cache": retrieval_cache_status(self.root),
         }
 
     def enrich_typescript(
@@ -123,6 +133,8 @@ class RepositoryContextService:
             restrict_files=restrict_files,
             adaptive_budget=adaptive_budget,
             stage_registry=stage_registry,
+            cache_enabled=bool(self.retrieval_cache_enabled),
+            cache_max_entries=int(self.retrieval_cache_max_entries or 64),
         )
 
     def explain_ranking(
