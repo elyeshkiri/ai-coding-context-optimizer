@@ -97,8 +97,8 @@ def _run_claude_phase(
     max_turns: int,
     investigation_only: bool,
     child_env: dict[str, str],
-) -> tuple[int, str]:
-    """Execute one isolated Claude phase and return process output."""
+) -> tuple[int, str, str]:
+    """Execute one isolated Claude phase and return code/stdout/stderr."""
     command = _base_docker(
         worktree=worktree,
         home=home,
@@ -131,7 +131,7 @@ def _run_claude_phase(
         check=False,
         env=child_env,
     )
-    return proc.returncode, proc.stdout + proc.stderr
+    return proc.returncode, proc.stdout, proc.stderr
 
 
 def _copy_transcripts(home: Path, destination: Path) -> None:
@@ -256,7 +256,7 @@ def run(
     )
 
     phase1_prompt = _PHASE1_PREFIX + original_prompt
-    rc1, output1 = _run_claude_phase(
+    rc1, stdout1, stderr1 = _run_claude_phase(
         worktree=worktree,
         home=phase1_home,
         state_dir=state_dir,
@@ -267,11 +267,13 @@ def run(
         investigation_only=True,
         child_env=child_env,
     )
-    if output1:
-        print(output1, end="" if output1.endswith("\n") else "\n")
+    if stdout1:
+        print(stdout1, end="" if stdout1.endswith("\n") else "\n")
+    if stderr1:
+        print(stderr1, end="" if stderr1.endswith("\n") else "\n", file=os.sys.stderr)
     if rc1:
         return rc1
-    _validate_result(output1, "phase 1")
+    _validate_result(stdout1, "phase 1")
     _copy_transcripts(phase1_home, transcript)
 
     checkpoint = _continuity_checkpoint(
@@ -287,7 +289,7 @@ def run(
             + checkpoint
         )
 
-    rc2, output2 = _run_claude_phase(
+    rc2, stdout2, stderr2 = _run_claude_phase(
         worktree=worktree,
         home=phase2_home,
         state_dir=state_dir,
@@ -298,11 +300,13 @@ def run(
         investigation_only=False,
         child_env=child_env,
     )
-    if output2:
-        print(output2, end="" if output2.endswith("\n") else "\n")
+    if stdout2:
+        print(stdout2, end="" if stdout2.endswith("\n") else "\n")
+    if stderr2:
+        print(stderr2, end="" if stderr2.endswith("\n") else "\n", file=os.sys.stderr)
     if rc2:
         return rc2
-    _validate_result(output2, "phase 2")
+    _validate_result(stdout2, "phase 2")
     _copy_transcripts(phase2_home, transcript)
 
     shutil.rmtree(phase_root, ignore_errors=True)
