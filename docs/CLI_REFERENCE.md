@@ -126,3 +126,11 @@ token-saver completion fish
 
 Completion intentionally covers top-level commands. Subcommand options remain
 discoverable with `token-saver <command> --help`.
+
+
+## Prompt ingress, acceleration, and Claude plugin packaging
+
+- [`ingress-show`](commands/ingress-show.md) — inspect a bounded lossless-recovery packet for a staged oversized prompt.
+- [`ingress-read`](commands/ingress-read.md) — retrieve an exact bounded range from the staged original.
+- [`fastpath-status`](commands/fastpath-status.md) — inspect optional Rust acceleration and Python fallback state.
+- [`claude-plugin-path`](commands/claude-plugin-path.md) — render the complete Claude Code plugin directory used by marketplace installation.
