@@ -6,6 +6,7 @@
   "runs": [
     {
       "task": "fix-session-refresh",
+      "trial": 1,
       "condition": "baseline",
       "success": true,
       "input_tokens": 18000,
@@ -24,6 +25,7 @@
     },
     {
       "task": "fix-session-refresh",
+      "trial": 1,
       "condition": "token-saver",
       "success": true,
       "input_tokens": 7200,
