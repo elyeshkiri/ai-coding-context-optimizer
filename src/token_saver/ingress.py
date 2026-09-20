@@ -127,8 +127,10 @@ def _packet(
 
     # User instructions for long-document prompts are commonly near the end,
     # so reserve more of the packet for the tail while keeping initial context.
-    head_budget = max(1, available * 2 // 5)
-    tail_budget = max(1, available - head_budget)
+    marker_reserve = min(80, max(20, available // 8))
+    excerpt_budget = max(2, available - marker_reserve)
+    head_budget = max(1, excerpt_budget * 2 // 5)
+    tail_budget = max(1, excerpt_budget - head_budget)
     head = _fit_lines(lines, head_budget)
     tail = _fit_lines(lines[len(head):], tail_budget, reverse=True)
     if len(head) + len(tail) >= len(lines):
