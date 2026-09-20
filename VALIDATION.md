@@ -12,7 +12,9 @@ Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 - PR base-vs-candidate ranking snapshots/diffs;
 - Ruff correctness checks;
 - 100% docstring coverage via interrogate;
-- GitHub Actions workflow linting.
+- GitHub Actions workflow linting;
+- the hash-frozen session/output quality replay suite with preservation,
+  no-hallucination, and minimum-reduction contracts.
 
 Version 1.7.0 adds a modular session-efficiency control plane: structured
 continuity across resume/compaction, exact cross-turn command/read deduplication,
