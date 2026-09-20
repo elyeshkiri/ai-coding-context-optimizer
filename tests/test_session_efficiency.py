@@ -62,8 +62,6 @@ def test_continuity_persists_structure_without_prompt_or_output_text(
     )
 
     report = continuity_report(root)
-    serialized = (tmp_path / "state" / "efficiency").read_text if False else None
-    del serialized
     snapshot_text = next((tmp_path / "state" / "efficiency").glob("*.json")).read_text(
         encoding="utf-8"
     )
@@ -205,3 +203,59 @@ def test_start_clear_discards_current_checkpoint_but_not_project_store(
     report = continuity_report(root)
     assert report["working_files"] == []
     assert report["commands"] == []
+
+
+
+def test_command_labels_redact_flag_and_authorization_secrets(
+    tmp_path, monkeypatch
+):
+    """Persisted command labels should redact common secret argument forms."""
+    root = _root(tmp_path, monkeypatch)
+    observe_tool(
+        root,
+        {
+            "session_id": "s1",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    "curl --token super-secret "
+                    "-H 'Authorization: Bearer bearer-secret' https://example.test"
+                )
+            },
+        },
+        original_text="ok",
+        delivered_text="ok",
+    )
+
+    label = continuity_report(root)["commands"][-1]["label"]
+    assert "super-secret" not in label
+    assert "bearer-secret" not in label
+    assert "<redacted>" in label
+
+
+def test_repeat_command_detection_does_not_count_previous_turns(
+    tmp_path, monkeypatch
+):
+    """Legitimate reuse across separate prompts should not trigger a loop signal."""
+    root = _root(tmp_path, monkeypatch)
+    payload = {
+        "session_id": "s1",
+        "tool_name": "Bash",
+        "tool_input": {"command": "pytest -q"},
+    }
+    for _ in range(2):
+        observe_prompt(root, "continue debugging", session_id="s1")
+        assert observe_tool(
+            root,
+            payload,
+            original_text="1 passed",
+            delivered_text="1 passed",
+        ) is None
+
+    observe_prompt(root, "try again", session_id="s1")
+    assert observe_tool(
+        root,
+        payload,
+        original_text="1 passed",
+        delivered_text="1 passed",
+    ) is None
