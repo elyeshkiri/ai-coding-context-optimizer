@@ -73,6 +73,7 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert 'task = "auto"' in config_text
     assert "adaptive = true" in config_text
     assert 'calibration_file = ".token-saver.output-calibration.json"' in config_text
+    assert "telemetry = true" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -95,7 +96,12 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
         for entry in entries
         for hook in entry.get("hooks", [])
     ]
-    assert commands.count("token-saver hook") == 4
+    assert commands.count("token-saver hook") == 6
+    assert set(settings["hooks"]) >= {
+        "UserPromptSubmit",
+        "Stop",
+        "StopFailure",
+    }
     assert "other-hook" in commands
 
     codex_text = codex.read_text(encoding="utf-8")
@@ -197,6 +203,7 @@ adaptive = false
 min_tokens = 300
 max_tokens = 900
 calibration_file = "custom-calibration.json"
+telemetry = false
 """,
         encoding="utf-8",
     )
@@ -214,6 +221,7 @@ calibration_file = "custom-calibration.json"
     assert settings.output_min_tokens == 300
     assert settings.output_max_tokens == 900
     assert settings.output_calibration_file == "custom-calibration.json"
+    assert settings.output_telemetry is False
 
     hook_config = _config_from_env(root)
     assert hook_config.delta_enabled is True
@@ -226,6 +234,7 @@ calibration_file = "custom-calibration.json"
     assert hook_config.output_policy_min_tokens == 300
     assert hook_config.output_policy_max_tokens == 900
     assert hook_config.output_policy_calibration_file == "custom-calibration.json"
+    assert hook_config.output_telemetry_enabled is False
 
     monkeypatch.setenv("TOKEN_SAVER_DELTA", "0")
     monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "33")
@@ -239,6 +248,7 @@ calibration_file = "custom-calibration.json"
         "TOKEN_SAVER_OUTPUT_CALIBRATION_FILE",
         "learned.json",
     )
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TELEMETRY", "1")
     overridden = settings_for(root)
     assert overridden.delta is False
     assert overridden.min_lines == 33
@@ -249,6 +259,7 @@ calibration_file = "custom-calibration.json"
     assert overridden.output_min_tokens == 450
     assert overridden.output_max_tokens == 1400
     assert overridden.output_calibration_file == "learned.json"
+    assert overridden.output_telemetry is True
 
 
 def test_guard_uses_project_config(tmp_path):
