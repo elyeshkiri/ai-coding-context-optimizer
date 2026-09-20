@@ -26,8 +26,9 @@ token-saver experiment <suite> [--out FILE] [--dry-run] [--allow-development] [-
 
 JSON result/checkpoint; see [Machine-readable contracts](../JSON_OUTPUTS.md#experiment-always-json).
 
-Each completed run now embeds transcript-measured fresh input, cache creation,
-cache read, output tokens, and model-call count. Enabled runs isolate Token
+Each completed run now embeds transcript-measured fresh input, cache creation
+(total plus 5-minute, 1-hour, and unknown-TTL buckets), cache read, output
+tokens, model-call count, and tool-call count. Enabled runs isolate Token
 Saver state under that run's artifact directory and, when the host executes the
 managed hooks, also embed output task/mode/budget telemetry plus a
 telemetry-vs-transcript usage-integrity check. This makes the experiment
