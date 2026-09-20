@@ -2,6 +2,27 @@
 
 Token Saver treats setup as an idempotent repair/migration operation.
 
+## 1.8 frozen session-efficiency holdout
+
+Version 1.8 adds benchmark/evaluation commands and a paid workflow; it does not
+change the default 1.7 runtime session-efficiency switches.
+
+New commands:
+
+- `token-saver session-holdout` — run/resume the two-phase frozen experiment,
+  blind grading, and effectiveness report;
+- `token-saver session-holdout-evaluate` — evaluate already merged evidence
+  without rerunning agents.
+
+The new frozen manifest reuses the existing 24 SWE-bench Verified task cohort
+but changes the runner protocol, so it has its own independent task-definition
+hash. Do not edit that manifest in place and continue calling the result the
+same holdout.
+
+The control label `v1.6-session-baseline` means **1.6 session behavior emulated
+by the current binary with session efficiency disabled**. It is intentionally
+not a historical package checkout.
+
 ## 1.7 session-efficiency control plane
 
 Version 1.7 widens Claude `PostToolUse` from `Bash|Read` to
