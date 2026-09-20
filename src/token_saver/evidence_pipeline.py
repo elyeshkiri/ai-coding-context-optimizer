@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .blind_grader import blind_grade_manifest
+from .blind_grader import blind_grade_manifest, validate_grader_config
 from .experiment import run_experiment, validate_suite
 from .output_budget import calibrate_output_budgets
 from .output_effectiveness import EffectivenessPricing, evaluate_output_effectiveness
@@ -90,6 +90,7 @@ def run_evidence_pipeline(
         require_frozen=not allow_development,
         require_broad=not allow_development,
     )
+    grader = validate_grader_config(suite)
     pricing_file = _resolve_rates(suite_path, suite, rates_path)
     model = str(suite["runner"]["model"])
     pricing = _pricing_from_rates(pricing_file, model)
@@ -104,9 +105,7 @@ def run_evidence_pipeline(
             only_tasks=only_tasks,
         )
         grader_probe = {
-            "suite_has_quality_grader": isinstance(
-                suite.get("quality_grader"), dict
-            ),
+            **grader,
             "pricing_file": str(pricing_file),
             "pricing_model": model,
         }
