@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import textwrap
 
+from token_saver.command_handlers.context import semantic_index_main, semantic_status_main
+from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
 from token_saver.pack import build_context_pack, rank_files
 from token_saver.repo_index import build_index
 from token_saver.semantic_retrieval import SemanticVectorIndex, semantic_status
@@ -200,3 +203,29 @@ def test_semantic_sync_refuses_source_index_digest_race(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="source changed after repository indexing"):
         semantic.sync()
+
+
+
+def test_semantic_cli_build_and_status_are_registered(tmp_path, monkeypatch, capsys):
+    """Users should be able to prebuild and inspect vectors without hidden APIs."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = _repo(tmp_path / "repo")
+    monkeypatch.setattr(
+        "token_saver.semantic_retrieval._load_encoder",
+        lambda _model: FakeEncoder(),
+    )
+
+    assert {"semantic-index", "semantic-status"} <= set(
+        DEFAULT_COMMAND_REGISTRY.names()
+    )
+    assert semantic_index_main([str(root), "--json"]) == 0
+    built = json.loads(capsys.readouterr().out)
+    assert built["files"] == 2
+    assert built["chunks"] == 2
+    assert built["dimensions"] == 3
+
+    assert semantic_status_main([str(root), "--json"]) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["files"] == built["files"]
+    assert status["chunks"] == built["chunks"]
+    assert status["path"] == built["path"]
