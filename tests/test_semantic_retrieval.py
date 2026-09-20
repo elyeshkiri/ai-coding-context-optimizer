@@ -181,3 +181,22 @@ def test_hybrid_context_pack_still_renders_live_exact_source(tmp_path, monkeypat
     assert "def stale_session_artifact(record):" in pack.text
     assert "return record.rotate_marker()" in pack.text
     assert "semantic summary" not in pack.text.lower()
+
+
+
+def test_semantic_sync_refuses_source_index_digest_race(tmp_path, monkeypatch):
+    """Vectors must never be persisted under a stale structural-index digest."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = _repo(tmp_path / "repo")
+    index = build_index(root, persist=False)
+    (root / "session_guard.py").write_text(
+        "def changed_after_index():\n    return True\n",
+        encoding="utf-8",
+    )
+
+    semantic = SemanticVectorIndex(root, index, encoder=FakeEncoder())
+
+    import pytest
+
+    with pytest.raises(RuntimeError, match="source changed after repository indexing"):
+        semantic.sync()
