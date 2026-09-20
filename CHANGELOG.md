@@ -1,5 +1,7 @@
 # Unreleased
 
+# 1.9.0 - 2026-09-20
+
 - **Added safe opt-in pre-model prompt ingress staging.** Claude Code cannot
   replace a submitted prompt from `UserPromptSubmit`, so Token Saver never
   pretends to do so. When `ingress.enabled` is explicitly enabled and a
