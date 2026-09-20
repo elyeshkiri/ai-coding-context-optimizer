@@ -51,6 +51,10 @@ def run(*, model: str, image: str, prompt: str) -> str:
         model,
         "--max-turns",
         "1",
+        "--permission-mode",
+        "plan",
+        "--disallowedTools",
+        "Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,NotebookEdit,Task",
         "--output-format",
         "json",
     ]
