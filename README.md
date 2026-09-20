@@ -124,7 +124,15 @@ Token Saver can now control the other side of the bill: model output. The output
 layer is deliberately split into **generation-time policy** and **safe
 post-generation compaction**.
 
-Generate a compact response policy for an agent:
+With Claude Code hooks installed, Token Saver now applies this policy
+automatically at `UserPromptSubmit`. It deterministically classifies strong
+coding, debugging, review, planning, and explanation prompts, while ambiguous
+follow-ups inherit the active task. The full policy is injected only when the
+task or verbosity mode changes, on the first task in a session, or after a
+clear/compact reset, avoiding repetitive policy-token overhead.
+
+Manual policy generation remains available for orchestrators and hosts without
+a prompt-hook surface:
 
 ```bash
 token-saver output-policy --mode terse --task coding
@@ -141,7 +149,10 @@ review, explanation, and planning while preserving the historical
 Debugging policy explicitly separates observations from hypotheses so brevity
 does not pressure the model into inventing a root cause. Explicit user output
 contracts, required code/diffs, diagnostics, safety information, and material
-caveats always override the token target.
+caveats always override the token target. Explicit requests such as "briefly"
+or "in detail" also override the configured automatic verbosity for that task.
+Automatic classification stores only resolved policy metadata (task/mode/budget),
+not the user's prompt text.
 
 Compact an already-generated response:
 
