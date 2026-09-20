@@ -292,7 +292,13 @@ def calibrate_output_budgets(path: Path, *, margin: float = 1.15) -> dict:
             continue
         if isinstance(trial, bool) or not isinstance(trial, int) or trial <= 0:
             continue
-        pairs.setdefault((task_id, trial), {})[condition] = run
+        pair = pairs.setdefault((task_id, trial), {})
+        if condition in pair:
+            raise ValueError(
+                f"duplicate {condition} calibration run for task/trial: "
+                f"{task_id}/{trial}"
+            )
+        pair[condition] = run
 
     samples: dict[tuple[str, str], list[int]] = {}
     for pair in pairs.values():
