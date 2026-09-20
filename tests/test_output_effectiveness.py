@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 
 from token_saver.agent_eval import evaluate_agent_runs
@@ -33,7 +34,9 @@ def _run(task: str, trial: int, condition: str, *, optimized: bool) -> dict:
         "success": True,
         "manual_intervention": False,
         "model": "synthetic-model",
-        "prompt_sha256": f"prompt-{task}",
+        "prompt_sha256": hashlib.sha256(
+            f"Synthetic prompt for {task}".encode("utf-8")
+        ).hexdigest(),
         "revision": "deadbeef",
         "fresh_input_tokens": fresh,
         "cache_creation_input_tokens": 100 if optimized else 200,
@@ -79,7 +82,9 @@ def _manifest(path, *, tasks: int, trials: int) -> None:
                 "repository": "fixture",
                 "revision": "deadbeef",
                 "prompt": f"Synthetic prompt for {task}",
-                "prompt_sha256": f"prompt-{task}",
+                "prompt_sha256": hashlib.sha256(
+                    f"Synthetic prompt for {task}".encode("utf-8")
+                ).hexdigest(),
                 "verifier": [["synthetic-verifier"]],
             }
         )
@@ -393,3 +398,22 @@ def test_manual_intervention_must_be_boolean(tmp_path):
         assert "manual_intervention must be boolean" in str(exc)
     else:
         raise AssertionError("non-boolean manual_intervention must be rejected")
+
+
+
+def test_publishable_gate_rejects_invalid_frozen_prompt_hash(tmp_path):
+    """The frozen prompt text and its declared SHA-256 must agree."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=20, trials=3)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["tasks"][0]["prompt"] += " mutated"
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_output_effectiveness(manifest, pricing=_pricing())
+
+    assert "task-0:prompt_sha256" in result["protocol"]["frozen_definition_issues"]
+    assert (
+        "invalid_frozen_task_definitions"
+        in result["publication_gate"]["blockers"]
+    )
