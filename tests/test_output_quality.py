@@ -1,6 +1,10 @@
 import json
 
-from token_saver.output_quality import evaluate_quality_manifest
+from token_saver.output.contracts import OutputResult
+from token_saver.output_quality import (
+    evaluate_quality_manifest,
+    quality_definition_hash,
+)
 
 
 def _pytest_failure():
@@ -74,3 +78,78 @@ def test_quality_replay_reads_capture_from_file(tmp_path):
     }), encoding="utf-8")
 
     assert evaluate_quality_manifest(manifest)["cases"][0]["passed"] is True
+
+
+
+def test_frozen_quality_manifest_recomputes_definition_hash(tmp_path):
+    """Frozen output fixtures should be rejected after any case mutation."""
+    manifest = tmp_path / "quality.json"
+    payload = {
+        "protocol": {
+            "frozen": True,
+            "frozen_at": "2026-09-20T13:00:00Z",
+            "definition_sha256": "",
+        },
+        "cases": [
+            {
+                "id": "git-log",
+                "command": "git log --oneline",
+                "text": "\n".join(
+                    f"{index:04x} change {index}" for index in range(80)
+                ),
+                "must_preserve": ["change 0"],
+                "min_reduction": 0.1,
+            }
+        ],
+    }
+    payload["protocol"]["definition_sha256"] = quality_definition_hash(payload)
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = evaluate_quality_manifest(manifest, require_frozen=True)
+    assert result["protocol"]["valid"] is True
+
+    payload["cases"][0]["must_preserve"].append("change 79")
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+    try:
+        evaluate_quality_manifest(manifest, require_frozen=True)
+    except ValueError as exc:
+        assert "matching definition_sha256" in str(exc)
+    else:
+        raise AssertionError("mutated frozen fixture must be rejected")
+
+
+def test_quality_replay_rejects_introduced_forbidden_text(tmp_path, monkeypatch):
+    """A smaller output that invents a diagnostic must fail the quality contract."""
+    manifest = tmp_path / "quality.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {
+                        "id": "hallucination",
+                        "command": "custom",
+                        "text": "real line\n" * 100,
+                        "must_preserve": ["real line"],
+                        "must_not_contain": ["FABRICATED_DIAGNOSTIC"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "token_saver.output_quality.process_output",
+        lambda *args, **kwargs: OutputResult(
+            "real line\nFABRICATED_DIAGNOSTIC\n",
+            "fake",
+            True,
+            False,
+        ),
+    )
+
+    result = evaluate_quality_manifest(manifest)
+    case = result["cases"][0]
+    assert case["passed"] is False
+    assert case["introduced_forbidden"] == ["FABRICATED_DIAGNOSTIC"]
+    assert result["summary"]["no_hallucination_rate"] == 0.0
