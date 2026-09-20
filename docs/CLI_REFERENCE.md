@@ -52,6 +52,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`output-calibrate`](commands/output-calibrate.md) — learn quality-gated adaptive task/mode budgets.
 - [`output-policy`](commands/output-policy.md) — generate model-response policy instructions.
 - [`output-save`](commands/output-save.md) — compact an already-generated response.
+- [`output-telemetry`](commands/output-telemetry.md) — inspect real turn usage against selected output budgets.
 - [`output`](commands/output.md) — page a saved original command result.
 - [`outputs-prune`](commands/outputs-prune.md) — prune old saved outputs.
 - [`hook`](commands/hook.md) — Claude hook stdin/stdout adapter.

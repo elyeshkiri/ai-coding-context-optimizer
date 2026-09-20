@@ -134,7 +134,13 @@ def reset_session(root: Path, *, reads: bool = True, reminder: bool = True, sess
     """Reset session."""
     def mutate(data):
         if reads:
-            data.update(reads={}, usage={}, diagnostics={}, output_policy={})
+            data.update(
+                reads={},
+                usage={},
+                diagnostics={},
+                output_policy={},
+            )
+        data.pop("output_telemetry_pending", None)
         if reminder:
             data["reminder"] = ""
     update(root, mutate, session_id)

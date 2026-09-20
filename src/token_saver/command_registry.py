@@ -35,6 +35,7 @@ from .command_handlers.output import (
     output_policy_main,
     output_replay_main,
     output_save_main,
+    output_telemetry_main,
 )
 from .command_handlers.patch import pack_diff_main, review_main
 from .pack_cli import main as pack_main
@@ -102,6 +103,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("output-explain", output_explain_main),
         CommandSpec("output-replay", output_replay_main),
         CommandSpec("output-save", output_save_main),
+        CommandSpec("output-telemetry", output_telemetry_main),
         CommandSpec("serve", serve_main),
         CommandSpec("pack-diff", pack_diff_main),
         CommandSpec("review", review_main),

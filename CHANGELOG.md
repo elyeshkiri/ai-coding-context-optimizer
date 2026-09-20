@@ -1,5 +1,18 @@
 # Unreleased
 
+- **Added automatic content-free output-budget telemetry.** Claude Code setup now
+  registers `Stop` and `StopFailure` hooks. `UserPromptSubmit` checkpoints the
+  transcript byte offset and active policy, then turn completion reads only the
+  appended transcript usage counters and records real input/cache/output tokens,
+  model calls, task/mode, selected budget, complexity/calibration metadata, and
+  API-failure status. Prompt text, assistant text, tool payloads, and copied
+  transcript content are never written to telemetry. `output-telemetry` reports
+  budget utilization by task/mode plus explicitly observational underuse/overrun
+  signals; it does not equate a completed turn with task success or quality.
+  Storage is project-scoped, private, and bounded to the newest 2,000 records
+  after the telemetry log exceeds 4 MiB. Set `output.telemetry = false` or
+  `TOKEN_SAVER_OUTPUT_TELEMETRY=0` to disable capture.
+
 - **Added adaptive, quality-calibrated generation budgets.** Automatic output
   policy now scales task/mode bases using deterministic prompt complexity
   signals while preserving hard mode bounds and stable budgets across vague
@@ -41,7 +54,7 @@
   evidence now prevents `claim_allowed=true`.
 
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
-  end-to-end bug narrative, 44 dedicated command-reference pages with flags,
+  end-to-end bug narrative, 45 dedicated command-reference pages with flags,
   exit semantics, and machine-output links, explicit JSON CLI contracts, merged
   top-level `--help` discovery, and a holdout query-construction protocol that
   separates semantic natural-language evaluation from identifier-bearing

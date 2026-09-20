@@ -171,6 +171,21 @@ quality-regressing Token Saver runs, and requires at least three valid samples f
 for a task/mode recommendation. The automatic hook consumes that artifact on
 future tasks; absent or invalid calibration falls back to built-in defaults.
 
+Claude Code can also record real turn-level usage automatically:
+
+```bash
+token-saver output-telemetry .
+token-saver output-telemetry . --json
+```
+
+The prompt hook checkpoints the transcript byte offset and active policy. At
+`Stop` or `StopFailure`, Token Saver reads only transcript bytes appended for
+that turn and records input/cache/output token counters, model calls, selected
+budget, task/mode, and adaptive/calibration metadata. It does **not** copy prompt
+text, assistant text, tool payloads, or transcript content. Telemetry reports
+budget-utilization patterns but deliberately does not treat a finished model
+turn as verified task success or response quality.
+
 Compact an already-generated response:
 
 ```bash

@@ -10,6 +10,7 @@ from pathlib import Path
 from ..output_benchmark import evaluate_output_manifest
 from ..output_budget import calibrate_output_budgets
 from ..output_processors import explain_processor
+from ..output_telemetry import load_output_telemetry, output_telemetry_report
 from ..output_quality import evaluate_quality_manifest
 from ..output_saver import (
     build_output_policy,
@@ -18,6 +19,53 @@ from ..output_saver import (
 )
 
 
+
+
+def output_telemetry_main(argv: list[str]) -> int:
+    """Report local generation-budget telemetry without inferring task success."""
+    parser = argparse.ArgumentParser(prog="token-saver output-telemetry")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--records",
+        action="store_true",
+        help="include recent content-free raw telemetry records",
+    )
+    parser.add_argument("--limit", type=int, default=20)
+    args = parser.parse_args(argv)
+    if args.limit <= 0:
+        parser.error("--limit must be positive")
+    root = Path(args.path).resolve()
+    report = output_telemetry_report(root)
+    if args.records:
+        report["records"] = load_output_telemetry(root)[-args.limit :]
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    summary = report["summary"]
+    print("TOKEN SAVER OUTPUT TELEMETRY")
+    print(f"path: {report['path']}")
+    print(
+        "turns: "
+        f"{summary['turns']} total, {summary['measured_turns']} with usage, "
+        f"{summary['api_failures']} API failures"
+    )
+    if summary["measured_turns"]:
+        print(f"output tokens: {summary['output_tokens']:,}")
+        if summary["mean_selected_budget"] is not None:
+            print(f"mean selected budget: {summary['mean_selected_budget']:.1f}")
+        if summary["mean_budget_utilization"] is not None:
+            print(
+                "mean budget utilization: "
+                f"{100 * summary['mean_budget_utilization']:.1f}%"
+            )
+        if summary["target_met_rate"] is not None:
+            print(f"soft target met: {100 * summary['target_met_rate']:.1f}%")
+    print("evidence: turn completion only; no task-success or quality inference")
+    if args.records:
+        print(f"records included: {len(report['records'])}")
+    return 0
 
 
 def output_calibrate_main(argv: list[str]) -> int:

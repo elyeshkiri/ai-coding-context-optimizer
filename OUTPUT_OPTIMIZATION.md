@@ -17,6 +17,19 @@ The policy is remembered per host session and re-injected only when task/mode
 changes or context is reset. This is the path that can reduce billable model
 output; post-generation compaction cannot refund tokens already emitted.
 
+### Turn-level budget telemetry
+
+The same prompt hook checkpoints the current Claude transcript byte offset after
+the policy is resolved. Claude's per-turn `Stop`/`StopFailure` hook supplies
+the transcript path after generation. Token Saver then parses only newly
+appended assistant usage records, deduplicating repeated content-block rows by
+message id, and stores the real usage counters alongside the selected policy.
+
+This telemetry answers questions such as "which task/mode budgets are routinely
+far above observed output?" and "which groups exceed the soft target often?"
+It does **not** answer "did the task succeed?" or "was the shorter answer good?"
+Those claims still require independent verification/blind quality evidence.
+
 ## 1. Failure-aware output processor registry
 
 Bash stdout is routed through a priority-ordered processor registry. The first

@@ -24,6 +24,8 @@ ResetSessionService = Callable[..., None]
 RecordReadService = Callable[..., None]
 DigestService = Callable[[str], str]
 EstimateTokensService = Callable[[str], int]
+TelemetryStartService = Callable[..., None]
+TelemetryFinishService = Callable[..., dict | None]
 
 
 class OutputPipelineService(Protocol):
@@ -65,6 +67,7 @@ class HookConfig:
     output_policy_min_tokens: int | None = None
     output_policy_max_tokens: int | None = None
     output_policy_calibration_file: str = ".token-saver.output-calibration.json"
+    output_telemetry_enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -81,6 +84,8 @@ class HookServices:
     record_read: RecordReadService
     digest: DigestService
     estimate_tokens: EstimateTokensService
+    telemetry_start: TelemetryStartService
+    telemetry_finish: TelemetryFinishService
 
 
 def cap_for(n_lines: int) -> int:
@@ -244,11 +249,32 @@ class HookRuntime:
                     "additionalContext": generation_note,
                 }
 
+        if self.config.output_telemetry_enabled:
+            self.services.telemetry_start(
+                root,
+                transcript_path=payload.get("transcript_path"),
+                session_id=payload.get("session_id"),
+                prompt_id=payload.get("prompt_id"),
+            )
+
         lifecycle_note = self.services.user_nudge(root, prompt)
         if lifecycle_note:
             response["systemMessage"] = lifecycle_note
 
         return (0, response) if response else (0, None)
+
+    def run_stop(self, payload: dict, *, failed: bool = False) -> HookResponse:
+        """Record one completed or API-failed model turn without storing content."""
+
+        if self.config.output_telemetry_enabled:
+            self.services.telemetry_finish(
+                self.cwd(payload),
+                transcript_path=payload.get("transcript_path"),
+                session_id=payload.get("session_id"),
+                status="api_failure" if failed else "completed",
+                error=payload.get("error") if failed else None,
+            )
+        return 0, None
 
     def run_post_read(self, payload: dict) -> None:
         """Record a verified full-file read while ignoring ranged reads."""
@@ -301,6 +327,10 @@ class HookRuntime:
             return self.run_session_start(payload)
         if event == "UserPromptSubmit":
             return self.run_user_prompt(payload)
+        if event == "Stop":
+            return self.run_stop(payload)
+        if event == "StopFailure":
+            return self.run_stop(payload, failed=True)
         if event == "PreToolUse" or (
             not event
             and payload.get("tool_name") == "Read"

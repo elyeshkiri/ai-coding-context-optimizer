@@ -51,9 +51,14 @@ can contain project paths, diagnostics, or application data.
 ## Session state
 
 Token Saver keeps bounded local state for features such as remembered reads,
-diagnostic Delta, and the active automatic output-policy signature. The output
-policy stores only resolved task/mode/budget metadata; it does not persist user
-prompt text. The default state area is under the user's Claude directory;
+diagnostic Delta, the active automatic output-policy signature, and bounded
+output-budget telemetry. The output policy stores only resolved
+task/mode/budget metadata; it does not persist user prompt text. Telemetry stores
+policy metadata, opaque session fingerprints, model identifiers, and transcript
+usage counters. It does **not** store prompt text, assistant text, tool payloads,
+or copied transcript content. The telemetry JSONL file is project-scoped,
+created with private permissions, and compacted after it grows beyond 4 MiB,
+keeping the newest 2,000 records. The default state area is under the user's Claude directory;
 `TOKEN_SAVER_STATE_DIR` can relocate it.
 
 Do not point the state directory at a shared/public location.

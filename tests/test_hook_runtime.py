@@ -31,6 +31,8 @@ def _services(**overrides):
         "record_read": lambda root, path, digest, **kwargs: None,
         "digest": lambda text: "digest",
         "estimate_tokens": lambda text: len(text),
+        "telemetry_start": lambda root, **kwargs: None,
+        "telemetry_finish": lambda root, **kwargs: None,
     }
     defaults.update(overrides)
     return HookServices(**defaults)
@@ -246,6 +248,80 @@ def test_runtime_can_disable_generation_policy_without_disabling_other_nudges(tm
     assert code == 0
     assert response == {"systemMessage": "lifecycle nudge"}
     assert generation_calls == []
+
+
+def test_runtime_routes_prompt_and_stop_telemetry_without_model_context(tmp_path):
+    """Turn telemetry should checkpoint on prompt and finish silently on Stop."""
+    starts = []
+    finishes = []
+    runtime = HookRuntime(
+        _services(
+            telemetry_start=lambda root, **kwargs: starts.append((root, kwargs)),
+            telemetry_finish=lambda root, **kwargs: finishes.append((root, kwargs)),
+        )
+    )
+
+    prompt = {
+        "hook_event_name": "UserPromptSubmit",
+        "cwd": str(tmp_path),
+        "session_id": "s1",
+        "prompt_id": "p1",
+        "transcript_path": str(tmp_path / "session.jsonl"),
+        "prompt": "continue",
+    }
+    assert runtime.run(prompt) == (0, None)
+    assert starts == [
+        (
+            Path(tmp_path),
+            {
+                "transcript_path": str(tmp_path / "session.jsonl"),
+                "session_id": "s1",
+                "prompt_id": "p1",
+            },
+        )
+    ]
+
+    stop = {
+        "hook_event_name": "Stop",
+        "cwd": str(tmp_path),
+        "session_id": "s1",
+        "transcript_path": str(tmp_path / "session.jsonl"),
+        "last_assistant_message": "content must not be forwarded",
+    }
+    assert runtime.run(stop) == (0, None)
+    assert finishes == [
+        (
+            Path(tmp_path),
+            {
+                "transcript_path": str(tmp_path / "session.jsonl"),
+                "session_id": "s1",
+                "status": "completed",
+                "error": None,
+            },
+        )
+    ]
+
+
+def test_runtime_routes_stop_failure_as_api_failure(tmp_path):
+    """StopFailure should record API failure without calling it task failure."""
+    finishes = []
+    runtime = HookRuntime(
+        _services(
+            telemetry_finish=lambda root, **kwargs: finishes.append((root, kwargs))
+        )
+    )
+
+    assert runtime.run(
+        {
+            "hook_event_name": "StopFailure",
+            "cwd": str(tmp_path),
+            "session_id": "s1",
+            "transcript_path": str(tmp_path / "session.jsonl"),
+            "error": "rate_limit",
+        }
+    ) == (0, None)
+    assert finishes[0][1]["status"] == "api_failure"
+    assert finishes[0][1]["error"] == "rate_limit"
 
 
 def test_runtime_records_verified_full_read_with_injected_state_services(tmp_path):

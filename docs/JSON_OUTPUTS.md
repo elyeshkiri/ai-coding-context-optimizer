@@ -379,6 +379,51 @@ Recommendations are omitted for task/mode groups with fewer than three valid
 quality-preserving paired samples or fewer than three distinct task IDs. The runtime treats missing/invalid calibration
 as no learned override and falls back to built-in bases.
 
+## `output-telemetry --json`
+
+```json
+{
+  "schema": 1,
+  "path": "~/.claude/token-saver/telemetry/<project>.jsonl",
+  "summary": {
+    "turns": 12,
+    "measured_turns": 12,
+    "completed_turns": 11,
+    "api_failures": 1,
+    "input_tokens": 2200,
+    "cache_creation_input_tokens": 18000,
+    "cache_read_input_tokens": 92000,
+    "output_tokens": 6400,
+    "model_calls": 28,
+    "mean_output_tokens": 533.3,
+    "p90_output_tokens": 810.0,
+    "mean_selected_budget": 700.0,
+    "mean_budget_utilization": 0.76,
+    "p50_budget_utilization": 0.70,
+    "p90_budget_utilization": 1.10,
+    "target_met_rate": 0.83
+  },
+  "by_task_mode": {},
+  "signals": {
+    "underused_budget_groups": [],
+    "frequent_target_overrun_groups": [],
+    "minimum_turns": 5,
+    "observational_only": true
+  },
+  "evidence_limits": {
+    "task_success_evidence": false,
+    "quality_evidence": false,
+    "note": "..."
+  }
+}
+```
+
+With `--records`, a bounded `records` array is added. Those records contain
+policy metadata, opaque session fingerprints, model identifiers, and usage
+counters only. They do not contain prompt, response, or tool-result content.
+Budget signals are observational; they do not authorize a smaller calibrated
+budget without separate success/quality evidence.
+
 ## `output-save --json`
 
 ```json

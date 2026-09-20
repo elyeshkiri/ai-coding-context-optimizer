@@ -6,6 +6,7 @@ import json
 import pytest
 
 from token_saver.hook import cap_for, main, run
+from token_saver.output_telemetry import load_output_telemetry
 
 
 def _payload(response, tool="Bash", command="npm test"):
@@ -100,6 +101,99 @@ def test_user_prompt_auto_policy_can_be_disabled(tmp_path, monkeypatch):
             "prompt": "Implement automatic output policy injection",
         }
     ) == (0, None)
+
+
+def test_prompt_and_stop_hooks_capture_real_usage_without_content(
+    tmp_path, monkeypatch
+):
+    """Claude prompt/Stop hooks should produce content-free usage telemetry."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text("", encoding="utf-8")
+    prompt = {
+        "hook_event_name": "UserPromptSubmit",
+        "cwd": str(tmp_path),
+        "session_id": "s1",
+        "prompt_id": "p1",
+        "transcript_path": str(transcript),
+        "prompt": "Implement caching",
+    }
+    assert run(prompt)[0] == 0
+
+    transcript.write_text(
+        json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "id": "m1",
+                    "model": "claude-test",
+                    "usage": {
+                        "input_tokens": 11,
+                        "cache_creation_input_tokens": 22,
+                        "cache_read_input_tokens": 33,
+                        "output_tokens": 123,
+                    },
+                    "content": [{"type": "text", "text": "SECRET RESPONSE"}],
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    assert run(
+        {
+            "hook_event_name": "Stop",
+            "cwd": str(tmp_path),
+            "session_id": "s1",
+            "transcript_path": str(transcript),
+            "last_assistant_message": "SECRET RESPONSE",
+        }
+    ) == (0, None)
+
+    records = load_output_telemetry(tmp_path)
+    assert len(records) == 1
+    assert records[0]["output_tokens"] == 123
+    assert records[0]["selected_budget"] == 420
+    assert "SECRET RESPONSE" not in json.dumps(records[0])
+
+
+def test_output_telemetry_can_be_disabled_independently(tmp_path, monkeypatch):
+    """Telemetry opt-out should not disable generation policy injection."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TELEMETRY", "0")
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text("", encoding="utf-8")
+
+    code, response = run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "session_id": "s1",
+            "transcript_path": str(transcript),
+            "prompt": "Implement caching",
+        }
+    )
+    assert code == 0
+    assert response is not None
+    assert "additionalContext" in response["hookSpecificOutput"]
+
+    transcript.write_text(json.dumps({
+        "type": "assistant",
+        "message": {
+            "id": "m1",
+            "usage": {"output_tokens": 50},
+            "content": [],
+        },
+    }) + "\n", encoding="utf-8")
+    assert run(
+        {
+            "hook_event_name": "Stop",
+            "cwd": str(tmp_path),
+            "session_id": "s1",
+            "transcript_path": str(transcript),
+        }
+    ) == (0, None)
+    assert load_output_telemetry(tmp_path) == []
 
 
 def test_small_output_is_left_alone():

@@ -316,6 +316,21 @@ three randomized paired trials per task, keep the model/prompt/tool settings
 identical, independently verify task success, and report output-token reduction
 next to cost per success rather than treating response length alone as quality.
 
+### Runtime budget telemetry
+
+For ordinary Claude Code use, `output-telemetry` records actual transcript
+usage counters against the selected policy budget without storing conversation
+content. Use it to discover candidate task/mode groups for future experiments:
+
+```bash
+token-saver output-telemetry . --json
+```
+
+A low p90 budget-utilization ratio is only an **observational tuning signal**.
+Do not feed it directly into calibration. A completed `Stop` turn is not proof
+of task success, and telemetry has no blind response-quality score. Validate
+candidate budget changes with paired successful runs before calibrating them.
+
 ### Calibrating adaptive output budgets
 
 Token Saver can turn the same blind paired evidence into conservative learned

@@ -11,6 +11,14 @@ PRE_MATCHER = "Read|Bash"
 POST_MATCHER = "Bash|Read"
 SESSION_MATCHER = "startup|resume|clear|compact"
 PROMPT_MATCHER = "*"
+HOOK_MATCHERS = {
+    "PreToolUse": PRE_MATCHER,
+    "PostToolUse": POST_MATCHER,
+    "SessionStart": SESSION_MATCHER,
+    "UserPromptSubmit": "",
+    "Stop": "",
+    "StopFailure": "",
+}
 
 
 def hook_block(matcher: str) -> dict:
@@ -30,9 +38,8 @@ def merge_hooks(existing: dict) -> dict:
     from copy import deepcopy
     out = deepcopy(existing)
     hooks = out.setdefault("hooks", {})
-    events = {"PreToolUse": PRE_MATCHER, "PostToolUse": POST_MATCHER,
-              "SessionStart": SESSION_MATCHER, "UserPromptSubmit": ""}
-    for event in (*events, "Stop"):
+    events = HOOK_MATCHERS
+    for event in events:
         entries = []
         for entry in hooks.get(event, []):
             others = [h for h in entry.get("hooks", []) if h.get("command") != HOOK_COMMAND]
