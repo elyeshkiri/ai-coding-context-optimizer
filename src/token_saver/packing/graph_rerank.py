@@ -306,15 +306,13 @@ def _apply_embedding_rerank_index(
             (hit.start_line, hit.end_line)
             for hit in selected
         ]
-        evidence = tuple(
-            [
-                *(hit.evidence() for hit in selected),
-                (
-                    f"semantic-file-rank:{file_rank}:"
-                    f"aggregate={_semantic_file_score(selected):.3f}:"
-                    f"boost={boost:.3f}"
-                ),
-            ]
+        evidence = (
+            *(hit.evidence() for hit in selected),
+            (
+                f"semantic-file-rank:{file_rank}:"
+                f"aggregate={_semantic_file_score(selected):.3f}:"
+                f"boost={boost:.3f}"
+            ),
         )
         item.reasons.extend(evidence)
         item.score_trace.append(
