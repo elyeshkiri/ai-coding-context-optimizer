@@ -140,7 +140,7 @@ def reset_session(root: Path, *, reads: bool = True, reminder: bool = True, sess
                 diagnostics={},
                 output_policy={},
             )
-        data["output_telemetry_pending"] = {}
+        data.pop("output_telemetry_pending", None)
         if reminder:
             data["reminder"] = ""
     update(root, mutate, session_id)
