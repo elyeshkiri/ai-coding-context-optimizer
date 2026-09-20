@@ -405,6 +405,17 @@ def evaluate_output_effectiveness(
         (pair[BASELINE_CONDITION], pair[OPTIMIZED_CONDITION])
         for pair in grouped.values()
     ]
+    pair_identity_mismatches = []
+    pair_identity_missing = []
+    for baseline_run, optimized_run in pairs:
+        label = f"{baseline_run['task']}/{baseline_run['trial']}"
+        for field in ("model", "prompt_sha256", "revision"):
+            base_value = baseline_run.get(field)
+            opt_value = optimized_run.get(field)
+            if not base_value or not opt_value:
+                pair_identity_missing.append(f"{label}:{field}")
+            elif base_value != opt_value:
+                pair_identity_mismatches.append(f"{label}:{field}")
     baseline_runs = [baseline for baseline, _optimized in pairs]
     optimized_runs = [optimized for _baseline, optimized in pairs]
     baseline = _condition_summary(baseline_runs, pricing)
@@ -414,6 +425,27 @@ def evaluate_output_effectiveness(
     blinded = bool(
         isinstance(quality_meta, dict)
         and quality_meta.get("blinded") is True
+    )
+    quality_judge = (
+        str(quality_meta.get("judge") or "").strip()
+        if isinstance(quality_meta, dict)
+        else ""
+    )
+    protocol = payload.get("protocol")
+    protocol_required_true = (
+        "task_definitions_frozen",
+        "condition_order_randomized",
+        "independent_verification",
+        "history_isolated",
+        "hidden_tests_after_agent",
+    )
+    protocol_valid = bool(
+        isinstance(protocol, dict)
+        and all(protocol.get(name) is True for name in protocol_required_true)
+        and isinstance(protocol.get("frozen_at"), str)
+        and bool(protocol.get("frozen_at").strip())
+        and isinstance(protocol.get("task_definition_sha256"), str)
+        and len(protocol.get("task_definition_sha256").strip()) == 64
     )
     base_quality = _quality_summary(baseline_runs)
     opt_quality = _quality_summary(optimized_runs)
@@ -475,12 +507,35 @@ def evaluate_output_effectiveness(
     }
 
     success_parity = optimized["success_rate"] >= baseline["success_rate"]
+    exact_usage_missing = []
+    for run in baseline_runs + optimized_runs:
+        if not all(
+            field in run
+            for field in (
+                "fresh_input_tokens",
+                "cache_creation_input_tokens",
+                "cache_read_input_tokens",
+                "output_tokens",
+                "model_calls",
+            )
+        ):
+            exact_usage_missing.append(f"{run['task']}/{run['trial']}/{run['condition']}")
     cost_per_success_reduction = _safe_reduction(
         baseline["cost_per_success_usd"],
         optimized["cost_per_success_usd"],
     )
     trial_counts = [len(values) for values in trials_by_task.values()]
+    bootstrap = _bootstrap(pairs, pricing)
+    cost_ci = bootstrap["cost_per_success_reduction_ci95"]
     blockers = []
+    if not protocol_valid:
+        blockers.append("invalid_or_missing_frozen_experiment_protocol")
+    if pair_identity_missing:
+        blockers.append("incomplete_pair_identity")
+    if pair_identity_mismatches:
+        blockers.append("paired_run_identity_mismatch")
+    if exact_usage_missing:
+        blockers.append("incomplete_exact_transcript_usage")
     if len(trials_by_task) < MIN_PUBLISHABLE_TASKS:
         blockers.append("insufficient_distinct_tasks")
     if min(trial_counts) < MIN_PUBLISHABLE_TRIALS_PER_TASK:
@@ -491,6 +546,8 @@ def evaluate_output_effectiveness(
         blockers.append("task_success_regression")
     if not blinded:
         blockers.append("missing_blind_quality_evidence")
+    if not quality_judge:
+        blockers.append("missing_quality_judge_identity")
     if not quality_complete:
         blockers.append("incomplete_quality_evidence")
     elif not quality_parity:
@@ -505,6 +562,8 @@ def evaluate_output_effectiveness(
         blockers.append("cost_per_success_unavailable")
     elif cost_per_success_reduction <= 0:
         blockers.append("no_positive_cost_per_success_reduction")
+    if cost_ci is None or cost_ci[0] <= 0:
+        blockers.append("cost_per_success_ci_not_strictly_positive")
 
     return {
         "schema": EFFECTIVENESS_SCHEMA,
@@ -536,9 +595,16 @@ def evaluate_output_effectiveness(
                 float(optimized["output_tokens"]),
             ),
         },
+        "protocol": {
+            "valid": protocol_valid,
+            "required_true": list(protocol_required_true),
+            "pair_identity_missing": pair_identity_missing,
+            "pair_identity_mismatches": pair_identity_mismatches,
+            "exact_usage_missing": exact_usage_missing,
+        },
         "quality": {
             "blinded": blinded,
-            "judge": quality_meta.get("judge") if isinstance(quality_meta, dict) else None,
+            "judge": quality_judge or None,
             "baseline": base_quality,
             "token_saver": opt_quality,
             "parity": quality_parity,
@@ -552,7 +618,7 @@ def evaluate_output_effectiveness(
             "ungrouped_runs": ungrouped,
         },
         "budget_groups": group_report,
-        "bootstrap": _bootstrap(pairs, pricing),
+        "bootstrap": bootstrap,
         "publication_gate": {
             "required_tasks": MIN_PUBLISHABLE_TASKS,
             "required_trials_per_task": MIN_PUBLISHABLE_TRIALS_PER_TASK,
