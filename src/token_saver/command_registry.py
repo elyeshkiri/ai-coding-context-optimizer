@@ -13,12 +13,17 @@ from .command_handlers.context import (
 )
 from .command_handlers.evaluation import (
     agent_evaluate_main,
+    blind_grade_main,
     evaluate_main,
     ranking_calibrate_main,
     ranking_diff_main,
     ranking_snapshot_main,
 )
-from .command_handlers.experiment import cost_report_main, experiment_main
+from .command_handlers.experiment import (
+    cost_report_main,
+    evidence_run_main,
+    experiment_main,
+)
 from .command_handlers.host import (
     commands_main,
     completion_main,
@@ -87,10 +92,12 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("ranking-explain", ranking_explain_main),
         CommandSpec("evaluate", evaluate_main),
         CommandSpec("agent-evaluate", agent_evaluate_main),
+        CommandSpec("blind-grade", blind_grade_main),
         CommandSpec("ranking-snapshot", ranking_snapshot_main),
         CommandSpec("ranking-diff", ranking_diff_main),
         CommandSpec("ranking-calibrate", ranking_calibrate_main),
         CommandSpec("experiment", experiment_main),
+        CommandSpec("evidence-run", evidence_run_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),
