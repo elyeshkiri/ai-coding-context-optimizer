@@ -29,8 +29,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--duplicate-threshold", type=float, default=0.92,
                         help="identifier similarity at which a file is skipped")
     parser.add_argument("--session", help="remember the selected working set for related tasks")
-    parser.add_argument("--embeddings", action="store_true",
-                        help="rerank with an already-downloaded local sentence-transformer")
+    parser.add_argument(
+        "--embeddings",
+        "--semantic",
+        dest="embeddings",
+        action="store_true",
+        help=(
+            "enable persistent chunk-level semantic retrieval and hybrid "
+            "lexical/vector fusion with an already-downloaded local model"
+        ),
+    )
     parser.add_argument("--typescript-semantic", action="store_true",
                         help="overlay TS/JS edges resolved by the repository's local TypeScript compiler")
     parser.add_argument("--strict-semantic", action="store_true",
@@ -97,6 +105,9 @@ def main(argv: list[str] | None = None) -> int:
             "retrieval_plan": pack.retrieval_plan,
             "cache_hit": pack.cache_hit,
             "cache_key": pack.cache_key,
+            "semantic_index": (
+                repository.semantic_index_status() if args.embeddings else None
+            ),
             "typescript_semantic_edges": semantic_edges,
         }
         rendered = json.dumps(payload, indent=2)

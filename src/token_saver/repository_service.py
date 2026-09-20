@@ -20,6 +20,7 @@ from .pack import ContextPack, build_context_pack, rank_files
 from .packing.observability import explain_ranked_files
 from .packing.ranking_stages import RankingStageRegistry
 from .repo_index import INDEX_VERSION, RepositoryIndex, build_index
+from .semantic_retrieval import SemanticVectorIndex, semantic_status
 from .semantic_ts import enrich_index_with_typescript
 from .retrieval_cache import status as retrieval_cache_status
 from .runtime_config import settings_for
@@ -70,7 +71,16 @@ class RepositoryContextService:
             "refreshed_at": self.refreshed_at,
             "index_version": INDEX_VERSION,
             "retrieval_cache": retrieval_cache_status(self.root),
+            "semantic_index": semantic_status(self.root),
         }
+
+    def sync_semantic_index(self) -> dict:
+        """Build or incrementally refresh persistent chunk-level semantic vectors."""
+        return SemanticVectorIndex(self.root, self.get()).sync().to_dict()
+
+    def semantic_index_status(self) -> dict:
+        """Report persistent semantic-index state without loading the ML model."""
+        return semantic_status(self.root)
 
     def enrich_typescript(
         self,

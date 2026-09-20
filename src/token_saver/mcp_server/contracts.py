@@ -59,6 +59,14 @@ class RepositoryContextServiceContract(Protocol):
         """Return project-knowledge counts without exposing contents."""
         ...
 
+    def sync_semantic_index(self) -> dict:
+        """Build or incrementally refresh persistent semantic vectors."""
+        ...
+
+    def semantic_index_status(self) -> dict:
+        """Return semantic-index state without loading the embedding model."""
+        ...
+
 
 IndexServiceContract = RepositoryContextServiceContract
 

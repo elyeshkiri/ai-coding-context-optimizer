@@ -286,7 +286,11 @@ def build_context_pack(
     redactions: set[str] = set()
     used = estimate_tokens(header)
 
-    candidates = [item for item in ranked if item.term_hits or item.changed] or ranked
+    candidates = [
+        item
+        for item in ranked
+        if item.term_hits or item.changed or item.semantic_ranges
+    ] or ranked
     if priority_files:
         candidates = sorted(candidates, key=lambda item: item.rel not in priority_files)
     priority_total = sum(

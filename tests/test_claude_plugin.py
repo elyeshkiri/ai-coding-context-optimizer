@@ -64,7 +64,7 @@ def test_marketplace_uses_explicit_command_source_and_renderer():
     assert plugin["name"] == "token-saver"
     assert source["source"] == "command"
     command = source["command"]
-    assert 'claude-token-saver>=1.9.0' in command
+    assert 'claude-token-saver>=1.10.0' in command
     assert "pip install --user --quiet" in command
     assert "git+https://github.com/elyeshkiri/token-saver.git" in command
     assert "render_plugin" in command

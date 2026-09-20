@@ -37,6 +37,8 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`remember`](commands/remember.md) — persist an evidence-backed cross-session project finding.
 - [`recall`](commands/recall.md) — retrieve current project findings relevant to a task.
 - [`knowledge-status`](commands/knowledge-status.md) — inspect active/stale/superseded finding counts.
+- [`semantic-index`](commands/semantic-index.md) — build/incrementally refresh persistent chunk vectors.
+- [`semantic-status`](commands/semantic-status.md) — inspect semantic vector/HNSW state without loading the model.
 - [`map`](commands/map.md) — build a structural repository map.
 - [`outline`](commands/outline.md) — show signatures/structure for one source file.
 - [`snippet`](commands/snippet.md) — extract one exact symbol body.

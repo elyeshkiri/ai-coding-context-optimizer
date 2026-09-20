@@ -41,6 +41,32 @@ The hook blocks the oversized prompt before Claude processes it. Token Saver
 does not send a lossy substitute automatically and never silently truncates a
 failed compression attempt.
 
+## Semantic vector state
+
+Opt-in semantic retrieval reads the same repository files already admitted by
+the structural index's path-safety policy. Its private project-scoped SQLite
+database stores:
+
+- repository-relative file paths and indexed content digests;
+- chunk start/end lines and optional symbol labels;
+- normalized embedding vectors;
+- hashes and vectors for exact repeated queries;
+- optional HNSW label mappings.
+
+It deliberately does **not** persist source text inside the vector database.
+The optional HNSW sidecar contains derived vector-index data only. Both live
+under `TOKEN_SAVER_STATE_DIR`; treat that directory as private because vectors
+and filenames are still derived from project contents.
+
+Token Saver loads the configured SentenceTransformer with
+`local_files_only=True`. Model downloading is an explicit user action outside
+normal retrieval. The current feature does not send source chunks or query text
+to Token Saver infrastructure.
+
+A changed file is re-hashed before embedding and must still match the structural
+repository-index digest. A mismatch fails the semantic refresh rather than
+storing vectors under stale evidence identity.
+
 ## Retrieval cache state
 
 Persistent retrieval cache entries contain completed bounded context packs and

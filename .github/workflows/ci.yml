@@ -192,3 +192,17 @@ jobs:
         run: |
           python -m pytest -q             tests/test_fastpath.py             tests/test_pack.py             tests/test_retrieval_cache.py
           token-saver evaluate             benchmarks/context-quality.json             --path .             --max-tokens 6000
+
+
+  semantic-ann:
+    name: Semantic HNSW parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]' 'hnswlib>=0.8,<1'
+      - name: Exercise semantic exact-source contracts through HNSW
+        run: python -m pytest -q tests/test_semantic_retrieval.py

@@ -28,7 +28,13 @@ def test_context_profile_includes_knowledge_but_not_output_specialists():
     """Context MCP mode should keep repository operations while dropping output tools."""
     names = set(tool_registry_for_profile("context").names())
 
-    assert {"recall_findings", "remember_finding", "knowledge_status"} <= names
+    assert {
+        "recall_findings",
+        "remember_finding",
+        "knowledge_status",
+        "semantic_index_status",
+        "refresh_semantic_index",
+    } <= names
     assert "output_policy" not in names
     assert "compact_output" not in names
     assert "review_diff" not in names
@@ -38,7 +44,14 @@ def test_full_profile_preserves_existing_default_surface():
     """Full MCP mode should remain backward compatible with the existing registry."""
     names = set(tool_registry_for_profile("full").names())
 
-    assert {"build_context", "compact_output", "review_diff", "recall_findings"} <= names
+    assert {
+        "build_context",
+        "compact_output",
+        "review_diff",
+        "recall_findings",
+        "semantic_index_status",
+        "refresh_semantic_index",
+    } <= names
 
 
 def test_unknown_profile_fails_closed():

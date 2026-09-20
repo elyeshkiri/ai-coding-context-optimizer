@@ -46,10 +46,14 @@ class McpToolRegistry:
 
 def _build_context(context: McpToolContext, arguments: dict) -> dict:
     """Build a task-aware source context pack."""
+    semantic = bool(
+        arguments.get("semantic", arguments.get("embeddings", False))
+    )
     pack = context.repository.build_context(
         str(arguments.get("query", "")),
         max_tokens=int(arguments.get("max_tokens", 6000)),
         target_symbol=arguments.get("target_symbol"),
+        embeddings=semantic,
     )
     return {
         "text": pack.text,
@@ -60,6 +64,9 @@ def _build_context(context: McpToolContext, arguments: dict) -> dict:
         "closure_files": pack.closure_files,
         "cache_hit": pack.cache_hit,
         "cache_key": pack.cache_key,
+        "semantic_index": (
+            context.repository.semantic_index_status() if semantic else None
+        ),
     }
 
 
@@ -114,6 +121,18 @@ def _refresh_index(context: McpToolContext, arguments: dict) -> dict:
     del arguments
     context.repository.refresh()
     return context.repository.status()
+
+
+def _semantic_index_status(context: McpToolContext, arguments: dict) -> dict:
+    """Return semantic-vector index status without loading the embedding model."""
+    del arguments
+    return context.repository.semantic_index_status()
+
+
+def _refresh_semantic_index(context: McpToolContext, arguments: dict) -> dict:
+    """Build or incrementally refresh persistent local semantic vectors."""
+    del arguments
+    return context.repository.sync_semantic_index()
 
 
 def _remember_finding(context: McpToolContext, arguments: dict) -> dict:
@@ -210,6 +229,7 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
                     "query": {"type": "string"},
                     "max_tokens": {"type": "integer", "minimum": 1},
                     "target_symbol": {"type": "string"},
+                    "semantic": {"type": "boolean"},
                 },
             },
             _build_context,
@@ -287,6 +307,18 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
             "Incrementally refresh the persistent repository index.",
             {"type": "object", "properties": {}},
             _refresh_index,
+        ),
+        McpToolSpec(
+            "semantic_index_status",
+            "Report persistent chunk-vector index state without loading the embedding model.",
+            {"type": "object", "properties": {}},
+            _semantic_index_status,
+        ),
+        McpToolSpec(
+            "refresh_semantic_index",
+            "Build or incrementally refresh persistent local chunk embeddings.",
+            {"type": "object", "properties": {}},
+            _refresh_semantic_index,
         ),
         McpToolSpec(
             "remember_finding",
@@ -430,6 +462,8 @@ MCP_TOOL_PROFILES = {
         "report_context_feedback",
         "index_status",
         "refresh_index",
+        "semantic_index_status",
+        "refresh_semantic_index",
         "recall_findings",
         "remember_finding",
         "knowledge_status",

@@ -1,4 +1,4 @@
-# Token Saver 1.9.0
+# Token Saver 1.10.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -121,6 +121,55 @@ token-saver ingress-read STAGE_ID --path . --start-line 80 --end-line 140
 
 The packet contains exact bounded head/tail excerpts plus explicit omitted line
 ranges. **There is no silent first-N-words truncation fallback.**
+
+## Hybrid semantic retrieval
+
+Token Saver 1.10 adds opt-in **chunk-level semantic discovery** without turning
+semantic summaries into edit context. Enable it with either spelling:
+
+```bash
+token-saver pack . --query "where do stale sessions get rejected?" --semantic
+token-saver pack . --query "where do stale sessions get rejected?" --embeddings
+```
+
+The flow is:
+
+```text
+versioned structural index
+        ↓
+overlapping source chunks
+        ↓
+persistent local vectors
+        ↓
+exact cosine or optional HNSW
+        ↓
+bounded lexical/vector rank fusion
+        ↓
+existing symbol/window selector
+        ↓
+live exact source bytes
+```
+
+Install the one-step semantic extra, then explicitly download the local model
+once:
+
+```bash
+pip install 'claude-token-saver[semantic]'
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+token-saver semantic-index .
+token-saver semantic-status .
+```
+
+At Token Saver runtime the model loader uses `local_files_only=True`; semantic
+retrieval does not silently fetch a model from the network. The SQLite index
+stores vectors plus repository-relative path/line/symbol coordinates, **not
+source text**. If `hnswlib` is unavailable the same vectors use exact cosine
+scan instead of changing retrieval semantics.
+
+Semantic evidence is deliberately bounded below exact structural authority.
+A semantically similar chunk can rescue a natural-language candidate with weak
+lexical overlap, but an exact requested API identity still carries much more
+weight.
 
 ## Persistent retrieval cache and optional Rust fastpath
 

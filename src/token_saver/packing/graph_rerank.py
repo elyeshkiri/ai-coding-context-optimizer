@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..closure import authoritative_providers, dependency_closure
 from ..repo_index import RepositoryIndex
+from ..semantic_retrieval import SemanticVectorIndex
 from .contracts import RankedFile
 from .file_scoring import _FileRankingScope
 from .ranking_stages import RankingStageContext
@@ -133,29 +134,41 @@ def _apply_embedding_rerank_index(
     query: str,
     ranked: list[RankedFile],
 ) -> None:
-    """Apply optional local-only semantic reranking to scored files."""
-    try:
-        from sentence_transformers import SentenceTransformer
-    except ImportError as exc:
-        raise RuntimeError(
-            "embedding reranking requires: pip install 'token-saver[embeddings]'"
-        ) from exc
-    try:
-        model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
-    except OSError as exc:
-        raise RuntimeError(
-            "local embedding model all-MiniLM-L6-v2 is not downloaded"
-        ) from exc
-    descriptions = [
-        f"{item.rel} {' '.join(index.records[item.rel].symbols)} {item.outline}"
-        for item in ranked
-    ]
-    vectors = model.encode([query] + descriptions, normalize_embeddings=True)
-    query_vector = vectors[0]
-    for item, vector in zip(ranked, vectors[1:]):
-        semantic = float(query_vector @ vector)
-        item.score += max(0.0, semantic) * 3.0
-        item.reasons.append(f"embedding:{semantic:.2f}")
+    """Fuse chunk-level semantic retrieval with the existing lexical ordering.
+
+    Semantic retrieval is discovery/ranking evidence only. It stores vectors and
+    exact source coordinates; final context still comes from the packer's live
+    repository reads. RRF-style rank evidence is intentionally bounded so an
+    exact structural symbol match remains stronger than fuzzy semantic affinity.
+    """
+    if not query.strip() or not ranked:
+        return
+    semantic = SemanticVectorIndex(index.root, index)
+    hits = semantic.query(query, top_k=max(40, min(160, len(ranked) * 3)))
+    best_by_file = {}
+    for hit in hits:
+        current = best_by_file.get(hit.path)
+        if current is None or (hit.rank, -hit.score) < (current.rank, -current.score):
+            best_by_file[hit.path] = hit
+
+    fusion_k = 60.0
+    fusion_weight = 240.0
+    similarity_weight = 4.0
+    lexical_rank = {item.rel: rank for rank, item in enumerate(ranked, start=1)}
+    for item in ranked:
+        hit = best_by_file.get(item.rel)
+        if hit is None:
+            continue
+        lexical_component = 1.0 / (fusion_k + lexical_rank[item.rel])
+        semantic_component = 1.0 / (fusion_k + hit.rank)
+        fused = lexical_component + semantic_component
+        boost = fusion_weight * fused + similarity_weight * max(0.0, hit.score)
+        item.score += boost
+        item.semantic_ranges = [(hit.start_line, hit.end_line)]
+        item.reasons.append(hit.evidence())
+        item.reasons.append(
+            f"hybrid-rrf:{lexical_rank[item.rel]}:{hit.rank}:{boost:.3f}"
+        )
 
 
 def _apply_embedding_rerank(

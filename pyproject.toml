@@ -1,6 +1,6 @@
 [project]
 name = "claude-token-saver"
-version = "1.9.0"
+version = "1.10.0"
 dependencies = ["tomli>=2; python_version < '3.11'", "tree-sitter>=0.25,<0.26", "tree-sitter-javascript>=0.25,<0.26", "tree-sitter-typescript>=0.23,<0.24", "tree-sitter-go>=0.25,<0.26", "tree-sitter-rust>=0.24,<0.25", "tree-sitter-java>=0.23,<0.24", "tree-sitter-c-sharp>=0.23,<0.24"]
 description = "Compile coding tasks and patches into minimal evidence-complete context for AI agents."
 requires-python = ">=3.10"
@@ -14,6 +14,8 @@ dev = ["pytest>=7", "build>=1", "ruff==0.16.8", "interrogate>=1.7,<2"]
 exact = ["anthropic>=0.40", "tiktoken>=0.7,<1"]
 google = ["google-genai>=1,<2"]
 embeddings = ["sentence-transformers>=3,<6"]
+semantic-ann = ["hnswlib>=0.8,<1"]
+semantic = ["sentence-transformers>=3,<6", "hnswlib>=0.8,<1"]
 
 [project.scripts]
 token-saver = "token_saver.entry:main"

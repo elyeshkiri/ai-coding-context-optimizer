@@ -44,7 +44,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "ready": true,
-  "version": "1.9.0",
+  "version": "1.10.0",
   "token_saver_executable": "/path/to/token-saver",
   "root": "absolute project path",
   "config_path": "/project/.token-saver.toml",
@@ -104,6 +104,7 @@ exit `1`.
   "retrieval_plan": {},
   "cache_hit": false,
   "cache_key": "sha256-or-null",
+  "semantic_index": null,
   "typescript_semantic_edges": 0
 }
 ```
@@ -152,14 +153,36 @@ state, not a degraded/error JSON contract.
 ```json
 {
   "schema": 1,
-  "version": "1.9.0",
-  "path": "/absolute/private/token-saver/claude-plugin/token-saver-1.9.0",
+  "version": "1.10.0",
+  "path": "/absolute/private/token-saver/claude-plugin/token-saver-1.10.0",
   "rendered": true
 }
 ```
 
 Text mode intentionally prints only the absolute path so Claude Code's
 command-source marketplace contract can consume it.
+
+When `--semantic` / `--embeddings` is active, `semantic_index` contains
+the same status shape documented below; otherwise it is `null`.
+
+## `semantic-index --json` / `semantic-status --json`
+
+```json
+{
+  "schema": 1,
+  "files": 240,
+  "chunks": 918,
+  "dimensions": 384,
+  "model": "all-MiniLM-L6-v2",
+  "backend": "hnsw",
+  "path": "/private/token-saver/semantic-index/.../....sqlite3"
+}
+```
+
+`semantic-index` synchronizes changed repository evidence before returning the
+document. `semantic-status` returns the same shape without loading the
+embedding model. `backend` is `hnsw` when a synchronized optional sidecar is
+active and `sqlite-cosine` for the exact vector-scan fallback.
 
 ## `browse --json`
 

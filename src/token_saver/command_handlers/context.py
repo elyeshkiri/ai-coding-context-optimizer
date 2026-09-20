@@ -10,6 +10,48 @@ from pathlib import Path
 from ..repository_service import RepositoryContextService
 
 
+def semantic_index_main(argv: list[str]) -> int:
+    """Build or incrementally refresh the persistent local semantic index."""
+    parser = argparse.ArgumentParser(prog="token-saver semantic-index")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        result = RepositoryContextService(Path(args.path)).sync_semantic_index()
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("SEMANTIC INDEX")
+        print(
+            f"files={result['files']} chunks={result['chunks']} "
+            f"dimensions={result['dimensions']} backend={result['backend']}"
+        )
+        print(result["path"])
+    return 0
+
+
+def semantic_status_main(argv: list[str]) -> int:
+    """Report persistent semantic-index status without loading embeddings."""
+    parser = argparse.ArgumentParser(prog="token-saver semantic-status")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    result = RepositoryContextService(Path(args.path)).semantic_index_status()
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("SEMANTIC INDEX")
+        print(
+            f"files={result['files']} chunks={result['chunks']} "
+            f"dimensions={result['dimensions']} backend={result['backend']}"
+        )
+        print(result["path"])
+    return 0
+
+
 def impact_main(argv: list[str]) -> int:
     """Run the impact command."""
     parser = argparse.ArgumentParser(prog="token-saver impact")
@@ -62,6 +104,11 @@ def ranking_explain_main(argv: list[str]) -> int:
     parser.add_argument("--max-files", type=int, default=8)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--no-changed-boost", action="store_true")
+    parser.add_argument(
+        "--semantic",
+        action="store_true",
+        help="include persistent chunk-level semantic fusion evidence",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -69,6 +116,7 @@ def ranking_explain_main(argv: list[str]) -> int:
             args.query,
             max_files=args.max_files,
             changed_boost=not args.no_changed_boost,
+            embeddings=args.semantic,
         )
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)

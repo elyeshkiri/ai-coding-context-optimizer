@@ -12,6 +12,8 @@ from .command_handlers.context import (
     ranking_explain_main,
     recall_main,
     remember_main,
+    semantic_index_main,
+    semantic_status_main,
 )
 from .command_handlers.efficiency import cache_economics_main
 from .command_handlers.evaluation import (
@@ -74,6 +76,8 @@ __all__ = [
     "remember_main",
     "ranking_snapshot_main",
     "review_main",
+    "semantic_index_main",
+    "semantic_status_main",
     "serve_main",
     "setup_main",
     "uninstall_main",
