@@ -6,6 +6,19 @@ The project is deliberately conservative: **smaller context is useful only when 
 
 ## Install
 
+For Claude Code only, the repository now exposes a marketplace:
+
+```text
+/plugin marketplace add elyeshkiri/token-saver
+/plugin install token-saver@token-saver-tools
+```
+
+Claude shows the command-source bootstrap for approval before running it. The
+generated plugin calls `python -m token_saver.entry`, so it does not depend on
+the `token-saver` console script being on `PATH`.
+
+For Claude + Cursor + Codex, or explicit project-managed installation:
+
 ```bash
 pip install claude-token-saver
 cd /path/to/project
@@ -73,6 +86,65 @@ Start with the task-oriented docs instead of searching this README:
 - [Contributing](CONTRIBUTING.md)
 
 The complete documentation map is [docs/README.md](docs/README.md).
+
+## Safe oversized-prompt ingress
+
+Claude Code's `UserPromptSubmit` hook can block a prompt or add context, but
+cannot replace the submitted text. Token Saver therefore does **not** claim to
+rewrite a huge prompt before the model.
+
+Instead, an explicit opt-in can stage very large prompts losslessly:
+
+```toml
+[ingress]
+enabled = true
+threshold_tokens = 12000
+packet_tokens = 1600
+```
+
+When the threshold fires, Token Saver stores the exact prompt locally with a
+SHA-256 integrity digest and returns a blocking stage id before Claude processes
+the prompt. Resume with the generated plugin skill:
+
+```text
+/token-saver:ingress STAGE_ID
+```
+
+or manually:
+
+```bash
+token-saver ingress-show STAGE_ID --path .
+token-saver ingress-read STAGE_ID --path . --start-line 80 --end-line 140
+```
+
+The packet contains exact bounded head/tail excerpts plus explicit omitted line
+ranges. **There is no silent first-N-words truncation fallback.**
+
+## Persistent retrieval cache and optional Rust fastpath
+
+Application-level context building now caches completed packs across processes
+when the repository content fingerprint and retrieval configuration are
+identical. Source digests, index version, changed-file state, ranking feedback,
+working-set state, and budget/query settings are part of cache identity.
+Embeddings/custom ranking plugins bypass caching until their external state can
+be fingerprinted safely.
+
+```toml
+[retrieval]
+cache = true
+cache_max_entries = 64
+```
+
+Token Saver also has a separately buildable optional PyO3 accelerator under
+`rust/token_saver_fast`. Python remains the reference implementation and
+automatic fallback. Inspect the active backend with:
+
+```bash
+token-saver fastpath-status
+```
+
+CI builds the Rust wheel and reruns pack/retrieval/context-quality checks with
+the native backend required before accepting fastpath changes.
 
 ## Failure-aware tool output and diagnostic Delta
 
@@ -822,6 +894,12 @@ simple.
 | `TOKEN_SAVER_MAX_LINES` | adaptive | filtered output line target |
 | `TOKEN_SAVER_KEEP_TAIL` | `15` | tail retained by generic filtering |
 | `TOKEN_SAVER_DELTA` | `0` | opt-in graph-aware pytest/Ruff diagnostic Delta |
+| `TOKEN_SAVER_INGRESS_OPTIMIZER` | `0` | opt-in lossless oversized-prompt staging before Claude processing |
+| `TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS` | `12000` | estimated prompt threshold for ingress staging |
+| `TOKEN_SAVER_INGRESS_PACKET_TOKENS` | `1600` | bounded staged packet target |
+| `TOKEN_SAVER_RETRIEVAL_CACHE` | `1` | persistent content-fingerprinted completed-pack cache |
+| `TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES` | `64` | bounded cache entries per project |
+| `TOKEN_SAVER_RUST_FASTPATH` | `1` | use optional native extension when installed; `0` forces Python |
 | `TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE` | `0` | opt-in verified-knowledge replacement for redundant full-file Reads |
 | `TOKEN_SAVER_CACHE_ECONOMICS` | `0` | require cache-aware projected-cost approval for knowledge read avoidance |
 | `TOKEN_SAVER_CACHE_EXPECTED_REUSES` | `2` | expected future cache reads in the planning model |
