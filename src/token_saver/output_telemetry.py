@@ -337,32 +337,49 @@ def _percentile(values: list[float], percentile: float) -> float | None:
     return ordered[lower] * (1 - fraction) + ordered[upper] * fraction
 
 
+def _number(value: object) -> float:
+    """Return a finite nonnegative number or zero for malformed telemetry."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0.0
+    numeric = float(value)
+    return numeric if math.isfinite(numeric) and numeric >= 0 else 0.0
+
+
+def _positive_budget(record: dict) -> float | None:
+    """Return one valid selected budget from a telemetry record."""
+    value = record.get("selected_budget")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    numeric = float(value)
+    return numeric if math.isfinite(numeric) and numeric > 0 else None
+
+
 def _group_summary(records: list[dict]) -> dict:
     """Summarize measured budget effectiveness for one telemetry group."""
     measured = [record for record in records if record.get("usage_available")]
     with_budget = [
-        record
+        (record, budget)
         for record in measured
-        if isinstance(record.get("selected_budget"), int)
-        and not isinstance(record.get("selected_budget"), bool)
-        and record["selected_budget"] > 0
+        if (budget := _positive_budget(record)) is not None
     ]
-    outputs = [float(record.get("output_tokens", 0)) for record in measured]
-    inputs = [float(record.get("input_tokens", 0)) for record in measured]
+    outputs = [_number(record.get("output_tokens")) for record in measured]
+    inputs = [_number(record.get("input_tokens")) for record in measured]
     cache_created = [
-        float(record.get("cache_creation_input_tokens", 0)) for record in measured
+        _number(record.get("cache_creation_input_tokens")) for record in measured
     ]
     cache_read = [
-        float(record.get("cache_read_input_tokens", 0)) for record in measured
+        _number(record.get("cache_read_input_tokens")) for record in measured
     ]
-    budgets = [float(record["selected_budget"]) for record in with_budget]
+    budgets = [budget for _record, budget in with_budget]
     utilizations = [
-        float(record["budget_utilization"])
-        for record in with_budget
+        _number(record.get("budget_utilization"))
+        for record, _budget in with_budget
         if isinstance(record.get("budget_utilization"), (int, float))
         and not isinstance(record.get("budget_utilization"), bool)
+        and math.isfinite(float(record["budget_utilization"]))
+        and float(record["budget_utilization"]) >= 0
     ]
-    target_hits = [record.get("target_met") is True for record in with_budget]
+    target_hits = [record.get("target_met") is True for record, _budget in with_budget]
     return {
         "turns": len(records),
         "measured_turns": len(measured),
@@ -372,7 +389,7 @@ def _group_summary(records: list[dict]) -> dict:
         "cache_creation_input_tokens": int(sum(cache_created)),
         "cache_read_input_tokens": int(sum(cache_read)),
         "output_tokens": int(sum(outputs)),
-        "model_calls": sum(int(record.get("model_calls", 0)) for record in measured),
+        "model_calls": int(sum(_number(record.get("model_calls")) for record in measured)),
         "mean_output_tokens": (sum(outputs) / len(outputs) if outputs else None),
         "p90_output_tokens": _percentile(outputs, 0.90),
         "mean_selected_budget": (sum(budgets) / len(budgets) if budgets else None),
