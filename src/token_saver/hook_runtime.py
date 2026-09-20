@@ -244,17 +244,16 @@ class HookRuntime:
                 )
             changed = replacement["stdout"] != original
 
-        behavior_note = self.services.observe_tool(
-            root,
-            payload,
-            original_text=original,
-            delivered_text=replacement["stdout"],
-            failed=failed,
-            enabled=self.config.efficiency_enabled,
-            waste_detection=self.config.waste_detection_enabled,
-        )
-
         if not changed:
+            behavior_note = self.services.observe_tool(
+                root,
+                payload,
+                original_text=original,
+                delivered_text=original,
+                failed=failed,
+                enabled=self.config.efficiency_enabled,
+                waste_detection=self.config.waste_detection_enabled,
+            )
             if behavior_note:
                 return 0, {
                     "hookSpecificOutput": {
@@ -275,6 +274,15 @@ class HookRuntime:
             < self.config.min_net_tokens
             or len(candidate.encode()) >= len(original.encode())
         ):
+            behavior_note = self.services.observe_tool(
+                root,
+                payload,
+                original_text=original,
+                delivered_text=original,
+                failed=failed,
+                enabled=self.config.efficiency_enabled,
+                waste_detection=self.config.waste_detection_enabled,
+            )
             if behavior_note:
                 return 0, {
                     "hookSpecificOutput": {
@@ -286,6 +294,15 @@ class HookRuntime:
 
         output_id = self.services.store_output(response)
         replacement["stdout"] += note.format(id=output_id)
+        behavior_note = self.services.observe_tool(
+            root,
+            payload,
+            original_text=original,
+            delivered_text=replacement["stdout"],
+            failed=failed,
+            enabled=self.config.efficiency_enabled,
+            waste_detection=self.config.waste_detection_enabled,
+        )
         specific = {
             "hookEventName": "PostToolUse",
             "updatedToolOutput": replacement,
