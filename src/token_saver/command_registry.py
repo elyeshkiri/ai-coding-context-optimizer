@@ -24,6 +24,7 @@ from .command_handlers.experiment import (
     cost_report_main,
     evidence_run_main,
     experiment_main,
+    session_holdout_main,
 )
 from .command_handlers.host import (
     commands_main,
@@ -99,6 +100,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("ranking-calibrate", ranking_calibrate_main),
         CommandSpec("experiment", experiment_main),
         CommandSpec("evidence-run", evidence_run_main),
+        CommandSpec("session-holdout", session_holdout_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("dashboard", dashboard_main),
         CommandSpec("continuity", continuity_main),
