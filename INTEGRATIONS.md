@@ -40,6 +40,8 @@ Available MCP tools:
 - `report_context_feedback`
 - `index_status`
 - `refresh_index`
+- `output_policy`
+- `compact_output`
 
 Call `refresh_index` after external file changes when a long-running server must
 see the new source immediately. Context generation otherwise reuses the current
