@@ -89,6 +89,8 @@ def main(argv: list[str] | None = None) -> int:
             "redactions": pack.redactions,
             "closure_files": pack.closure_files,
             "retrieval_plan": pack.retrieval_plan,
+            "cache_hit": pack.cache_hit,
+            "cache_key": pack.cache_key,
             "typescript_semantic_edges": semantic_edges,
         }
         rendered = json.dumps(payload, indent=2)
@@ -100,7 +102,9 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.out).write_text(pack.text, encoding="utf-8")
         print(
             f"wrote {args.out} ({pack.estimated_tokens} estimated tokens, "
-            f"{len(pack.selected_files)}/{pack.scanned_files} files)",
+            f"{len(pack.selected_files)}/{pack.scanned_files} files"
+            + (", cache hit" if pack.cache_hit else "")
+            + ")",
             file=sys.stderr,
         )
     else:
