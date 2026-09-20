@@ -90,7 +90,10 @@ def run_session_holdout(
         require_broad=not allow_development,
     )
     grader = validate_grader_config(suite)
-    definition = validate_session_holdout_definition(suite)
+    definition = validate_session_holdout_definition(
+        suite,
+        require_frozen=not allow_development,
+    )
     runner = suite.get("runner")
     protocol_version = (
         runner.get("session_holdout_protocol_version")
