@@ -296,3 +296,39 @@ def test_cost_report_cli_prints_confidence_interval(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "95% CI over 3 tasks" in out
     assert "tokens" in out.split("95% CI over 3 tasks", 1)[1]
+
+
+
+def test_paired_cost_report_accepts_experiment_enabled_alias(tmp_path):
+    """Raw experiment output should not need enabled -> token-saver rewriting."""
+    path = tmp_path / "experiment-runs.json"
+    path.write_text(
+        json.dumps({
+            "runs": [
+                {
+                    "task": "auth",
+                    "trial": 1,
+                    "condition": "baseline",
+                    "success": True,
+                    "input_tokens": 1000,
+                    "output_tokens": 100,
+                    "cost_usd": 1.0,
+                },
+                {
+                    "task": "auth",
+                    "trial": 1,
+                    "condition": "enabled",
+                    "success": True,
+                    "input_tokens": 500,
+                    "output_tokens": 50,
+                    "cost_usd": 0.5,
+                },
+            ]
+        }),
+        encoding="utf-8",
+    )
+
+    result = compare_paired_agent_file(path)
+
+    assert result["paired_task_count"] == 1
+    assert result["optimized"]["total_cost_usd"] == pytest.approx(0.5)
