@@ -228,3 +228,13 @@ def test_dispatcher_exposes_command_discovery(capsys):
     assert "setup" in output
     assert "doctor" in output
     assert "completion" in output
+
+
+
+def test_top_level_help_merges_modern_and_legacy_commands(capsys):
+    """A new user should discover setup and legacy tools from one help surface."""
+    assert main(["--help"]) == 0
+    output = capsys.readouterr().out
+    for command in ("setup", "doctor", "pack", "browse", "uninstall", "audit", "map"):
+        assert f"  {command}" in output
+    assert "docs/CLI_REFERENCE.md" in output
