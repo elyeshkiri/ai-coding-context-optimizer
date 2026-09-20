@@ -135,6 +135,80 @@ A valid hash proves the evaluated definition did not change after it was frozen;
 it does not by itself prove the labels were independently authored before tuning.
 Preserve manifest history and the task-definition process as audit evidence.
 
+### Frozen semantic holdout #13
+
+Version 1.10 includes a fresh **no-identifier-leakage semantic holdout** for
+measuring whether hybrid chunk retrieval improves natural-language file
+discovery beyond Token Saver's lexical/structural pipeline.
+
+The benchmark uses 24 behavior descriptions from public upstream issues across
+six repositories that were not used in external holdouts #1-#12:
+
+- Python: `Kludex/uvicorn`;
+- Go: `spf13/afero`;
+- Rust: `rust-lang/regex`;
+- Java: `resilience4j/resilience4j`;
+- JavaScript: `fastify/fastify`;
+- C#: `dotnet/command-line-api`.
+
+The audit sequence is intentionally stronger than a single final-manifest hash.
+The exact 24 queries and repository revisions were committed **before target
+files or fixes were inspected** in
+`benchmarks/semantic-holdout-13.query-freeze.json`.
+
+Query-only freeze:
+
+- commit: `f3247c1d4c8e388de653aea1a5de4fa4624f82ce`;
+- canonical SHA-256:
+  `8cdf871ea2fcbe59161a332f1f0ce0f93b087a6c3560acebadb5ee338c4169bf`.
+
+Ground truth was then collected without changing those queries. A post-freeze
+answer-identity audit excluded two tasks from the semantic headline rather than
+rewriting them: one Uvicorn task contains exact target member names
+(`restart` / `shutdown`), and one System.CommandLine task is too close to
+the public `CustomParser` member identity. Both remain visible in the frozen
+manifest with exclusion reasons. The headline cohort is therefore **22 of the
+24 frozen tasks**.
+
+Final semantic ground-truth SHA-256:
+
+`dc6ea6c3641db573b5b05473f2bc4ee13e0f05a4f093cb86f803e68c7b265d25`
+
+Every eligible task is evaluated under the same file-count and token limits
+against three arms:
+
+1. **Token Saver lexical/structural** — the current validated pipeline with
+   semantic retrieval disabled;
+2. **Token Saver hybrid semantic** — the same pipeline with persistent
+   chunk-level semantic retrieval enabled;
+3. **trivial lexical baseline** — distinct normalized query-term overlap only,
+   with no structural authority, fuzzy correction, dependency graph, feedback,
+   or semantic evidence.
+
+The semantic arm is pinned to `all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a`. Model revision participates in
+Token Saver's semantic vector/query-cache identity. The evidence workflow
+explicitly removes `hnswlib`, so the canonical first run uses exact cosine
+over the persistent vectors rather than approximate nearest-neighbor search.
+
+The first real evaluation **burns this suite for tuning**. It is therefore not
+part of ordinary pull-request CI. The manual workflow requires the exact
+confirmation:
+
+```text
+RUN_SEMANTIC_HOLDOUT_13
+```
+
+Before that first run, deterministic tests validate the two freeze hashes,
+literal answer-identity leakage rules, exclusion accounting, the trivial
+baseline, and the causal three-arm harness using a fake encoder. After the
+first real run, misses may inform a *future* holdout design but must not be used
+to tune against holdout #13 and then rerun it as fresh evidence.
+
+This is a retrieval benchmark. File-recall improvement on these tasks does not
+by itself establish lower API cost, coding-task success, or cost per successful
+task.
+
 ## Automated end-to-end cost-per-success experiment
 
 For evidence that supports a public cost claim, use the executable experiment

@@ -285,6 +285,24 @@ before any earlier host is partially configured.
 
 All JSON writes are atomic.
 
+## Semantic model revision
+
+Semantic retrieval loads local SentenceTransformer weights only. By default,
+the configured model name identifies the semantic vector store. For a
+reproducible benchmark or a deployment that pins model weights, also set:
+
+```bash
+export TOKEN_SAVER_SEMANTIC_MODEL_REVISION=<immutable-model-revision>
+```
+
+The revision is passed to SentenceTransformers and is included in the semantic
+SQLite path, persisted metadata, and exact-query vector cache key. Changing the
+revision therefore creates separate semantic state instead of reusing vectors
+from another set of weights.
+
+This is an environment-only expert/reproducibility control; ordinary project
+configuration does not need to pin a model revision.
+
 ## State and saved output
 
 Session state defaults to:
