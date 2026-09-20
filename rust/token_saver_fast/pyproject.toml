@@ -12,3 +12,4 @@ license = { text = "MIT" }
 [tool.maturin]
 module-name = "_token_saver_fast"
 manifest-path = "Cargo.toml"
+features = ["extension-module"]
