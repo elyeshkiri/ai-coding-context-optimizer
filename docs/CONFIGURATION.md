@@ -33,6 +33,12 @@ task = "auto"
 adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
 telemetry = true
+
+[efficiency]
+enabled = true
+continuity = true
+dedup = true
+waste_detection = true
 ```
 
 ## Hook settings
@@ -97,6 +103,30 @@ Example allowlist:
 allow = ["generated/*", "*.gen.ts", "vendor/special.py"]
 ```
 
+## Session efficiency
+
+The efficiency layer is local, bounded, and independent from repository ranking.
+It observes host hook events but never copies raw user prompts, assistant
+responses, or tool output into its continuity snapshot.
+
+| TOML key | Default | Meaning |
+|---|---:|---|
+| `efficiency.enabled` | `true` | Master switch for continuity, dedup evidence, and behavior tracking. |
+| `efficiency.continuity` | `true` | Restore structured working-state orientation on Claude resume/compact events. |
+| `efficiency.dedup` | `true` | Collapse exact repeated Bash output and block unchanged repeated full-file Reads. |
+| `efficiency.waste_detection` | `true` | Surface bounded repeated-command, identical-failure retry-loop, and no-edit tool-cascade signals. |
+
+Continuity stores only task class, working file paths, bounded redacted command
+labels/fingerprints, validation outcomes, failure fingerprints, and counters.
+Command labels apply best-effort credential redaction before persistence.
+Original compressed Bash output continues to use Token Saver's separate private
+recoverable-output store.
+
+`/clear` resets the active working checkpoint. `/compact` and resume retain
+the structured working set but reset transient per-turn counters. Cross-turn
+dedup never substitutes approximate output: it requires the same normalized
+command and exact output digest.
+
 ## Environment overrides
 
 Environment variables take precedence over TOML:
@@ -120,6 +150,10 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_OUTPUT_MAX_TOKENS` | `output.max_tokens` |
 | `TOKEN_SAVER_OUTPUT_CALIBRATION_FILE` | `output.calibration_file` |
 | `TOKEN_SAVER_OUTPUT_TELEMETRY` | `output.telemetry` |
+| `TOKEN_SAVER_EFFICIENCY` | `efficiency.enabled` |
+| `TOKEN_SAVER_CONTINUITY` | `efficiency.continuity` |
+| `TOKEN_SAVER_CROSS_TURN_DEDUP` | `efficiency.dedup` |
+| `TOKEN_SAVER_WASTE_DETECTION` | `efficiency.waste_detection` |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 
