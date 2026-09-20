@@ -54,6 +54,15 @@ cache_expected_reuses = 2
 cache_write_factor = 1.25
 cache_read_factor = 0.10
 cache_min_relative_savings = 0.05
+
+[ingress]
+enabled = false
+threshold_tokens = 12000
+packet_tokens = 1600
+
+[retrieval]
+cache = true
+cache_max_entries = 64
 """
 
 
