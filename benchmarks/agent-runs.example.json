@@ -1,4 +1,8 @@
 {
+  "quality_evaluation": {
+    "blinded": true,
+    "judge": "independent-response-grader"
+  },
   "runs": [
     {
       "task": "fix-session-refresh",
@@ -8,17 +12,33 @@
       "output_tokens": 1200,
       "seconds": 240,
       "retries": 1,
-      "context_failure": false
+      "context_failure": false,
+      "quality": {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 4,
+        "safety": 5,
+        "concision": 3
+      },
+      "blocker": false
     },
     {
       "task": "fix-session-refresh",
       "condition": "token-saver",
       "success": true,
       "input_tokens": 7200,
-      "output_tokens": 1100,
+      "output_tokens": 800,
       "seconds": 180,
       "retries": 0,
-      "context_failure": false
+      "context_failure": false,
+      "quality": {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5
+      },
+      "blocker": false
     }
   ]
 }
