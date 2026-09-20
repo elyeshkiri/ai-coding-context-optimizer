@@ -41,7 +41,7 @@
   evidence now prevents `claim_allowed=true`.
 
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
-  end-to-end bug narrative, 43 dedicated command-reference pages with flags,
+  end-to-end bug narrative, 44 dedicated command-reference pages with flags,
   exit semantics, and machine-output links, explicit JSON CLI contracts, merged
   top-level `--help` discovery, and a holdout query-construction protocol that
   separates semantic natural-language evaluation from identifier-bearing
