@@ -33,7 +33,7 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
         if event.get("kind") == "waste"
     )
     continuity = sum(event.get("kind") == "continuity" for event in events)
-    telemetry = output_telemetry_report(root)
+    telemetry = output_telemetry_report(root, since=since)
     snapshot = load_snapshot(root)
     sessions = snapshot.get("sessions")
     return {
