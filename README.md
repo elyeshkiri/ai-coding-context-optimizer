@@ -192,7 +192,9 @@ join all four evidence layers:
 ```bash
 token-saver output-effectiveness benchmark-runs.json \
   --fresh-input-per-million <rate> \
-  --cache-creation-per-million <rate> \
+  --cache-creation-5m-per-million <rate> \
+  --cache-creation-1h-per-million <rate> \
+  --cache-creation-unknown-per-million <rate> \
   --cache-read-per-million <rate> \
   --output-per-million <rate> \
   --require-publishable
