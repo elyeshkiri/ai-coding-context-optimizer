@@ -1,5 +1,34 @@
 # Unreleased
 
+- **Added safe opt-in pre-model prompt ingress staging.** Claude Code cannot
+  replace a submitted prompt from `UserPromptSubmit`, so Token Saver never
+  pretends to do so. When `ingress.enabled` is explicitly enabled and a
+  prompt crosses the configured token threshold, the hook blocks it before
+  model processing, stores the exact original in private local state, and
+  returns a stage id. `ingress-show` exposes a bounded exact head/tail packet
+  and `ingress-read` recovers only requested exact line ranges. There is no
+  fallback that silently keeps only the first N words.
+- **Added persistent content-fingerprinted retrieval-result caching.** Completed
+  context packs can now be reused across processes when repository content,
+  retrieval configuration, changed-file evidence, feedback, and working-set
+  state are identical. Source-digest/index-version changes automatically
+  produce a different key; embeddings and custom ranking stages deliberately
+  bypass the first cache version until their external state can be fingerprinted.
+- **Added an optional Rust acceleration boundary with Python parity.** The
+  separately buildable PyO3 extension accelerates the existing character-based
+  token estimator, index identifier extraction, BM25 accumulation, identifier
+  Jaccard similarity, and shared n-gram primitive. Python remains the reference
+  and automatic fallback; CI builds the native wheel, runs Rust unit tests, then
+  reruns pack/retrieval/context-quality checks with the native backend required.
+- **Added Claude Code marketplace packaging.** The repository now exposes a
+  command-source marketplace entry and a `claude-plugin-path` renderer that
+  creates a complete plugin directory containing Token Saver hooks, MCP config,
+  and an ingress-resume skill. Generated commands use
+  `python -m token_saver.entry` so the plugin does not depend on the console
+  script being present on `PATH`. Existing pip + `token-saver setup`
+  remains the multi-host installation path.
+
+
 - **Added opt-in knowledge-assisted read avoidance.** The PreToolUse source
   guard can now replace an unbounded full-file Read with compact verified findings
   anchored to that exact unchanged file. Stale, superseded, probable/speculative,
