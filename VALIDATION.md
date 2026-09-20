@@ -30,14 +30,14 @@ A qualifying benchmark is now frozen as semantic holdout #13, but its first
 real evaluation has **not been executed**. Its 24 query/revision definitions
 were committed before ground-truth lookup at
 `f3247c1d4c8e388de653aea1a5de4fa4624f82ce`, with query-freeze SHA-256
-`4a0c3cda63524037e45985244d3a86ec5835e022c439874148b7f8608514ebce`.
+`8cdf871ea2fcbe59161a332f1f0ce0f93b087a6c3560acebadb5ee338c4169bf`.
 After answer lookup, two tasks were conservatively classified as
 identifier-bearing and excluded without changing their query text, leaving
 **22 eligible natural-language tasks** across six previously unused
 repositories/language ecosystems.
 
 The final holdout definition is sealed as
-`df1c60b1bf8bd28d4093177aa974194293ed04e54fa1c657d4203776107d2ae4`.
+`dc6ea6c3641db573b5b05473f2bc4ee13e0f05a4f093cb86f803e68c7b265d25`.
 It compares Token Saver lexical/structural retrieval, the hybrid semantic
 pipeline, and a distinct-term-overlap trivial lexical baseline. The semantic
 arm pins `all-MiniLM-L6-v2` revision
