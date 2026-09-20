@@ -61,6 +61,35 @@ For private/custom benchmark prompts, treat the configured grader as an external
 processor of that prompt and final-response text. Do not enable a remote grader
 for material you are not permitted to send to that provider.
 
+## Session-efficiency state
+
+The 1.7 continuity layer uses a separate private project-scoped snapshot and
+bounded event ledger under the Token Saver state directory.
+
+The continuity snapshot may contain:
+
+- an opaque session fingerprint;
+- coarse task class;
+- repository-relative/absolute working file paths;
+- bounded command labels after best-effort credential redaction plus opaque
+  command/output fingerprints;
+- validation kind/status, failure fingerprints, and counters.
+
+It deliberately does **not** persist raw user prompts, assistant responses, or
+raw tool output. Exact output fingerprints are hashes, not copied output.
+Compressed Bash originals remain in the existing saved-output store described
+above because recoverability is a separate explicit feature.
+
+The efficiency event ledger stores feature names, counts, opaque session
+fingerprints, and estimated before/after token savings. It does not contain the
+removed command output. Files are written with private permissions and bounded
+retention.
+
+Command-label redaction covers common `key=value`, `--token value`,
+authorization-header, and URL-credential forms, but it is defense in depth
+rather than a secret-management guarantee. Do not pass secrets on command lines
+when avoidable, and treat the local state directory as potentially sensitive.
+
 ## Session state
 
 Token Saver keeps bounded local state for features such as remembered reads,
