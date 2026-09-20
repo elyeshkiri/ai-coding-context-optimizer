@@ -78,7 +78,10 @@ The Claude Code integration uses three distinct boundaries:
 The prompt classifier is deterministic and conservative. Ambiguous follow-ups
 inherit the current session policy without another full policy injection.
 `clear`/compaction session events reset the remembered policy because the host
-may have rebuilt context. User prompt text is not persisted by this feature.
+may have rebuilt context. User prompt text is not persisted by this feature. Adaptive budgeting changes
+the token target only when a task/mode/new-task signal warrants recalculation;
+vague follow-ups keep the current budget exactly. If a quality-gated calibration
+artifact is present, its task/mode recommendation becomes the learned base.
 
 Inspect which processor would handle a command:
 
@@ -121,6 +124,8 @@ allow = []
 enabled = true
 mode = "normal"
 task = "auto"
+adaptive = true
+calibration_file = ".token-saver.output-calibration.json"
 ```
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.
