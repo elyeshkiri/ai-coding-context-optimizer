@@ -134,6 +134,36 @@ def _run_claude_phase(
     return proc.returncode, proc.stdout, proc.stderr
 
 
+def _repository_status(worktree: Path) -> tuple[str, ...]:
+    """Return benchmark-visible repository changes, excluding managed .claude files."""
+    proc = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(worktree),
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode:
+        raise ValueError("cannot inspect phase repository status: " + proc.stderr[-1500:])
+    visible = []
+    for line in proc.stdout.splitlines():
+        path = line[3:].strip() if len(line) >= 4 else line.strip()
+        paths = [item.strip() for item in path.split(" -> ")]
+        if paths and all(
+            item == ".claude" or item.startswith(".claude/")
+            for item in paths
+        ):
+            continue
+        visible.append(line)
+    return tuple(sorted(visible))
+
+
 def _copy_transcripts(home: Path, destination: Path) -> None:
     """Append every Claude transcript from one phase to the run transcript."""
     paths = sorted((home / "projects").rglob("*.jsonl"))
@@ -255,6 +285,7 @@ def run(
         "anthropic-workspace-id: " + os.environ["ANTHROPIC_WORKSPACE_ID"]
     )
 
+    phase1_status_before = _repository_status(worktree)
     phase1_prompt = _PHASE1_PREFIX + original_prompt
     rc1, stdout1, stderr1 = _run_claude_phase(
         worktree=worktree,
@@ -274,6 +305,12 @@ def run(
     if rc1:
         return rc1
     _validate_result(stdout1, "phase 1")
+    phase1_status_after = _repository_status(worktree)
+    if phase1_status_after != phase1_status_before:
+        raise ValueError(
+            "phase 1 modified benchmark repository state despite the "
+            "investigation-only contract"
+        )
     _copy_transcripts(phase1_home, transcript)
 
     checkpoint = _continuity_checkpoint(
