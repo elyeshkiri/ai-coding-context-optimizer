@@ -36,6 +36,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--strict-semantic", action="store_true",
                         help="fail instead of falling back when compiler semantic resolution is unavailable")
     parser.add_argument("--no-index-cache", action="store_true")
+    parser.add_argument(
+        "--no-retrieval-cache",
+        action="store_true",
+        help="bypass persistent completed-pack reuse for this invocation",
+    )
     parser.add_argument("--target-symbol", help="prioritize and emit an exact symbol body")
     parser.add_argument("--json", action="store_true", help="emit structured JSON metadata and text")
     parser.add_argument("--explain", action="store_true",
@@ -55,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
             root,
             use_gitignore=not args.no_gitignore,
             persist_index=not args.no_index_cache,
+            retrieval_cache_enabled=not args.no_retrieval_cache,
         )
         semantic_enabled = True if (args.typescript_semantic or args.strict_semantic) else None
         semantic_edges = repository.enrich_typescript(
