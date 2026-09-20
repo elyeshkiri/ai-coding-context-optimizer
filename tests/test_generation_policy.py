@@ -120,3 +120,21 @@ def test_policy_state_is_isolated_by_session(tmp_path, monkeypatch):
 
     assert first is not None
     assert second is not None
+
+
+def test_new_session_reset_reenables_policy_injection(tmp_path, monkeypatch):
+    """Context resets should force the compact generation contract to be restored."""
+    from token_saver.state import reset_session
+
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+
+    assert automatic_output_policy(root, "Implement caching", session_id="s1")
+    assert automatic_output_policy(root, "continue", session_id="s1") is None
+
+    reset_session(root, reads=True, session_id="s1")
+
+    restored = automatic_output_policy(root, "continue", session_id="s1")
+    assert restored is not None
+    assert "OUTPUT TASK: general." in restored
