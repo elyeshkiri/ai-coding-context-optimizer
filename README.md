@@ -154,6 +154,23 @@ or "in detail" also override the configured automatic verbosity for that task.
 Automatic classification stores only resolved policy metadata (task/mode/budget),
 not the user's prompt text.
 
+Automatic budgets are adaptive by default. Small/simple tasks can receive less
+than the static task budget, while multi-part, repository-wide, code-heavy, or
+diagnostic-heavy prompts receive more room within hard mode-specific bounds.
+Ambiguous follow-ups keep the active budget unchanged.
+
+Token Saver can also learn safer task/mode bases from real paired experiments:
+
+```bash
+token-saver output-calibrate benchmarks/agent-runs.json \
+  --out .token-saver.output-calibration.json
+```
+
+Calibration accepts only blinded paired evidence, ignores failed/blocked or
+quality-regressing Token Saver runs, and requires at least three valid samples
+for a task/mode recommendation. The automatic hook consumes that artifact on
+future tasks; absent or invalid calibration falls back to built-in defaults.
+
 Compact an already-generated response:
 
 ```bash
