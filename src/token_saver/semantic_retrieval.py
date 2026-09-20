@@ -114,6 +114,17 @@ def _hnswlib():
     return hnswlib
 
 
+def _effective_backend(path: Path, meta: dict[str, str]) -> str:
+    """Return the backend usable in the current process."""
+    if (
+        meta.get("ann_backend") == "hnsw"
+        and _ann_path(path).is_file()
+        and _hnswlib() is not None
+    ):
+        return "hnsw"
+    return "sqlite-cosine"
+
+
 def _load_encoder(model: str) -> Encoder:
     """Load one already-downloaded local sentence-transformer model."""
     try:
@@ -390,6 +401,8 @@ class SemanticVectorIndex:
         """Keep optional ANN acceleration synchronized with authoritative vectors."""
         meta = _meta(conn)
         signature = self._ann_signature(conn)
+        if _hnswlib() is None:
+            return "sqlite-cosine"
         if (
             _hnswlib() is not None
             and _ann_path(self.path).is_file()
@@ -662,7 +675,7 @@ class SemanticVectorIndex:
                 chunks=chunks,
                 dimensions=int(meta.get("dimensions", "0")),
                 model=meta.get("model", self.model),
-                backend=meta.get("ann_backend", "sqlite-cosine"),
+                backend=_effective_backend(self.path, meta),
                 path=str(self.path),
             )
         finally:
@@ -694,7 +707,7 @@ def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
             chunks=chunks,
             dimensions=int(meta.get("dimensions", "0")),
             model=meta.get("model", model),
-            backend=meta.get("ann_backend", "sqlite-cosine"),
+            backend=_effective_backend(path, meta),
             path=str(path),
         ).to_dict()
     finally:
