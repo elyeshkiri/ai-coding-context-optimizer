@@ -222,6 +222,57 @@ Go/Cargo tests, common build systems, Python package installs, and
 Docker/Kubernetes logs. Unknown failures still pass through conservatively and
 critical-diagnostic recovery remains registry-wide.
 
+## Durable project knowledge: reuse conclusions, not just context
+
+Token Saver can now keep explicit, evidence-backed findings across sessions without
+turning session continuity into a transcript memory system. A finding must include
+a claim, concrete evidence, an applicability rule, and at least one current
+repository file anchor:
+
+```bash
+token-saver remember . \
+  --claim "Session refresh is implemented in the auth service" \
+  --anchor src/auth.py::refresh_session \
+  --evidence "refresh_session delegates the rotation path" \
+  --applicability "Use when changing login or refresh behavior"
+
+token-saver recall . --query "debug session refresh"
+token-saver knowledge-status .
+```
+
+Each anchor stores the source-file digest that existed when the finding was
+recorded. If that file changes or disappears, the finding becomes `stale` and
+ordinary recall excludes it. New findings may explicitly supersede older ones,
+and exact claim/anchor duplicates update one record instead of multiplying
+context. Storage is local, private, project-scoped, bounded, and contains only
+the finding fields the caller explicitly submits.
+
+This first layer is deliberately conservative: findings are **not** automatically
+generated from model conversation and are **not** silently injected into every
+context pack. CLI/MCP callers explicitly write and recall them, which keeps the
+existing retrieval holdouts unchanged while creating a measurable path to future
+cross-session read/reasoning avoidance.
+
+The same surface is available through MCP as `remember_finding`,
+`recall_findings`, and `knowledge_status`.
+
+### Progressive MCP tool disclosure
+
+Token Saver can advertise a smaller MCP schema when a host needs only its common
+repository-context operations:
+
+```bash
+TOKEN_SAVER_MCP_PROFILE=minimal token-saver serve .
+TOKEN_SAVER_MCP_PROFILE=context token-saver serve .
+TOKEN_SAVER_MCP_PROFILE=full token-saver serve .
+```
+
+`full` remains the default for backward compatibility. `minimal` exposes the
+high-frequency context + durable-knowledge tools; `context` adds ranking,
+impact, feedback, index, and knowledge-status operations while omitting diff and
+output-specialist schemas. Unknown profile names fail closed instead of silently
+selecting another surface.
+
 ## Output Saver: reduce generated tokens too
 
 Token Saver can now control the other side of the bill: model output. The output
