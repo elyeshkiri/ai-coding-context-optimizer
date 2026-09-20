@@ -26,10 +26,16 @@ def output_policy_main(argv: list[str]) -> int:
         default="normal",
     )
     parser.add_argument("--max-tokens", type=int)
+    parser.add_argument(
+        "--task",
+        choices=("general", "coding", "debugging", "review", "explanation", "planning"),
+        default="general",
+        help="adapt the generation policy and default budget to the task type",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
-        policy = build_output_policy(args.mode, args.max_tokens)
+        policy = build_output_policy(args.mode, args.max_tokens, args.task)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
