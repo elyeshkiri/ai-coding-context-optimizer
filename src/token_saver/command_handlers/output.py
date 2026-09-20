@@ -62,7 +62,6 @@ def output_telemetry_main(argv: list[str]) -> int:
             )
         if summary["target_met_rate"] is not None:
             print(f"soft target met: {100 * summary['target_met_rate']:.1f}%")
-    limits = report["evidence_limits"]
     print("evidence: turn completion only; no task-success or quality inference")
     if args.records:
         print(f"records included: {len(report['records'])}")
