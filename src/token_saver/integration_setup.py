@@ -12,7 +12,7 @@ import shutil
 import tempfile
 
 from .config import update_json
-from .install import HOOK_COMMAND, install as install_claude_hooks
+from .install import HOOK_COMMAND, HOOK_MATCHERS, install as install_claude_hooks
 from .install import settings_path as claude_settings_path
 from .install import uninstall as uninstall_claude_hooks
 from .policy import SKILL_TEXT
@@ -230,16 +230,18 @@ def _claude_hooks_configured(root: Path) -> bool:
     hooks = payload.get("hooks") if isinstance(payload, dict) else None
     if not isinstance(hooks, dict):
         return False
-    for entries in hooks.values():
-        if not isinstance(entries, list):
+    configured_events: set[str] = set()
+    for event, entries in hooks.items():
+        if event not in HOOK_MATCHERS or not isinstance(entries, list):
             continue
         for entry in entries:
             if not isinstance(entry, dict):
                 continue
             for command in entry.get("hooks", []):
                 if isinstance(command, dict) and command.get("command") == HOOK_COMMAND:
-                    return True
-    return False
+                    configured_events.add(event)
+                    break
+    return configured_events == set(HOOK_MATCHERS)
 
 
 def detect_hosts(
