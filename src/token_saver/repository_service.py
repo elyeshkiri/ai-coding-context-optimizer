@@ -15,6 +15,7 @@ from pathlib import Path
 from .context_browser import browse_context
 from .feedback import record_feedback
 from .impact import ImpactReport, analyze_impact
+from .knowledge import FindingStore
 from .pack import ContextPack, build_context_pack, rank_files
 from .packing.observability import explain_ranked_files
 from .packing.ranking_stages import RankingStageRegistry
@@ -208,3 +209,45 @@ class RepositoryContextService:
     def feedback(self, path: str, *, useful: bool) -> dict[str, int]:
         """Record local ranking feedback for one repository-relative file."""
         return record_feedback(self.root, path, useful=useful)
+
+    def remember_finding(
+        self,
+        *,
+        claim: str,
+        anchors: list[str],
+        evidence: str,
+        applicability: str,
+        confidence: str = "verified",
+        invalidators: list[str] | None = None,
+        supersedes: list[str] | None = None,
+        source: str = "manual",
+    ) -> dict:
+        """Persist one explicit evidence-backed project finding."""
+        return FindingStore(self.root).remember(
+            claim=claim,
+            anchors=anchors,
+            evidence=evidence,
+            applicability=applicability,
+            confidence=confidence,
+            invalidators=invalidators,
+            supersedes=supersedes,
+            source=source,
+        )
+
+    def recall_findings(
+        self,
+        query: str,
+        *,
+        limit: int = 5,
+        include_stale: bool = False,
+    ) -> list[dict]:
+        """Recall current project findings relevant to a task query."""
+        return FindingStore(self.root).recall(
+            query,
+            limit=limit,
+            include_stale=include_stale,
+        )
+
+    def knowledge_status(self) -> dict:
+        """Return project-knowledge counts without exposing finding contents."""
+        return FindingStore(self.root).status()
