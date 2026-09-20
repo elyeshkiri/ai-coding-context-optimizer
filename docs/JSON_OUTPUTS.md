@@ -104,6 +104,7 @@ exit `1`.
   "retrieval_plan": {},
   "cache_hit": false,
   "cache_key": "sha256-or-null",
+  "semantic_index": null,
   "typescript_semantic_edges": 0
 }
 ```
@@ -160,6 +161,9 @@ state, not a degraded/error JSON contract.
 
 Text mode intentionally prints only the absolute path so Claude Code's
 command-source marketplace contract can consume it.
+
+When `--semantic` / `--embeddings` is active, `semantic_index` contains
+the same status shape documented below; otherwise it is `null`.
 
 ## `semantic-index --json` / `semantic-status --json`
 
