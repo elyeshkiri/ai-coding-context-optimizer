@@ -131,7 +131,7 @@ def start_session(
     def mutate(payload: dict) -> None:
         """Refresh one session's ephemeral counters."""
         session = _session(payload, key)
-        if source in {"startup", "clear", ""}:
+        if source in {"startup", "clear", "compact", ""}:
             session["turn"] = 0
             session["tool_count_turn"] = 0
             session["edits_turn"] = 0
@@ -352,6 +352,7 @@ def observe_tool(
                     "failed": failed,
                     "output": output_id,
                     "at": int(time.time()),
+                    "turn": int(session.get("turn", 0)),
                 },
                 MAX_COMMANDS,
             )
@@ -363,6 +364,7 @@ def observe_tool(
                         "label": label,
                         "output": output_id,
                         "at": int(time.time()),
+                        "turn": int(session.get("turn", 0)),
                     },
                     MAX_FAILURES,
                 )
@@ -381,7 +383,12 @@ def observe_tool(
                 )
 
             if waste_detection:
-                recent = commands[-6:]
+                current_turn = int(session.get("turn", 0))
+                recent = [
+                    item
+                    for item in commands[-10:]
+                    if item.get("turn") == current_turn
+                ]
                 repeats = sum(item.get("id") == command_id for item in recent)
                 if repeats >= REPEAT_COMMAND_THRESHOLD:
                     note = _emit_once(
@@ -399,7 +406,8 @@ def observe_tool(
                 same_failures = [
                     item
                     for item in session.get("failures", [])
-                    if item.get("label") == label
+                    if item.get("turn") == current_turn
+                    and item.get("label") == label
                     and output_id
                     and item.get("output") == output_id
                 ]
