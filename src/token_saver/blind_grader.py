@@ -288,9 +288,28 @@ def blind_grade_manifest(
     """Blind-grade every paired run and checkpoint after each completed pair."""
     source = manifest_path.resolve()
     destination = (output_path or source).resolve()
-    payload = json.loads(source.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
+    source_payload = json.loads(source.read_text(encoding="utf-8"))
+    if not isinstance(source_payload, dict):
         raise ValueError("blind grading manifest must be a JSON object")
+    if destination != source and destination.is_file():
+        payload = json.loads(destination.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("existing graded output must be a JSON object")
+        for field in (
+            "suite_version",
+            "protocol",
+            "design",
+            "repositories",
+            "runner",
+            "tasks",
+            "quality_grader",
+        ):
+            if payload.get(field) != source_payload.get(field):
+                raise ValueError(
+                    f"existing graded output does not match source field {field}"
+                )
+    else:
+        payload = source_payload
     config = _grader_config(payload)
     prompts = _task_prompts(payload)
     grouped = _pairs(payload)
