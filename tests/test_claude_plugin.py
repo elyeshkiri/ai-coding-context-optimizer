@@ -63,8 +63,7 @@ def test_marketplace_uses_explicit_command_source_and_renderer():
     assert marketplace["name"] == "token-saver-tools"
     assert plugin["name"] == "token-saver"
     assert source["source"] == "command"
-    assert "pip install --user --upgrade git+https://github.com/elyeshkiri/token-saver.git" in source[
-        "command"
-    ]
+    assert "pip install --user --upgrade --quiet" in source["command"]
+    assert "git+https://github.com/elyeshkiri/token-saver.git" in source["command"]
     assert "render_plugin" in source["command"]
     assert source["timeout"] <= 600
