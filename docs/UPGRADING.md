@@ -17,7 +17,8 @@ This refreshes Token Saver-owned host entries without duplicating them.
 
 New releases can change:
 
-- Claude hook matchers/events;
+- Claude hook matchers/events (including the `Stop`/`StopFailure` hooks used
+  for output-budget telemetry);
 - MCP command arguments;
 - generated project defaults;
 - managed Codex block contents;
@@ -32,7 +33,9 @@ configuration.
 an existing file.
 
 When a release adds new optional keys, existing projects continue to use code
-defaults until you add those keys.
+defaults until you add those keys. Output telemetry therefore defaults to
+enabled even for an older config that does not yet contain `telemetry = true`;
+set `output.telemetry = false` or `TOKEN_SAVER_OUTPUT_TELEMETRY=0` to opt out.
 
 Environment variables remain higher-priority overrides.
 
