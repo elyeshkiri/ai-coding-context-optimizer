@@ -1,4 +1,4 @@
-# Token Saver 1.7.0
+# Token Saver 1.8.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -117,6 +117,68 @@ are mapped through Token Saver's repository index to the containing symbol and
 nearby dependency/call-graph edges. Only bounded structured diagnostics are
 stored in session state; raw command output is not persisted by Delta. Delta
 replaces the normal compressed output only when the rendered delta is smaller.
+
+## Frozen session-efficiency holdout
+
+Version 1.8 adds a dedicated causal benchmark for the 1.7 session layer. It
+reuses the already-frozen **24 SWE-bench Verified tasks × 3 trials** but compares
+two condition profiles of the **same current Token Saver binary**:
+
+```text
+v1.6 session-behavior baseline
+  Token Saver installed
+  continuity=off
+  cross-turn dedup=off
+  waste detection=off
+
+v1.7 session-efficiency treatment
+  Token Saver installed
+  continuity=on
+  cross-turn dedup=on
+  waste detection=on
+```
+
+This isolates the session-efficiency bundle from unrelated 1.7 changes such as
+new output processors. It is a behavioral baseline, **not** execution of the
+historical 1.6 package.
+
+Each arm is deliberately split into two fresh Claude sessions: an
+investigation-only phase, then a real `SessionStart:resume` boundary, then a
+fresh implementation phase. The control gets no continuity context; the
+treatment can receive the structured checkpoint. The benchmark independently
+derives tool calls, repeated commands, identical-failure retries, duplicate
+Reads, and token usage from raw transcripts. Token Saver's own efficiency events
+are used only to prove which mechanisms activated.
+
+Run/resume locally:
+
+```bash
+token-saver session-holdout \
+  benchmarks/session-efficiency-swebench-24.frozen.json \
+  --out session-holdout-runs.json \
+  --require-publishable
+```
+
+Evaluate already merged/blind-graded evidence without rerunning agents:
+
+```bash
+token-saver session-holdout-evaluate session-holdout-runs.json \
+  --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json \
+  --json --require-publishable
+```
+
+The frozen publication gate requires ≥20 tasks, ≥3 trials/task, isolated arm
+profiles, independent task success, blind response-quality parity, no manual
+intervention, complete cache-TTL-aware cost evidence, zero session-efficiency
+events in the control, one forced continuity restore per treatment run, and
+observed dedup + continuity + waste signals somewhere in the treatment. A
+cost-per-success claim additionally requires a positive point estimate and a
+task-cluster 95% confidence interval whose lower bound is above zero.
+
+The checked-in paid workflow represents **144 arm-runs / 288 Claude task
+phases**, plus blind grading. It is manual/explicitly confirmed. No session-
+efficiency savings percentage is claimed until that workflow is actually run
+and passes its publication gate.
 
 ## Session efficiency: preserve work, not conversation
 

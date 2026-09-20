@@ -74,6 +74,10 @@ def run(
         "TOKEN_SAVER_BENCHMARK_CONDITION",
         "TOKEN_SAVER_BENCHMARK_TASK",
         "TOKEN_SAVER_BENCHMARK_TRIAL",
+        "TOKEN_SAVER_EFFICIENCY",
+        "TOKEN_SAVER_CONTINUITY",
+        "TOKEN_SAVER_CROSS_TURN_DEDUP",
+        "TOKEN_SAVER_WASTE_DETECTION",
     ):
         _docker_env(command, name)
     command.extend(["-e", "ANTHROPIC_CUSTOM_HEADERS"])

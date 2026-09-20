@@ -377,6 +377,92 @@ This is the preferred end-to-end output-cost claim surface. Raw context
 reduction, response length, or a low budget-utilization ratio are not
 substitutes for cost per independently verified successful task.
 
+### Frozen session-efficiency causal holdout
+
+Operational dashboard savings are not enough to establish that continuity,
+cross-turn dedup, or waste prevention improve coding-agent economics. Version
+1.8 therefore adds a separate frozen paired-agent holdout:
+
+```bash
+token-saver session-holdout \
+  benchmarks/session-efficiency-swebench-24.frozen.json \
+  --out session-holdout-runs.json \
+  --require-publishable
+```
+
+The suite reuses the already frozen 24 SWE-bench Verified tasks and hidden
+verification definitions, with three randomized trials per task. The control is
+**not a historical 1.6 executable**. Both arms install the same current Token
+Saver build; the baseline sets only the four session-efficiency controls to
+zero, while treatment sets them to one. This holds retrieval, output processors,
+model, host adapter, prompt, revision, and grader constant.
+
+Every arm uses the same two-session protocol:
+
+1. phase 1 receives the frozen task and is restricted to Read/Grep/Glob/Bash;
+2. phase 1 must leave benchmark-visible repository state unchanged;
+3. the runner invokes Token Saver's actual `SessionStart:resume` hook;
+4. phase 2 starts in a new Claude home/session and implements/verifies the task;
+5. treatment may receive the structured continuity checkpoint; control cannot.
+
+That forced boundary gives continuity a deterministic opportunity to affect the
+second session without feeding phase-1 prose directly to phase 2.
+
+#### Independent outcome metrics
+
+The evaluator derives behavioral outcomes from raw Claude transcripts for both
+arms:
+
+- total tool calls;
+- total input tokens, with exact cache fields retained for pricing;
+- normalized repeated Bash calls;
+- repeated identical failing Bash-result attempts;
+- duplicate full-file Reads;
+- independent task success;
+- blind final-response quality;
+- cache-TTL-aware cost per successful task.
+
+Treatment-side Token Saver efficiency events are kept in a separate
+`feature_activation` block. They prove whether continuity, dedup, and waste
+signals fired, but they are not substituted for outcome metrics.
+
+#### Statistical design
+
+The frozen suite contains 24 task clusters and 3 trials/task. Point estimates
+are accompanied by deterministic 2,000-sample task-cluster bootstrap 95%
+intervals for tool-call reduction, input-token reduction, retry reduction, and
+cost-per-success reduction. Trials from the same task are sampled together to
+avoid treating repeated trials as independent tasks.
+
+The publication gate requires:
+
+- at least 20 distinct tasks and 3 trials/task;
+- exact frozen definition hash and isolated condition profiles;
+- matching model/prompt/revision identity between arms;
+- no manual intervention;
+- independent task-success parity;
+- blind response-quality parity;
+- complete cache-TTL-aware pricing;
+- zero session-efficiency events in control;
+- exactly the forced continuity exposure path, with at least one restore for
+  every treatment arm-run;
+- observed dedup, continuity, and waste feature families somewhere in treatment;
+- positive cost-per-success point reduction;
+- cost-per-success 95% task-cluster CI lower bound strictly above zero.
+
+The design estimates the **combined session-efficiency bundle**. Feature
+activation counts do not identify each mechanism's individual causal effect; a
+future ablation design would be required for that.
+
+The dedicated GitHub workflow requires `RUN_SESSION_288` because the 144
+arm-runs contain 288 paid Claude task phases, before blind-grader calls. A paid
+smoke proves the two-phase runner, control isolation, continuity hook, transcript
+metrics, blind grader, and pricing path before the full matrix starts.
+
+No session-efficiency savings percentage should be published from the frozen
+definition alone. A claim starts only after the paid workflow completes and this
+gate passes.
+
 ### Frozen session-efficiency output-quality gate
 
 The session-efficiency layer does not replace retrieval or end-to-end evidence.

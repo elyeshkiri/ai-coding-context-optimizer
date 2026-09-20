@@ -227,3 +227,17 @@ def test_install_merges(tmp_path):
         for e in posts
         if any(h.get("command") == "token-saver hook" for h in e.get("hooks", []))
     ) == 1
+
+
+
+def test_efficiency_master_switch_disables_default_read_dedup(tmp_path, monkeypatch):
+    """The control arm must be able to disable 1.7 read dedup with one master flag."""
+    from token_saver.guard import _digest
+    from token_saver.state import record_read
+
+    monkeypatch.setenv("TOKEN_SAVER_EFFICIENCY", "0")
+    monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "1")
+    path = _big_source(tmp_path / "mod.py", n=40)
+    record_read(tmp_path, path, _digest(path.read_text()))
+
+    assert decide_read({"file_path": str(path)}, cwd=tmp_path) is None

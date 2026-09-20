@@ -1,4 +1,4 @@
-# Validation for 1.7.0
+# Validation for 1.8.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**. Passing one layer is not presented as proof
@@ -15,6 +15,20 @@ Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 - GitHub Actions workflow linting;
 - the hash-frozen session/output quality replay suite with preservation,
   no-hallucination, and minimum-reduction contracts.
+
+Version 1.8.0 adds a separate frozen session-efficiency
+holdout rather than treating operational dashboard estimates as evidence. The
+holdout reuses the existing 24 SWE-bench Verified task definitions, runs three
+randomized paired trials per task, and compares the same current Token Saver
+binary with only the four session-efficiency switches changed. Each arm uses a
+forced two-session protocol and independent hidden verification; transcript
+metrics, blind response grading, exact cache-TTL-aware pricing, and task-cluster
+bootstrap intervals feed the publication gate.
+
+The checked-in holdout definition is frozen and mechanically validated, but the
+new paid **144 arm-run / 288 Claude-phase** workflow has not yet been executed
+for this release candidate. Therefore **no session-efficiency savings
+percentage is claimed for 1.8.0** merely from implementing the benchmark.
 
 Version 1.7.0 adds a modular session-efficiency control plane: structured
 continuity across resume/compaction, exact cross-turn command/read deduplication,
@@ -36,11 +50,11 @@ verification -> grading -> cost-per-success -> calibration pipeline.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **92% mean relevant-file recall, 92% mean
   relevant-symbol recall, 88% symbol recall in expected files, and 98.71% mean
-  estimated context reduction** on the 1.7 release candidate.
+  estimated context reduction** on the 1.8 release candidate.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
-- Package metadata for this release is **claude-token-saver 1.7.0**; the import
+- Package metadata for this release is **claude-token-saver 1.8.0**; the import
   remains `token_saver` and the CLI remains `token-saver`.
 
 ## Ranking observability and regression validation

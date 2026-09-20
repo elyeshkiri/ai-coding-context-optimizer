@@ -1,5 +1,37 @@
 # Unreleased
 
+# 1.8.0 - 2026-09-20
+
+- **Added a frozen causal holdout for the session-efficiency bundle.** The new
+  `session-efficiency-swebench-24.frozen.json` reuses the existing 24 frozen
+  SWE-bench Verified tasks at the same revisions/hidden tests and runs three
+  randomized trials per task. Both arms install the same current Token Saver
+  binary; the control disables only continuity/dedup/waste switches while the
+  treatment enables them, avoiding version/retrieval/output-processor
+  confounding.
+- **Made continuity exposure deterministic.** Every benchmark arm now runs an
+  investigation-only Claude phase, verifies that phase did not modify
+  repository state, invokes the real `SessionStart:resume` Token Saver hook,
+  then starts a fresh Claude implementation session. This gives both arms the
+  same two-session cost while only the treatment receives structured
+  continuity context.
+- **Added independent session metrics and a strict publication gate.** Raw
+  transcripts independently measure total tool calls, input tokens, repeated
+  Bash commands, identical-failure retries, and duplicate Reads. Token Saver's
+  local efficiency ledger is used only for feature-activation evidence. The
+  evaluator reports task-cluster bootstrap intervals and refuses a publishable
+  claim unless success/quality are preserved, control contamination is zero,
+  continuity fires for every treatment arm-run, all session feature families
+  activate somewhere, cost evidence is complete, and cost-per-success has a
+  strictly positive 95% CI lower bound.
+- **Added resumable benchmark CLI/workflow surfaces.** `session-holdout` runs
+  experiment → blind grade → analysis; `session-holdout-evaluate` evaluates
+  already merged evidence. A dedicated paid GitHub workflow preflights the
+  frozen 24×3 design, runs a paid two-arm smoke, shards all 144 arm-runs
+  (**288 Claude task phases**), blind-grades all 72 pairs, and publishes only
+  when the strict session gate passes. Merging this release alone makes no
+  savings claim.
+
 # 1.7.0 - 2026-09-20
 
 - **Added a modular session-efficiency control plane.** Claude hooks now retain a

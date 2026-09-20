@@ -429,3 +429,56 @@ def test_agent_runner_failure_is_reported_before_missing_transcript(
     assert "provider rejected request" in message
     assert "workspace header missing" in message
     assert "runner did not create transcript" not in message
+
+
+
+def test_condition_profiles_are_frozen_and_exposed_in_dry_run(tmp_path):
+    """Session holdouts can install Token Saver in both arms with isolated env switches."""
+    path, _suite_payload = _suite(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"] = {
+        "baseline": {
+            "label": "v1.6-session-baseline",
+            "install_token_saver": True,
+            "env": {"TOKEN_SAVER_EFFICIENCY": "0"},
+        },
+        "enabled": {
+            "label": "v1.7-session-efficiency",
+            "install_token_saver": True,
+            "env": {"TOKEN_SAVER_EFFICIENCY": "1"},
+        },
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = run_experiment(
+        path,
+        tmp_path / "unused.json",
+        dry_run=True,
+        allow_development=True,
+    )
+
+    assert result["condition_profiles"]["baseline"]["install_token_saver"] is True
+    assert result["condition_profiles"]["baseline"]["env"] == {
+        "TOKEN_SAVER_EFFICIENCY": "0"
+    }
+    assert result["condition_profiles"]["enabled"]["label"] == (
+        "v1.7-session-efficiency"
+    )
+
+
+def test_condition_profiles_reject_extra_or_missing_arm(tmp_path):
+    """A condition-profile experiment must define exactly both randomized arms."""
+    path, _suite_payload = _suite(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"] = {
+        "enabled": {
+            "install_token_saver": True,
+            "env": {"TOKEN_SAVER_EFFICIENCY": "1"},
+        }
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exactly baseline and enabled"):
+        validate_suite(path, require_broad=False)

@@ -61,6 +61,28 @@ For private/custom benchmark prompts, treat the configured grader as an external
 processor of that prompt and final-response text. Do not enable a remote grader
 for material you are not permitted to send to that provider.
 
+## Frozen session-holdout evidence
+
+The optional `session-holdout` workflow is an explicit paid evaluation action,
+not normal runtime telemetry. It runs frozen public SWE-bench task prompts
+through the configured Claude model and persists benchmark artifacts such as
+transcripts, patches, verifier logs, blind-quality scores, usage counters, and
+session-efficiency event counts.
+
+The dedicated GitHub workflow uploads per-task evidence for 30 days and merged
+aggregate evidence for 90 days. Repository/API credentials are supplied to
+isolated runner containers through GitHub Actions secrets; they are not written
+into the frozen suite.
+
+The benchmark blind grader receives the frozen task prompt plus anonymized final
+A/B response text under the existing blind-grading boundary. Session-efficiency
+outcome metrics are derived from raw transcripts locally; Token Saver's event
+ledger is used only as feature-activation evidence.
+
+Do not reuse the public frozen workflow for private task prompts or repositories
+unless the configured model/grader provider and artifact-retention policy are
+acceptable for that material.
+
 ## Session-efficiency state
 
 The 1.7 continuity layer uses a separate private project-scoped snapshot and

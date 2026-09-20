@@ -267,6 +267,27 @@ policy, and lets integrations inject a processor registry without modifying the
 pipeline.
 
 
+## Session-efficiency evaluation boundary
+
+The runtime session layer and its causal evaluation are deliberately separate.
+
+`session_metrics.py` reads raw benchmark transcripts and derives repeated
+commands, identical-failure retries, duplicate Reads, and tool-call counts
+without consulting the efficiency ledger. `session_holdout.py` joins those
+outcomes with task success, blind quality, exact pricing, condition-profile
+identity, feature activation, and task-cluster bootstrap intervals.
+`session_holdout_pipeline.py` is orchestration only, while
+`session_holdout_docker.py` owns the pinned two-phase fresh-session protocol.
+
+The benchmark control and treatment both install the same Token Saver build.
+Only the four session-efficiency environment switches may differ. Those
+condition profiles are included in the frozen task-definition hash and are
+validated before paid execution.
+
+The treatment event ledger is **exposure evidence**, not an outcome oracle:
+publication metrics such as tool calls and retries come from the transcript.
+This prevents the optimization from grading its own behavior.
+
 ## Session-efficiency boundary
 
 Session continuity and behavioral optimization live under
