@@ -1,0 +1,131 @@
+name: Semantic Retrieval Holdout 13
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type RUN_SEMANTIC_HOLDOUT_13 to burn the frozen suite"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-holdout:
+    name: Frozen no-identifier-leakage semantic holdout
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TOKEN_SAVER_STATE_DIR: ${{ runner.temp }}/token-saver-semantic-state
+      TOKEN_SAVER_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: ${{ runner.temp }}/huggingface
+    steps:
+      - name: Require explicit burn confirmation
+        run: |
+          if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_13" ]; then
+            echo "Refusing to burn semantic holdout 13 without exact confirmation." >&2
+            exit 2
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Token Saver with exact-scan embeddings
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py --validate-only
+
+      - name: Clone pinned fresh repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          clone_at() {
+            local url="$1"
+            local revision="$2"
+            local path="$3"
+            git init -q "$path"
+            git -C "$path" remote add origin "$url"
+            git -C "$path" fetch -q --depth 1 origin "$revision"
+            git -C "$path" checkout -q --detach "$revision"
+          }
+
+          mkdir -p benchmarks/semantic-holdout-13
+          clone_at https://github.com/Kludex/uvicorn.git             a56c7cce64aaa37e5864f882a5cbce8aa1dac47a             benchmarks/semantic-holdout-13/uvicorn
+          clone_at https://github.com/spf13/afero.git             768f1fb0e5535b77d90e44c531aacd652aabd96a             benchmarks/semantic-holdout-13/afero
+          clone_at https://github.com/rust-lang/regex.git             72d650cb0a880a01ab6dc2137c0888e8f89740f7             benchmarks/semantic-holdout-13/regex
+          clone_at https://github.com/resilience4j/resilience4j.git             a8a33164256ddb6e4bbc168f5c47ac34a348ee7f             benchmarks/semantic-holdout-13/resilience4j
+          clone_at https://github.com/fastify/fastify.git             630acd0b6cf8a91322ff05c3d95feb991091866d             benchmarks/semantic-holdout-13/fastify
+          clone_at https://github.com/dotnet/command-line-api.git             1f13873cf84d5547d1b8d4f9d68dcb06b3ea0a69             benchmarks/semantic-holdout-13/command-line-api
+
+      - name: Download the pinned local embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+
+          model = SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["TOKEN_SAVER_SEMANTIC_MODEL_REVISION"],
+          )
+          print(model)
+          PY
+
+      - name: Run the first frozen three-arm evaluation
+        run: |
+          python scripts/run_semantic_holdout.py             --output benchmarks/semantic-holdout-13.result.json
+
+      - name: Publish literal benchmark summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("benchmarks/semantic-holdout-13.result.json").read_text()
+          )
+          summary = result["summary"]
+          print("# Semantic holdout 13")
+          print()
+          print(f"- eligible tasks: {summary['task_count']}")
+          print(
+              "- lexical file recall: "
+              f"{summary['lexical_file_recall']:.2%}"
+          )
+          print(
+              "- hybrid semantic file recall: "
+              f"{summary['semantic_file_recall']:.2%}"
+          )
+          print(
+              "- trivial lexical file recall: "
+              f"{summary['trivial_lexical_file_recall']:.2%}"
+          )
+          print(
+              "- semantic recall delta vs Token Saver lexical: "
+              f"{summary['semantic_file_recall_delta']:+.2%}"
+          )
+          print(
+              "- semantic recovered/regressed tasks: "
+              f"{summary['semantic_recovered_tasks']}/"
+              f"{summary['semantic_regressed_tasks']}"
+          )
+          print()
+          print(
+              "This first run burns the suite for tuning. "
+              "No API-cost or task-success claim is implied."
+          )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-13-first-run
+          path: benchmarks/semantic-holdout-13.result.json
+          retention-days: 90
+          if-no-files-found: error
