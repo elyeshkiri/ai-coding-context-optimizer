@@ -5,7 +5,7 @@ Generate compact model-response policy instructions.
 ## Synopsis
 
 ```bash
-token-saver output-policy [--mode terse|normal|detailed] [--max-tokens N] [--json]
+token-saver output-policy [--mode terse|normal|detailed] [--task TASK] [--max-tokens N] [--json]
 ```
 
 ## Arguments and options
