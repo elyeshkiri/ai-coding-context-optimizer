@@ -8,7 +8,10 @@ from .command_handlers.context import (
     browse_main,
     feedback_main,
     impact_main,
+    knowledge_status_main,
     ranking_explain_main,
+    recall_main,
+    remember_main,
 )
 from .command_handlers.evaluation import (
     agent_evaluate_main,
@@ -48,6 +51,7 @@ __all__ = [
     "feedback_main",
     "host_check_main",
     "impact_main",
+    "knowledge_status_main",
     "output_benchmark_main",
     "output_explain_main",
     "output_policy_main",
@@ -57,6 +61,8 @@ __all__ = [
     "ranking_calibrate_main",
     "ranking_diff_main",
     "ranking_explain_main",
+    "recall_main",
+    "remember_main",
     "ranking_snapshot_main",
     "review_main",
     "serve_main",
