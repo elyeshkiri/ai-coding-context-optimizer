@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from token_saver.command_handlers.output import output_calibrate_main
 from token_saver.output_budget import (
     adaptive_output_budget,
     calibrate_output_budgets,
@@ -192,3 +193,54 @@ def test_runtime_can_use_calibrated_base(tmp_path):
     assert decision.calibration_samples == 6
     assert decision.base_tokens == 700
     assert decision.max_tokens == 490
+
+
+def test_output_calibrate_cli_writes_artifact(tmp_path):
+    """The CLI should emit a reusable calibration artifact without mutating config."""
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5,
+    }
+    runs = []
+    for trial, output_tokens in ((1, 300), (2, 350), (3, 400)):
+        runs.extend([
+            {
+                "task": "review-task",
+                "trial": trial,
+                "condition": "baseline",
+                "success": True,
+                "output_tokens": 600,
+                "quality": quality,
+                "blocker": False,
+            },
+            {
+                "task": "review-task",
+                "trial": trial,
+                "condition": "token-saver",
+                "success": True,
+                "output_tokens": output_tokens,
+                "output_task": "review",
+                "output_mode": "normal",
+                "quality": quality,
+                "blocker": False,
+            },
+        ])
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(
+        json.dumps({
+            "quality_evaluation": {"blinded": True},
+            "runs": runs,
+        }),
+        encoding="utf-8",
+    )
+    artifact = tmp_path / "calibration.json"
+
+    assert output_calibrate_main(
+        [str(manifest), "--out", str(artifact)]
+    ) == 0
+    payload = json.loads(artifact.read_text(encoding="utf-8"))
+    assert payload["schema"] == 1
+    assert payload["recommendations"]["review"]["normal"]["samples"] == 3
