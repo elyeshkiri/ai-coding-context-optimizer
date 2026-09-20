@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 
 from token_saver.agent_eval import evaluate_agent_runs
 from token_saver.benchmark import task_definition_hash
@@ -35,7 +36,7 @@ def _run(task: str, trial: int, condition: str, *, optimized: bool) -> dict:
         "manual_intervention": False,
         "model": "synthetic-model",
         "prompt_sha256": hashlib.sha256(
-            f"Synthetic prompt for {task}".encode("utf-8")
+            f"Synthetic prompt for {task}".encode()
         ).hexdigest(),
         "revision": "deadbeef",
         "fresh_input_tokens": fresh,
@@ -472,6 +473,7 @@ def test_effectiveness_prices_5m_and_1h_cache_creation_separately(tmp_path):
 
     # First baseline run costs 50*1 + 150*10 micro-dollars, while the other
     # two each cost 200*1. The condition total proves the TTL split is honored.
-    assert result["conditions"]["baseline"]["total_cost_usd"] == (
-        (1550 + 200 + 200) / 1_000_000
+    assert math.isclose(
+        result["conditions"]["baseline"]["total_cost_usd"],
+        (1550 + 200 + 200) / 1_000_000,
     )
