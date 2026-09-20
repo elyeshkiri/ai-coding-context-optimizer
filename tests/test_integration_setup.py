@@ -12,6 +12,7 @@ from token_saver.hook import _config_from_env
 from token_saver.integration_setup import (
     CODEX_END,
     CODEX_START,
+    detect_hosts,
     doctor_report,
     setup_integrations,
     uninstall_integrations,
@@ -108,6 +109,60 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert 'model = "gpt-test"' in codex_text
     assert codex_text.count(CODEX_START) == 1
     assert codex_text.count(CODEX_END) == 1
+
+
+def test_doctor_detects_pre_telemetry_partial_claude_hook_install(tmp_path):
+    """Missing Stop telemetry hooks should make Claude setup visibly incomplete."""
+    root = tmp_path / "repo"
+    home = tmp_path / "home"
+    root.mkdir()
+    (root / ".claude").mkdir()
+    (root / ".claude" / "settings.json").write_text(
+        json.dumps({
+            "hooks": {
+                "PreToolUse": [{
+                    "matcher": "Read|Bash",
+                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                }],
+                "PostToolUse": [{
+                    "matcher": "Bash|Read",
+                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                }],
+                "SessionStart": [{
+                    "matcher": "startup|resume|clear|compact",
+                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                }],
+                "UserPromptSubmit": [{
+                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                }],
+            }
+        }),
+        encoding="utf-8",
+    )
+    (root / ".mcp.json").write_text(
+        json.dumps({
+            "mcpServers": {
+                "token-saver": {
+                    "command": "token-saver",
+                    "args": ["serve", str(root.resolve())],
+                }
+            }
+        }),
+        encoding="utf-8",
+    )
+
+    claude = next(
+        host
+        for host in detect_hosts(
+            root,
+            home=home,
+            which=_which({"claude"}),
+        )
+        if host.name == "claude"
+    )
+
+    assert claude.detected is True
+    assert claude.configured is False
 
 
 def test_uninstall_removes_only_owned_entries(tmp_path):
