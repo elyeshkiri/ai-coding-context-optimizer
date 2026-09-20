@@ -86,12 +86,16 @@ def test_calibration_uses_only_successful_quality_preserving_pairs(tmp_path):
         "concision": 4,
     }
     runs = []
-    for trial, output_tokens in ((1, 400), (2, 500), (3, 600)):
+    for task_id, output_tokens in (
+        ("coding-a", 400),
+        ("coding-b", 500),
+        ("coding-c", 600),
+    ):
         runs.extend(
             [
                 {
-                    "task": "coding-task",
-                    "trial": trial,
+                    "task": task_id,
+                    "trial": 1,
                     "condition": "baseline",
                     "success": True,
                     "input_tokens": 1000,
@@ -100,8 +104,8 @@ def test_calibration_uses_only_successful_quality_preserving_pairs(tmp_path):
                     "blocker": False,
                 },
                 {
-                    "task": "coding-task",
-                    "trial": trial,
+                    "task": task_id,
+                    "trial": 1,
                     "condition": "token-saver",
                     "success": True,
                     "input_tokens": 700,
@@ -155,6 +159,7 @@ def test_calibration_uses_only_successful_quality_preserving_pairs(tmp_path):
     coding = result["recommendations"]["coding"]["normal"]
 
     assert coding["samples"] == 3
+    assert coding["tasks"] == 3
     assert coding["p90_output_tokens"] == pytest.approx(580)
     assert coding["recommended_tokens"] == 667
 
@@ -205,11 +210,15 @@ def test_output_calibrate_cli_writes_artifact(tmp_path):
         "concision": 5,
     }
     runs = []
-    for trial, output_tokens in ((1, 300), (2, 350), (3, 400)):
+    for task_id, output_tokens in (
+        ("review-a", 300),
+        ("review-b", 350),
+        ("review-c", 400),
+    ):
         runs.extend([
             {
-                "task": "review-task",
-                "trial": trial,
+                "task": task_id,
+                "trial": 1,
                 "condition": "baseline",
                 "success": True,
                 "output_tokens": 600,
@@ -217,8 +226,8 @@ def test_output_calibrate_cli_writes_artifact(tmp_path):
                 "blocker": False,
             },
             {
-                "task": "review-task",
-                "trial": trial,
+                "task": task_id,
+                "trial": 1,
                 "condition": "token-saver",
                 "success": True,
                 "output_tokens": output_tokens,
@@ -244,6 +253,7 @@ def test_output_calibrate_cli_writes_artifact(tmp_path):
     payload = json.loads(artifact.read_text(encoding="utf-8"))
     assert payload["schema"] == 1
     assert payload["recommendations"]["review"]["normal"]["samples"] == 3
+    assert payload["recommendations"]["review"]["normal"]["tasks"] == 3
 
 
 def test_calibration_rejects_duplicate_task_trial_condition(tmp_path):
