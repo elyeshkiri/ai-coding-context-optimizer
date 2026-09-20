@@ -17,8 +17,8 @@ token-saver output-calibrate <manifest> [--margin 1.15] [--out FILE]
 - `--out` — write the JSON calibration artifact to a file instead of stdout.
 
 Token Saver runs intended for calibration should include `output_task` and
-`output_mode`. A task/mode recommendation requires at least three paired runs
-where both conditions succeeded, the Token Saver response has no blocker, and
+`output_mode`. A task/mode recommendation requires at least three paired runs from at least
+three distinct task IDs where both conditions succeeded, the Token Saver response has no blocker, and
 blind correctness/safety/weighted quality remain at parity.
 
 Failed, blocked, unblinded, malformed, and materially lower-quality responses do
