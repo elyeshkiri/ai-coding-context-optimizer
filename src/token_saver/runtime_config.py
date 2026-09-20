@@ -37,6 +37,7 @@ class RuntimeSettings:
     output_min_tokens: int | None = None
     output_max_tokens: int | None = None
     output_calibration_file: str = ".token-saver.output-calibration.json"
+    output_telemetry: bool = True
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -138,6 +139,7 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
             output.get("calibration_file"),
             ".token-saver.output-calibration.json",
         ),
+        output_telemetry=_bool(output.get("telemetry"), True),
     )
 
 
@@ -226,5 +228,8 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         output_calibration_file=_env_string(
             "TOKEN_SAVER_OUTPUT_CALIBRATION_FILE",
             base.output_calibration_file,
+        ),
+        output_telemetry=_env_bool(
+            "TOKEN_SAVER_OUTPUT_TELEMETRY", base.output_telemetry
         ),
     )
