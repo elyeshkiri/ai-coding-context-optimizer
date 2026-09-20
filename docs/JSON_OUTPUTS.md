@@ -102,9 +102,64 @@ exit `1`.
   "redactions": [],
   "closure_files": [],
   "retrieval_plan": {},
+  "cache_hit": false,
+  "cache_key": "sha256-or-null",
   "typescript_semantic_edges": 0
 }
 ```
+
+## `ingress-show --json`
+
+```json
+{
+  "id": "stage-id",
+  "created_at": 0,
+  "original_sha256": "...",
+  "original_tokens": 15000,
+  "packet_tokens": 1500,
+  "original_lines": 400,
+  "packet": "# TOKEN-SAVER STAGED PROMPT...",
+  "omitted_start_line": 50,
+  "omitted_end_line": 350
+}
+```
+
+The exact original prompt is intentionally not embedded as a second JSON field.
+Use `ingress-read` for explicit bounded recovery.
+
+## `fastpath-status --json`
+
+```json
+{
+  "available": true,
+  "backend": "rust",
+  "capabilities": [
+    "estimate_tokens",
+    "identifier_tokens",
+    "bm25_score",
+    "jaccard_similarity",
+    "char_ngrams"
+  ],
+  "env_override": null
+}
+```
+
+`backend: "python"` with an empty capability list is a supported fallback
+state, not a degraded/error JSON contract.
+
+## `claude-plugin-path --json`
+
+```json
+{
+  "schema": 1,
+  "version": "1.8.0",
+  "path": "/absolute/private/token-saver/claude-plugin/token-saver-1.8.0",
+  "rendered": true
+}
+```
+
+Text mode intentionally prints only the absolute path so Claude Code's
+command-source marketplace contract can consume it.
 
 ## `browse --json`
 
