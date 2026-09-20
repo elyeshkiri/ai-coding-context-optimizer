@@ -192,7 +192,11 @@ def test_experiment_runs_both_arms_and_independent_verifier(
         for run in result["runs"]
     )
     assert all(run["cache_creation_input_tokens"] == 0 for run in result["runs"])
+    assert all(run["cache_creation_5m_input_tokens"] == 0 for run in result["runs"])
+    assert all(run["cache_creation_1h_input_tokens"] == 0 for run in result["runs"])
+    assert all(run["cache_creation_unknown_input_tokens"] == 0 for run in result["runs"])
     assert all(run["cache_read_input_tokens"] == 0 for run in result["runs"])
+    assert all(run["tool_calls"] == 0 for run in result["runs"])
     # The synthetic path-mode runner writes a transcript directly and does not
     # execute Claude hooks, so policy telemetry is correctly absent.
     assert all(run["output_policy_telemetry"] is None for run in result["runs"])
