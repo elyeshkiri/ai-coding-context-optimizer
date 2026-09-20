@@ -11,7 +11,8 @@ from ..benchmark import task_definition_hash
 from ..cost_report import Pricing, compare_cost_files, compare_paired_agent_file
 from ..evidence_pipeline import run_evidence_pipeline
 from ..experiment import run_experiment, validate_suite
-from ..session_holdout_pipeline import run_session_holdout
+from ..session_holdout import evaluate_session_holdout
+from ..session_holdout_pipeline import load_session_pricing, run_session_holdout
 
 
 def experiment_main(argv: list[str]) -> int:
@@ -138,6 +139,65 @@ def session_holdout_main(argv: list[str]) -> int:
         print(str(exc), file=sys.stderr)
         return 1 if args.require_publishable and "not publishable" in str(exc) else 2
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def session_holdout_evaluate_main(argv: list[str]) -> int:
+    """Evaluate an already-run and blind-graded session holdout manifest."""
+    parser = argparse.ArgumentParser(prog="token-saver session-holdout-evaluate")
+    parser.add_argument("manifest")
+    parser.add_argument("--rates", required=True)
+    parser.add_argument("--model")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--require-publishable", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        payload = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+        runner = payload.get("runner") if isinstance(payload, dict) else None
+        model = args.model or (
+            str(runner.get("model") or "")
+            if isinstance(runner, dict)
+            else ""
+        )
+        if not model:
+            raise ValueError("model is required in manifest runner or --model")
+        pricing = load_session_pricing(Path(args.rates), model)
+        report = evaluate_session_holdout(Path(args.manifest), pricing=pricing)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        baseline = report["conditions"]["baseline"]
+        enabled = report["conditions"]["session-efficiency"]
+        print(
+            "tools: "
+            f"{baseline['tool_calls']} -> {enabled['tool_calls']} "
+            f"({report['reductions']['tool_calls']})"
+        )
+        print(
+            "input tokens: "
+            f"{baseline['input_tokens']} -> {enabled['input_tokens']} "
+            f"({report['reductions']['input_tokens']})"
+        )
+        print(
+            "retries: "
+            f"{baseline['retry_attempts']} -> {enabled['retry_attempts']} "
+            f"({report['reductions']['retry_attempts']})"
+        )
+        print(
+            "cost/success: "
+            f"{baseline['cost_per_success_usd']} -> "
+            f"{enabled['cost_per_success_usd']} "
+            f"({report['reductions']['cost_per_success']})"
+        )
+        print(
+            "publication gate: "
+            + ("passed" if report["publication_gate"]["passed"] else "blocked")
+        )
+    if args.require_publishable and not report["publication_gate"]["passed"]:
+        return 1
     return 0
 
 
