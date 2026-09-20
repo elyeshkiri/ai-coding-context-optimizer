@@ -8,7 +8,9 @@ verified task success, blind response quality, and optional token pricing.
 ```bash
 token-saver output-effectiveness <manifest> \
   [--fresh-input-per-million F] \
-  [--cache-creation-per-million F] \
+  [--cache-creation-5m-per-million F] \
+  [--cache-creation-1h-per-million F] \
+  [--cache-creation-unknown-per-million F] \
   [--cache-read-per-million F] \
   [--output-per-million F] \
   [--json] [--require-publishable]
@@ -19,8 +21,11 @@ token-saver output-effectiveness <manifest> \
 - `manifest` — paired agent/experiment JSON. Conditions may be
   `baseline` + `token-saver` or the experiment-native
   `baseline` + `enabled`.
-- Pricing flags are USD per million tokens for the four measured transcript
-  usage categories. A run-level `cost_usd` overrides rate-derived cost.
+- Pricing flags are USD per million tokens for fresh input, 5-minute cache
+  creation, 1-hour cache creation, unknown-TTL cache creation, cache reads, and
+  output. A run-level `cost_usd` overrides rate-derived cost. If a nonzero
+  usage category has no corresponding rate, derived cost is incomplete rather
+  than silently treating that category as free.
 - `--json` emits the full evidence report.
 - `--require-publishable` exits `1` unless all publication gates pass.
 
