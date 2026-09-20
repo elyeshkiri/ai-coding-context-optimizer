@@ -87,7 +87,7 @@ def _manifest(path, *, tasks: int, trials: int) -> None:
                 "revision": "deadbeef",
                 "prompt": f"Synthetic prompt for {task}",
                 "prompt_sha256": hashlib.sha256(
-                    f"Synthetic prompt for {task}".encode("utf-8")
+                    f"Synthetic prompt for {task}".encode()
                 ).hexdigest(),
                 "verifier": [["synthetic-verifier"]],
             }
