@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::OnceLock;
 
 use pyo3::prelude::*;
+use regex::Regex;
 
 #[pyfunction]
 fn estimate_tokens(text: &str, ratio: f64) -> PyResult<usize> {
@@ -18,11 +20,21 @@ fn estimate_tokens(text: &str, ratio: f64) -> PyResult<usize> {
 
 #[pyfunction]
 fn identifier_tokens(text: &str) -> PyResult<Vec<String>> {
-    let mut out: HashSet<String> = HashSet::new();
-    let mut current = String::new();
+    static IDENT: OnceLock<Regex> = OnceLock::new();
+    let pattern = IDENT.get_or_init(|| {
+        Regex::new(r"\b[A-Za-z_$][\w$]*\b").expect("static identifier regex")
+    });
+    let mut out: HashSet<String> = pattern
+        .find_iter(text)
+        .map(|matched| matched.as_str())
+        .filter(|value| value.chars().count() > 2)
+        .map(str::to_lowercase)
+        .collect();
+    let mut values: Vec<String> = out.drain().collect();
+    values.sort();
+    Ok(values)
+}
 
-    for ch in text.chars().chain(std::iter::once(' ')) {
-        let continuation = ch.is_alphanumeric() || ch == '_' || ch == '
 #[pyfunction]
 fn bm25_score(
     counts: HashMap<String, usize>,
@@ -104,8 +116,12 @@ mod tests {
 
     #[test]
     fn identifiers_are_sorted_and_unique() {
-        let values = identifier_tokens("Foo foo $bar baz_2 if 2wrong abc$def").unwrap();
-        assert_eq!(values, vec!["abc$def", "baz_2", "foo"]);
+        let values =
+            identifier_tokens("Foo foo $bar baz_2 if 2wrong abc$def caféValue").unwrap();
+        assert_eq!(
+            values,
+            vec!["abc$def", "bar", "baz_2", "cafévalue", "foo"]
+        );
     }
 
     #[test]
