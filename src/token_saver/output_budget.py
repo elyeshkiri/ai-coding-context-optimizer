@@ -170,6 +170,7 @@ def _calibrated_base(
         return fallback, False, 0
     budget = mode_data.get("recommended_tokens")
     samples = mode_data.get("samples")
+    tasks = mode_data.get("tasks")
     if (
         isinstance(budget, int)
         and not isinstance(budget, bool)
@@ -177,6 +178,9 @@ def _calibrated_base(
         and isinstance(samples, int)
         and not isinstance(samples, bool)
         and samples >= 3
+        and isinstance(tasks, int)
+        and not isinstance(tasks, bool)
+        and tasks >= 3
     ):
         return budget, True, samples
     return fallback, False, 0
