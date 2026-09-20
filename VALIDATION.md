@@ -14,11 +14,12 @@ Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 - 100% docstring coverage via interrogate;
 - GitHub Actions workflow linting.
 
-Version 1.5.0 adds the pluggable ranking-stage boundary, opt-in ranking
-observability, immutable ranking snapshots/diffs, PR regression evidence,
-historical gate calibration, unified host setup/doctor/uninstall, project TOML
-configuration, and documentation correctness gates. It does **not** retune the
-frozen retrieval baseline merely to improve release metrics.
+Version 1.6.0 adds the complete output-evidence control plane on top of those
+retrieval and lifecycle foundations: automatic task-aware budgets, runtime
+usage telemetry, cache-TTL-aware cost accounting, deterministic blind A/B
+response grading, and a resumable experiment -> verification -> grading ->
+cost-per-success -> calibration pipeline. It does **not** retune the frozen
+retrieval baseline merely to improve release metrics.
 
 ## Test suite and self-benchmark
 
@@ -27,11 +28,11 @@ frozen retrieval baseline merely to improve release metrics.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **92% mean relevant-file recall, 92% mean
   relevant-symbol recall, 88% symbol recall in expected files, and 98.71% mean
-  estimated context reduction** on the 1.5 release candidate.
+  estimated context reduction** on the 1.6 release candidate.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
-- Package metadata for this release is **claude-token-saver 1.5.0**; the import
+- Package metadata for this release is **claude-token-saver 1.6.0**; the import
   remains `token_saver` and the CLI remains `token-saver`.
 
 ## Ranking observability and regression validation
@@ -59,7 +60,7 @@ turn the current historical sample into a hard merge threshold prematurely.
 
 ## Integration lifecycle validation
 
-The 1.5.0 setup lifecycle is tested for:
+The setup lifecycle is tested for:
 
 - auto-detection and explicit Claude Code / Cursor / Codex selection;
 - idempotent repeated setup;
@@ -105,13 +106,14 @@ The checked-in `benchmarks/output-quality.example.json` demonstrates the
 portable quality-contract format. See `OUTPUT_OPTIMIZATION.md` for the
 processor and Delta contracts.
 
-The broad 24-task SWE-bench cost experiment remains **non-publishable evidence**
-for 1.5.0: its latest broad run exposed harness/grader issues, including
-budget-limited agent runs being misclassified as infrastructure failures and a
-reference grader that produced no parseable test result for one task. Those
-failures are benchmark-infrastructure findings, not evidence for or against
-Token Saver's real-task cost effect. No 144-run aggregate savings claim is made
-for 1.5.0.
+The previously recorded broad 24-task SWE-bench run remains
+**non-publishable historical evidence**: it exposed harness/grader issues rather
+than a trustworthy product-effect estimate. Version 1.6.0 repairs the
+experiment, telemetry, blind-grading, cache-pricing, and publication-gate path
+and wires the same frozen **24 tasks × 3 trials** into a paid/manual workflow.
+That workflow has not yet been executed for this release candidate. **No 144-run
+aggregate savings claim is made for 1.6.0** until the new frozen workflow
+actually completes and its strict publication gate passes.
 
 ## Frozen external holdout program
 
