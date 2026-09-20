@@ -161,6 +161,17 @@ def _grader_config(payload: dict) -> dict:
     }
 
 
+def validate_grader_config(payload: dict) -> dict:
+    """Validate grader configuration without executing a paid judge call."""
+    config = _grader_config(payload)
+    return {
+        "judge": config["judge"],
+        "assignment_seed": config["assignment_seed"],
+        "timeout_seconds": config["timeout_seconds"],
+        "command": list(config["command"]),
+    }
+
+
 def _task_prompts(payload: dict) -> dict[str, str]:
     """Return frozen task prompts indexed by task id."""
     tasks = payload.get("tasks")
