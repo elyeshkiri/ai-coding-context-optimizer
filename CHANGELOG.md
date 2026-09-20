@@ -7,7 +7,7 @@
   settings are available with environment overrides. `token-saver
   output-calibrate` learns task/mode base budgets only from blinded paired runs
   where both arms succeed and correctness, safety, weighted quality, and blocker
-  constraints remain at parity; at least three valid samples are required.
+  constraints remain at parity; at least three valid samples spanning three distinct task IDs are required.
   Recommendations use observed p90 output tokens plus a configurable safety
   margin. Failed, blocked, unblinded, or degraded short responses cannot train
   the controller.
