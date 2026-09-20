@@ -166,7 +166,7 @@ def build_output_policy(
         f"OUTPUT BUDGET: target <= {budget} tokens.",
         f"OUTPUT TASK: {task_normalized}.",
         detail,
-        *( [task_rule] if task_rule else [] ),
+        *([task_rule] if task_rule else []),
         "Start with the answer, result, command, path, or finding; skip conversational preambles.",
         "Do not restate the task or narrate tool calls.",
         "Suppress tangents and unrelated improvements unless they materially affect the requested task.",
