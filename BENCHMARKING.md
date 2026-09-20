@@ -327,7 +327,9 @@ same task/trial records, run:
 ```bash
 token-saver output-effectiveness benchmark-runs.json \
   --fresh-input-per-million <rate> \
-  --cache-creation-per-million <rate> \
+  --cache-creation-5m-per-million <rate> \
+  --cache-creation-1h-per-million <rate> \
+  --cache-creation-unknown-per-million <rate> \
   --cache-read-per-million <rate> \
   --output-per-million <rate> \
   --require-publishable
@@ -339,7 +341,9 @@ SHA-256, and checks each run's model/revision/prompt hash against that frozen
 suite. It also requires no task-success regression, blind correctness/safety
 and weighted-quality parity, complete optimized-arm policy telemetry with a
 measured task/mode/budget, exact telemetry/transcript usage agreement, and
-complete cost evidence. A positive point estimate is not enough: the 95%
+complete cost evidence. Cache-creation usage is split into 5-minute, 1-hour,
+and unknown-TTL buckets; any nonzero bucket without a supplied rate makes
+derived cost incomplete. A positive point estimate is not enough: the 95%
 task-cluster bootstrap interval for cost-per-success reduction must remain
 strictly above zero. Repeated trials are resampled as one task cluster rather
 than treated as independent evidence.
