@@ -7,11 +7,12 @@
   telemetry is available, enabled runs also embed selected output task/mode/
   budget plus a telemetry-vs-transcript integrity check. New
   `output-effectiveness` joins those measurements with independently verified
-  task success, blind response-quality parity, four-category token pricing,
+  task success, blind response-quality parity, cache-TTL-aware token pricing,
   budget cohorts, and a task-cluster bootstrap CI to gate cost-per-success
   claims. The gate requires >=20 tasks, >=3 trials/task, no success/quality
-  regression, complete matching policy telemetry, complete cost evidence, and
-  positive cost-per-success reduction. `agent-evaluate`, `cost-report`, and
+  regression, complete matching policy telemetry, complete cache-TTL-aware cost evidence,
+  a positive cost-per-success reduction, and a task-cluster 95% confidence
+  interval whose lower bound remains above zero. `agent-evaluate`, `cost-report`, and
   `output-calibrate` now accept the experiment-native `enabled` condition as
   an alias for `token-saver`, so raw experiment artifacts no longer require
   manual condition rewriting.
