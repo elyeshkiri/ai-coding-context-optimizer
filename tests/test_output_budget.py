@@ -176,6 +176,7 @@ def test_runtime_can_use_calibrated_base(tmp_path):
                         "normal": {
                             "recommended_tokens": 700,
                             "samples": 6,
+                            "tasks": 3,
                             "p90_output_tokens": 600,
                             "margin": 1.15,
                         }
