@@ -1,5 +1,26 @@
 # Unreleased
 
+# 1.6.0 - 2026-09-20
+
+- **Completed the output-cost evidence feature from agent run through publication
+  gate.** Added deterministic balanced blind A/B response grading with strict
+  rubric JSON, resumable grading checkpoints, hashed audit records, and a
+  no-side-effect Claude judge adapter. Added `evidence-run` to compose frozen
+  randomized paired experiments, independent hidden verification, blind grading,
+  cache-TTL-aware cost-per-success analysis, and quality-gated adaptive-budget
+  calibration in one resumable command.
+- **Productized the real frozen 24-task × 3-trial evaluation path.** The existing
+  SWE-bench Verified workflow now performs a paid agent+telemetry+judge smoke
+  before fan-out, runs the 144 agent calls, merges shard evidence, blind-grades
+  all 72 pairs, enforces the strict output-effectiveness publication gate, and
+  emits the learned calibration artifact. Manual workflow dispatch requires an
+  explicit `RUN_144` confirmation. No new savings percentage is claimed until
+  that paid workflow actually completes and passes.
+- **Closed benchmark plumbing gaps exposed by the end-to-end pipeline.** Docker
+  agent runs now persist Token Saver telemetry through an explicit mounted state
+  directory; shard merging preserves grader/evidence metadata; the grader treats
+  responses as untrusted data and runs with shell/filesystem/web tools denied.
+
 - **Added joined output-effectiveness evidence and closed the experiment-analysis
   condition gap.** Paired experiments now embed exact transcript usage
   (fresh input, cache creation split by 5-minute/1-hour/unknown TTL, cache
@@ -72,7 +93,7 @@
   evidence now prevents `claim_allowed=true`.
 
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
-  end-to-end bug narrative, 46 dedicated command-reference pages with flags,
+  end-to-end bug narrative, 48 dedicated command-reference pages with flags,
   exit semantics, and machine-output links, explicit JSON CLI contracts, merged
   top-level `--help` discovery, and a holdout query-construction protocol that
   separates semantic natural-language evaluation from identifier-bearing
