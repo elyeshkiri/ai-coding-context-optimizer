@@ -113,6 +113,44 @@ the first release. Future experiments can compare source retrieval alone against
 source retrieval plus current findings without contaminating the frozen
 retrieval baselines.
 
+### Knowledge-assisted read boundary
+
+The existing PreToolUse source guard is the only automatic consumer of durable
+findings. Automatic use is separately opt-in and deliberately narrower than
+manual `recall`:
+
+1. the request must be an unbounded source-file `Read`;
+2. the exact file must have at least one active `verified` finding;
+3. current file digests must still match the stored anchors;
+4. the compact finding replacement must clear a minimum net-token floor;
+5. when cache economics is enabled, the replacement must also clear the
+   configured projected-cost floor.
+
+The guard never treats memory as edit bytes. Its denial text explicitly routes
+agents to a bounded source range when exact implementation text is required.
+This preserves the existing principle that edits operate on exact source while
+allowing prior verified reasoning to prevent redundant whole-file ingestion.
+
+`cache_economics.py` is a pure policy module. It separates an already-cached
+prefix from the new frontier and can model both frontier-only rewrites and
+transformations that invalidate cached history. Provider/model price ratios are
+inputs to the policy rather than hard-coded dollar claims. The same primitive is
+exposed through the `cache-economics` CLI for inspection.
+
+### Knowledge-efficiency evaluation boundary
+
+The frozen knowledge holdout is distinct from the existing session-efficiency
+holdout. Both experiment arms explicitly seed verified findings during an
+identical no-edit investigation phase. They then cross a real fresh-session
+boundary. Continuity, output/read dedup, and behavioral waste detection stay off
+in both arms; only knowledge read avoidance and its cache-economics gate differ.
+
+The runtime event ledger proves feature exposure only. Tool calls, input tokens,
+duplicate reads, success, blind response quality, and cache-TTL-aware billed
+cost are derived independently from transcripts/verifiers/graders. The
+publication gate uses task-cluster bootstrap intervals and does not publish a
+savings claim merely because the mechanism activated.
+
 ### MCP schema profiles
 
 The MCP registry supports bounded advertisement profiles without changing tool
