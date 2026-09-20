@@ -80,7 +80,8 @@ def test_user_prompt_auto_policy_injects_once_per_task(tmp_path, monkeypatch):
     code, response = run(payload)
     assert code == 0
     assert response is not None
-    assert "OUTPUT TASK: coding." in response["systemMessage"]
+    context = response["hookSpecificOutput"]["additionalContext"]
+    assert "OUTPUT TASK: coding." in context
 
     followup = dict(payload, prompt="go for the next move")
     assert run(followup) == (0, None)
