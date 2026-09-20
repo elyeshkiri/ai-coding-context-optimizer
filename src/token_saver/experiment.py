@@ -390,11 +390,21 @@ def _existing_keys(output_path: Path, suite: dict) -> tuple[dict, set[tuple[str,
             "tasks": suite["tasks"],
             "runs": [],
         }
+        for optional in ("quality_grader", "evidence"):
+            if optional in suite:
+                payload[optional] = suite[optional]
         return payload, set()
 
     payload = _load(output_path)
     for key in (
-        "suite_version", "protocol", "design", "repositories", "runner", "tasks"
+        "suite_version",
+        "protocol",
+        "design",
+        "repositories",
+        "runner",
+        "tasks",
+        "quality_grader",
+        "evidence",
     ):
         if payload.get(key) != suite.get(key):
             raise ValueError(
