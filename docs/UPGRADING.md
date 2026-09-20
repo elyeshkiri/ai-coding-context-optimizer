@@ -2,6 +2,13 @@
 
 Token Saver treats setup as an idempotent repair/migration operation.
 
+## 1.6 evidence pipeline
+
+Version 1.6 adds `blind-grade` and `evidence-run`, plus cache-TTL-aware
+experiment telemetry. Existing project integrations should rerun setup so the
+managed Claude hooks stay current. Historical experiment files remain readable;
+new publishable output-cost evidence should use the full frozen/graded pipeline.
+
 ## Standard upgrade
 
 ```bash
