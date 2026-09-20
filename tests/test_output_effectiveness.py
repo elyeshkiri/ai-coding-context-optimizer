@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from token_saver.agent_eval import evaluate_agent_runs
 from token_saver.command_handlers.output import output_effectiveness_main
 from token_saver.output_effectiveness import (
     EffectivenessPricing,
@@ -215,3 +216,17 @@ def test_output_effectiveness_rejects_negative_pricing(tmp_path, capsys):
         [str(manifest), "--output-per-million", "-1"]
     ) == 2
     assert "pricing values must be nonnegative" in capsys.readouterr().err
+
+
+
+def test_agent_evaluate_accepts_raw_experiment_enabled_alias(tmp_path):
+    """The established quality evaluator should accept experiment output directly."""
+    manifest = tmp_path / "runs.json"
+    _manifest(manifest, tasks=3, trials=1)
+
+    result = evaluate_agent_runs(manifest)
+
+    assert result["tasks"] == 3
+    assert result["paired_trials"] == 3
+    assert result["task_success_parity"] is True
+    assert result["blind_quality_verified"] is True
