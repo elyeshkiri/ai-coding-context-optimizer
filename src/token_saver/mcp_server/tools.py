@@ -29,7 +29,7 @@ class McpToolRegistry:
         """Return registered tool names in deterministic order."""
         return tuple(self._specs)
 
-    def select(self, names: Iterable[str]) -> "McpToolRegistry":
+    def select(self, names: Iterable[str]) -> McpToolRegistry:
         """Return a registry containing only named tools in original order."""
         allowed = set(names)
         return McpToolRegistry(
