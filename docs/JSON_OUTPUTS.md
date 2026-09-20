@@ -354,6 +354,30 @@ state. Treat the file named by `--out` as the durable experiment artifact.
 }
 ```
 
+## `output-calibrate` (always JSON or `--out`)
+
+```json
+{
+  "schema": 1,
+  "source": "benchmarks/agent-runs.json",
+  "quality_gate": "blind paired success + correctness/safety/weighted parity",
+  "recommendations": {
+    "coding": {
+      "normal": {
+        "recommended_tokens": 667,
+        "samples": 6,
+        "p90_output_tokens": 580.0,
+        "margin": 1.15
+      }
+    }
+  }
+}
+```
+
+Recommendations are omitted for task/mode groups with fewer than three valid
+quality-preserving paired samples. The runtime treats missing/invalid calibration
+as no learned override and falls back to built-in bases.
+
 ## `output-save --json`
 
 ```json
