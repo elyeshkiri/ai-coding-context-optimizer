@@ -73,6 +73,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 - [`evaluate`](commands/evaluate.md) — evaluate retrieval/freeze a holdout definition.
 - [`agent-evaluate`](commands/agent-evaluate.md) — evaluate paired agent outcomes.
+- [`blind-grade`](commands/blind-grade.md) — blind A/B-grade paired final responses.
 - [`ranking-snapshot`](commands/ranking-snapshot.md) — save trace-enabled ranking evidence.
 - [`ranking-diff`](commands/ranking-diff.md) — compare ranking snapshots.
 - [`ranking-calibrate`](commands/ranking-calibrate.md) — aggregate PR ranking history.
@@ -80,6 +81,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 ## End-to-end experiments
 
 - [`experiment`](commands/experiment.md) — run randomized paired agent trials.
+- [`evidence-run`](commands/evidence-run.md) — run/resume experiment → blind grade → cost/success → calibration.
 - [`cost-report`](commands/cost-report.md) — analyze paired cost/success evidence.
 - [`benchmark`](commands/benchmark.md) — evaluate recorded paired-task evidence.
 
