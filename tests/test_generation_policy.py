@@ -183,3 +183,29 @@ def test_automatic_policy_can_disable_adaptation(tmp_path, monkeypatch):
     assert note is not None
     assert "target <= 600 tokens" in note
     assert load_state(root, "s1")["output_policy"]["adaptive"] is False
+
+
+def test_fixed_task_config_does_not_recalculate_on_ambiguous_followup(
+    tmp_path, monkeypatch
+):
+    """Fixed task selection should not make every vague prompt a fresh complexity sample."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+
+    first = automatic_output_policy(
+        root,
+        "Implement repository-wide caching across multiple modules",
+        session_id="s1",
+        task="coding",
+    )
+    assert first is not None
+    budget = load_state(root, "s1")["output_policy"]["max_tokens"]
+
+    assert automatic_output_policy(
+        root,
+        "continue",
+        session_id="s1",
+        task="coding",
+    ) is None
+    assert load_state(root, "s1")["output_policy"]["max_tokens"] == budget
