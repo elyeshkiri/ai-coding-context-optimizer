@@ -477,6 +477,8 @@ as no learned override and falls back to built-in bases.
     "api_failures": 1,
     "input_tokens": 2200,
     "cache_creation_input_tokens": 18000,
+    "cache_creation_5m_input_tokens": 12000,
+    "cache_creation_1h_input_tokens": 6000,
     "cache_read_input_tokens": 92000,
     "output_tokens": 6400,
     "model_calls": 28,
