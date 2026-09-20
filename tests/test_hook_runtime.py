@@ -535,3 +535,85 @@ def test_runtime_observes_edit_without_rewriting_tool_result(tmp_path):
     assert runtime.run(payload) == (0, None)
     assert calls[0][0] == Path(tmp_path)
     assert calls[0][1] == "Edit"
+
+
+
+def test_runtime_stages_oversized_prompt_before_other_prompt_services(tmp_path):
+    """Ingress intervention should block before policy, telemetry, or prompt-state work."""
+    from types import SimpleNamespace
+
+    calls = []
+    runtime = HookRuntime(
+        _services(
+            ingress_optimizer=lambda root, prompt, **kwargs: SimpleNamespace(
+                id="stage1234",
+                original_tokens=15000,
+                packet_tokens=1400,
+            ),
+            efficiency_prompt=lambda *args, **kwargs: calls.append("efficiency"),
+            generation_policy=lambda *args, **kwargs: calls.append("policy"),
+            telemetry_start=lambda *args, **kwargs: calls.append("telemetry"),
+            user_nudge=lambda *args, **kwargs: calls.append("nudge"),
+        ),
+        HookConfig(
+            ingress_enabled=True,
+            ingress_threshold_tokens=12000,
+            ingress_packet_tokens=1600,
+        ),
+    )
+
+    code, response = runtime.run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "prompt": "very large prompt",
+        }
+    )
+
+    assert code == 0
+    assert response is not None
+    assert response["decision"] == "block"
+    assert response["suppressOriginalPrompt"] is True
+    assert "stage1234" in response["reason"]
+    assert "ingress-show" in response["reason"]
+    assert calls == []
+
+
+def test_runtime_passes_ingress_threshold_configuration(tmp_path):
+    """Prompt ingress service should receive explicit runtime limits even on passthrough."""
+    calls = []
+
+    def ingress(root, prompt, **kwargs):
+        """Capture ingress policy arguments and allow the prompt."""
+        calls.append((root, prompt, kwargs))
+        return None
+
+    runtime = HookRuntime(
+        _services(ingress_optimizer=ingress),
+        HookConfig(
+            ingress_enabled=True,
+            ingress_threshold_tokens=9000,
+            ingress_packet_tokens=1200,
+            output_policy_enabled=False,
+            output_telemetry_enabled=False,
+        ),
+    )
+
+    assert runtime.run(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "prompt": "ordinary prompt",
+        }
+    ) == (0, None)
+    assert calls == [
+        (
+            Path(tmp_path),
+            "ordinary prompt",
+            {
+                "enabled": True,
+                "threshold_tokens": 9000,
+                "packet_tokens": 1200,
+            },
+        )
+    ]
