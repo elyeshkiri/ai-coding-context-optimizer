@@ -379,6 +379,15 @@ state. Treat the file named by `--out` as the durable experiment artifact.
     "cost_per_success_reduction": 0.22,
     "output_token_reduction": 0.31
   },
+  "protocol": {
+    "valid": true,
+    "declared_task_definition_sha256": "...",
+    "computed_task_definition_sha256": "...",
+    "pair_identity_missing": [],
+    "pair_identity_mismatches": [],
+    "frozen_run_mismatches": [],
+    "exact_usage_missing": []
+  },
   "quality": {
     "blinded": true,
     "judge": "independent-response-grader",
@@ -419,10 +428,12 @@ state. Treat the file named by `--out` as the durable experiment artifact.
 }
 ```
 
-The publication gate fails closed when blind quality is missing/regressed,
-task success regresses, optimized policy telemetry is incomplete, telemetry
-usage disagrees with the copied transcript, cost evidence is incomplete, or
-cost per successful task does not improve. Budget-group
+The publication gate fails closed when the frozen suite hash or run identity
+does not match, exact transcript usage is incomplete, blind quality is
+missing/regressed, task success regresses, optimized policy telemetry lacks a
+measured task/mode/budget, telemetry usage disagrees with the copied transcript,
+cost evidence is incomplete, or the cost-per-success point estimate / 95% task-
+cluster confidence interval does not show a strictly positive reduction. Budget-group
 `eligible_for_calibration` is only a candidate signal; `output-calibrate`
 still applies its own cross-task quality gate before changing learned bases.
 
