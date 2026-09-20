@@ -1,5 +1,21 @@
 # Unreleased
 
+- **Added joined output-effectiveness evidence and closed the experiment-analysis
+  condition gap.** Paired experiments now embed exact transcript usage
+  (fresh input, cache creation, cache read, output, model calls) for every run
+  and isolate enabled-arm Token Saver state per artifact. When Claude hook
+  telemetry is available, enabled runs also embed selected output task/mode/
+  budget plus a telemetry-vs-transcript integrity check. New
+  `output-effectiveness` joins those measurements with independently verified
+  task success, blind response-quality parity, four-category token pricing,
+  budget cohorts, and a task-cluster bootstrap CI to gate cost-per-success
+  claims. The gate requires >=20 tasks, >=3 trials/task, no success/quality
+  regression, complete matching policy telemetry, complete cost evidence, and
+  positive cost-per-success reduction. `agent-evaluate`, `cost-report`, and
+  `output-calibrate` now accept the experiment-native `enabled` condition as
+  an alias for `token-saver`, so raw experiment artifacts no longer require
+  manual condition rewriting.
+
 - **Added automatic content-free output-budget telemetry.** Claude Code setup now
   registers `Stop` and `StopFailure` hooks. `UserPromptSubmit` checkpoints the
   transcript byte offset and active policy, then turn completion reads only the
@@ -54,7 +70,7 @@
   evidence now prevents `claim_allowed=true`.
 
 - **Closed the remaining documentation completeness gaps.** Added a reproducible
-  end-to-end bug narrative, 45 dedicated command-reference pages with flags,
+  end-to-end bug narrative, 46 dedicated command-reference pages with flags,
   exit semantics, and machine-output links, explicit JSON CLI contracts, merged
   top-level `--help` discovery, and a holdout query-construction protocol that
   separates semantic natural-language evaluation from identifier-bearing
