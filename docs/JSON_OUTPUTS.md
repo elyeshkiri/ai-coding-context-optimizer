@@ -366,6 +366,7 @@ state. Treat the file named by `--out` as the durable experiment artifact.
       "normal": {
         "recommended_tokens": 667,
         "samples": 6,
+        "tasks": 4,
         "p90_output_tokens": 580.0,
         "margin": 1.15
       }
@@ -375,7 +376,7 @@ state. Treat the file named by `--out` as the durable experiment artifact.
 ```
 
 Recommendations are omitted for task/mode groups with fewer than three valid
-quality-preserving paired samples. The runtime treats missing/invalid calibration
+quality-preserving paired samples or fewer than three distinct task IDs. The runtime treats missing/invalid calibration
 as no learned override and falls back to built-in bases.
 
 ## `output-save --json`
