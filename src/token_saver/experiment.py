@@ -457,11 +457,19 @@ def _transcript_usage(path: Path) -> dict:
     usage = report.usage
     fresh = int(usage["input_tokens"])
     cache_created = int(usage["cache_creation_input_tokens"])
+    cache_created_5m = sum(int(turn.cache_5m) for turn in report.turns)
+    cache_created_1h = sum(int(turn.cache_1h) for turn in report.turns)
+    cache_created_unknown = max(
+        0, cache_created - cache_created_5m - cache_created_1h
+    )
     cache_read = int(usage["cache_read_input_tokens"])
     output = int(usage["output_tokens"])
     return {
         "fresh_input_tokens": fresh,
         "cache_creation_input_tokens": cache_created,
+        "cache_creation_5m_input_tokens": cache_created_5m,
+        "cache_creation_1h_input_tokens": cache_created_1h,
+        "cache_creation_unknown_input_tokens": cache_created_unknown,
         "cache_read_input_tokens": cache_read,
         "input_tokens": fresh + cache_created + cache_read,
         "cached_input_tokens": cache_read,
@@ -521,6 +529,8 @@ def _policy_telemetry(
         for field in (
             "input_tokens",
             "cache_creation_input_tokens",
+            "cache_creation_5m_input_tokens",
+            "cache_creation_1h_input_tokens",
             "cache_read_input_tokens",
             "output_tokens",
             "model_calls",
@@ -529,6 +539,12 @@ def _policy_telemetry(
     expected_usage = {
         "input_tokens": transcript_usage["fresh_input_tokens"],
         "cache_creation_input_tokens": transcript_usage["cache_creation_input_tokens"],
+        "cache_creation_5m_input_tokens": transcript_usage[
+            "cache_creation_5m_input_tokens"
+        ],
+        "cache_creation_1h_input_tokens": transcript_usage[
+            "cache_creation_1h_input_tokens"
+        ],
         "cache_read_input_tokens": transcript_usage["cache_read_input_tokens"],
         "output_tokens": transcript_usage["output_tokens"],
         "model_calls": transcript_usage["model_calls"],
