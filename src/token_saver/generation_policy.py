@@ -119,10 +119,9 @@ def automatic_output_policy(
             + ", ".join(OUTPUT_TASK_OPTIONS)
         )
 
+    prompt_task = classify_output_task(prompt)
     detected_task = (
-        classify_output_task(prompt)
-        if configured_task == AUTO_OUTPUT_TASK
-        else configured_task
+        prompt_task if configured_task == AUTO_OUTPUT_TASK else configured_task
     )
     requested_mode = explicit_output_mode(prompt)
     new_task = looks_like_new_task(prompt)
@@ -160,7 +159,7 @@ def automatic_output_policy(
         adaptive
         and (
             new_task
-            or detected_task is not None
+            or prompt_task is not None
             or not previous_signature
             or previous_task != resolved_task
             or previous_mode != resolved_mode
