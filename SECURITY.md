@@ -20,6 +20,37 @@ Context rendering applies the project's existing secret-redaction path where
 documented, but users should still avoid committing credentials or treating an
 AI-agent context layer as a secret-management system.
 
+## Oversized-prompt ingress state
+
+Prompt ingress optimization is **disabled by default** because its safety model
+requires storing the exact blocked prompt locally so omitted ranges remain
+recoverable. When enabled and the threshold fires, Token Saver writes:
+
+- the exact original prompt;
+- a SHA-256 integrity digest;
+- a bounded exact-excerpt packet and line-range metadata.
+
+State is project-scoped under the private Token Saver state directory, written
+with private permissions, and bounded to the newest 40 staged prompts. It is not
+uploaded to Token Saver infrastructure. Unlike output-policy telemetry and
+session continuity, this store intentionally contains user prompt content.
+Treat it as sensitive, relocate `TOKEN_SAVER_STATE_DIR` when appropriate, and
+do not enable ingress staging for material that must not be persisted locally.
+
+The hook blocks the oversized prompt before Claude processes it. Token Saver
+does not send a lossy substitute automatically and never silently truncates a
+failed compression attempt.
+
+## Retrieval cache state
+
+Persistent retrieval cache entries contain completed bounded context packs and
+ranking metadata, so they may include source excerpts that were selected for an
+agent. Cache identity incorporates indexed source digests and index version;
+changed repository evidence gets a new key rather than reusing stale context.
+The cache is local/private and bounded by `retrieval.cache_max_entries`.
+Disable it with `TOKEN_SAVER_RETRIEVAL_CACHE=0` when local persistence is not
+appropriate.
+
 ## Claude transcripts
 
 `token-saver sessions` reads Claude Code transcript files under the local
@@ -111,6 +142,23 @@ Command-label redaction covers common `key=value`, `--token value`,
 authorization-header, and URL-credential forms, but it is defense in depth
 rather than a secret-management guarantee. Do not pass secrets on command lines
 when avoidable, and treat the local state directory as potentially sensitive.
+
+## Durable project-knowledge state
+
+`remember` / `remember_finding` persist the exact claim, evidence,
+applicability text, confidence label, file/symbol anchors, and source digests
+that the caller explicitly submits. This state is local, project-scoped,
+private-permission, and bounded, but unlike continuity state it **can contain
+human/model-authored prose**. Do not place credentials, production secrets,
+private customer data, or other material you would not store on the local
+machine into a finding.
+
+Automatic knowledge-assisted read avoidance never harvests conversation text.
+It reads only explicit stored findings, requires current verified anchors, and
+does not send knowledge to Token Saver infrastructure. The frozen paid
+knowledge-efficiency workflow has the same external model/grader and artifact
+retention considerations as the session holdout below; do not reuse the public
+workflow for private prompts/repositories unless those boundaries are acceptable.
 
 ## Session state
 

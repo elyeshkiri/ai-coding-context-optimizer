@@ -1,0 +1,22 @@
+{
+  "name": "token-saver-tools",
+  "owner": {
+    "name": "Elyes Hkiri",
+    "url": "https://github.com/elyeshkiri"
+  },
+  "description": "Token Saver plugins for Claude Code.",
+  "plugins": [
+    {
+      "name": "token-saver",
+      "description": "Local context, output, session, retrieval, and safe prompt-ingress optimization.",
+      "source": {
+        "source": "command",
+        "command": "python -m pip install --user --quiet \"claude-token-saver>=1.9.0\" || python -m pip install --user --quiet git+https://github.com/elyeshkiri/token-saver.git && python -c \"from token_saver.claude_plugin import render_plugin; print(render_plugin())\"",
+        "timeout": 300
+      },
+      "homepage": "https://github.com/elyeshkiri/token-saver",
+      "repository": "https://github.com/elyeshkiri/token-saver",
+      "license": "MIT"
+    }
+  ]
+}

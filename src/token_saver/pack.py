@@ -14,6 +14,9 @@ from .estimate import estimate_tokens
 from .feedback import load_feedback as load_feedback
 from .lexical import symbol_terms as symbol_terms, terms
 from .repo_index import RepositoryIndex, build_index, similarity
+from .retrieval_cache import cache_key as retrieval_cache_key
+from .retrieval_cache import load as load_retrieval_cache
+from .retrieval_cache import store as store_retrieval_cache
 from .working_set import save_working_set
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
 from .packing.ranking import (
@@ -179,6 +182,8 @@ def build_context_pack(
     restrict_files: set[str] | None = None,
     adaptive_budget: bool = True,
     stage_registry: RankingStageRegistry | None = None,
+    cache_enabled: bool = False,
+    cache_max_entries: int = 64,
 ) -> ContextPack:
     """Create a relevance-ranked, deduplicated context pack under a hard cap."""
     if max_tokens <= 0:
@@ -198,6 +203,37 @@ def build_context_pack(
         resolved_changed = _changed_files(root)
     if not changed_boost:
         resolved_changed = set()
+
+    cache_key: str | None = None
+    cache_allowed = cache_enabled and not embeddings and stage_registry is None
+    if cache_allowed:
+        cache_key = retrieval_cache_key(
+            root,
+            index,
+            query=effective_query,
+            max_tokens=max_tokens,
+            max_files=max_files,
+            context_lines=context_lines,
+            use_gitignore=use_gitignore,
+            changed_boost=changed_boost,
+            graph_hops=graph_hops,
+            duplicate_threshold=duplicate_threshold,
+            session=session,
+            embeddings=embeddings,
+            target_symbol=target_symbol,
+            feedback_boost=feedback_boost,
+            closure_max_items=closure_max_items,
+            changed_files=resolved_changed,
+            priority_files=priority_files,
+            exclude_files=exclude_files,
+            restrict_files=restrict_files,
+            adaptive_budget=adaptive_budget,
+        )
+        cached = load_retrieval_cache(root, cache_key)
+        if cached is not None:
+            if session:
+                save_working_set(root, session, query, cached.selected_files)
+            return cached
 
     plan = (
         plan_retrieval(
@@ -366,5 +402,18 @@ def build_context_pack(
     )
     if session:
         save_working_set(root, session, query, selected)
+    if cache_key is not None:
+        result.cache_key = cache_key
+        try:
+            store_retrieval_cache(
+                root,
+                cache_key,
+                result,
+                max_entries=cache_max_entries,
+            )
+        except OSError:
+            # Cache persistence is an optimization, never a correctness
+            # dependency. Return the freshly built exact pack on I/O failure.
+            pass
     return result
 

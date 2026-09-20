@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from token_saver.command_handlers.efficiency import (
+    cache_economics_main,
     continuity_main,
     dashboard_main,
 )
@@ -78,3 +79,25 @@ def test_continuity_cli_reports_structured_working_state(
     assert payload["task"] == "coding"
     assert payload["working_files"][-1]["path"] == "src/auth.py"
     assert "No raw user prompt" in payload["privacy"]
+
+
+
+def test_cache_economics_cli_reports_prefix_recreation_penalty(capsys):
+    """The CLI should expose when rewriting cached history is more expensive."""
+    assert cache_economics_main(
+        [
+            "--original-frontier-tokens",
+            "1000",
+            "--replacement-frontier-tokens",
+            "100",
+            "--cached-prefix-tokens",
+            "10000",
+            "--invalidates-cached-prefix",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["accepted"] is False
+    assert payload["invalidates_cached_prefix"] is True
+    assert payload["replacement_cost"] > payload["original_cost"]

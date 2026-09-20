@@ -1,4 +1,4 @@
-# Validation for 1.8.0
+# Validation for 1.9.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**. Passing one layer is not presented as proof
@@ -13,8 +13,58 @@ Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 - Ruff correctness checks;
 - 100% docstring coverage via interrogate;
 - GitHub Actions workflow linting;
+- an optional-Rust job that builds the PyO3 wheel, requires the native backend,
+  checks Python/Rust primitive parity, reruns pack/retrieval tests, and reruns
+  the deterministic context-quality benchmark;
 - the hash-frozen session/output quality replay suite with preservation,
   no-hallucination, and minimum-reduction contracts.
+
+Version 1.9.0 also adds three runtime/product mechanisms whose evidence
+boundaries are intentionally narrower than an agent-cost claim:
+
+- **prompt ingress staging** is covered by exact-original SHA-256 verification,
+  bounded packet tests, explicit omitted-range recovery, hook ordering tests, and
+  default-off configuration. Claude's prompt hook is used only to block before
+  model processing; Token Saver does not claim unsupported prompt replacement.
+- **persistent retrieval caching** is tested across independent service
+  instances. Identical content/config reuses a completed pack; a source mutation
+  or retrieval-budget change produces a different cache key and a fresh pack.
+  Cache-hit metadata is observable in CLI/MCP output.
+- **Rust acceleration** is optional. Normal CI exercises the Python reference
+  path; a separate native job builds the extension and requires the same
+  primitive outputs plus the same pack/context-quality behavior. Failure to
+  build/install Rust does not alter the supported Python runtime.
+- **Claude marketplace packaging** is structurally tested for a complete
+  generated plugin, stable hooks/MCP/skill content, and the command-source
+  safety constraints (printable <=500-character command and <=600-second
+  timeout). Actual Claude marketplace acceptance still depends on a supported
+  Claude Code installation and is not inferred from JSON fixture tests alone.
+
+These mechanisms may reduce repeated local work or prevent one oversized prompt
+from reaching the model, but **1.9.0 makes no new end-to-end cost-savings
+percentage claim from their existence alone**.
+
+The 1.9 knowledge-efficiency layer has its own evidence boundary.
+`knowledge_read_avoidance` and `cache_economics` are disabled by default.
+The checked-in
+`benchmarks/knowledge-efficiency-swebench-24.frozen.json` reuses the same 24
+SWE-bench Verified tasks at three randomized paired trials per task. Both arms
+run the same current Token Saver binary, explicitly persist verified findings
+during an identical no-edit investigation phase, and then enter a fresh
+implementation session. Continuity, exact cross-turn deduplication, repeated-read
+deduplication, and behavioral waste signals are disabled in both arms; only
+knowledge-assisted full-read avoidance and its cache-economics acceptance gate
+differ.
+
+The accompanying paid/manual workflow represents **144 arm-runs / 288 Claude
+task phases**, plus independent hidden verification and blind response grading.
+It has **not been executed**. The stored mechanism tests and frozen protocol
+therefore establish correctness/isolation only; they do not establish a real
+reduction in tool calls, input tokens, billed cost, or cost per successful task.
+**No knowledge-efficiency savings percentage is claimed** until the paid paired
+run passes success parity, blind-quality parity, treatment-exposure/control-
+isolation checks, complete cache-TTL-aware pricing, and a task-cluster 95%
+confidence interval whose cost-per-success reduction lower bound is above zero.
 
 Version 1.8.0 adds a separate frozen session-efficiency
 holdout rather than treating operational dashboard estimates as evidence. The
@@ -50,11 +100,11 @@ verification -> grading -> cost-per-success -> calibration pipeline.
 - The included deterministic 25-task selector benchmark at a 6,000-token cap
   currently measures **92% mean relevant-file recall, 92% mean
   relevant-symbol recall, 88% symbol recall in expected files, and 98.71% mean
-  estimated context reduction** on the 1.8 release candidate.
+  estimated context reduction** on the 1.9 release candidate.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
-- Package metadata for this release is **claude-token-saver 1.8.0**; the import
+- Package metadata for this release is **claude-token-saver 1.9.0**; the import
   remains `token_saver` and the CLI remains `token-saver`.
 
 ## Ranking observability and regression validation

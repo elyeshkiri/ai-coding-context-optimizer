@@ -44,7 +44,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "ready": true,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "token_saver_executable": "/path/to/token-saver",
   "root": "absolute project path",
   "config_path": "/project/.token-saver.toml",
@@ -102,9 +102,64 @@ exit `1`.
   "redactions": [],
   "closure_files": [],
   "retrieval_plan": {},
+  "cache_hit": false,
+  "cache_key": "sha256-or-null",
   "typescript_semantic_edges": 0
 }
 ```
+
+## `ingress-show --json`
+
+```json
+{
+  "id": "stage-id",
+  "created_at": 0,
+  "original_sha256": "...",
+  "original_tokens": 15000,
+  "packet_tokens": 1500,
+  "original_lines": 400,
+  "packet": "# TOKEN-SAVER STAGED PROMPT...",
+  "omitted_start_line": 50,
+  "omitted_end_line": 350
+}
+```
+
+The exact original prompt is intentionally not embedded as a second JSON field.
+Use `ingress-read` for explicit bounded recovery.
+
+## `fastpath-status --json`
+
+```json
+{
+  "available": true,
+  "backend": "rust",
+  "capabilities": [
+    "estimate_tokens",
+    "identifier_tokens",
+    "bm25_score",
+    "jaccard_similarity",
+    "char_ngrams"
+  ],
+  "env_override": null
+}
+```
+
+`backend: "python"` with an empty capability list is a supported fallback
+state, not a degraded/error JSON contract.
+
+## `claude-plugin-path --json`
+
+```json
+{
+  "schema": 1,
+  "version": "1.9.0",
+  "path": "/absolute/private/token-saver/claude-plugin/token-saver-1.9.0",
+  "rendered": true
+}
+```
+
+Text mode intentionally prints only the absolute path so Claude Code's
+command-source marketplace contract can consume it.
 
 ## `browse --json`
 
@@ -886,6 +941,47 @@ Without `--include-stale`, only `state == "active"` findings appear.
 
 Emits `schema`, `total`, `active`, `stale`, `superseded`, and the private
 local `path`. Finding contents are intentionally absent.
+
+## `cache-economics --json`
+
+```json
+{
+  "accepted": true,
+  "original_cost": 6200.0,
+  "replacement_cost": 1400.0,
+  "relative_savings": 0.774,
+  "cached_prefix_tokens": 12000,
+  "original_frontier_tokens": 4000,
+  "replacement_frontier_tokens": 800,
+  "invalidates_cached_prefix": false,
+  "expected_reuses": 2,
+  "cache_write_factor": 1.25,
+  "cache_read_factor": 0.1,
+  "min_relative_savings": 0.05
+}
+```
+
+Costs are relative input-cost units. The command does not imply universal
+provider pricing.
+
+## Knowledge-efficiency holdout reports
+
+`knowledge-holdout` emits the same pipeline-summary class as
+`session-holdout`: `schema`, `stage`, suite/run/report paths, task and
+paired-trial counts, `reductions`, `feature_activation`,
+`publication_gate`, and `claim_allowed`.
+
+`knowledge-holdout-evaluate --json` emits the full paired report with:
+
+- `comparison`, `tasks`, `paired_trials`, and `trials_per_task`;
+- `conditions.baseline` and `conditions.knowledge-efficiency`;
+- reductions for `tool_calls`, `input_tokens`, `duplicate_read_calls`, and
+  `cost_per_success`;
+- task-cluster `bootstrap` intervals;
+- treatment/control `feature_activation`;
+- independent `quality` evidence;
+- frozen `protocol` identity;
+- `publication_gate` and `claim_allowed`.
 
 ## Compatibility rule
 

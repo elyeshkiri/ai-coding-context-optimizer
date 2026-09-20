@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .fastpath import estimate_tokens as _fast_estimate_tokens
+
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
 _RATIOS = {
@@ -63,7 +65,7 @@ def estimate_tokens(text: str, suffix: str = "") -> int:
     ratio = _RATIOS.get(
         suffix.lower(), _PROSE_DEFAULT if not suffix else _CODE_DEFAULT
     )
-    return max(1, int(len(text) / ratio))
+    return _fast_estimate_tokens(text, ratio)
 
 
 def estimate_file(path: Path) -> int:

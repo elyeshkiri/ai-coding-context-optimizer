@@ -158,3 +158,37 @@ jobs:
             ranking-diff.json
           if-no-files-found: warn
           retention-days: 14
+
+
+  rust-fastpath:
+    name: Rust fastpath parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]' maturin
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path rust/token_saver_fast/Cargo.toml -- --check
+      - name: Run Rust unit tests
+        run: cargo test --manifest-path rust/token_saver_fast/Cargo.toml
+      - name: Build optional accelerator wheel
+        run: |
+          maturin build             --release             --manifest-path rust/token_saver_fast/Cargo.toml             --interpreter python             --out /tmp/token-saver-fast
+          python -m pip install /tmp/token-saver-fast/*.whl
+      - name: Require native backend
+        run: |
+          python - <<'PY'
+          from token_saver.fastpath import status
+          result = status()
+          assert result["backend"] == "rust", result
+          print(result)
+          PY
+      - name: Enforce Python-Rust behavior parity
+        env:
+          TOKEN_SAVER_RUST_FASTPATH: "1"
+        run: |
+          python -m pytest -q             tests/test_fastpath.py             tests/test_pack.py             tests/test_retrieval_cache.py
+          token-saver evaluate             benchmarks/context-quality.json             --path .             --max-tokens 6000

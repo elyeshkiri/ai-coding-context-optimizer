@@ -10,6 +10,32 @@ token-saver setup
 token-saver doctor
 ```
 
+## Claude Code marketplace install
+
+Claude-only users on Claude Code **2.1.229+** can install through the repository
+marketplace without first placing the `token-saver` console script on `PATH`:
+
+```text
+/plugin marketplace add elyeshkiri/token-saver
+/plugin install token-saver@token-saver-tools
+```
+
+The marketplace uses Claude Code's command-source installation flow. Claude
+shows the bootstrap command for user approval before it runs. The command
+installs the current GitHub package quietly, then prints the one absolute plugin
+directory produced by `token-saver claude-plugin-path`.
+
+The generated plugin owns only its own plugin directory and invokes Token Saver
+as `python -m token_saver.entry`. It includes:
+
+- the normal PreToolUse/PostToolUse/SessionStart/UserPromptSubmit/Stop hooks;
+- the local Token Saver MCP server;
+- `/token-saver:ingress <stage-id>` for resuming a safely staged oversized prompt.
+
+For Cursor, Codex, mixed-host projects, editable installs, or environments where
+you want explicit project config management, continue to use pip +
+`token-saver setup`.
+
 Supported automatic setup currently covers:
 
 - **Claude Code** — project hooks plus project MCP configuration;
@@ -142,6 +168,15 @@ enabled = true
 continuity = true
 dedup = true
 waste_detection = true
+
+[ingress]
+enabled = false
+threshold_tokens = 12000
+packet_tokens = 1600
+
+[retrieval]
+cache = true
+cache_max_entries = 64
 ```
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.

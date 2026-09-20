@@ -32,6 +32,7 @@ ContinuityContextService = Callable[..., str | None]
 EfficiencyPromptService = Callable[..., None]
 DeduplicateOutputService = Callable[..., str | None]
 ObserveToolService = Callable[..., str | None]
+IngressOptimizerService = Callable[..., object | None]
 
 
 def _noop_session_start(*args, **kwargs) -> None:
@@ -52,6 +53,12 @@ def _noop_prompt(*args, **kwargs) -> None:
 
 def _noop_dedup(*args, **kwargs) -> str | None:
     """Return no cross-turn deduplication replacement."""
+    del args, kwargs
+    return None
+
+
+def _noop_ingress(*args, **kwargs) -> object | None:
+    """Return no prompt-ingress intervention."""
     del args, kwargs
     return None
 
@@ -106,6 +113,9 @@ class HookConfig:
     continuity_enabled: bool = True
     cross_turn_dedup_enabled: bool = True
     waste_detection_enabled: bool = True
+    ingress_enabled: bool = False
+    ingress_threshold_tokens: int = 12000
+    ingress_packet_tokens: int = 1600
 
 
 @dataclass(frozen=True)
@@ -129,6 +139,7 @@ class HookServices:
     efficiency_prompt: EfficiencyPromptService = _noop_prompt
     deduplicate_output: DeduplicateOutputService = _noop_dedup
     observe_tool: ObserveToolService = _noop_observe
+    ingress_optimizer: IngressOptimizerService = _noop_ingress
 
 
 def cap_for(n_lines: int) -> int:
@@ -354,6 +365,31 @@ class HookRuntime:
         root = self.cwd(payload)
         prompt = str(payload.get("prompt") or payload.get("user_prompt") or "")
         response: dict = {}
+
+        staged = self.services.ingress_optimizer(
+            root,
+            prompt,
+            enabled=self.config.ingress_enabled,
+            threshold_tokens=self.config.ingress_threshold_tokens,
+            packet_tokens=self.config.ingress_packet_tokens,
+        )
+        if staged is not None:
+            stage_id = str(getattr(staged, "id", ""))
+            original_tokens = int(getattr(staged, "original_tokens", 0))
+            packet_tokens = int(getattr(staged, "packet_tokens", 0))
+            return 0, {
+                "decision": "block",
+                "reason": (
+                    "Token Saver blocked this oversized prompt before model "
+                    f"processing and staged it losslessly as {stage_id} "
+                    f"(~{original_tokens} -> ~{packet_tokens} packet tokens). "
+                    "Submit a small follow-up such as: "
+                    f"'Use staged prompt {stage_id}; run token-saver ingress-show "
+                    f"{stage_id} --path . and continue.' The exact original remains "
+                    "recoverable with token-saver ingress-read."
+                ),
+                "suppressOriginalPrompt": True,
+            }
 
         self.services.efficiency_prompt(
             root,

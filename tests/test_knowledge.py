@@ -130,3 +130,55 @@ def test_anchors_must_resolve_inside_repository(tmp_path, monkeypatch):
             evidence="missing",
             applicability="never",
         )
+
+
+
+def test_for_path_returns_only_current_verified_exact_anchors(tmp_path, monkeypatch):
+    """Read avoidance should see only active verified findings for the exact file."""
+    root = _project(tmp_path, monkeypatch)
+    other = root / "other.py"
+    other.write_text("value = 2\n", encoding="utf-8")
+    store = FindingStore(root)
+    verified = store.remember(
+        claim="Auth owns refresh",
+        anchors=["auth.py::refresh_session"],
+        evidence="refresh_session is defined here",
+        applicability="Use for session refresh work",
+        confidence="verified",
+    )
+    store.remember(
+        claim="Auth might own refresh",
+        anchors=["auth.py"],
+        evidence="partial observation",
+        applicability="Use cautiously",
+        confidence="probable",
+    )
+    store.remember(
+        claim="Other module",
+        anchors=["other.py"],
+        evidence="other evidence",
+        applicability="Use elsewhere",
+        confidence="verified",
+    )
+
+    findings = store.for_path("auth.py")
+
+    assert [item["id"] for item in findings] == [verified["id"]]
+
+
+def test_for_path_excludes_stale_source(tmp_path, monkeypatch):
+    """Changed files must remove their old findings from automatic path lookup."""
+    root = _project(tmp_path, monkeypatch)
+    store = FindingStore(root)
+    store.remember(
+        claim="Auth returns token",
+        anchors=["auth.py"],
+        evidence="current return statement",
+        applicability="Use for refresh work",
+    )
+    (root / "auth.py").write_text(
+        "def refresh_session(token):\n    return token + '-new'\n",
+        encoding="utf-8",
+    )
+
+    assert store.for_path("auth.py") == []

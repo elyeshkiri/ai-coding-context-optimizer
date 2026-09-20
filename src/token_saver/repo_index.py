@@ -15,6 +15,7 @@ import re
 import tempfile
 from pathlib import Path
 
+from .fastpath import identifier_tokens, jaccard_similarity
 from .lexical import document_counts
 from .security import ENV_TEMPLATE_NAMES, inspect_path
 from .semantic_ts import extract_module_refs, resolve_module_path
@@ -22,7 +23,6 @@ from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, STRUCTURED_EXTRA, structured_imports, symbols as syntax_symbols
 
 INDEX_VERSION = 11
-_IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
     r"|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?:=|:)"
@@ -483,7 +483,7 @@ def _extract(
             else:
                 symbols = {a or b for a, b in _DECL.findall(text)}
                 definitions = _extract_generic_definitions(text)
-    tokens = sorted({value.lower() for value in _IDENT.findall(text) if len(value) > 2})
+    tokens = identifier_tokens(text)
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
 
 
@@ -637,5 +637,4 @@ def record_for_text(rel: str, text: str) -> FileRecord:
 
 def similarity(left: FileRecord, right: FileRecord) -> float:
     """Jaccard similarity over identifiers; robust to whitespace/comment churn."""
-    a, b = set(left.tokens), set(right.tokens)
-    return len(a & b) / len(a | b) if a and b else 0.0
+    return jaccard_similarity(left.tokens, right.tokens)

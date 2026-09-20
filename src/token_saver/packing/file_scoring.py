@@ -6,11 +6,11 @@ from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
-import math
 import re
 import subprocess
 from pathlib import Path
 
+from ..fastpath import bm25_score as _fast_bm25_score
 from ..lexical import document_counts, identifier_terms, symbol_terms, terms
 from ..repo_index import RepositoryIndex
 from ..skeleton import file_priority
@@ -237,20 +237,15 @@ def _bm25_score(
     counts: Counter[str], q_terms: list[str], doc_freq: Counter[str],
     length: int, avg_len: float, n_docs: int,
 ) -> tuple[float, int]:
-    """Standard BM25 accumulation. Returns (score, total matched term count)."""
-    score = 0.0
-    matched = 0
-    for term in q_terms:
-        tf = counts.get(term, 0)
-        if not tf:
-            continue
-        matched += tf
-        df = doc_freq[term]
-        idf = math.log(1.0 + (n_docs - df + 0.5) / (df + 0.5))
-        k1, b = 1.5, 0.75
-        denom = tf + k1 * (1.0 - b + b * length / avg_len)
-        score += idf * (tf * (k1 + 1.0) / denom)
-    return score, matched
+    """Standard BM25 accumulation through the optional parity-gated fastpath."""
+    return _fast_bm25_score(
+        dict(counts),
+        q_terms,
+        dict(doc_freq),
+        length,
+        avg_len,
+        n_docs,
+    )
 
 
 def _record_score_event(

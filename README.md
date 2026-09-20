@@ -1,10 +1,25 @@
-# Token Saver 1.8.0
+# Token Saver 1.9.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. Token Saver does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
 ## Install
+
+For Claude Code only, the repository now exposes a marketplace:
+
+```text
+/plugin marketplace add elyeshkiri/token-saver
+/plugin install token-saver@token-saver-tools
+```
+
+Claude shows the command-source bootstrap for approval before running it. The
+command-source marketplace path requires Claude Code **2.1.229+**. Older Claude
+Code versions can use the pip + setup path below. The generated plugin calls
+`python -m token_saver.entry`, so it does not depend on the `token-saver`
+console script being on `PATH`.
+
+For Claude + Cursor + Codex, or explicit project-managed installation:
 
 ```bash
 pip install claude-token-saver
@@ -73,6 +88,77 @@ Start with the task-oriented docs instead of searching this README:
 - [Contributing](CONTRIBUTING.md)
 
 The complete documentation map is [docs/README.md](docs/README.md).
+
+## Safe oversized-prompt ingress
+
+Claude Code's `UserPromptSubmit` hook can block a prompt or add context, but
+cannot replace the submitted text. Token Saver therefore does **not** claim to
+rewrite a huge prompt before the model.
+
+Instead, an explicit opt-in can stage very large prompts losslessly:
+
+```toml
+[ingress]
+enabled = true
+threshold_tokens = 12000
+packet_tokens = 1600
+```
+
+When the threshold fires, Token Saver stores the exact prompt locally with a
+SHA-256 integrity digest and returns a blocking stage id before Claude processes
+the prompt. Resume with the generated plugin skill:
+
+```text
+/token-saver:ingress STAGE_ID
+```
+
+or manually:
+
+```bash
+token-saver ingress-show STAGE_ID --path .
+token-saver ingress-read STAGE_ID --path . --start-line 80 --end-line 140
+```
+
+The packet contains exact bounded head/tail excerpts plus explicit omitted line
+ranges. **There is no silent first-N-words truncation fallback.**
+
+## Persistent retrieval cache and optional Rust fastpath
+
+Application-level context building now caches completed packs across processes
+when the repository content fingerprint and retrieval configuration are
+identical. Source digests, index version, changed-file state, ranking feedback,
+working-set state, and budget/query settings are part of cache identity.
+Embeddings/custom ranking plugins bypass caching until their external state can
+be fingerprinted safely.
+
+```toml
+[retrieval]
+cache = true
+cache_max_entries = 64
+```
+
+Token Saver also has a separately buildable optional PyO3 accelerator under
+`rust/token_saver_fast`. Python remains the reference implementation and
+automatic fallback. Inspect the active backend with:
+
+```bash
+token-saver fastpath-status
+```
+
+CI builds the Rust wheel and reruns pack/retrieval/context-quality checks with
+the native backend required before accepting fastpath changes.
+
+The normal `claude-token-saver` wheel remains pure Python. To try the optional
+native accelerator from a source checkout:
+
+```bash
+python -m pip install maturin
+python -m pip install ./rust/token_saver_fast
+token-saver fastpath-status
+```
+
+If the extension is absent or fails to import, Token Saver automatically uses
+the Python reference implementation.
 
 ## Failure-aware tool output and diagnostic Delta
 
@@ -272,6 +358,64 @@ high-frequency context + durable-knowledge tools; `context` adds ranking,
 impact, feedback, index, and knowledge-status operations while omitting diff and
 output-specialist schemas. Unknown profile names fail closed instead of silently
 selecting another surface.
+
+## Knowledge-assisted read avoidance and cache economics
+
+The durable finding store can now participate in the source-read guard, but only
+behind an explicit opt-in:
+
+```bash
+TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE=1 claude
+TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE=1 \
+TOKEN_SAVER_CACHE_ECONOMICS=1 claude
+```
+
+For an unbounded source `Read`, Token Saver checks for `verified`, active
+findings anchored to that exact file. A changed/missing anchor, a probable or
+speculative finding, an allowlisted/non-source file, or a bounded range never
+qualifies. The replacement must be materially smaller than the file and tells
+the agent to request an exact `offset+limit` range whenever implementation
+bytes are needed.
+
+The optional cache-economics gate evaluates projected relative input cost rather
+than assuming that fewer raw tokens are always cheaper. It models an already
+cached prefix separately from the new frontier and charges prefix recreation
+when a proposed transformation invalidates cached history:
+
+```bash
+token-saver cache-economics \
+  --original-frontier-tokens 4000 \
+  --replacement-frontier-tokens 800 \
+  --cached-prefix-tokens 12000 \
+  --invalidates-cached-prefix \
+  --expected-reuses 2
+```
+
+The default 1.25 cache-write and 0.10 cache-read factors are planning defaults,
+not universal provider pricing. Override them for the active provider/model.
+
+### Frozen knowledge-efficiency holdout
+
+The feature is **not enabled by default and no end-to-end savings percentage is
+claimed yet**. A separate frozen causal experiment reuses the 24 SWE-bench
+Verified tasks at three trials per task. Both arms run the same current Token
+Saver binary, disable continuity/dedup/waste features, perform the same
+investigation phase, and explicitly persist verified findings. A fresh
+implementation session then compares memory-control against knowledge-assisted
+read avoidance plus the cache-economics gate.
+
+```bash
+token-saver knowledge-holdout \
+  benchmarks/knowledge-efficiency-swebench-24.frozen.json \
+  --out knowledge-holdout-runs.json \
+  --require-publishable
+```
+
+Publication requires independent task success, blind response-quality parity,
+complete cache-TTL-aware pricing, verified knowledge seeding in every arm-run,
+zero control read-avoidance activation, observed treatment activation, and a
+strictly positive task-cluster 95% confidence interval for cost-per-success
+reduction.
 
 ## Output Saver: reduce generated tokens too
 
@@ -764,6 +908,18 @@ simple.
 | `TOKEN_SAVER_MAX_LINES` | adaptive | filtered output line target |
 | `TOKEN_SAVER_KEEP_TAIL` | `15` | tail retained by generic filtering |
 | `TOKEN_SAVER_DELTA` | `0` | opt-in graph-aware pytest/Ruff diagnostic Delta |
+| `TOKEN_SAVER_INGRESS_OPTIMIZER` | `0` | opt-in lossless oversized-prompt staging before Claude processing |
+| `TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS` | `12000` | estimated prompt threshold for ingress staging |
+| `TOKEN_SAVER_INGRESS_PACKET_TOKENS` | `1600` | bounded staged packet target |
+| `TOKEN_SAVER_RETRIEVAL_CACHE` | `1` | persistent content-fingerprinted completed-pack cache |
+| `TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES` | `64` | bounded cache entries per project |
+| `TOKEN_SAVER_RUST_FASTPATH` | `1` | use optional native extension when installed; `0` forces Python |
+| `TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE` | `0` | opt-in verified-knowledge replacement for redundant full-file Reads |
+| `TOKEN_SAVER_CACHE_ECONOMICS` | `0` | require cache-aware projected-cost approval for knowledge read avoidance |
+| `TOKEN_SAVER_CACHE_EXPECTED_REUSES` | `2` | expected future cache reads in the planning model |
+| `TOKEN_SAVER_CACHE_WRITE_FACTOR` | `1.25` | relative cache-write input factor; provider/model override recommended |
+| `TOKEN_SAVER_CACHE_READ_FACTOR` | `0.10` | relative cache-read input factor; provider/model override recommended |
+| `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `0.05` | minimum projected relative savings for the runtime cache gate |
 | `TOKEN_SAVER_CACHE_TTL_MIN` | `5` | advisory cache-gap classification only |
 | `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | local state and recoverable output storage |
 

@@ -241,3 +241,86 @@ def test_efficiency_master_switch_disables_default_read_dedup(tmp_path, monkeypa
     record_read(tmp_path, path, _digest(path.read_text()))
 
     assert decide_read({"file_path": str(path)}, cwd=tmp_path) is None
+
+
+
+def test_verified_current_knowledge_can_avoid_full_read(tmp_path, monkeypatch):
+    """Opt-in knowledge avoidance should replace a redundant full source read."""
+    from token_saver.knowledge import FindingStore
+
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    path = _big_source(tmp_path / "known.py", n=100)
+    FindingStore(tmp_path).remember(
+        claim="The target behavior is implemented by foo",
+        anchors=["known.py::foo"],
+        evidence="foo is the relevant implementation entry point",
+        applicability="Use when working on the target behavior",
+        confidence="verified",
+    )
+
+    decision = decide_read({"file_path": str(path)}, cwd=tmp_path)
+
+    assert decision is not None
+    reason = decision["hookSpecificOutput"]["permissionDecisionReason"]
+    assert "avoided a full Read" in reason
+    assert "implemented by foo" in reason
+    assert "offset+limit" in reason
+
+
+def test_stale_knowledge_never_blocks_a_read(tmp_path, monkeypatch):
+    """Changing anchored source should disable automatic read avoidance."""
+    from token_saver.knowledge import FindingStore
+
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    path = _big_source(tmp_path / "known.py", n=100)
+    FindingStore(tmp_path).remember(
+        claim="The file contains the target behavior",
+        anchors=["known.py"],
+        evidence="Observed current implementation",
+        applicability="Use for target behavior",
+    )
+    path.write_text("x = 1\n" * 100, encoding="utf-8")
+
+    assert decide_read({"file_path": str(path)}, cwd=tmp_path) is None
+
+
+def test_non_verified_knowledge_never_blocks_a_read(tmp_path, monkeypatch):
+    """Probable/speculative findings must remain hints, not automatic read substitutes."""
+    from token_saver.knowledge import FindingStore
+
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    path = _big_source(tmp_path / "known.py", n=100)
+    FindingStore(tmp_path).remember(
+        claim="The file might contain the target behavior",
+        anchors=["known.py"],
+        evidence="Partial investigation only",
+        applicability="Use cautiously",
+        confidence="probable",
+    )
+
+    assert decide_read({"file_path": str(path)}, cwd=tmp_path) is None
+
+
+def test_cache_economics_can_reject_marginal_knowledge_replacement(
+    tmp_path,
+    monkeypatch,
+):
+    """An aggressive economic floor should preserve reads that do not clear it."""
+    from token_saver.knowledge import FindingStore
+
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_ECONOMICS", "1")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS", "0.99")
+    path = _big_source(tmp_path / "known.py", n=100)
+    FindingStore(tmp_path).remember(
+        claim="foo is relevant",
+        anchors=["known.py::foo"],
+        evidence="foo is the implementation",
+        applicability="Use for this task",
+    )
+
+    assert decide_read({"file_path": str(path)}, cwd=tmp_path) is None

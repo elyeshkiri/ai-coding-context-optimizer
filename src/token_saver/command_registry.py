@@ -14,7 +14,11 @@ from .command_handlers.context import (
     recall_main,
     remember_main,
 )
-from .command_handlers.efficiency import continuity_main, dashboard_main
+from .command_handlers.efficiency import (
+    cache_economics_main,
+    continuity_main,
+    dashboard_main,
+)
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     blind_grade_main,
@@ -27,11 +31,15 @@ from .command_handlers.experiment import (
     cost_report_main,
     evidence_run_main,
     experiment_main,
+    knowledge_holdout_evaluate_main,
+    knowledge_holdout_main,
     session_holdout_evaluate_main,
     session_holdout_main,
 )
 from .command_handlers.host import (
+    claude_plugin_path_main,
     commands_main,
+    fastpath_status_main,
     completion_main,
     doctor_main,
     host_check_main,
@@ -39,6 +47,7 @@ from .command_handlers.host import (
     setup_main,
     uninstall_main,
 )
+from .command_handlers.ingress import ingress_read_main, ingress_show_main
 from .command_handlers.output import (
     output_benchmark_main,
     output_calibrate_main,
@@ -108,9 +117,12 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("experiment", experiment_main),
         CommandSpec("evidence-run", evidence_run_main),
         CommandSpec("session-holdout", session_holdout_main),
+        CommandSpec("knowledge-holdout", knowledge_holdout_main),
+        CommandSpec("knowledge-holdout-evaluate", knowledge_holdout_evaluate_main),
         CommandSpec("session-holdout-evaluate", session_holdout_evaluate_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("dashboard", dashboard_main),
+        CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),
@@ -118,6 +130,10 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("completion", completion_main),
         CommandSpec("commands", commands_main),
         CommandSpec("host-check", host_check_main),
+        CommandSpec("claude-plugin-path", claude_plugin_path_main),
+        CommandSpec("fastpath-status", fastpath_status_main),
+        CommandSpec("ingress-show", ingress_show_main),
+        CommandSpec("ingress-read", ingress_read_main),
         CommandSpec("output-policy", output_policy_main),
         CommandSpec("output-benchmark", output_benchmark_main),
         CommandSpec("output-calibrate", output_calibrate_main),

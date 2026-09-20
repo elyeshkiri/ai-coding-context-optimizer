@@ -79,6 +79,15 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert "continuity = true" in config_text
     assert "dedup = true" in config_text
     assert "waste_detection = true" in config_text
+    assert "knowledge_read_avoidance = false" in config_text
+    assert "cache_economics = false" in config_text
+    assert "cache_expected_reuses = 2" in config_text
+    assert "[ingress]" in config_text
+    assert "threshold_tokens = 12000" in config_text
+    assert "packet_tokens = 1600" in config_text
+    assert "[retrieval]" in config_text
+    assert "cache = true" in config_text
+    assert "cache_max_entries = 64" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
@@ -439,6 +448,12 @@ enabled = false
 continuity = false
 dedup = false
 waste_detection = false
+knowledge_read_avoidance = true
+cache_economics = true
+cache_expected_reuses = 4
+cache_write_factor = 1.5
+cache_read_factor = 0.2
+cache_min_relative_savings = 0.12
 """,
         encoding="utf-8",
     )
@@ -448,6 +463,12 @@ waste_detection = false
     assert settings.continuity_enabled is False
     assert settings.cross_turn_dedup is False
     assert settings.waste_detection is False
+    assert settings.knowledge_read_avoidance is True
+    assert settings.cache_economics is True
+    assert settings.cache_expected_reuses == 4
+    assert settings.cache_write_factor == 1.5
+    assert settings.cache_read_factor == 0.2
+    assert settings.cache_min_relative_savings == 0.12
 
     hook_config = _config_from_env(root)
     assert hook_config.efficiency_enabled is False
@@ -459,12 +480,24 @@ waste_detection = false
     monkeypatch.setenv("TOKEN_SAVER_CONTINUITY", "1")
     monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "1")
     monkeypatch.setenv("TOKEN_SAVER_WASTE_DETECTION", "1")
+    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "0")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_ECONOMICS", "0")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_EXPECTED_REUSES", "7")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_WRITE_FACTOR", "1.75")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_READ_FACTOR", "0.15")
+    monkeypatch.setenv("TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS", "0.2")
     overridden = settings_for(root)
 
     assert overridden.efficiency_enabled is True
     assert overridden.continuity_enabled is True
     assert overridden.cross_turn_dedup is True
     assert overridden.waste_detection is True
+    assert overridden.knowledge_read_avoidance is False
+    assert overridden.cache_economics is False
+    assert overridden.cache_expected_reuses == 7
+    assert overridden.cache_write_factor == 1.75
+    assert overridden.cache_read_factor == 0.15
+    assert overridden.cache_min_relative_savings == 0.2
 
 
 def test_posttool_hook_observes_edit_and_write_for_continuity(tmp_path):
@@ -486,3 +519,50 @@ def test_posttool_hook_observes_edit_and_write_for_continuity(tmp_path):
         )
     )
     assert token_saver["matcher"] == "Bash|Read|Edit|Write"
+
+
+
+def test_ingress_and_retrieval_cache_config_environment_overrides(
+    tmp_path,
+    monkeypatch,
+):
+    """Ingress and retrieval caching should resolve from TOML then environment."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / ".token-saver.toml").write_text(
+        """[ingress]
+enabled = true
+threshold_tokens = 9000
+packet_tokens = 1200
+
+[retrieval]
+cache = false
+cache_max_entries = 12
+""",
+        encoding="utf-8",
+    )
+
+    settings = settings_for(root)
+    assert settings.ingress_enabled is True
+    assert settings.ingress_threshold_tokens == 9000
+    assert settings.ingress_packet_tokens == 1200
+    assert settings.retrieval_cache is False
+    assert settings.retrieval_cache_max_entries == 12
+
+    hook_config = _config_from_env(root)
+    assert hook_config.ingress_enabled is True
+    assert hook_config.ingress_threshold_tokens == 9000
+    assert hook_config.ingress_packet_tokens == 1200
+
+    monkeypatch.setenv("TOKEN_SAVER_INGRESS_OPTIMIZER", "0")
+    monkeypatch.setenv("TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS", "14000")
+    monkeypatch.setenv("TOKEN_SAVER_INGRESS_PACKET_TOKENS", "1800")
+    monkeypatch.setenv("TOKEN_SAVER_RETRIEVAL_CACHE", "1")
+    monkeypatch.setenv("TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES", "90")
+    overridden = settings_for(root)
+
+    assert overridden.ingress_enabled is False
+    assert overridden.ingress_threshold_tokens == 14000
+    assert overridden.ingress_packet_tokens == 1800
+    assert overridden.retrieval_cache is True
+    assert overridden.retrieval_cache_max_entries == 90

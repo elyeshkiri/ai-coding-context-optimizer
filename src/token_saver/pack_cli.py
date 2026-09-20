@@ -36,6 +36,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--strict-semantic", action="store_true",
                         help="fail instead of falling back when compiler semantic resolution is unavailable")
     parser.add_argument("--no-index-cache", action="store_true")
+    parser.add_argument(
+        "--no-retrieval-cache",
+        action="store_true",
+        help="bypass persistent completed-pack reuse for this invocation",
+    )
     parser.add_argument("--target-symbol", help="prioritize and emit an exact symbol body")
     parser.add_argument("--json", action="store_true", help="emit structured JSON metadata and text")
     parser.add_argument("--explain", action="store_true",
@@ -55,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
             root,
             use_gitignore=not args.no_gitignore,
             persist_index=not args.no_index_cache,
+            retrieval_cache_enabled=not args.no_retrieval_cache,
         )
         semantic_enabled = True if (args.typescript_semantic or args.strict_semantic) else None
         semantic_edges = repository.enrich_typescript(
@@ -89,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
             "redactions": pack.redactions,
             "closure_files": pack.closure_files,
             "retrieval_plan": pack.retrieval_plan,
+            "cache_hit": pack.cache_hit,
+            "cache_key": pack.cache_key,
             "typescript_semantic_edges": semantic_edges,
         }
         rendered = json.dumps(payload, indent=2)
@@ -100,7 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.out).write_text(pack.text, encoding="utf-8")
         print(
             f"wrote {args.out} ({pack.estimated_tokens} estimated tokens, "
-            f"{len(pack.selected_files)}/{pack.scanned_files} files)",
+            f"{len(pack.selected_files)}/{pack.scanned_files} files"
+            + (", cache hit" if pack.cache_hit else "")
+            + ")",
             file=sys.stderr,
         )
     else:
