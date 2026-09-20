@@ -43,18 +43,20 @@ jobs:
           fi
       - name: Verify Docker
         run: docker version
-      - name: Validate frozen suite and schedule
+      - name: Validate frozen suite, grader, pricing, and schedule
         run: |
-          token-saver experiment benchmarks/e2e-swebench-24.frozen.json \
+          token-saver evidence-run benchmarks/e2e-swebench-24.frozen.json \
             --out /tmp/dry-runs.json \
             --dry-run > /tmp/schedule.json
           python - <<'PY'
           import json
           p = json.load(open("/tmp/schedule.json"))
-          assert p["task_count"] == 24
-          assert p["paired_trials"] == 72
-          assert p["run_count"] == 144
-          print("frozen schedule:", p["task_count"], "tasks,", p["run_count"], "runs")
+          e = p["experiment"]
+          assert e["task_count"] == 24
+          assert e["paired_trials"] == 72
+          assert e["run_count"] == 144
+          assert p["grader"]["judge"] == "claude-sonnet-5"
+          print("frozen schedule:", e["task_count"], "tasks,", e["run_count"], "runs")
           PY
       - name: Build task matrix
         id: matrix
