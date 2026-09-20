@@ -307,6 +307,8 @@ def evaluate_agent_runs(path: Path) -> dict:
         claim_blockers.append("quality_regression")
     if tokens_per_success_reduction is None:
         claim_blockers.append("tokens_per_success_unavailable")
+    elif tokens_per_success_reduction <= 0:
+        claim_blockers.append("no_positive_tokens_per_success_reduction")
 
     return {
         "tasks": len(trials_by_task),
