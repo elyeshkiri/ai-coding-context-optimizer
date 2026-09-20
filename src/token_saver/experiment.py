@@ -22,6 +22,7 @@ from .benchmark import (
 )
 from .install import HOOK_COMMAND, install, user_settings_path
 from .output_telemetry import load_output_telemetry_from_state
+from .session_metrics import efficiency_event_metrics, transcript_session_metrics
 from .sessions import analyze, transcript_paths
 
 CONDITIONS = ("baseline", "enabled")
@@ -109,6 +110,40 @@ def validate_suite(
     mode = runner.get("transcript_mode", "claude-project")
     if mode not in {"claude-project", "path"}:
         raise ValueError("runner.transcript_mode must be claude-project or path")
+    profiles = runner.get("condition_profiles")
+    if profiles is not None:
+        if not isinstance(profiles, dict) or set(profiles) != set(CONDITIONS):
+            raise ValueError(
+                "runner.condition_profiles must define exactly baseline and enabled"
+            )
+        for condition in CONDITIONS:
+            profile = profiles[condition]
+            if not isinstance(profile, dict):
+                raise ValueError(
+                    f"runner.condition_profiles.{condition} must be an object"
+                )
+            install_token_saver = profile.get("install_token_saver")
+            if not isinstance(install_token_saver, bool):
+                raise ValueError(
+                    "runner.condition_profiles."
+                    + condition
+                    + ".install_token_saver must be boolean"
+                )
+            label = profile.get("label")
+            if label is not None and (
+                not isinstance(label, str) or not label.strip()
+            ):
+                raise ValueError(
+                    f"runner.condition_profiles.{condition}.label must be nonempty"
+                )
+            profile_env = profile.get("env", {})
+            if not isinstance(profile_env, dict) or not all(
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in profile_env.items()
+            ):
+                raise ValueError(
+                    f"runner.condition_profiles.{condition}.env must be string-to-string"
+                )
 
     seen: set[str] = set()
     for task in tasks:
@@ -313,6 +348,23 @@ def _export_history_isolated_snapshot(
         raise ValueError(
             f"failed to initialize isolated benchmark snapshot: {proc.stderr.strip()}"
         )
+
+
+def _condition_profile(runner: dict, condition: str) -> dict:
+    """Return one normalized experimental condition profile."""
+    profiles = runner.get("condition_profiles")
+    if isinstance(profiles, dict):
+        raw = profiles[condition]
+        return {
+            "label": str(raw.get("label") or condition),
+            "install_token_saver": bool(raw["install_token_saver"]),
+            "env": dict(raw.get("env", {})),
+        }
+    return {
+        "label": condition,
+        "install_token_saver": condition == "enabled",
+        "env": {},
+    }
 
 
 def _expand_command(
@@ -626,14 +678,17 @@ def run_experiment(
             "paired_trials": len(schedule) // 2,
             "run_count": len(schedule),
             "schedule": schedule,
+            "condition_profiles": {
+                condition: _condition_profile(suite["runner"], condition)
+                for condition in CONDITIONS
+            },
             "task_definition_sha256": task_definition_hash(suite),
         }
 
     if user_token_saver_hook_configured() and not allow_user_hook:
         raise ValueError(
             "user-level 'token-saver hook' is configured. Remove/disable it for "
-            "the experiment so the enabled arm is not instrumented twice; the "
-            "baseline arm is still protected by TOKEN_SAVER_DISABLED=1."
+            "the experiment so benchmark condition profiles are not instrumented twice."
         )
 
     base_dir = suite_path.parent
@@ -718,11 +773,14 @@ def run_experiment(
                 env["TOKEN_SAVER_BENCHMARK_TRIAL"] = str(item["trial"])
                 run_state_dir = run_dir / "token-saver-state"
                 env["TOKEN_SAVER_STATE_DIR"] = str(run_state_dir)
-                if item["condition"] == "baseline":
-                    env["TOKEN_SAVER_DISABLED"] = "1"
-                else:
+                profile = _condition_profile(runner, item["condition"])
+                env.update(profile["env"])
+                instrumented = profile["install_token_saver"]
+                if instrumented:
                     env.pop("TOKEN_SAVER_DISABLED", None)
                     install(worktree)
+                else:
+                    env["TOKEN_SAVER_DISABLED"] = "1"
 
                 before = set(transcript_paths(worktree))
                 command = _expand_command(
@@ -773,6 +831,8 @@ def run_experiment(
                     )
 
                 usage = _transcript_usage(transcript)
+                session_metrics = transcript_session_metrics(transcript)
+                efficiency_telemetry = efficiency_event_metrics(run_state_dir)
                 policy_telemetry = (
                     _policy_telemetry(
                         run_state_dir,
@@ -781,7 +841,7 @@ def run_experiment(
                         condition=str(item["condition"]),
                         transcript_usage=usage,
                     )
-                    if item["condition"] == "enabled"
+                    if instrumented
                     else None
                 )
 
@@ -789,7 +849,7 @@ def run_experiment(
                 # The enabled arm creates .claude/settings.json so its hook can run,
                 # but that file is not part of the agent's solution and must never
                 # be sent to the independent grader.
-                if item["condition"] == "enabled":
+                if instrumented:
                     if original_settings is None:
                         settings_path.unlink(missing_ok=True)
                         try:
@@ -924,6 +984,7 @@ def run_experiment(
                     "task": task["id"],
                     "trial": item["trial"],
                     "condition": item["condition"],
+                    "condition_label": profile["label"],
                     "sequence": sequence,
                     "revision": task["revision"],
                     "model": model,
@@ -943,6 +1004,8 @@ def run_experiment(
                         policy_telemetry["policy_budget"] if policy_telemetry else None
                     ),
                     "output_policy_telemetry": policy_telemetry,
+                    "session_metrics": session_metrics,
+                    "session_efficiency_telemetry": efficiency_telemetry,
                     "agent_exit_code": agent_rc,
                     "verification": verification,
                     "agent_patch": str(agent_patch.relative_to(output_path.parent)),
