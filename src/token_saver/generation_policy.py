@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .output_saver import OUTPUT_MODES, OUTPUT_TASKS, build_output_policy
 from .policy import looks_like_new_task
+from .state import load as load_state
 from .state import update as update_state
 
 AUTO_OUTPUT_TASK = "auto"
@@ -63,10 +64,10 @@ def classify_output_task(prompt: str) -> str | None:
         return "debugging"
     if _REVIEW_RE.search(text):
         return "review"
-    if _PLAN_RE.search(text):
-        return "planning"
     if _CODING_RE.search(text):
         return "coding"
+    if _PLAN_RE.search(text):
+        return "planning"
     if _EXPLANATION_RE.search(text) or text.rstrip().endswith("?"):
         return "explanation"
     return None
@@ -116,54 +117,49 @@ def automatic_output_policy(
     )
     requested_mode = explicit_output_mode(prompt)
     new_task = looks_like_new_task(prompt)
-    decision: dict[str, object] = {}
+    data = load_state(root, session_id)
+    previous = data.get("output_policy")
+    if not isinstance(previous, dict):
+        previous = {}
 
-    def mutate(data: dict) -> None:
-        previous = data.get("output_policy")
-        if not isinstance(previous, dict):
-            previous = {}
+    previous_task = str(previous.get("task") or "")
+    previous_mode = str(previous.get("mode") or "")
 
-        previous_task = str(previous.get("task") or "")
-        previous_mode = str(previous.get("mode") or "")
+    if configured_task != AUTO_OUTPUT_TASK:
+        resolved_task = configured_task
+    elif detected_task:
+        resolved_task = detected_task
+    elif previous_task in OUTPUT_TASKS and not new_task:
+        resolved_task = previous_task
+    else:
+        resolved_task = "general"
 
-        if configured_task != AUTO_OUTPUT_TASK:
-            resolved_task = configured_task
-        elif detected_task:
-            resolved_task = detected_task
-        elif previous_task in OUTPUT_TASKS and not new_task:
-            resolved_task = previous_task
-        else:
-            resolved_task = "general"
+    if requested_mode:
+        resolved_mode = requested_mode
+    elif (
+        previous_mode in OUTPUT_MODES
+        and previous_task == resolved_task
+        and not new_task
+    ):
+        resolved_mode = previous_mode
+    else:
+        resolved_mode = configured_mode
 
-        if requested_mode:
-            resolved_mode = requested_mode
-        elif (
-            previous_mode in OUTPUT_MODES
-            and previous_task == resolved_task
-            and not new_task
-        ):
-            resolved_mode = previous_mode
-        else:
-            resolved_mode = configured_mode
+    signature = f"{resolved_mode}:{resolved_task}"
+    if str(previous.get("signature") or "") == signature and not new_task:
+        return None
 
-        signature = f"{resolved_mode}:{resolved_task}"
-        previous_signature = str(previous.get("signature") or "")
-        if previous_signature == signature and not new_task:
-            return
+    policy = build_output_policy(resolved_mode, task=resolved_task)
 
-        policy = build_output_policy(resolved_mode, task=resolved_task)
-        data["output_policy"] = {
+    def mutate(current: dict) -> None:
+        current["output_policy"] = {
             "signature": signature,
             "mode": policy.mode,
             "task": policy.task,
             "max_tokens": policy.max_tokens,
         }
-        decision["policy"] = policy
 
     update_state(root, mutate, session_id)
-    policy = decision.get("policy")
-    if policy is None:
-        return None
 
     return (
         "TOKEN SAVER GENERATION POLICY — apply for this task until it changes:\n"
