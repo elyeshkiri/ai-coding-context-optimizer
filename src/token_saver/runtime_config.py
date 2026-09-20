@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import os
 from pathlib import Path
 
@@ -76,6 +77,15 @@ def _positive_int(value: object, fallback: int) -> int:
     )
 
 
+def _nonnegative_int(value: object, fallback: int) -> int:
+    """Normalize a nonnegative integer setting."""
+    return (
+        value
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0
+        else fallback
+    )
+
+
 def _choice(value: object, fallback: str, choices: tuple[str, ...]) -> str:
     """Normalize a string choice while preserving fallback for invalid values."""
     if not isinstance(value, str):
@@ -97,7 +107,7 @@ def _positive_float(value: object, fallback: float) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return fallback
     numeric = float(value)
-    return numeric if numeric > 0 else fallback
+    return numeric if math.isfinite(numeric) and numeric > 0 else fallback
 
 
 def _fraction(value: object, fallback: float) -> float:
@@ -105,7 +115,7 @@ def _fraction(value: object, fallback: float) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return fallback
     numeric = float(value)
-    return numeric if 0 <= numeric <= 1 else fallback
+    return numeric if math.isfinite(numeric) and 0 <= numeric <= 1 else fallback
 
 
 def _optional_positive_int(
@@ -180,7 +190,7 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
             False,
         ),
         cache_economics=_bool(efficiency.get("cache_economics"), False),
-        cache_expected_reuses=_positive_int(
+        cache_expected_reuses=_nonnegative_int(
             efficiency.get("cache_expected_reuses"),
             2,
         ),
@@ -240,7 +250,9 @@ def _env_float(
         value = float(raw)
     except ValueError:
         return fallback
-    if value < minimum or (maximum is not None and value > maximum):
+    if not math.isfinite(value) or value < minimum or (
+        maximum is not None and value > maximum
+    ):
         return fallback
     return value
 
