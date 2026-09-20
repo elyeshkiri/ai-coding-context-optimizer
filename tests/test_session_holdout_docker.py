@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from token_saver.session_holdout_docker import (
     _base_docker,
     _continuity_checkpoint,
+    _repository_status,
     _validate_result,
 )
 
@@ -131,3 +132,41 @@ def test_validate_result_accepts_multiline_json_envelope():
         ),
         "phase 2",
     )
+
+
+
+def test_repository_status_ignores_managed_claude_files_but_detects_agent_edits(
+    tmp_path
+):
+    """Phase-1 mutation guard should ignore hook config but catch source edits."""
+    import subprocess
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.test"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "Test"],
+        check=True,
+    )
+    (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "-m", "fixture"],
+        check=True,
+        capture_output=True,
+    )
+    claude = repo / ".claude"
+    claude.mkdir()
+    (claude / "settings.json").write_text("{}", encoding="utf-8")
+
+    assert _repository_status(repo) == ()
+
+    (repo / "app.py").write_text("value = 2\n", encoding="utf-8")
+    status = _repository_status(repo)
+
+    assert len(status) == 1
+    assert "app.py" in status[0]
