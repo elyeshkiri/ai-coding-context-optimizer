@@ -19,6 +19,7 @@ GuardService = Callable[[dict], HookResponse]
 DeltaService = Callable[..., tuple[str, dict]]
 StoreOutputService = Callable[[dict], str]
 UserNudgeService = Callable[[Path, str], str | None]
+GenerationPolicyService = Callable[..., str | None]
 ResetSessionService = Callable[..., None]
 RecordReadService = Callable[..., None]
 DigestService = Callable[[str], str]
@@ -57,6 +58,9 @@ class HookConfig:
     max_lines: int | None = None
     min_net_tokens: int = MIN_NET_TOKENS
     filterable_tools: frozenset[str] = DEFAULT_FILTERABLE_TOOLS
+    output_policy_enabled: bool = True
+    output_policy_mode: str = "normal"
+    output_policy_task: str = "auto"
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,7 @@ class HookServices:
     apply_delta: DeltaService
     store_output: StoreOutputService
     user_nudge: UserNudgeService
+    generation_policy: GenerationPolicyService
     reset_session: ResetSessionService
     record_read: RecordReadService
     digest: DigestService
@@ -211,12 +216,30 @@ class HookRuntime:
         return 0, None
 
     def run_user_prompt(self, payload: dict) -> HookResponse:
-        """Return a policy nudge for a user prompt when the service provides one."""
+        """Inject compact lifecycle and generation policy only when needed."""
 
         root = self.cwd(payload)
         prompt = str(payload.get("prompt") or payload.get("user_prompt") or "")
-        note = self.services.user_nudge(root, prompt)
-        return (0, {"systemMessage": note}) if note else (0, None)
+        notes: list[str] = []
+
+        if self.config.output_policy_enabled:
+            generation_note = self.services.generation_policy(
+                root,
+                prompt,
+                session_id=payload.get("session_id"),
+                mode=self.config.output_policy_mode,
+                task=self.config.output_policy_task,
+            )
+            if generation_note:
+                notes.append(generation_note)
+
+        lifecycle_note = self.services.user_nudge(root, prompt)
+        if lifecycle_note:
+            notes.append(lifecycle_note)
+
+        if not notes:
+            return 0, None
+        return 0, {"systemMessage": "\n".join(notes)}
 
     def run_post_read(self, payload: dict) -> None:
         """Record a verified full-file read while ignoring ranged reads."""
