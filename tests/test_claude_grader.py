@@ -40,6 +40,5 @@ def test_claude_grader_disables_side_effect_tools(monkeypatch):
     assert "--permission-mode" in command
     assert command[command.index("--permission-mode") + 1] == "plan"
     denied = command[command.index("--disallowedTools") + 1]
-    for tool in ("Bash", "Read", "Write", "WebFetch", "WebSearch"):
-        assert tool in denied
+    assert denied == "*"
     assert captured["kwargs"]["check"] is False
