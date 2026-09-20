@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -23,8 +24,45 @@ def _case_text(case: dict, manifest: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def evaluate_quality_manifest(manifest: Path) -> dict:
-    """Evaluate quality manifest."""
+def quality_definition_hash(payload: dict) -> str:
+    """Return the canonical SHA-256 of an output-quality case definition."""
+    cases = payload.get("cases") if isinstance(payload, dict) else None
+    if not isinstance(cases, list) or not cases:
+        raise ValueError("quality manifest must contain a non-empty 'cases' list")
+    computed_hash = quality_definition_hash(payload)
+    protocol = payload.get("protocol")
+    declared_hash = (
+        str(protocol.get("definition_sha256") or "").strip()
+        if isinstance(protocol, dict)
+        else ""
+    )
+    frozen_valid = bool(
+        isinstance(protocol, dict)
+        and protocol.get("frozen") is True
+        and isinstance(protocol.get("frozen_at"), str)
+        and bool(protocol.get("frozen_at").strip())
+        and declared_hash == computed_hash
+    )
+    if require_frozen and not frozen_valid:
+        raise ValueError(
+            "frozen output-quality manifest requires frozen=true, frozen_at, "
+            "and matching definition_sha256"
+        )
+    canonical = json.dumps(
+        cases,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def evaluate_quality_manifest(
+    manifest: Path,
+    *,
+    require_frozen: bool = False,
+) -> dict:
+    """Evaluate one output-quality manifest and optional freeze contract."""
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     cases = payload.get("cases") if isinstance(payload, dict) else None
     if not isinstance(cases, list) or not cases:
@@ -112,6 +150,19 @@ def evaluate_quality_manifest(manifest: Path) -> dict:
     original = sum(item["original_tokens"] for item in results)
     output = sum(item["output_tokens"] for item in results)
     return {
+        "protocol": {
+            "frozen": bool(
+                isinstance(protocol, dict) and protocol.get("frozen") is True
+            ),
+            "frozen_at": (
+                protocol.get("frozen_at")
+                if isinstance(protocol, dict)
+                else None
+            ),
+            "declared_definition_sha256": declared_hash or None,
+            "computed_definition_sha256": computed_hash,
+            "valid": frozen_valid,
+        },
         "cases": results,
         "summary": {
             "case_count": len(results),
