@@ -9,6 +9,12 @@ from pathlib import Path
 from statistics import median
 from typing import Any
 
+from .paired_conditions import (
+    BASELINE_CONDITION,
+    OPTIMIZED_CONDITION,
+    normalize_condition,
+)
+
 
 @dataclass(frozen=True)
 class Pricing:
@@ -351,20 +357,25 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
     if not isinstance(raw, list) or not raw:
         raise ValueError(f"{path}: paired agent manifest requires a non-empty 'runs' list")
 
-    by_condition: dict[str, list[Run]] = {"baseline": [], "token-saver": []}
+    by_condition: dict[str, list[Run]] = {
+        BASELINE_CONDITION: [],
+        OPTIMIZED_CONDITION: [],
+    }
     seen: set[tuple[str, str, str]] = set()
     tasks_by_condition: dict[str, set[tuple[str, str]]] = {
-        "baseline": set(), "token-saver": set(),
+        BASELINE_CONDITION: set(),
+        OPTIMIZED_CONDITION: set(),
     }
 
     for position, item in enumerate(raw, start=1):
         if not isinstance(item, dict):
             raise ValueError(f"{path}: run {position} must be an object")
         task_id = str(item.get("task", "")).strip()
-        condition = str(item.get("condition", "")).strip()
+        condition = normalize_condition(item.get("condition", ""))
         if not task_id or condition not in by_condition:
             raise ValueError(
-                f"{path}: each paired run requires task and condition baseline|token-saver"
+                f"{path}: each paired run requires task and condition "
+                "baseline|token-saver|enabled"
             )
         trial = _trial(item.get("trial"), f"{path}: run {task_id!r}/{condition}")
         key = (task_id, trial, condition)
@@ -418,8 +429,8 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
             trial=trial,
         ))
 
-    baseline_tasks = tasks_by_condition["baseline"]
-    optimized_tasks = tasks_by_condition["token-saver"]
+    baseline_tasks = tasks_by_condition[BASELINE_CONDITION]
+    optimized_tasks = tasks_by_condition[OPTIMIZED_CONDITION]
     if baseline_tasks != optimized_tasks:
         missing_optimized = sorted(_label(*k) for k in baseline_tasks - optimized_tasks)
         missing_baseline = sorted(_label(*k) for k in optimized_tasks - baseline_tasks)
@@ -427,7 +438,7 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
             f"{path}: unpaired tasks; missing token-saver={missing_optimized}, "
             f"missing baseline={missing_baseline}"
         )
-    return by_condition["baseline"], by_condition["token-saver"]
+    return by_condition[BASELINE_CONDITION], by_condition[OPTIMIZED_CONDITION]
 
 
 def compare_paired_agent_file(path: Path, *, pricing: Pricing | None = None) -> dict:
