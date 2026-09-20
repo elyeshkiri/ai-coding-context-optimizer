@@ -226,6 +226,7 @@ def test_automatic_policy_consumes_quality_calibration_artifact(tmp_path, monkey
                     "normal": {
                         "recommended_tokens": 700,
                         "samples": 6,
+                        "tasks": 3,
                         "p90_output_tokens": 600,
                         "margin": 1.15,
                     }
