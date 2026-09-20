@@ -624,14 +624,97 @@ command being explained. Consumers should tolerate additive diagnostic keys.
 
 ```json
 {
-  "cases": [],
+  "protocol": {
+    "frozen": true,
+    "frozen_at": "2026-09-20T13:00:00Z",
+    "declared_definition_sha256": "...",
+    "computed_definition_sha256": "...",
+    "valid": true
+  },
+  "cases": [
+    {
+      "id": "lint-ruff-diagnostics",
+      "processor": "lint",
+      "missing_required": [],
+      "introduced_forbidden": [],
+      "preservation_ok": true,
+      "no_hallucination": true,
+      "passed": true
+    }
+  ],
   "summary": {
-    "failed": 0
+    "failed": 0,
+    "preservation_rate": 1.0,
+    "no_hallucination_rate": 1.0
   }
 }
 ```
 
-Exit `1` means one or more replay quality contracts failed.
+Exit `1` means one or more replay quality contracts failed. With
+`--require-frozen`, malformed/mutated freeze metadata exits `2`.
+
+## `dashboard --json`
+
+```json
+{
+  "schema": 1,
+  "window_days": 7,
+  "savings": {
+    "estimated_tool_context_tokens": 4200,
+    "by_feature": {
+      "cross_turn_dedup": 1800,
+      "output_compression": 1600,
+      "unchanged_read_block": 800
+    },
+    "events": 8,
+    "trust": "Estimated from observed before/after local tool text..."
+  },
+  "continuity": {
+    "restores": 2,
+    "tracked_sessions": 3
+  },
+  "behavior": {
+    "signals": {
+      "retry_loop": 1
+    },
+    "events": 1
+  },
+  "billed_usage": {
+    "input_tokens": 12000,
+    "cache_read_input_tokens": 44000,
+    "output_tokens": 3200
+  },
+  "evidence": {
+    "task_success": false,
+    "quality_verified": false
+  }
+}
+```
+
+The savings bucket is operational before/after estimation, not billed-dollar or
+cost-per-success evidence. `billed_usage` comes from exact available Claude
+transcript counters for the same requested time window.
+
+## `continuity --json`
+
+```json
+{
+  "schema": 1,
+  "available": true,
+  "task": "debugging",
+  "working_files": [
+    {"path": "src/auth.py", "action": "edit", "at": 0}
+  ],
+  "commands": [],
+  "failures": [],
+  "validations": [],
+  "last_activity": 0,
+  "privacy": "No raw user prompt, assistant response, or tool output is stored..."
+}
+```
+
+Command labels, when present, are bounded and credential-redacted before local
+persistence.
 
 ## `pack-diff --json`
 
