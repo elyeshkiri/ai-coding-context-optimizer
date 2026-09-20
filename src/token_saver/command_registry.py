@@ -9,7 +9,10 @@ from .command_handlers.context import (
     browse_main,
     feedback_main,
     impact_main,
+    knowledge_status_main,
     ranking_explain_main,
+    recall_main,
+    remember_main,
 )
 from .command_handlers.efficiency import continuity_main, dashboard_main
 from .command_handlers.evaluation import (
@@ -93,6 +96,9 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("browse", browse_main),
         CommandSpec("feedback", feedback_main),
         CommandSpec("ranking-explain", ranking_explain_main),
+        CommandSpec("remember", remember_main),
+        CommandSpec("recall", recall_main),
+        CommandSpec("knowledge-status", knowledge_status_main),
         CommandSpec("evaluate", evaluate_main),
         CommandSpec("agent-evaluate", agent_evaluate_main),
         CommandSpec("blind-grade", blind_grade_main),
