@@ -300,7 +300,7 @@ def calibrate_output_budgets(path: Path, *, margin: float = 1.15) -> dict:
             )
         pair[condition] = run
 
-    samples: dict[tuple[str, str], list[int]] = {}
+    samples: dict[tuple[str, str], list[tuple[str, int]]] = {}
     for pair in pairs.values():
         if set(pair) != {"baseline", "token-saver"}:
             continue
@@ -319,18 +319,21 @@ def calibrate_output_budgets(path: Path, *, margin: float = 1.15) -> dict:
             or output_tokens <= 0
         ):
             continue
-        samples.setdefault((task, mode), []).append(output_tokens)
+        samples.setdefault((task, mode), []).append((str(optimized["task"]), output_tokens))
 
     recommendations: dict[str, dict[str, dict]] = {}
-    for (task, mode), values in sorted(samples.items()):
-        if len(values) < 3:
+    for (task, mode), records in sorted(samples.items()):
+        task_ids = {task_id for task_id, _ in records}
+        if len(records) < 3 or len(task_ids) < 3:
             continue
+        values = [output_tokens for _, output_tokens in records]
         p90 = _percentile(values, 0.90)
         lower, upper = _MODE_BOUNDS[mode]
         recommended = _clamp(math.ceil(p90 * margin), lower, upper)
         recommendations.setdefault(task, {})[mode] = {
             "recommended_tokens": recommended,
             "samples": len(values),
+            "tasks": len(task_ids),
             "p90_output_tokens": p90,
             "margin": margin,
         }
