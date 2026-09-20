@@ -61,6 +61,10 @@ class HookConfig:
     output_policy_enabled: bool = True
     output_policy_mode: str = "normal"
     output_policy_task: str = "auto"
+    output_policy_adaptive: bool = True
+    output_policy_min_tokens: int | None = None
+    output_policy_max_tokens: int | None = None
+    output_policy_calibration_file: str = ".token-saver.output-calibration.json"
 
 
 @dataclass(frozen=True)
@@ -229,6 +233,10 @@ class HookRuntime:
                 session_id=payload.get("session_id"),
                 mode=self.config.output_policy_mode,
                 task=self.config.output_policy_task,
+                adaptive=self.config.output_policy_adaptive,
+                min_tokens=self.config.output_policy_min_tokens,
+                max_tokens=self.config.output_policy_max_tokens,
+                calibration_file=self.config.output_policy_calibration_file,
             )
             if generation_note:
                 response["hookSpecificOutput"] = {
