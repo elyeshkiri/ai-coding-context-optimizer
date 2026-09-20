@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 
 from ..efficiency import continuity_report, dashboard_report
+from ..efficiency.dashboard import render_dashboard_html
 
 
 def _tokens(value: object) -> str:
@@ -28,12 +29,24 @@ def dashboard_main(argv: list[str]) -> int:
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--html",
+        metavar="FILE",
+        help="write a self-contained local HTML dashboard",
+    )
     args = parser.parse_args(argv)
     try:
         report = dashboard_report(Path(args.path), days=args.days)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    if args.html:
+        destination = Path(args.html).expanduser()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(
+            render_dashboard_html(report),
+            encoding="utf-8",
+        )
     if args.json:
         print(json.dumps(report, indent=2))
         return 0
@@ -61,6 +74,8 @@ def dashboard_main(argv: list[str]) -> int:
     print(f"  cache read         {_tokens(usage.get('cache_read_input_tokens')):>8}")
     print(f"  output             {_tokens(usage.get('output_tokens')):>8}")
     print("note: local savings are operational estimates, not a cost/success claim")
+    if args.html:
+        print(f"html: {Path(args.html).expanduser().resolve()}")
     return 0
 
 
