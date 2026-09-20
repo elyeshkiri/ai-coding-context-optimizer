@@ -46,13 +46,14 @@ class McpToolRegistry:
 
 def _build_context(context: McpToolContext, arguments: dict) -> dict:
     """Build a task-aware source context pack."""
+    semantic = bool(
+        arguments.get("semantic", arguments.get("embeddings", False))
+    )
     pack = context.repository.build_context(
         str(arguments.get("query", "")),
         max_tokens=int(arguments.get("max_tokens", 6000)),
         target_symbol=arguments.get("target_symbol"),
-        embeddings=bool(
-            arguments.get("semantic", arguments.get("embeddings", False))
-        ),
+        embeddings=semantic,
     )
     return {
         "text": pack.text,
@@ -63,6 +64,9 @@ def _build_context(context: McpToolContext, arguments: dict) -> dict:
         "closure_files": pack.closure_files,
         "cache_hit": pack.cache_hit,
         "cache_key": pack.cache_key,
+        "semantic_index": (
+            context.repository.semantic_index_status() if semantic else None
+        ),
     }
 
 
