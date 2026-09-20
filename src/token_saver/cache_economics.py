@@ -8,6 +8,7 @@ the decision logic deterministic and testable.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
 
 
 @dataclass(frozen=True)
@@ -41,9 +42,12 @@ def _nonnegative_int(value: int, name: str) -> int:
 
 def _positive_factor(value: float, name: str) -> float:
     """Validate one positive pricing factor."""
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
-        raise ValueError(f"{name} must be a positive number")
-    return float(value)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a positive finite number")
+    numeric = float(value)
+    if not math.isfinite(numeric) or numeric <= 0:
+        raise ValueError(f"{name} must be a positive finite number")
+    return numeric
 
 
 def _fraction(value: float, name: str) -> float:
@@ -51,7 +55,7 @@ def _fraction(value: float, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{name} must be a number between 0 and 1")
     numeric = float(value)
-    if numeric < 0 or numeric > 1:
+    if not math.isfinite(numeric) or numeric < 0 or numeric > 1:
         raise ValueError(f"{name} must be a number between 0 and 1")
     return numeric
 
