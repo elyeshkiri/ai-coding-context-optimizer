@@ -244,3 +244,50 @@ def test_output_calibrate_cli_writes_artifact(tmp_path):
     payload = json.loads(artifact.read_text(encoding="utf-8"))
     assert payload["schema"] == 1
     assert payload["recommendations"]["review"]["normal"]["samples"] == 3
+
+
+def test_calibration_rejects_duplicate_task_trial_condition(tmp_path):
+    """Duplicate evidence must fail closed instead of silently replacing a run."""
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5,
+    }
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(
+        json.dumps({
+            "quality_evaluation": {"blinded": True},
+            "runs": [
+                {
+                    "task": "a",
+                    "trial": 1,
+                    "condition": "baseline",
+                    "success": True,
+                    "quality": quality,
+                },
+                {
+                    "task": "a",
+                    "trial": 1,
+                    "condition": "baseline",
+                    "success": True,
+                    "quality": quality,
+                },
+                {
+                    "task": "a",
+                    "trial": 1,
+                    "condition": "token-saver",
+                    "success": True,
+                    "output_tokens": 100,
+                    "output_task": "coding",
+                    "output_mode": "normal",
+                    "quality": quality,
+                },
+            ],
+        }),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="duplicate baseline calibration run"):
+        calibrate_output_budgets(manifest)
