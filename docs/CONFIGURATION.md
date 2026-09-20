@@ -32,6 +32,7 @@ mode = "normal"
 task = "auto"
 adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
+telemetry = true
 ```
 
 ## Hook settings
@@ -65,6 +66,7 @@ follow-ups inherit the current session class without another policy injection.
 | `output.min_tokens` | unset | Optional project floor for adaptive budgets, still bounded by the selected mode's safety range. |
 | `output.max_tokens` | unset | Optional project ceiling for adaptive budgets, still bounded by the selected mode's safety range. |
 | `output.calibration_file` | `".token-saver.output-calibration.json"` | Optional learned-budget artifact produced by `output-calibrate`; missing/invalid files fall back to built-in bases. |
+| `output.telemetry` | `true` | Record local content-free turn usage at Claude `Stop`/`StopFailure` for budget-effectiveness reporting. |
 
 The full policy is injected only when the resolved task/mode changes, on the
 first prompt in a session, or after a clear/compact context reset. Token Saver
@@ -79,6 +81,14 @@ vague follow-up inherits the current budget exactly instead of being rescored.
 Built-in mode safety bounds prevent unbounded expansion or collapse. When a
 valid calibration artifact is present, its quality-verified task/mode budget
 becomes the learned base before complexity scaling.
+
+With telemetry enabled, the Claude prompt hook checkpoints only the transcript
+byte offset and resolved policy metadata. The `Stop`/`StopFailure` hook then
+reads only transcript bytes appended during that turn and stores usage counters
+plus policy metadata under the private Token Saver state directory. Prompt text,
+assistant text, tool payloads, and transcript content are not copied into the
+telemetry log. Disable temporarily with
+`TOKEN_SAVER_OUTPUT_TELEMETRY=0`.
 
 Example allowlist:
 
@@ -109,6 +119,7 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_OUTPUT_MIN_TOKENS` | `output.min_tokens` |
 | `TOKEN_SAVER_OUTPUT_MAX_TOKENS` | `output.max_tokens` |
 | `TOKEN_SAVER_OUTPUT_CALIBRATION_FILE` | `output.calibration_file` |
+| `TOKEN_SAVER_OUTPUT_TELEMETRY` | `output.telemetry` |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 
