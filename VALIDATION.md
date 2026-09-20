@@ -107,7 +107,7 @@ portable quality-contract format. See `OUTPUT_OPTIMIZATION.md` for the
 processor and Delta contracts.
 
 The previously recorded broad 24-task SWE-bench run remains
-**non-publishable historical evidence**: it exposed harness/grader issues rather
+**non-publishable evidence** (historical only): it exposed harness/grader issues rather
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the
 experiment, telemetry, blind-grading, cache-pricing, and publication-gate path
 and wires the same frozen **24 tasks × 3 trials** into a paid/manual workflow.
