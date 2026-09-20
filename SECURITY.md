@@ -50,8 +50,10 @@ can contain project paths, diagnostics, or application data.
 
 ## Session state
 
-Token Saver keeps bounded local state for features such as remembered reads and
-diagnostic Delta. The default state area is under the user's Claude directory;
+Token Saver keeps bounded local state for features such as remembered reads,
+diagnostic Delta, and the active automatic output-policy signature. The output
+policy stores only resolved task/mode/budget metadata; it does not persist user
+prompt text. The default state area is under the user's Claude directory;
 `TOKEN_SAVER_STATE_DIR` can relocate it.
 
 Do not point the state directory at a shared/public location.
