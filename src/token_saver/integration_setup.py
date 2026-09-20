@@ -41,6 +41,7 @@ mode = "normal"
 task = "auto"
 adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
+telemetry = true
 """
 
 
