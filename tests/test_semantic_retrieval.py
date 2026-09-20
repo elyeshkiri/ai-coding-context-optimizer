@@ -11,7 +11,11 @@ from token_saver.command_handlers.context import semantic_index_main, semantic_s
 from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
 from token_saver.pack import build_context_pack, rank_files
 from token_saver.packing.contracts import RankedFile
-from token_saver.packing.graph_rerank import _apply_embedding_rerank_index
+from token_saver.closure import ClosureItem
+from token_saver.packing.graph_rerank import (
+    _apply_embedding_rerank_index,
+    _apply_semantic_graph_expansion,
+)
 from token_saver.repo_index import RepositoryIndex, build_index
 from token_saver.semantic_retrieval import (
     SemanticHit,
@@ -395,3 +399,40 @@ def test_semantic_boost_is_independent_of_lexical_rank(tmp_path, monkeypatch):
     delta_second = second[1].score - before_second
     assert delta_first == pytest.approx(delta_second)
     assert delta_first > 20.0
+
+
+
+def test_semantic_witness_can_promote_one_hop_provider(tmp_path, monkeypatch):
+    """A semantic caller/test witness should surface its bounded provider."""
+    index = RepositoryIndex(root=tmp_path, records={})
+    ranked = [
+        RankedFile(tmp_path / "witness.py", "witness.py", "", "", 15.0),
+        RankedFile(tmp_path / "provider.py", "provider.py", "", "", 1.0),
+    ]
+
+    monkeypatch.setattr(
+        "token_saver.packing.graph_rerank.authoritative_providers",
+        lambda repository_index, seeds: [
+            ClosureItem(
+                path="provider.py",
+                distance=1,
+                reason="semantic-ref",
+                source="witness.py",
+                confidence=3.5,
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        "token_saver.packing.graph_rerank.dependency_closure",
+        lambda *args, **kwargs: [],
+    )
+
+    _apply_semantic_graph_expansion(index, ranked, ["witness.py"])
+
+    provider = next(item for item in ranked if item.rel == "provider.py")
+    assert provider.score == pytest.approx(9.75)
+    assert any(
+        reason.startswith("semantic-graph:semantic-ref:witness.py")
+        for reason in provider.reasons
+    )
+    assert any(event.stage == "semantic-graph" for event in provider.score_trace)
