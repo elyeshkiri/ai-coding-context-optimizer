@@ -199,8 +199,8 @@ def _continuity_checkpoint(
 def _validate_result(stdout: str, phase: str) -> None:
     """Reject API-level Claude failures hidden behind process exit zero."""
     try:
-        result = json.loads(stdout.splitlines()[-1])
-    except (ValueError, IndexError) as exc:
+        result = json.loads(stdout)
+    except ValueError as exc:
         raise ValueError(f"{phase} returned no valid Claude JSON result") from exc
     if not isinstance(result, dict):
         raise ValueError(f"{phase} Claude result must be an object")
