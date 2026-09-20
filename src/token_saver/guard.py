@@ -131,8 +131,8 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
     digest = _digest(text)
     n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
     max_lines = settings.read_max_lines
-    reread_on = settings.reread
-    if reread_on and n_lines > max_lines and seen_read(root, path, digest, session_id):
+    reread_on = settings.reread or settings.cross_turn_dedup
+    if reread_on and seen_read(root, path, digest, session_id):
         return {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
