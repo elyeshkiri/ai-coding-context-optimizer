@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from token_saver.agent_eval import evaluate_agent_runs
 from token_saver.command_handlers.output import output_effectiveness_main
 from token_saver.output_effectiveness import (
