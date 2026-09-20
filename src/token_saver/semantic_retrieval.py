@@ -227,6 +227,10 @@ def _connect(path: Path) -> sqlite3.Connection:
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS files (
+            path TEXT PRIMARY KEY,
+            file_digest TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS chunks (
             chunk_id TEXT PRIMARY KEY,
             path TEXT NOT NULL,
@@ -309,6 +313,7 @@ class SemanticVectorIndex:
         }
         current = _meta(conn)
         if current and any(current.get(key) != value for key, value in expected.items()):
+            conn.execute("DELETE FROM files")
             conn.execute("DELETE FROM chunks")
             conn.execute("DELETE FROM query_vectors")
             conn.execute("DELETE FROM ann_labels")
@@ -403,12 +408,13 @@ class SemanticVectorIndex:
             existing = {
                 str(row["path"]): str(row["file_digest"])
                 for row in conn.execute(
-                    "SELECT path, MIN(file_digest) AS file_digest FROM chunks GROUP BY path"
+                    "SELECT path, file_digest FROM files"
                 )
             }
             stale_paths = sorted(set(existing) - current_paths)
             for stale in stale_paths:
                 conn.execute("DELETE FROM chunks WHERE path = ?", (stale,))
+                conn.execute("DELETE FROM files WHERE path = ?", (stale,))
 
             pending: list[tuple[str, str, int, int, str | None, str]] = []
             changed_paths: list[str] = []
@@ -435,9 +441,13 @@ class SemanticVectorIndex:
                         (chunk_id, rel, record.digest, start, end, symbol, body)
                     )
 
-            vectors = _encode(
-                self._get_encoder(),
-                [item[-1] for item in pending],
+            vectors = (
+                _encode(
+                    self._get_encoder(),
+                    [item[-1] for item in pending],
+                )
+                if pending
+                else []
             )
             if pending and len(vectors) != len(pending):
                 raise RuntimeError("embedding encoder returned the wrong batch size")
@@ -447,6 +457,11 @@ class SemanticVectorIndex:
 
             for rel in changed_paths:
                 conn.execute("DELETE FROM chunks WHERE path = ?", (rel,))
+                record = self.index.records[rel]
+                conn.execute(
+                    "INSERT OR REPLACE INTO files(path, file_digest) VALUES (?, ?)",
+                    (rel, record.digest),
+                )
             for item, vector in zip(pending, vectors):
                 chunk_id, rel, digest, start, end, symbol, _body = item
                 conn.execute(
@@ -628,7 +643,7 @@ class SemanticVectorIndex:
             meta = _meta(connection)
             files = int(
                 connection.execute(
-                    "SELECT COUNT(DISTINCT path) AS n FROM chunks"
+                    "SELECT COUNT(*) AS n FROM files"
                 ).fetchone()["n"]
             )
             chunks = int(
@@ -663,7 +678,7 @@ def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
     try:
         meta = _meta(conn)
         files = int(
-            conn.execute("SELECT COUNT(DISTINCT path) AS n FROM chunks").fetchone()["n"]
+            conn.execute("SELECT COUNT(*) AS n FROM files").fetchone()["n"]
         )
         chunks = int(conn.execute("SELECT COUNT(*) AS n FROM chunks").fetchone()["n"])
         return SemanticIndexStats(
