@@ -1,4 +1,4 @@
-# Validation for 1.9.0
+# Validation for 1.10.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**. Passing one layer is not presented as proof
@@ -104,7 +104,7 @@ verification -> grading -> cost-per-success -> calibration pipeline.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
-- Package metadata for this release is **claude-token-saver 1.9.0**; the import
+- Package metadata for this release is **claude-token-saver 1.10.0**; the import
   remains `token_saver` and the CLI remains `token-saver`.
 
 ## Ranking observability and regression validation
