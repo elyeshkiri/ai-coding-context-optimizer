@@ -14,8 +14,10 @@ For Claude Code only, the repository now exposes a marketplace:
 ```
 
 Claude shows the command-source bootstrap for approval before running it. The
-generated plugin calls `python -m token_saver.entry`, so it does not depend on
-the `token-saver` console script being on `PATH`.
+command-source marketplace path requires Claude Code **2.1.229+**. Older Claude
+Code versions can use the pip + setup path below. The generated plugin calls
+`python -m token_saver.entry`, so it does not depend on the `token-saver`
+console script being on `PATH`.
 
 For Claude + Cursor + Codex, or explicit project-managed installation:
 
@@ -145,6 +147,18 @@ token-saver fastpath-status
 
 CI builds the Rust wheel and reruns pack/retrieval/context-quality checks with
 the native backend required before accepting fastpath changes.
+
+The normal `claude-token-saver` wheel remains pure Python. To try the optional
+native accelerator from a source checkout:
+
+```bash
+python -m pip install maturin
+python -m pip install ./rust/token_saver_fast
+token-saver fastpath-status
+```
+
+If the extension is absent or fails to import, Token Saver automatically uses
+the Python reference implementation.
 
 ## Failure-aware tool output and diagnostic Delta
 
