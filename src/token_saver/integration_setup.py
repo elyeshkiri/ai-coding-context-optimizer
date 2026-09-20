@@ -42,6 +42,12 @@ task = "auto"
 adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
 telemetry = true
+
+[efficiency]
+enabled = true
+continuity = true
+dedup = true
+waste_detection = true
 """
 
 
