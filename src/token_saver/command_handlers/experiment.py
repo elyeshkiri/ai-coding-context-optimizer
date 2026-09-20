@@ -11,6 +11,8 @@ from ..benchmark import task_definition_hash
 from ..cost_report import Pricing, compare_cost_files, compare_paired_agent_file
 from ..evidence_pipeline import run_evidence_pipeline
 from ..experiment import run_experiment, validate_suite
+from ..knowledge_holdout import evaluate_knowledge_holdout
+from ..knowledge_holdout_pipeline import run_knowledge_holdout
 from ..session_holdout import evaluate_session_holdout
 from ..session_holdout_pipeline import load_session_pricing, run_session_holdout
 
@@ -185,6 +187,100 @@ def session_holdout_evaluate_main(argv: list[str]) -> int:
             "retries: "
             f"{baseline['retry_attempts']} -> {enabled['retry_attempts']} "
             f"({report['reductions']['retry_attempts']})"
+        )
+        print(
+            "cost/success: "
+            f"{baseline['cost_per_success_usd']} -> "
+            f"{enabled['cost_per_success_usd']} "
+            f"({report['reductions']['cost_per_success']})"
+        )
+        print(
+            "publication gate: "
+            + ("passed" if report["publication_gate"]["passed"] else "blocked")
+        )
+    if args.require_publishable and not report["publication_gate"]["passed"]:
+        return 1
+    return 0
+
+
+def knowledge_holdout_main(argv: list[str]) -> int:
+    """Run/resume the frozen knowledge-read-avoidance holdout."""
+    parser = argparse.ArgumentParser(prog="token-saver knowledge-holdout")
+    parser.add_argument("suite")
+    parser.add_argument("--out", default="knowledge-holdout-runs.json")
+    parser.add_argument("--rates")
+    parser.add_argument("--report")
+    parser.add_argument("--allow-development", action="store_true")
+    parser.add_argument("--allow-user-hook", action="store_true")
+    parser.add_argument("--task", action="append", dest="tasks")
+    parser.add_argument("--force-grades", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--require-publishable", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        result = run_knowledge_holdout(
+            Path(args.suite),
+            Path(args.out),
+            rates_path=Path(args.rates) if args.rates else None,
+            report_path=Path(args.report) if args.report else None,
+            allow_development=args.allow_development,
+            allow_user_hook=args.allow_user_hook,
+            only_tasks=set(args.tasks) if args.tasks else None,
+            force_grades=args.force_grades,
+            dry_run=args.dry_run,
+            require_publishable=args.require_publishable,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1 if args.require_publishable and "not publishable" in str(exc) else 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def knowledge_holdout_evaluate_main(argv: list[str]) -> int:
+    """Evaluate an already-run and blind-graded knowledge holdout manifest."""
+    parser = argparse.ArgumentParser(prog="token-saver knowledge-holdout-evaluate")
+    parser.add_argument("manifest")
+    parser.add_argument("--rates", required=True)
+    parser.add_argument("--model")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("--require-publishable", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        payload = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+        runner = payload.get("runner") if isinstance(payload, dict) else None
+        model = args.model or (
+            str(runner.get("model") or "")
+            if isinstance(runner, dict)
+            else ""
+        )
+        if not model:
+            raise ValueError("model is required in manifest runner or --model")
+        pricing = load_session_pricing(Path(args.rates), model)
+        report = evaluate_knowledge_holdout(Path(args.manifest), pricing=pricing)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        baseline = report["conditions"]["baseline"]
+        enabled = report["conditions"]["knowledge-efficiency"]
+        print(
+            "tools: "
+            f"{baseline['tool_calls']} -> {enabled['tool_calls']} "
+            f"({report['reductions']['tool_calls']})"
+        )
+        print(
+            "input tokens: "
+            f"{baseline['input_tokens']} -> {enabled['input_tokens']} "
+            f"({report['reductions']['input_tokens']})"
+        )
+        print(
+            "duplicate reads: "
+            f"{baseline['duplicate_read_calls']} -> "
+            f"{enabled['duplicate_read_calls']} "
+            f"({report['reductions']['duplicate_read_calls']})"
         )
         print(
             "cost/success: "
