@@ -36,12 +36,20 @@ Bash stdout is routed through a priority-ordered processor registry. The first
 matching processor handles the output; a conservative generic processor is the
 fallback.
 
-Initial specialized processors cover:
+Specialized processors now cover:
 
 - pytest;
 - Jest/Vitest and common JavaScript test commands;
-- `git log`;
-- npm/pnpm/yarn/bun install commands.
+- `git log` and `git status`;
+- grep/ripgrep/find result sets;
+- Ruff/ESLint/Pylint/Clippy diagnostics;
+- tsc/mypy/pyright diagnostics;
+- Go/Cargo tests;
+- Cargo/Go/Gradle/Maven/npm/pnpm/yarn builds;
+- npm/pnpm/yarn/bun/pip/uv installs;
+- successful Docker/Kubernetes log dumps.
+
+Unknown failed commands still fall back to the conservative generic path.
 
 The public compatibility API remains:
 
@@ -149,8 +157,15 @@ Each case can define:
 - `exit_code`: optional original command status;
 - exactly one of `text` or `path`;
 - `must_preserve`: exact strings that must survive;
+- `must_not_contain`: strings that must not be introduced by compression;
 - `max_tokens`: optional maximum estimated output budget;
 - `min_reduction`: optional minimum token reduction from 0 to 1.
+
+Version 1.7 also supports a hash-frozen replay protocol. CI runs
+`benchmarks/output-quality-session-v17.frozen.json` with
+`--require-frozen`, so changing a fixture, preservation rule, no-hallucination
+rule, or reduction floor changes benchmark identity and cannot silently weaken
+the release gate.
 
 The command exits non-zero when any contract fails, making it suitable for CI.
 
