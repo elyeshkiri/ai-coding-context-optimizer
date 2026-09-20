@@ -8,7 +8,13 @@ import random
 import statistics
 from pathlib import Path
 
-CONDITIONS = {"baseline", "token-saver"}
+from .paired_conditions import (
+    BASELINE_CONDITION,
+    OPTIMIZED_CONDITION,
+    normalize_condition,
+)
+
+CONDITIONS = {BASELINE_CONDITION, OPTIMIZED_CONDITION}
 QUALITY_WEIGHTS = {
     "correctness": 0.40,
     "completeness": 0.20,
@@ -133,9 +139,12 @@ def evaluate_agent_runs(path: Path) -> dict:
         if not isinstance(run, dict):
             raise ValueError("every run must be an object")
         task = str(run.get("task", "")).strip()
-        condition = str(run.get("condition", ""))
+        raw_condition = run.get("condition", "")
+        condition = normalize_condition(raw_condition)
         if not task or condition not in CONDITIONS:
-            raise ValueError("each run needs task and condition baseline|token-saver")
+            raise ValueError(
+                "each run needs task and condition baseline|token-saver|enabled"
+            )
         trial = _trial_number(run, task, condition)
         key = (task, trial)
         pair = grouped.setdefault(key, {})
