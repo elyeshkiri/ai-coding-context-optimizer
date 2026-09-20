@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 
 from token_saver.benchmark import task_definition_hash
+from token_saver.experiment import validate_suite
 from token_saver.output_effectiveness import EffectivenessPricing
-from token_saver.session_holdout import evaluate_session_holdout
+from token_saver.session_holdout import (
+    evaluate_session_holdout,
+    validate_session_holdout_definition,
+)
 
 
 def _profiles() -> dict:
@@ -259,3 +264,21 @@ def test_session_holdout_rejects_nonisolated_profile_change(tmp_path):
         "publication_gate"
     ]["blockers"]
     assert "non_efficiency_condition_env_diff" in report["protocol"]["issues"]
+
+
+
+def test_checked_in_session_holdout_is_broad_frozen_and_isolated():
+    """The shipped 24-task holdout must validate before any paid call."""
+    root = Path(__file__).resolve().parents[1]
+    path = root / "benchmarks" / "session-efficiency-swebench-24.frozen.json"
+
+    suite = validate_suite(path, require_frozen=True, require_broad=True)
+    definition = validate_session_holdout_definition(suite)
+
+    assert len(suite["tasks"]) == 24
+    assert suite["design"]["trials_per_task"] == 3
+    assert definition["valid"] is True
+    assert (
+        definition["task_definition_sha256"]
+        == "7bfbd63b28219e715c2361469c8134aad5930fac808b858b199f69c4b10e922d"
+    )
