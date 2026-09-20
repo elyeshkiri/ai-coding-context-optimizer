@@ -822,6 +822,12 @@ simple.
 | `TOKEN_SAVER_MAX_LINES` | adaptive | filtered output line target |
 | `TOKEN_SAVER_KEEP_TAIL` | `15` | tail retained by generic filtering |
 | `TOKEN_SAVER_DELTA` | `0` | opt-in graph-aware pytest/Ruff diagnostic Delta |
+| `TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE` | `0` | opt-in verified-knowledge replacement for redundant full-file Reads |
+| `TOKEN_SAVER_CACHE_ECONOMICS` | `0` | require cache-aware projected-cost approval for knowledge read avoidance |
+| `TOKEN_SAVER_CACHE_EXPECTED_REUSES` | `2` | expected future cache reads in the planning model |
+| `TOKEN_SAVER_CACHE_WRITE_FACTOR` | `1.25` | relative cache-write input factor; provider/model override recommended |
+| `TOKEN_SAVER_CACHE_READ_FACTOR` | `0.10` | relative cache-read input factor; provider/model override recommended |
+| `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `0.05` | minimum projected relative savings for the runtime cache gate |
 | `TOKEN_SAVER_CACHE_TTL_MIN` | `5` | advisory cache-gap classification only |
 | `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | local state and recoverable output storage |
 
