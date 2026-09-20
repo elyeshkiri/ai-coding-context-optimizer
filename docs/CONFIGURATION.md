@@ -25,6 +25,11 @@ delta = false
 min_lines = 40
 keep_tail = 15
 allow = []
+
+[output]
+enabled = true
+mode = "normal"
+task = "auto"
 ```
 
 ## Hook settings
@@ -40,6 +45,27 @@ allow = []
 | `hooks.keep_tail` | `15` | Tail lines retained by output compaction. |
 | `hooks.allow` | `[]` | Filename, absolute-path, or repository-relative guard globs. |
 | `hooks.disabled` | `false` | Disable Token Saver hook behavior without uninstalling it. |
+
+## Generation output policy
+
+Claude Code's `UserPromptSubmit` hook can automatically classify the current
+task and inject the generation-time response policy before the model answers.
+The classifier is deterministic and conservative: strong debugging/review/
+coding/planning/explanation language selects a task class, while ambiguous
+follow-ups inherit the current session class without another policy injection.
+
+| TOML key | Default | Meaning |
+|---|---:|---|
+| `output.enabled` | `true` | Enable automatic generation-policy injection where the host supports prompt hooks. |
+| `output.mode` | `"normal"` | Default response mode: `terse`, `normal`, or `detailed`. |
+| `output.task` | `"auto"` | Task policy: `auto`, `general`, `coding`, `debugging`, `review`, `explanation`, or `planning`. |
+
+The full policy is injected only when the resolved task/mode changes, on the
+first prompt in a session, or after a clear/compact context reset. Token Saver
+stores only the resolved task, mode, and budget in local session state; it does
+not persist the user prompt for this feature. Explicit requests such as
+"keep it short" or "give a comprehensive explanation" override the configured
+mode for the active task.
 
 Example allowlist:
 
@@ -63,6 +89,9 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_MIN_LINES` | `hooks.min_lines` |
 | `TOKEN_SAVER_MAX_LINES` | `hooks.max_lines` |
 | `TOKEN_SAVER_KEEP_TAIL` | `hooks.keep_tail` |
+| `TOKEN_SAVER_OUTPUT_POLICY` | `output.enabled` |
+| `TOKEN_SAVER_OUTPUT_MODE` | `output.mode` |
+| `TOKEN_SAVER_OUTPUT_TASK` | `output.task` |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 
@@ -70,6 +99,12 @@ Example temporary override:
 
 ```bash
 TOKEN_SAVER_DELTA=1 TOKEN_SAVER_READ_MAX_LINES=150 claude
+
+# Disable automatic generation-policy injection temporarily:
+TOKEN_SAVER_OUTPUT_POLICY=0 claude
+
+# Force a fixed terse review policy instead of auto-classification:
+TOKEN_SAVER_OUTPUT_MODE=terse TOKEN_SAVER_OUTPUT_TASK=review claude
 ```
 
 ## Managed host files
