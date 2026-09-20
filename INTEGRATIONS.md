@@ -12,8 +12,8 @@ token-saver doctor
 
 ## Claude Code marketplace install
 
-Claude-only users can install through the repository marketplace without first
-placing the `token-saver` console script on `PATH`:
+Claude-only users on Claude Code **2.1.229+** can install through the repository
+marketplace without first placing the `token-saver` console script on `PATH`:
 
 ```text
 /plugin marketplace add elyeshkiri/token-saver
