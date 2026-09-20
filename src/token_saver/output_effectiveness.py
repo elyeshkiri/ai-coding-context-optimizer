@@ -39,6 +39,29 @@ class EffectivenessPricing:
     cache_read_per_million: float | None = None
     output_per_million: float | None = None
 
+    def validate(self) -> None:
+        """Reject negative, nonnumeric, or nonfinite explicit pricing rates."""
+        for name, value in (
+            ("fresh_input_per_million", self.fresh_input_per_million),
+            ("cache_creation_5m_per_million", self.cache_creation_5m_per_million),
+            ("cache_creation_1h_per_million", self.cache_creation_1h_per_million),
+            (
+                "cache_creation_unknown_per_million",
+                self.cache_creation_unknown_per_million,
+            ),
+            ("cache_read_per_million", self.cache_read_per_million),
+            ("output_per_million", self.output_per_million),
+        ):
+            if value is None:
+                continue
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or value < 0
+            ):
+                raise ValueError(f"{name} must be a finite nonnegative number")
+
     def supplied(self) -> bool:
         """Return whether at least one explicit pricing rate was supplied."""
         return any(
@@ -447,6 +470,7 @@ def evaluate_output_effectiveness(
 ) -> dict:
     """Join usage, policy telemetry, success, and blind quality for paired runs."""
     pricing = pricing or EffectivenessPricing()
+    pricing.validate()
     payload = json.loads(path.read_text(encoding="utf-8"))
     raw_runs = payload.get("runs") if isinstance(payload, dict) else None
     if not isinstance(raw_runs, list) or not raw_runs:
