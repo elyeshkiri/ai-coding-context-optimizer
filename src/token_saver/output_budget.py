@@ -13,6 +13,7 @@ import re
 from pathlib import Path
 
 from .output_saver import OUTPUT_MODES, OUTPUT_TASKS, build_output_policy
+from .paired_conditions import normalize_condition
 
 CALIBRATION_SCHEMA = 1
 DEFAULT_CALIBRATION_FILE = ".token-saver.output-calibration.json"
@@ -290,7 +291,7 @@ def calibrate_output_budgets(path: Path, *, margin: float = 1.15) -> dict:
         if not isinstance(run, dict):
             continue
         task_id = str(run.get("task") or "").strip()
-        condition = str(run.get("condition") or "")
+        condition = normalize_condition(run.get("condition"))
         trial = run.get("trial", 1)
         if not task_id or condition not in {"baseline", "token-saver"}:
             continue
