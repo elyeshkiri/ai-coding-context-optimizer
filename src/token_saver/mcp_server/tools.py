@@ -29,6 +29,13 @@ class McpToolRegistry:
         """Return registered tool names in deterministic order."""
         return tuple(self._specs)
 
+    def select(self, names: Iterable[str]) -> "McpToolRegistry":
+        """Return a registry containing only named tools in original order."""
+        allowed = set(names)
+        return McpToolRegistry(
+            spec for name, spec in self._specs.items() if name in allowed
+        )
+
     def call(self, name: str, context: McpToolContext, arguments: dict) -> object:
         """Call a registered application handler or reject an unknown tool."""
         spec = self._specs.get(name)
@@ -402,3 +409,45 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
         ),
     ]
 )
+
+
+MCP_TOOL_PROFILES = {
+    "minimal": (
+        "build_context",
+        "find_symbol",
+        "browse_context",
+        "recall_findings",
+        "remember_finding",
+    ),
+    "context": (
+        "build_context",
+        "find_symbol",
+        "browse_context",
+        "explain_ranking",
+        "analyze_change_impact",
+        "report_context_feedback",
+        "index_status",
+        "refresh_index",
+        "recall_findings",
+        "remember_finding",
+        "knowledge_status",
+    ),
+}
+
+
+def tool_registry_for_profile(profile: str) -> McpToolRegistry:
+    """Return the bounded default MCP registry for one advertised profile."""
+    normalized = profile.strip().lower()
+    if normalized == "full":
+        return DEFAULT_TOOL_REGISTRY
+    names = MCP_TOOL_PROFILES.get(normalized)
+    if names is None:
+        allowed = ", ".join([*MCP_TOOL_PROFILES, "full"])
+        raise ValueError(f"unknown MCP tool profile {profile!r}; expected one of: {allowed}")
+    registry = DEFAULT_TOOL_REGISTRY.select(names)
+    missing = [name for name in names if name not in registry.names()]
+    if missing:
+        raise RuntimeError(
+            "MCP tool profile references unavailable tools: " + ", ".join(missing)
+        )
+    return registry
