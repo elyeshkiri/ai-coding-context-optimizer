@@ -1,0 +1,151 @@
+name: Burned Holdout 12 Rerun
+
+on:
+  push:
+    branches:
+      - burn/holdout-12-rerun
+
+permissions:
+  contents: read
+
+jobs:
+  rerun:
+    name: Burned holdout 12 regression rerun
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Token Saver
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+
+      - name: Verify frozen holdout 12 hash
+        run: |
+          actual="$(token-saver evaluate benchmarks/holdout-external-12.json --print-ground-truth-hash)"
+          expected="625de623c409f6e77ac695612533f722330db3fd329dfc4b0eb82a0bb6994f54"
+          test "$actual" = "$expected"
+
+      - name: Clone exact holdout 12 repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          clone_at() {
+            local url="$1"
+            local revision="$2"
+            local path="$3"
+            mkdir -p "$(dirname "$path")"
+            git init -q "$path"
+            git -C "$path" remote add origin "$url"
+            git -C "$path" fetch -q --depth 1 origin "$revision"
+            git -C "$path" checkout -q --detach "$revision"
+            test "$(git -C "$path" rev-parse HEAD)" = "$revision"
+          }
+
+          clone_at https://github.com/pallets/itsdangerous.git \
+            672971d66a2ef9f85151e53283113f33d642dabd \
+            benchmarks/holdout12/itsdangerous
+          clone_at https://github.com/encode/httpcore.git \
+            10a658221deb38a4c5b16db55ab554b0bf731707 \
+            benchmarks/holdout12/py-httpcore
+          clone_at https://github.com/gorilla/websocket.git \
+            e064f32e3674d9d79a8fd417b5bc06fa5c6cad8f \
+            benchmarks/holdout12/websocket
+          clone_at https://github.com/rs/zerolog.git \
+            5eb5f3a76c09eeadc1f2464baf4a4e3f1037c830 \
+            benchmarks/holdout12/zerolog
+          clone_at https://github.com/uuid-rs/uuid.git \
+            9f927126c89892ddfed6cd2f92df16852f3f9aa6 \
+            benchmarks/holdout12/uuid
+          clone_at https://github.com/crossbeam-rs/crossbeam.git \
+            38dacb462261fcd64edcb308aed9cbf95c8c82c3 \
+            benchmarks/holdout12/crossbeam
+          clone_at https://github.com/apache/commons-text.git \
+            ae3d36b8cea5d1fa5eaf3bd28f07bb111d1890e0 \
+            benchmarks/holdout12/commons-text
+          clone_at https://github.com/apache/commons-codec.git \
+            089f90450fd1f8acafad3fe626b9e9425aff5a3c \
+            benchmarks/holdout12/commons-codec
+          clone_at https://github.com/pmndrs/zustand.git \
+            b57db4f86ef179285da216eeb291266da82c361c \
+            benchmarks/holdout12/zustand
+          clone_at https://github.com/react-hook-form/react-hook-form.git \
+            1747bde471b452d1223c1e7e6ec740fcd63400f5 \
+            benchmarks/holdout12/react-hook-form
+          clone_at https://github.com/Humanizr/Humanizer.git \
+            ffc2b77c0f30d2fb176875841424379319d0ae9b \
+            benchmarks/holdout12/humanizer
+          clone_at https://github.com/JamesNK/Newtonsoft.Json.git \
+            09bb545d72969ad7fb4ea07db0d5c34f4fc07877 \
+            benchmarks/holdout12/newtonsoft
+
+      - name: Rerun burned holdout 12
+        run: |
+          token-saver evaluate benchmarks/holdout-external-12.json \
+            --path . \
+            --max-tokens 6000 \
+            --require-holdout \
+            > benchmarks/holdout-external-12.rerun.json
+
+      - name: Compare with historical holdout 12 artifact
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          old = json.loads(Path("benchmarks/holdout-external-12.result.json").read_text())
+          new = json.loads(Path("benchmarks/holdout-external-12.rerun.json").read_text())
+
+          a = old["summary"]
+          b = new["summary"]
+          metrics = [
+              "mean_file_recall",
+              "mean_symbol_recall",
+              "mean_symbol_recall_in_expected_files",
+              "mean_qualified_symbol_recall",
+              "mean_symbol_identity_recall",
+              "mean_token_reduction",
+          ]
+
+          print("# Burned holdout 12 rerun")
+          print()
+          print(f"- tasks: {b['task_count']}")
+          print(f"- ground truth: {new['ground_truth_sha256']}")
+          print()
+          print("| Metric | Historical | Current | Delta |")
+          print("|---|---:|---:|---:|")
+          for key in metrics:
+              before = float(a[key])
+              now = float(b[key])
+              print(f"| {key} | {before:.4%} | {now:.4%} | {now-before:+.4%} |")
+
+          misses = []
+          for task in new["tasks"]:
+              if (
+                  task["file_recall"] < 1.0
+                  or task["symbol_recall"] < 1.0
+                  or task.get("symbol_recall_in_expected_files", 1.0) < 1.0
+                  or task.get("qualified_symbol_recall", 1.0) < 1.0
+                  or task.get("symbol_identity_recall", 1.0) < 1.0
+              ):
+                  misses.append(task["id"])
+
+          print()
+          print(f"- current non-perfect tasks: {len(misses)}")
+          if misses:
+              print("- misses: " + ", ".join(misses))
+          print()
+          print("This is a burned regression/reproducibility rerun, not fresh generalization evidence.")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: burned-holdout-12-rerun
+          path: benchmarks/holdout-external-12.rerun.json
+          retention-days: 90
+          if-no-files-found: error
