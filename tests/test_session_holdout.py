@@ -6,6 +6,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from token_saver.benchmark import task_definition_hash
 from token_saver.experiment import validate_suite
 from token_saver.output_effectiveness import EffectivenessPricing
@@ -204,9 +206,9 @@ def test_session_holdout_can_pass_full_publication_gate(tmp_path):
 
     assert report["tasks"] == 20
     assert report["paired_trials"] == 60
-    assert report["reductions"]["tool_calls"] == 0.3
-    assert report["reductions"]["input_tokens"] == 0.3
-    assert report["reductions"]["retry_attempts"] == 0.5
+    assert report["reductions"]["tool_calls"] == pytest.approx(0.3)
+    assert report["reductions"]["input_tokens"] == pytest.approx(0.3)
+    assert report["reductions"]["retry_attempts"] == pytest.approx(0.5)
     assert report["reductions"]["cost_per_success"] > 0
     assert report["bootstrap"]["intervals"]["cost_per_success_usd"][0] > 0
     assert report["feature_activation"]["treatment"][
