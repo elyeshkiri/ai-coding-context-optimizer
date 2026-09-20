@@ -274,7 +274,7 @@ def test_publishable_gate_requires_ci_to_exclude_zero(tmp_path):
     # a small positive overall point estimate.
     for run in payload["runs"]:
         if run["condition"] == "enabled" and int(run["task"].split("-")[1]) < 10:
-            run["fresh_input_tokens"] = 1500
+            run["fresh_input_tokens"] = 3000
             run["input_tokens"] = (
                 run["fresh_input_tokens"]
                 + run["cache_creation_input_tokens"]
@@ -285,9 +285,10 @@ def test_publishable_gate_requires_ci_to_exclude_zero(tmp_path):
     result = evaluate_output_effectiveness(manifest, pricing=_pricing())
 
     interval = result["bootstrap"]["cost_per_success_reduction_ci95"]
+    assert result["delta"]["cost_per_success_reduction"] > 0
     assert interval is not None
-    if result["delta"]["cost_per_success_reduction"] > 0 and interval[0] <= 0:
-        assert (
-            "cost_per_success_ci_not_strictly_positive"
-            in result["publication_gate"]["blockers"]
-        )
+    assert interval[0] < 0
+    assert (
+        "cost_per_success_ci_not_strictly_positive"
+        in result["publication_gate"]["blockers"]
+    )
