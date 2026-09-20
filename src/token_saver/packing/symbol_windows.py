@@ -224,7 +224,13 @@ def _file_section(
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
-    windows = _prioritized_ranges(symbol_windows, lexical, len(lines))
+    semantic = _merge_ranges(item.semantic_ranges, len(lines))
+    primary = (
+        [*symbol_windows, *semantic]
+        if target_symbol
+        else [*semantic, *symbol_windows]
+    )
+    windows = _prioritized_ranges(primary, lexical, len(lines))
     # Exact implementation evidence is the primary payload. Put it before the
     # navigation outline so a tight per-file budget clips optional structure
     # rather than silently dropping the symbol source that caused the file to
