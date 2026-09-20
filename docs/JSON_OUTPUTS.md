@@ -387,6 +387,119 @@ The durable run/effectiveness/calibration files contain the detailed evidence.
 With `--dry-run`, `stage` is `"dry-run"` and the result contains the
 experiment schedule plus grader/pricing readiness.
 
+## `session-holdout` (always JSON)
+
+Dry-run output validates the frozen design without paid agent calls:
+
+```json
+{
+  "schema": 1,
+  "stage": "dry-run",
+  "comparison": {
+    "baseline": "v1.6-session-baseline",
+    "treatment": "v1.7-session-efficiency"
+  },
+  "experiment": {
+    "task_count": 24,
+    "trials_per_task": 3,
+    "paired_trials": 72,
+    "run_count": 144,
+    "condition_profiles": {
+      "baseline": {
+        "label": "v1.6-session-baseline",
+        "install_token_saver": true,
+        "env": {
+          "TOKEN_SAVER_EFFICIENCY": "0"
+        }
+      },
+      "enabled": {
+        "label": "v1.7-session-efficiency",
+        "install_token_saver": true,
+        "env": {
+          "TOKEN_SAVER_EFFICIENCY": "1"
+        }
+      }
+    }
+  }
+}
+```
+
+A completed run prints a compact summary pointing to the durable run and
+`*.session-effectiveness.json` report. The report contains:
+
+```json
+{
+  "schema": 1,
+  "comparison": {
+    "baseline": "v1.6-session-baseline",
+    "treatment": "v1.7-session-efficiency",
+    "causal_scope": "combined_bundle_only"
+  },
+  "tasks": 24,
+  "paired_trials": 72,
+  "conditions": {
+    "baseline": {
+      "tool_calls": 0,
+      "input_tokens": 0,
+      "retry_attempts": 0,
+      "cost_per_success_usd": null
+    },
+    "session-efficiency": {
+      "tool_calls": 0,
+      "input_tokens": 0,
+      "retry_attempts": 0,
+      "cost_per_success_usd": null
+    }
+  },
+  "reductions": {
+    "tool_calls": null,
+    "input_tokens": null,
+    "retry_attempts": null,
+    "repeat_command_calls": null,
+    "duplicate_read_calls": null,
+    "cost_per_success": null
+  },
+  "bootstrap": {
+    "samples": 2000,
+    "seed": 271828,
+    "task_clusters": 24,
+    "intervals": {
+      "tool_calls": null,
+      "input_tokens": null,
+      "retry_attempts": null,
+      "cost_per_success_usd": null
+    }
+  },
+  "feature_activation": {
+    "treatment": {
+      "active_runs": {
+        "dedup": 0,
+        "continuity": 0,
+        "waste": 0
+      }
+    },
+    "control": {
+      "totals": {
+        "events": 0
+      }
+    }
+  },
+  "publication_gate": {
+    "passed": false,
+    "blockers": []
+  },
+  "claim_allowed": false
+}
+```
+
+The control/treatment labels describe session behavior profiles of the same
+current binary; they are not package-version provenance.
+
+## `session-holdout-evaluate --json`
+
+Returns the full `session-effectiveness` object above. With
+`--require-publishable`, a blocked publication gate exits `1`.
+
 ## `cost-report --json`
 
 ```json
