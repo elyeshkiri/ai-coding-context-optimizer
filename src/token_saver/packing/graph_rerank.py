@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..closure import authoritative_providers, dependency_closure
 from ..repo_index import RepositoryIndex
 from ..semantic_retrieval import SemanticVectorIndex
-from .contracts import RankedFile
+from .contracts import RankedFile, RankingScoreEvent
 from .file_scoring import _FileRankingScope
 from .ranking_stages import RankingStageContext
 
@@ -129,45 +129,149 @@ def _apply_graph_boosts(
     )
 
 
+def _semantic_overlap_ratio(
+    left: tuple[int, int],
+    right: tuple[int, int],
+) -> float:
+    """Return overlap relative to the smaller exact-source range."""
+    left_start, left_end = left
+    right_start, right_end = right
+    overlap = max(0, min(left_end, right_end) - max(left_start, right_start) + 1)
+    if overlap <= 0:
+        return 0.0
+    smaller = max(
+        1,
+        min(left_end - left_start + 1, right_end - right_start + 1),
+    )
+    return overlap / smaller
+
+
+def _distinct_semantic_hits(hits, *, max_hits: int = 3):
+    """Keep strongest non-redundant semantic evidence per file."""
+    selected = []
+    for hit in hits:
+        current_range = (hit.start_line, hit.end_line)
+        if any(
+            _semantic_overlap_ratio(
+                current_range,
+                (existing.start_line, existing.end_line),
+            ) >= 0.70
+            for existing in selected
+        ):
+            continue
+        selected.append(hit)
+        if len(selected) >= max_hits:
+            break
+    return selected
+
+
+def _semantic_file_score(hits) -> float:
+    """Aggregate multiple independent chunk hits with diminishing returns."""
+    if not hits:
+        return 0.0
+    weights = (1.0, 0.35, 0.15)
+    return sum(
+        weight * max(0.0, hit.score)
+        for weight, hit in zip(weights, hits)
+    )
+
+
 def _apply_embedding_rerank_index(
     index: RepositoryIndex,
     query: str,
     ranked: list[RankedFile],
 ) -> None:
-    """Fuse chunk-level semantic retrieval with the existing lexical ordering.
+    """Fuse semantic file discovery with deterministic structural ranking.
 
-    Semantic retrieval is discovery/ranking evidence only. It stores vectors and
-    exact source coordinates; final context still comes from the packer's live
-    repository reads. RRF-style rank evidence is intentionally bounded so an
-    exact structural symbol match remains stronger than fuzzy semantic affinity.
+    Semantic evidence is aggregated at file level from up to three
+    non-overlapping chunks. The semantic boost is intentionally independent of
+    lexical rank: BM25/structural evidence has already contributed to the base
+    score, so counting lexical rank again would weaken semantic rescue exactly
+    when the semantic stage is supposed to discover low-overlap candidates.
+
+    Exact structural authority remains much stronger than the bounded semantic
+    boost, and final context rendering still reads current repository bytes.
     """
     if not query.strip() or not ranked:
         return
-    semantic = SemanticVectorIndex(index.root, index)
-    hits = semantic.query(query, top_k=max(40, min(160, len(ranked) * 3)))
-    best_by_file = {}
-    for hit in hits:
-        current = best_by_file.get(hit.path)
-        if current is None or (hit.rank, -hit.score) < (current.rank, -current.score):
-            best_by_file[hit.path] = hit
 
-    fusion_k = 60.0
-    fusion_weight = 240.0
-    similarity_weight = 4.0
-    lexical_rank = {item.rel: rank for rank, item in enumerate(ranked, start=1)}
+    semantic = SemanticVectorIndex(index.root, index)
+    hits = semantic.query(
+        query,
+        top_k=min(512, max(96, len(ranked) * 6)),
+    )
+
+    by_file = {}
+    for hit in hits:
+        by_file.setdefault(hit.path, []).append(hit)
+
+    evidence_by_file = {}
+    for rel, file_hits in by_file.items():
+        selected = _distinct_semantic_hits(file_hits, max_hits=3)
+        if selected:
+            evidence_by_file[rel] = selected
+
+    semantic_order = sorted(
+        evidence_by_file,
+        key=lambda rel: (
+            -_semantic_file_score(evidence_by_file[rel]),
+            evidence_by_file[rel][0].rank,
+            rel,
+        ),
+    )
+    semantic_rank = {
+        rel: rank
+        for rank, rel in enumerate(semantic_order, start=1)
+    }
+
+    # The maximum semantic contribution stays bounded to a few dozen points:
+    # enough to rescue a semantically strong low-lexical file, but far below
+    # explicit structural member/container authority (up to hundreds).
+    fusion_k = 40.0
+    rank_weight = 700.0
+    best_similarity_weight = 8.0
+    corroboration_weight = 4.0
+
     for item in ranked:
-        hit = best_by_file.get(item.rel)
-        if hit is None:
+        selected = evidence_by_file.get(item.rel)
+        if not selected:
             continue
-        lexical_component = 1.0 / (fusion_k + lexical_rank[item.rel])
-        semantic_component = 1.0 / (fusion_k + hit.rank)
-        fused = lexical_component + semantic_component
-        boost = fusion_weight * fused + similarity_weight * max(0.0, hit.score)
+
+        file_rank = semantic_rank[item.rel]
+        best = selected[0]
+        secondary = selected[1:]
+        rank_boost = rank_weight / (fusion_k + file_rank)
+        similarity_boost = best_similarity_weight * max(0.0, best.score)
+        corroboration_boost = corroboration_weight * sum(
+            max(0.0, hit.score)
+            for hit in secondary
+        )
+        boost = rank_boost + similarity_boost + corroboration_boost
+
+        before = item.score
         item.score += boost
-        item.semantic_ranges = [(hit.start_line, hit.end_line)]
-        item.reasons.append(hit.evidence())
-        item.reasons.append(
-            f"hybrid-rrf:{lexical_rank[item.rel]}:{hit.rank}:{boost:.3f}"
+        item.semantic_ranges = [
+            (hit.start_line, hit.end_line)
+            for hit in selected
+        ]
+        evidence = tuple(
+            [
+                *(hit.evidence() for hit in selected),
+                (
+                    f"semantic-file-rank:{file_rank}:"
+                    f"aggregate={_semantic_file_score(selected):.3f}:"
+                    f"boost={boost:.3f}"
+                ),
+            ]
+        )
+        item.reasons.extend(evidence)
+        item.score_trace.append(
+            RankingScoreEvent.from_scores(
+                "hybrid-semantic",
+                before,
+                item.score,
+                evidence,
+            )
         )
 
 
