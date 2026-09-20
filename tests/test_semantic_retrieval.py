@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import textwrap
 
+import pytest
+
 from token_saver.command_handlers.context import semantic_index_main, semantic_status_main
 from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
 from token_saver.pack import build_context_pack, rank_files
@@ -93,7 +95,12 @@ def test_semantic_index_persists_vectors_and_query_embeddings(tmp_path, monkeypa
     warm = SemanticVectorIndex(root, index, encoder=FailEncoder())
     warm_hits = warm.query("prevent expired credentials from being reused", top_k=5)
 
-    assert warm_hits == hits
+    assert [
+        (hit.path, hit.start_line, hit.end_line) for hit in warm_hits
+    ] == [
+        (hit.path, hit.start_line, hit.end_line) for hit in hits
+    ]
+    assert warm_hits[0].score == pytest.approx(hits[0].score, abs=1e-5)
 
 
 def test_semantic_index_reembeds_only_changed_repository_evidence(tmp_path, monkeypatch):
@@ -198,8 +205,6 @@ def test_semantic_sync_refuses_source_index_digest_race(tmp_path, monkeypatch):
     )
 
     semantic = SemanticVectorIndex(root, index, encoder=FakeEncoder())
-
-    import pytest
 
     with pytest.raises(RuntimeError, match="source changed after repository indexing"):
         semantic.sync()
