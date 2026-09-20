@@ -107,6 +107,46 @@ def _refresh_index(context: McpToolContext, arguments: dict) -> dict:
     return context.repository.status()
 
 
+def _remember_finding(context: McpToolContext, arguments: dict) -> dict:
+    """Persist one explicit evidence-backed project finding."""
+    anchors = arguments.get("anchors")
+    invalidators = arguments.get("invalidators")
+    supersedes = arguments.get("supersedes")
+    return context.repository.remember_finding(
+        claim=str(arguments.get("claim", "")),
+        anchors=[str(value) for value in anchors] if isinstance(anchors, list) else [],
+        evidence=str(arguments.get("evidence", "")),
+        applicability=str(arguments.get("applicability", "")),
+        confidence=str(arguments.get("confidence", "verified")),
+        invalidators=(
+            [str(value) for value in invalidators]
+            if isinstance(invalidators, list)
+            else None
+        ),
+        supersedes=(
+            [str(value) for value in supersedes]
+            if isinstance(supersedes, list)
+            else None
+        ),
+        source="mcp",
+    )
+
+
+def _recall_findings(context: McpToolContext, arguments: dict) -> list[dict]:
+    """Recall current evidence-backed findings relevant to one query."""
+    return context.repository.recall_findings(
+        str(arguments.get("query", "")),
+        limit=int(arguments.get("limit", 5)),
+        include_stale=bool(arguments.get("include_stale", False)),
+    )
+
+
+def _knowledge_status(context: McpToolContext, arguments: dict) -> dict:
+    """Return knowledge counts without exposing finding contents."""
+    del arguments
+    return context.repository.knowledge_status()
+
+
 def _build_diff_context(context: McpToolContext, arguments: dict) -> dict:
     """Build context around the current Git patch and its impact closure."""
     return build_diff_context(
@@ -238,6 +278,58 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
             "Incrementally refresh the persistent repository index.",
             {"type": "object", "properties": {}},
             _refresh_index,
+        ),
+        McpToolSpec(
+            "remember_finding",
+            "Persist a durable evidence-backed project finding anchored to current source files.",
+            {
+                "type": "object",
+                "required": ["claim", "anchors", "evidence", "applicability"],
+                "properties": {
+                    "claim": {"type": "string"},
+                    "anchors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {"type": "string"},
+                    },
+                    "evidence": {"type": "string"},
+                    "applicability": {"type": "string"},
+                    "confidence": {
+                        "type": "string",
+                        "enum": ["speculative", "probable", "verified"],
+                    },
+                    "invalidators": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "supersedes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+            _remember_finding,
+        ),
+        McpToolSpec(
+            "recall_findings",
+            "Recall durable project findings; changed source anchors are excluded as stale by default.",
+            {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+                    "include_stale": {"type": "boolean"},
+                },
+            },
+            _recall_findings,
+        ),
+        McpToolSpec(
+            "knowledge_status",
+            "Report active, stale, and superseded project-knowledge counts.",
+            {"type": "object", "properties": {}},
+            _knowledge_status,
         ),
         McpToolSpec(
             "build_diff_context",
