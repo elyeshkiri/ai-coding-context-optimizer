@@ -53,6 +53,7 @@ class FailEncoder:
 
 def _repo(tmp_path):
     """Create a semantic-retrieval fixture with weak lexical overlap."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "session_guard.py").write_text(
         textwrap.dedent(
             """
