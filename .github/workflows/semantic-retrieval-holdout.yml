@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      TOKEN_SAVER_STATE_DIR: ${{ runner.temp }}/token-saver-semantic-state
+      TOKEN_SAVER_STATE_DIR: /tmp/token-saver-semantic-state
       TOKEN_SAVER_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
-      HF_HOME: ${{ runner.temp }}/huggingface
+      HF_HOME: /tmp/token-saver-huggingface
     steps:
       - name: Require explicit burn confirmation
         run: |
