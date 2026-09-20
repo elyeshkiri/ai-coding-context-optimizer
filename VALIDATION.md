@@ -24,15 +24,32 @@ The 1.10 semantic mechanism is covered by deterministic tests that establish:
   with exact cosine scan as the semantic fallback.
 
 Those tests establish implementation correctness and safety. They do **not**
-establish a new external natural-language recall number. Per the existing
-query-construction protocol, a future headline semantic claim requires a frozen
-holdout whose task wording is authored without target symbol, containing
-container/type, target path/basename, or exact qualified-identity leakage, plus
-a trivial lexical baseline on the same tasks. Until that holdout is run,
-1.10.0 makes no claim that external semantic recall improved from the published
-1.9 structural baseline. It also makes no new API-cost reduction claim from
-vector retrieval alone. Passing one layer is not presented as proof
-of another.
+establish a new external natural-language recall number.
+
+A qualifying benchmark is now frozen as semantic holdout #13, but its first
+real evaluation has **not been executed**. Its 24 query/revision definitions
+were committed before ground-truth lookup at
+`f3247c1d4c8e388de653aea1a5de4fa4624f82ce`, with query-freeze SHA-256
+`4a0c3cda63524037e45985244d3a86ec5835e022c439874148b7f8608514ebce`.
+After answer lookup, two tasks were conservatively classified as
+identifier-bearing and excluded without changing their query text, leaving
+**22 eligible natural-language tasks** across six previously unused
+repositories/language ecosystems.
+
+The final holdout definition is sealed as
+`df1c60b1bf8bd28d4093177aa974194293ed04e54fa1c657d4203776107d2ae4`.
+It compares Token Saver lexical/structural retrieval, the hybrid semantic
+pipeline, and a distinct-term-overlap trivial lexical baseline. The semantic
+arm pins `all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a` and canonical evidence uses exact
+cosine rather than HNSW.
+
+The first run is intentionally manual and burns the suite for tuning; it
+requires `RUN_SEMANTIC_HOLDOUT_13`. Until that run exists, **1.10.0 makes no
+claim that external semantic recall improved from the published structural
+baseline**. Even a positive retrieval result would not by itself establish
+API-cost reduction, coding-task success, or cost per successful task. Passing
+one evidence layer is not presented as proof of another.
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
