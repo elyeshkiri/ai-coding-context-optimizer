@@ -14,6 +14,7 @@ from token_saver.output_telemetry import (
     start_output_turn,
     telemetry_path,
 )
+from token_saver.state import reset_session
 from token_saver.state import update as update_state
 
 
@@ -236,3 +237,59 @@ def test_output_telemetry_cli_emits_json_and_recent_records(tmp_path, monkeypatc
     assert payload["summary"]["turns"] == 1
     assert len(payload["records"]) == 1
     assert payload["records"][0]["task"] == "review"
+
+
+def test_session_reset_discards_pending_turn_instead_of_emitting_empty_record(
+    tmp_path, monkeypatch
+):
+    """Resume/clear boundaries must not let stale checkpoints leak into later Stops."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text("", encoding="utf-8")
+    _set_policy(root, "s1")
+    start_output_turn(root, transcript_path=transcript, session_id="s1")
+
+    reset_session(root, reads=False, reminder=True, session_id="s1")
+
+    assert finish_output_turn(
+        root,
+        transcript_path=transcript,
+        session_id="s1",
+    ) is None
+    assert load_output_telemetry(root) == []
+
+
+def test_report_skips_malformed_numeric_fields_in_valid_schema_records(
+    tmp_path, monkeypatch
+):
+    """A hand-edited numeric field should not make the whole report unusable."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    path = telemetry_path(root)
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps({
+            "schema": 1,
+            "turn_status": "completed",
+            "task": "coding",
+            "mode": "normal",
+            "selected_budget": "not-a-number",
+            "usage_available": True,
+            "input_tokens": "broken",
+            "output_tokens": 120,
+            "model_calls": None,
+            "budget_utilization": "broken",
+            "target_met": None,
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    report = output_telemetry_report(root)
+
+    assert report["summary"]["turns"] == 1
+    assert report["summary"]["input_tokens"] == 0
+    assert report["summary"]["output_tokens"] == 120
+    assert report["summary"]["mean_selected_budget"] is None
