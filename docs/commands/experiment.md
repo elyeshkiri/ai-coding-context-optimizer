@@ -26,6 +26,15 @@ token-saver experiment <suite> [--out FILE] [--dry-run] [--allow-development] [-
 
 JSON result/checkpoint; see [Machine-readable contracts](../JSON_OUTPUTS.md#experiment-always-json).
 
+Each completed run now embeds transcript-measured fresh input, cache creation,
+cache read, output tokens, and model-call count. Enabled runs isolate Token
+Saver state under that run's artifact directory and, when the host executes the
+managed hooks, also embed output task/mode/budget telemetry plus a
+telemetry-vs-transcript usage-integrity check. This makes the experiment
+artifact directly consumable by `agent-evaluate`, `cost-report`,
+`output-calibrate`, and `output-effectiveness` without renaming the
+experiment-native `enabled` condition.
+
 ## Authoritative runtime help
 
 Run `token-saver experiment --help` for argparse's exact usage text for the installed version.
