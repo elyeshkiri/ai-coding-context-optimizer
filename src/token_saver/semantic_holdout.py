@@ -133,6 +133,7 @@ def _ground_truth_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "query_freeze_sha256": protocol.get("query_freeze_sha256"),
         "baseline": protocol.get("baseline"),
         "embedding_model": protocol.get("embedding_model"),
+        "embedding_model_revision": protocol.get("embedding_model_revision"),
     }
 
 
