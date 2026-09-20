@@ -42,6 +42,12 @@ class RuntimeSettings:
     continuity_enabled: bool = True
     cross_turn_dedup: bool = True
     waste_detection: bool = True
+    knowledge_read_avoidance: bool = False
+    cache_economics: bool = False
+    cache_expected_reuses: int = 2
+    cache_write_factor: float = 1.25
+    cache_read_factor: float = 0.10
+    cache_min_relative_savings: float = 0.05
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -84,6 +90,22 @@ def _string(value: object, fallback: str) -> str:
         return fallback
     normalized = value.strip()
     return normalized or fallback
+
+
+def _positive_float(value: object, fallback: float) -> float:
+    """Normalize a positive floating-point setting."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return fallback
+    numeric = float(value)
+    return numeric if numeric > 0 else fallback
+
+
+def _fraction(value: object, fallback: float) -> float:
+    """Normalize one floating-point setting in the inclusive 0..1 range."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return fallback
+    numeric = float(value)
+    return numeric if 0 <= numeric <= 1 else fallback
 
 
 def _optional_positive_int(
@@ -153,6 +175,27 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         continuity_enabled=_bool(efficiency.get("continuity"), True),
         cross_turn_dedup=_bool(efficiency.get("dedup"), True),
         waste_detection=_bool(efficiency.get("waste_detection"), True),
+        knowledge_read_avoidance=_bool(
+            efficiency.get("knowledge_read_avoidance"),
+            False,
+        ),
+        cache_economics=_bool(efficiency.get("cache_economics"), False),
+        cache_expected_reuses=_positive_int(
+            efficiency.get("cache_expected_reuses"),
+            2,
+        ),
+        cache_write_factor=_positive_float(
+            efficiency.get("cache_write_factor"),
+            1.25,
+        ),
+        cache_read_factor=_positive_float(
+            efficiency.get("cache_read_factor"),
+            0.10,
+        ),
+        cache_min_relative_savings=_fraction(
+            efficiency.get("cache_min_relative_savings"),
+            0.05,
+        ),
     )
 
 
@@ -180,6 +223,26 @@ def _env_choice(name: str, fallback: str, choices: tuple[str, ...]) -> str:
         return fallback
     normalized = raw.strip().lower()
     return normalized if normalized in choices else fallback
+
+
+def _env_float(
+    name: str,
+    fallback: float,
+    *,
+    minimum: float = 0.0,
+    maximum: float | None = None,
+) -> float:
+    """Read one floating-point environment override."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return fallback
+    try:
+        value = float(raw)
+    except ValueError:
+        return fallback
+    if value < minimum or (maximum is not None and value > maximum):
+        return fallback
+    return value
 
 
 def _env_int(
@@ -256,5 +319,37 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         waste_detection=_env_bool(
             "TOKEN_SAVER_WASTE_DETECTION", base.waste_detection
+        ),
+        knowledge_read_avoidance=_env_bool(
+            "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE",
+            base.knowledge_read_avoidance,
+        ),
+        cache_economics=_env_bool(
+            "TOKEN_SAVER_CACHE_ECONOMICS",
+            base.cache_economics,
+        ),
+        cache_expected_reuses=int(
+            _env_int(
+                "TOKEN_SAVER_CACHE_EXPECTED_REUSES",
+                base.cache_expected_reuses,
+                minimum=0,
+            )
+            or 0
+        ),
+        cache_write_factor=_env_float(
+            "TOKEN_SAVER_CACHE_WRITE_FACTOR",
+            base.cache_write_factor,
+            minimum=0.000001,
+        ),
+        cache_read_factor=_env_float(
+            "TOKEN_SAVER_CACHE_READ_FACTOR",
+            base.cache_read_factor,
+            minimum=0.000001,
+        ),
+        cache_min_relative_savings=_env_float(
+            "TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS",
+            base.cache_min_relative_savings,
+            minimum=0.0,
+            maximum=1.0,
         ),
     )
