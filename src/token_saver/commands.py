@@ -24,6 +24,7 @@ from .command_handlers.evaluation import (
 from .command_handlers.experiment import cost_report_main, experiment_main
 from .command_handlers.host import (
     commands_main,
+    fastpath_status_main,
     completion_main,
     doctor_main,
     host_check_main,
@@ -31,6 +32,7 @@ from .command_handlers.host import (
     setup_main,
     uninstall_main,
 )
+from .command_handlers.ingress import ingress_read_main, ingress_show_main
 from .command_handlers.output import (
     output_benchmark_main,
     output_explain_main,
@@ -51,9 +53,12 @@ __all__ = [
     "evaluate_main",
     "experiment_main",
     "feedback_main",
+    "fastpath_status_main",
     "host_check_main",
     "impact_main",
     "knowledge_status_main",
+    "ingress_read_main",
+    "ingress_show_main",
     "output_benchmark_main",
     "output_explain_main",
     "output_policy_main",
