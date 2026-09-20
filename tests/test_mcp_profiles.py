@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
+from token_saver.estimate import estimate_tokens
 from token_saver.mcp_server.protocol import McpProtocol
 from token_saver.mcp_server.tools import tool_registry_for_profile
 
@@ -55,3 +58,16 @@ def test_protocol_reads_profile_from_environment(tmp_path, monkeypatch):
     names = tuple(tool["name"] for tool in listed["result"]["tools"])
 
     assert names == tool_registry_for_profile("minimal").names()
+
+
+
+def test_minimal_profile_materially_reduces_advertised_schema_tokens():
+    """Profile selection should reduce the recurring MCP tool-schema payload."""
+    minimal = tool_registry_for_profile("minimal").schemas()
+    full = tool_registry_for_profile("full").schemas()
+
+    minimal_tokens = estimate_tokens(json.dumps(minimal), ".json")
+    full_tokens = estimate_tokens(json.dumps(full), ".json")
+
+    assert minimal_tokens < full_tokens
+    assert len(minimal) < len(full)
