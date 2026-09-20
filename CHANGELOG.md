@@ -1,5 +1,24 @@
 # Unreleased
 
+- **Froze semantic holdout #13 before consuming it.** Twenty-four public
+  issue-derived behavior queries across six repositories were committed before
+  target-file/fix lookup. A post-freeze leakage audit conservatively excludes
+  two identifier-bearing tasks without rewriting them, leaving 22 eligible
+  natural-language tasks. The final harness compares lexical/structural Token
+  Saver, hybrid semantic Token Saver, and a trivial distinct-term-overlap
+  baseline under identical retrieval limits.
+- **Made semantic evidence reproducible by model weights, not model name
+  alone.** `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` now participates in vector
+  index paths, persisted metadata, and query-vector cache identity. Holdout #13
+  pins `all-MiniLM-L6-v2` revision
+  `bc57282bc374d33e0d6c4de27f12dc1c2a87f37a` and forces exact cosine for the
+  canonical first run.
+- **Added an explicitly confirmed one-shot semantic evidence workflow.** The
+  first real run requires `RUN_SEMANTIC_HOLDOUT_13` and burns the suite for
+  future tuning. It has not been run, so no new external semantic-recall or
+  cost claim is made by this change.
+
+
 # 1.10.0 - 2026-09-20
 
 - **Promoted embeddings from file-level reranking to persistent chunk-level

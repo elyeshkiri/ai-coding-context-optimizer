@@ -235,3 +235,26 @@ def test_semantic_cli_build_and_status_are_registered(tmp_path, monkeypatch, cap
     assert status["files"] == built["files"]
     assert status["chunks"] == built["chunks"]
     assert status["path"] == built["path"]
+
+
+
+def test_semantic_model_revision_partitions_persistent_state(tmp_path, monkeypatch):
+    """Different model weight revisions must never share stored vectors."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = _repo(tmp_path / "repo")
+    index = build_index(root, persist=False)
+
+    monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-a")
+    first = SemanticVectorIndex(root, index, encoder=FakeEncoder())
+    first.query("prevent expired credentials from being reused")
+    first_path = first.path
+    assert first.status().model_revision == "revision-a"
+
+    monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-b")
+    second_encoder = FakeEncoder()
+    second = SemanticVectorIndex(root, index, encoder=second_encoder)
+    second.query("prevent expired credentials from being reused")
+
+    assert second.path != first_path
+    assert second.status().model_revision == "revision-b"
+    assert len(second_encoder.calls) == 2
