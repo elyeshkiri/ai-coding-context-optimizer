@@ -404,11 +404,16 @@ def build_context_pack(
         save_working_set(root, session, query, selected)
     if cache_key is not None:
         result.cache_key = cache_key
-        store_retrieval_cache(
-            root,
-            cache_key,
-            result,
-            max_entries=cache_max_entries,
-        )
+        try:
+            store_retrieval_cache(
+                root,
+                cache_key,
+                result,
+                max_entries=cache_max_entries,
+            )
+        except OSError:
+            # Cache persistence is an optimization, never a correctness
+            # dependency. Return the freshly built exact pack on I/O failure.
+            pass
     return result
 
