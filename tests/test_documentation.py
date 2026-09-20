@@ -6,9 +6,12 @@ import ast
 from pathlib import Path
 import re
 
+from token_saver.cli import LEGACY_COMMANDS
 from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
 
 ROOT = Path(__file__).resolve().parents[1]
+COMMAND_DOCS = tuple(sorted((ROOT / "docs" / "commands").glob("*.md")))
+
 PUBLIC_DOCS = (
     ROOT / "README.md",
     ROOT / "INTEGRATIONS.md",
@@ -21,9 +24,12 @@ PUBLIC_DOCS = (
     ROOT / "docs" / "README.md",
     ROOT / "docs" / "QUICKSTART.md",
     ROOT / "docs" / "CLI_REFERENCE.md",
+    ROOT / "docs" / "JSON_OUTPUTS.md",
+    ROOT / "docs" / "WORKED_EXAMPLE.md",
     ROOT / "docs" / "CONFIGURATION.md",
     ROOT / "docs" / "TROUBLESHOOTING.md",
     ROOT / "docs" / "UPGRADING.md",
+    *COMMAND_DOCS,
 )
 
 
@@ -142,3 +148,74 @@ def test_setup_is_documented_as_idempotent_and_reversible():
     assert "Token Saver-owned entries" in quickstart
     assert "idempotent" in integrations
     assert "preserving unrelated host" in integrations
+
+
+
+def test_legacy_command_constant_matches_parser_surface():
+    """Merged top-level help must not drift from the legacy argparse surface."""
+    assert set(LEGACY_COMMANDS) == _legacy_cli_commands()
+
+
+def test_every_command_has_a_dedicated_reference_page():
+    """All shipped commands need flags, exit codes, and output contracts."""
+    commands = set(DEFAULT_COMMAND_REGISTRY.names()) | _legacy_cli_commands()
+    pages = {path.stem: path for path in COMMAND_DOCS}
+
+    assert set(pages) == commands
+    required_sections = (
+        "## Synopsis",
+        "## Arguments and options",
+        "## Exit codes",
+        "## Output contract",
+        "## Authoritative runtime help",
+    )
+    for name in sorted(commands):
+        text = pages[name].read_text(encoding="utf-8")
+        assert text.startswith(f"# `token-saver {name}`\n")
+        for section in required_sections:
+            assert section in text, f"{name} is missing {section}"
+
+
+def test_cli_index_links_every_command_reference():
+    """The command index must link every dedicated command page."""
+    reference = (ROOT / "docs" / "CLI_REFERENCE.md").read_text(encoding="utf-8")
+    commands = set(DEFAULT_COMMAND_REGISTRY.names()) | _legacy_cli_commands()
+    for name in commands:
+        assert f"](commands/{name}.md)" in reference
+
+
+def test_docs_hub_links_high_value_narrative_and_machine_contracts():
+    """The docs landing page should expose the new narrative and JSON contracts."""
+    index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    assert "](WORKED_EXAMPLE.md)" in index
+    assert "](JSON_OUTPUTS.md)" in index
+
+
+def test_worked_example_keeps_real_measurements_and_limitations_visible():
+    """The end-to-end story must preserve both positive and negative evidence."""
+    example = (ROOT / "docs" / "WORKED_EXAMPLE.md").read_text(encoding="utf-8")
+    assert "14,214 estimated tokens" in example
+    assert "264 estimated tokens" in example
+    assert "45.6% more expensive" in example
+    assert "demonstration, **not** a statistically publishable benchmark" in example
+    assert "independent verifier" in example
+
+
+def test_benchmarking_documents_query_leakage_controls():
+    """Future semantic holdouts must forbid answer-identity leakage."""
+    benchmarking = (ROOT / "BENCHMARKING.md").read_text(encoding="utf-8")
+    validation = (ROOT / "VALIDATION.md").read_text(encoding="utf-8")
+
+    assert "### Query-construction protocol" in benchmarking
+    for phrase in (
+        "target symbol/member name",
+        "containing class/type/module name",
+        "target file basename/path",
+        "exact qualified symbol identity",
+        "identifier-bearing",
+        "trivial lexical baseline",
+        "never rewrite queries after seeing retrieval misses",
+    ):
+        assert phrase in benchmarking
+    assert "must not be read as evidence that semantic" in validation
+    assert "identifier-bearing queries" in validation
