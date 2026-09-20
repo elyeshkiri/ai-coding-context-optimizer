@@ -29,10 +29,12 @@ def output_effectiveness_main(argv: list[str]) -> int:
     """Join paired usage, success, quality, and budget evidence."""
     parser = argparse.ArgumentParser(prog="token-saver output-effectiveness")
     parser.add_argument("manifest")
-    parser.add_argument("--fresh-input-per-million", type=float, default=0.0)
-    parser.add_argument("--cache-creation-per-million", type=float, default=0.0)
-    parser.add_argument("--cache-read-per-million", type=float, default=0.0)
-    parser.add_argument("--output-per-million", type=float, default=0.0)
+    parser.add_argument("--fresh-input-per-million", type=float)
+    parser.add_argument("--cache-creation-5m-per-million", type=float)
+    parser.add_argument("--cache-creation-1h-per-million", type=float)
+    parser.add_argument("--cache-creation-unknown-per-million", type=float)
+    parser.add_argument("--cache-read-per-million", type=float)
+    parser.add_argument("--output-per-million", type=float)
     parser.add_argument("--json", action="store_true")
     parser.add_argument(
         "--require-publishable",
@@ -42,16 +44,21 @@ def output_effectiveness_main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     pricing = EffectivenessPricing(
         fresh_input_per_million=args.fresh_input_per_million,
-        cache_creation_per_million=args.cache_creation_per_million,
+        cache_creation_5m_per_million=args.cache_creation_5m_per_million,
+        cache_creation_1h_per_million=args.cache_creation_1h_per_million,
+        cache_creation_unknown_per_million=args.cache_creation_unknown_per_million,
         cache_read_per_million=args.cache_read_per_million,
         output_per_million=args.output_per_million,
     )
-    if min(
+    supplied_rates = (
         pricing.fresh_input_per_million,
-        pricing.cache_creation_per_million,
+        pricing.cache_creation_5m_per_million,
+        pricing.cache_creation_1h_per_million,
+        pricing.cache_creation_unknown_per_million,
         pricing.cache_read_per_million,
         pricing.output_per_million,
-    ) < 0:
+    )
+    if any(value is not None and value < 0 for value in supplied_rates):
         print("pricing values must be nonnegative", file=sys.stderr)
         return 2
     try:
