@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from ..agent_eval import evaluate_agent_runs
+from ..blind_grader import blind_grade_manifest
 from ..evaluate import evaluate_manifest, ground_truth_hash
 from ..ranking_calibration import (
     calibrate_ranking_history,
@@ -55,6 +56,28 @@ def evaluate_main(argv: list[str]) -> int:
             require_holdout=args.require_holdout,
         )
     except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def blind_grade_main(argv: list[str]) -> int:
+    """Run deterministic blind A/B grading over paired experiment responses."""
+    parser = argparse.ArgumentParser(prog="token-saver blind-grade")
+    parser.add_argument("manifest")
+    parser.add_argument("--out")
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        result = blind_grade_manifest(
+            Path(args.manifest),
+            output_path=Path(args.out) if args.out else None,
+            force=args.force,
+            dry_run=args.dry_run,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))

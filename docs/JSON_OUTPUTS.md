@@ -44,7 +44,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "ready": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "token_saver_executable": "/path/to/token-saver",
   "root": "absolute project path",
   "config_path": "/project/.token-saver.toml",
@@ -201,6 +201,52 @@ Each task carries its expected/selected file and symbol evidence plus token
 measurements. Repository and summary objects aggregate the same recall/reduction
 metrics.
 
+## `blind-grade` (always JSON)
+
+A completed grading run returns the full paired manifest with run-level
+`quality` and `blocker` fields plus:
+
+```json
+{
+  "quality_evaluation": {
+    "blinded": true,
+    "judge": "claude-sonnet-5",
+    "rubric_version": 1,
+    "weights": {
+      "correctness": 0.4,
+      "completeness": 0.2,
+      "actionability": 0.15,
+      "safety": 0.15,
+      "concision": 0.1
+    },
+    "assignment_seed": 20260920,
+    "grader_command_sha256": "...",
+    "pair_count": 72,
+    "completed_pairs": 72,
+    "position_balance": {
+      "baseline_as_a": 36,
+      "baseline_as_b": 36
+    }
+  },
+  "blind_grading": {
+    "schema": 1,
+    "records": [
+      {
+        "task": "task-id",
+        "trial": 1,
+        "blind_pair_id": "...",
+        "grader_request_sha256": "...",
+        "grader_output_sha256": "...",
+        "seconds": 4.2
+      }
+    ]
+  }
+}
+```
+
+`--dry-run` returns the deterministic A/B assignment plan without judge calls.
+The audit hashes do not store grader prompts or response text.
+
 ## `agent-evaluate` (always JSON)
 
 ```json
@@ -317,6 +363,29 @@ identity, randomized schedule/run records, artifact references, and completion
 state. Treat the file named by `--out` as the durable experiment artifact.
 
 `--dry-run` validates and materializes the schedule without calling an agent.
+
+## `evidence-run` (always JSON)
+
+```json
+{
+  "schema": 1,
+  "stage": "complete",
+  "suite": "/path/to/frozen-suite.json",
+  "runs": "/path/to/benchmark-runs.json",
+  "effectiveness": "/path/to/benchmark-runs.effectiveness.json",
+  "calibration": "/path/to/benchmark-runs.output-calibration.json",
+  "graded_pairs": 72,
+  "publication_gate": {
+    "passed": true,
+    "blockers": []
+  },
+  "claim_allowed": true
+}
+```
+
+The durable run/effectiveness/calibration files contain the detailed evidence.
+With `--dry-run`, `stage` is `"dry-run"` and the result contains the
+experiment schedule plus grader/pricing readiness.
 
 ## `cost-report --json`
 

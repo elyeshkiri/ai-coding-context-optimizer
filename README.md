@@ -1,4 +1,4 @@
-# Token Saver 1.5.0
+# Token Saver 1.6.0
 
 Token Saver is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -185,6 +185,22 @@ budget, task/mode, and adaptive/calibration metadata. It does **not** copy promp
 text, assistant text, tool payloads, or transcript content. Telemetry reports
 budget-utilization patterns but deliberately does not treat a finished model
 turn as verified task success or response quality.
+
+For a complete frozen evaluation, one resumable command now runs the full
+evidence chain:
+
+```bash
+token-saver evidence-run benchmarks/e2e-swebench-24.frozen.json \
+  --out benchmark-runs.json \
+  --require-publishable
+```
+
+It performs randomized baseline/Token Saver trials, independent hidden
+verification, deterministic blind A/B grading, cache-TTL-aware cost-per-success
+analysis, and quality-gated adaptive-budget calibration. The shipped frozen
+suite contains **24 SWE-bench Verified tasks × 3 paired trials** (144 agent
+runs). The GitHub workflow remains explicitly paid/manual and must be executed
+before any new savings percentage is claimed.
 
 For paired experiments with independent verification and blind response grades,
 join all four evidence layers:

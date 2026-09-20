@@ -654,5 +654,22 @@
         ]
       }
     }
-  ]
+  ],
+  "quality_grader": {
+    "command": [
+      "python3",
+      "-m",
+      "token_saver.claude_grader",
+      "--model",
+      "{judge}",
+      "--image",
+      "token-saver-e2e-agent:2.1.276"
+    ],
+    "judge": "claude-sonnet-5",
+    "assignment_seed": 20260920,
+    "timeout_seconds": 300
+  },
+  "evidence": {
+    "pricing_file": "claude-sonnet-5-rates-2026-09-19.json"
+  }
 }

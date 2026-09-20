@@ -57,6 +57,16 @@ def run(
         "-v", f"{worktree.resolve()}:/workspace",
         "-v", f"{claude_home.resolve()}:/tmp/.claude",
     ]
+    state_dir = os.environ.get("TOKEN_SAVER_STATE_DIR")
+    if state_dir:
+        state_path = Path(state_dir).resolve()
+        state_path.mkdir(parents=True, exist_ok=True)
+        command.extend([
+            "-v",
+            f"{state_path}:/token-saver-state",
+            "-e",
+            "TOKEN_SAVER_STATE_DIR=/token-saver-state",
+        ])
     for name in (
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_WORKSPACE_ID",

@@ -17,6 +17,8 @@ META_KEYS = (
     "repositories",
     "runner",
     "tasks",
+    "quality_grader",
+    "evidence",
 )
 
 
@@ -31,7 +33,7 @@ def main() -> int:
     suite = validate_suite(suite_path, require_frozen=True, require_broad=True)
     output = Path(args.output).resolve()
 
-    merged = {key: suite[key] for key in META_KEYS}
+    merged = {key: suite[key] for key in META_KEYS if key in suite}
     merged["runs"] = []
     seen: set[tuple[str, str, str]] = set()
 

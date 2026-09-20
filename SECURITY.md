@@ -48,6 +48,19 @@ token-saver outputs-prune --days 7
 Treat the state/output directory as potentially sensitive because command output
 can contain project paths, diagnostics, or application data.
 
+## Blind grading data boundary
+
+`blind-grade` is an explicit evaluation action, not background telemetry. It
+sends the configured grader the frozen task prompt and the two agents' **final
+response texts** under anonymized A/B labels. It does not send condition names,
+repository patches, hidden verifier output, billing data, or full transcripts.
+The bundled Claude grader runs in an empty pinned container with shell,
+filesystem, and web tools denied.
+
+For private/custom benchmark prompts, treat the configured grader as an external
+processor of that prompt and final-response text. Do not enable a remote grader
+for material you are not permitted to send to that provider.
+
 ## Session state
 
 Token Saver keeps bounded local state for features such as remembered reads,

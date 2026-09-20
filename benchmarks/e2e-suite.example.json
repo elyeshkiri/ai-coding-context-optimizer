@@ -47,5 +47,22 @@
         ]
       ]
     }
-  ]
+  ],
+  "quality_grader": {
+    "command": [
+      "python3",
+      "-m",
+      "token_saver.claude_grader",
+      "--model",
+      "{judge}",
+      "--image",
+      "token-saver-e2e-agent:2.1.276"
+    ],
+    "judge": "REPLACE_WITH_EXACT_MODEL_ID",
+    "assignment_seed": 20260920,
+    "timeout_seconds": 300
+  },
+  "evidence": {
+    "pricing_file": "rates.json"
+  }
 }

@@ -18,6 +18,11 @@ token-saver experiment <suite> [--out FILE] [--dry-run] [--allow-development] [-
 - `--task` repeatable task filter.
 - `--print-task-definition-hash` prints the freeze hash.
 
+A production evidence suite may also declare `quality_grader` (judge command,
+judge identity, assignment seed, timeout) and `evidence.pricing_file`. Those
+fields are carried into run checkpoints for `blind-grade` / `evidence-run`
+but do not alter the already-frozen task-definition hash.
+
 ## Exit codes
 
 `0` success; `2` invalid suite/harness configuration.

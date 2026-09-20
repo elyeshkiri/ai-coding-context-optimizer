@@ -316,6 +316,31 @@ three randomized paired trials per task, keep the model/prompt/tool settings
 identical, independently verify task success, and report output-token reduction
 next to cost per success rather than treating response length alone as quality.
 
+### Automated end-to-end evidence pipeline
+
+The high-level production path is now:
+
+```bash
+token-saver evidence-run benchmarks/e2e-swebench-24.frozen.json \
+  --out benchmark-runs.json \
+  --require-publishable
+```
+
+The command is checkpointed across paid agent runs and judge calls. It runs the
+frozen randomized experiment, executes independent hidden verification, extracts
+only final assistant response text for a balanced deterministic blind A/B judge,
+writes quality scores back into the same run identities, evaluates exact
+cache-TTL-aware cost per successful task, and emits an adaptive-budget
+calibration artifact. The judge never receives baseline/Token Saver labels,
+patches, verifier outcomes, or billing data.
+
+The repository also ships a paid GitHub workflow for the existing **24-task ×
+3-trial SWE-bench Verified suite**. A smoke pair must first prove real agent
+usage, output-policy telemetry, blind grading, and pricing. Only then does the
+24-task matrix run. Aggregation blind-grades all 72 pairs and enforces the
+publishability gate. The workflow requires an explicit paid-run confirmation;
+merging the feature alone is not a savings result.
+
 ### Joined output-effectiveness evidence
 
 The paired experiment artifact now carries transcript-measured fresh input,
