@@ -2,6 +2,24 @@
 
 Token Saver treats setup as an idempotent repair/migration operation.
 
+## 1.7 session-efficiency control plane
+
+Version 1.7 widens Claude `PostToolUse` from `Bash|Read` to
+`Bash|Read|Edit|Write` so structured continuity can observe edits without
+rewriting their tool result. Rerun `token-saver setup` after upgrading so the
+managed project hook matcher is refreshed.
+
+A new `[efficiency]` config table defaults on for continuity, exact cross-turn
+dedup, and bounded waste detection. Existing configs without the table keep
+working and receive the safe defaults. Use the documented
+`TOKEN_SAVER_EFFICIENCY`, `TOKEN_SAVER_CONTINUITY`,
+`TOKEN_SAVER_CROSS_TURN_DEDUP`, or `TOKEN_SAVER_WASTE_DETECTION` overrides
+for temporary rollback.
+
+The new efficiency snapshot/event files live under the existing private Token
+Saver state directory. They do not alter repository files, ranking indexes, or
+frozen benchmark definitions.
+
 ## 1.6 evidence pipeline
 
 Version 1.6 adds `blind-grade` and `evidence-run`, plus cache-TTL-aware
