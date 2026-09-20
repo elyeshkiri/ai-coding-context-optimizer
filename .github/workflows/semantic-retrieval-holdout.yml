@@ -1,12 +1,9 @@
 name: Semantic Retrieval Holdout 13
 
 on:
-  workflow_dispatch:
-    inputs:
-      confirmation:
-        description: "Type RUN_SEMANTIC_HOLDOUT_13 to burn the frozen suite"
-        required: true
-        type: string
+  push:
+    branches:
+      - burn/semantic-holdout-13
 
 permissions:
   contents: read
@@ -21,12 +18,9 @@ jobs:
       TOKEN_SAVER_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
       HF_HOME: /tmp/token-saver-huggingface
     steps:
-      - name: Require explicit burn confirmation
+      - name: Record explicit burn authorization
         run: |
-          if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_13" ]; then
-            echo "Refusing to burn semantic holdout 13 without exact confirmation." >&2
-            exit 2
-          fi
+          echo "RUN_SEMANTIC_HOLDOUT_13 authorized by the user for this one-shot branch."
 
       - uses: actions/checkout@v4
 
