@@ -110,6 +110,8 @@ def _usage_since(path: Path, offset: int | None) -> dict:
         "input_tokens": 0,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
+        "cache_creation_5m_input_tokens": 0,
+        "cache_creation_1h_input_tokens": 0,
         "output_tokens": 0,
         "model_calls": 0,
         "models": [],
@@ -149,7 +151,12 @@ def _usage_since(path: Path, offset: int | None) -> dict:
             key = f"anonymous-{anonymous}"
         item = messages.setdefault(
             key,
-            {"model": str(message.get("model") or "unknown"), **dict.fromkeys(USAGE_FIELDS, 0)},
+            {
+                "model": str(message.get("model") or "unknown"),
+                **dict.fromkeys(USAGE_FIELDS, 0),
+                "cache_creation_5m_input_tokens": 0,
+                "cache_creation_1h_input_tokens": 0,
+            },
         )
         if item["model"] == "unknown" and message.get("model"):
             item["model"] = str(message["model"])
@@ -157,6 +164,19 @@ def _usage_since(path: Path, offset: int | None) -> dict:
             value = usage.get(field, 0)
             if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
                 item[field] = max(int(item[field]), value)
+        breakdown = usage.get("cache_creation")
+        if isinstance(breakdown, dict):
+            for source, target in (
+                ("ephemeral_5m_input_tokens", "cache_creation_5m_input_tokens"),
+                ("ephemeral_1h_input_tokens", "cache_creation_1h_input_tokens"),
+            ):
+                value = breakdown.get(source, 0)
+                if (
+                    isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and value >= 0
+                ):
+                    item[target] = max(int(item[target]), value)
 
     if not messages:
         return empty
@@ -167,6 +187,12 @@ def _usage_since(path: Path, offset: int | None) -> dict:
             field: sum(int(item[field]) for item in messages.values())
             for field in USAGE_FIELDS
         },
+        "cache_creation_5m_input_tokens": sum(
+            int(item["cache_creation_5m_input_tokens"]) for item in messages.values()
+        ),
+        "cache_creation_1h_input_tokens": sum(
+            int(item["cache_creation_1h_input_tokens"]) for item in messages.values()
+        ),
         "model_calls": len(messages),
         "models": sorted({str(item["model"]) for item in messages.values()}),
     }
@@ -397,6 +423,12 @@ def _group_summary(records: list[dict]) -> dict:
     cache_read = [
         _number(record.get("cache_read_input_tokens")) for record in measured
     ]
+    cache_created_5m = [
+        _number(record.get("cache_creation_5m_input_tokens")) for record in measured
+    ]
+    cache_created_1h = [
+        _number(record.get("cache_creation_1h_input_tokens")) for record in measured
+    ]
     budgets = [budget for _record, budget in with_budget]
     utilizations = [
         _number(record.get("budget_utilization"))
@@ -415,6 +447,8 @@ def _group_summary(records: list[dict]) -> dict:
         "input_tokens": int(sum(inputs)),
         "cache_creation_input_tokens": int(sum(cache_created)),
         "cache_read_input_tokens": int(sum(cache_read)),
+        "cache_creation_5m_input_tokens": int(sum(cache_created_5m)),
+        "cache_creation_1h_input_tokens": int(sum(cache_created_1h)),
         "output_tokens": int(sum(outputs)),
         "model_calls": int(sum(_number(record.get("model_calls")) for record in measured)),
         "mean_output_tokens": (sum(outputs) / len(outputs) if outputs else None),
