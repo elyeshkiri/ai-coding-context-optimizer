@@ -65,7 +65,7 @@ For a user-wide hook installation:
 token-saver install . --user
 ```
 
-The Claude Code integration uses three distinct boundaries:
+The Claude Code integration uses four distinct boundaries:
 
 - `UserPromptSubmit` automatically selects and injects a generation-time output
   policy when the task/mode changes, so completion tokens can be avoided before
@@ -73,7 +73,9 @@ The Claude Code integration uses three distinct boundaries:
 - `PreToolUse` protects against unbounded large source reads and lone
   `cat <large-source>` dumps;
 - `PostToolUse` can reduce large Bash stdout through the failure-aware output
-  processor registry while keeping the original result recoverable locally.
+  processor registry while keeping the original result recoverable locally;
+- `Stop` and `StopFailure` read the current turn's appended transcript usage
+  counters and record content-free budget telemetry locally.
 
 The prompt classifier is deterministic and conservative. Ambiguous follow-ups
 inherit the current session policy without another full policy injection.
@@ -82,6 +84,8 @@ may have rebuilt context. User prompt text is not persisted by this feature. Ada
 the token target only when a task/mode/new-task signal warrants recalculation;
 vague follow-ups keep the current budget exactly. If a quality-gated calibration
 artifact is present, its task/mode recommendation becomes the learned base.
+Claude's documented per-turn `Stop` event supplies the transcript path used for
+measurement; Token Saver never persists the hook's `last_assistant_message`.
 
 Inspect which processor would handle a command:
 
@@ -126,6 +130,7 @@ mode = "normal"
 task = "auto"
 adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
+telemetry = true
 ```
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.
