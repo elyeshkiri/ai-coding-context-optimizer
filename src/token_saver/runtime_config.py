@@ -347,7 +347,7 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         mcp_adaptive_max_tools=min(
             24,
             max(
-                6,
+                7,
                 _positive_int(
                     mcp.get("adaptive_max_tools"),
                     12,
@@ -660,7 +660,7 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
                 _env_int(
                     "TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS",
                     base.mcp_adaptive_max_tools,
-                    minimum=6,
+                    minimum=7,
                 )
                 or base.mcp_adaptive_max_tools
             ),
