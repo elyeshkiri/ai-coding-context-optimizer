@@ -213,7 +213,7 @@ class GoTestProcessor:
 # minimum kept-line budget, preserve every matching line
 _SPECS = [
     ("git-show", 25, r"^\s*git\b.*\bshow\b", r"^(?:commit |Author:|Date:|diff --git |index |--- |\+\+\+ |@@|[+-](?![+-]))", "git show", False, 120, True),
-    ("git-branch", 26, r"^\s*git\b.*\bbranch\b", r".+", "git branch", False, 80, False),
+    ("git-branch", 26, r"^\s*git\s+branch\b", r".+", "git branch", False, 80, False),
     ("git-remote", 27, r"^\s*git\b.*\b(?:push|pull|fetch|remote)\b", r"(?:^From |^To |->|\[new |\[rejected\]|up.to.date|fast-forward|error:|fatal:|warning:)", "git remote", True, 80, False),
     ("docker-build", 32, r"^\s*docker\s+(?:build|buildx\s+build)\b", r"(?:^#\d+\s+\[|\b(?:ERROR|FAILED|CACHED|DONE)\b|error:|warning:|Successfully|exporting)", "docker build", True, 90, False),
     ("docker-ps", 32, r"^\s*docker\s+(?:container\s+)?(?:ps|ls)\b", r".+", "docker ps", False, 70, False),
