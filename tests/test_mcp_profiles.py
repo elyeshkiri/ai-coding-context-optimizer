@@ -16,12 +16,12 @@ def test_minimal_profile_contains_only_high_frequency_context_tools():
     names = tool_registry_for_profile("minimal").names()
 
     assert names == (
-        "route_task",
         "build_context",
         "find_symbol",
         "browse_context",
         "remember_finding",
         "recall_findings",
+        "route_task",
     )
 
 
