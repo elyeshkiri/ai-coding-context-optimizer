@@ -238,6 +238,7 @@ current_model = "claude-sonnet-5"
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5"]
 min_savings = 0.20
 conservative = false
+calibration_file = "routing-calibration.json"
 """,
         encoding="utf-8",
     )
@@ -252,10 +253,12 @@ conservative = false
     )
     assert configured.model_routing_min_savings == pytest.approx(0.20)
     assert configured.model_routing_conservative is False
+    assert configured.model_routing_calibration_file == "routing-calibration.json"
 
     hook_config = _config_from_env(tmp_path)
     assert hook_config.model_routing_enabled is True
     assert hook_config.model_routing_mode == "observe"
+    assert hook_config.model_routing_calibration_file == "routing-calibration.json"
 
     monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_MODE", "advisory")
     monkeypatch.setenv(
@@ -264,6 +267,10 @@ conservative = false
     )
     monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS", "0.10")
     monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE", "1")
+    monkeypatch.setenv(
+        "TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE",
+        "learned-routing.json",
+    )
     overridden = settings_for(tmp_path)
 
     assert overridden.model_routing_mode == "advisory"
@@ -273,6 +280,7 @@ conservative = false
     )
     assert overridden.model_routing_min_savings == pytest.approx(0.10)
     assert overridden.model_routing_conservative is True
+    assert overridden.model_routing_calibration_file == "learned-routing.json"
 
 
 def test_claude_prompt_hook_automatically_injects_advisory_when_enabled(
@@ -561,3 +569,28 @@ def test_runtime_loader_rechecks_quality_summary_metrics(tmp_path):
 
     with pytest.raises(ValueError, match="below safety floors"):
         load_routing_calibration(path)
+
+
+
+def test_automatic_route_falls_back_to_static_policy_on_invalid_calibration(
+    tmp_path, monkeypatch
+):
+    """A corrupt calibration must not disable or relax the conservative router."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    bad = tmp_path / "bad-routing.json"
+    bad.write_text('{"schema":1,"recommendations":[{"pairs":1}]}', encoding="utf-8")
+
+    note = automatic_model_route(
+        tmp_path,
+        "Debug the failing handler.",
+        session_id="static-fallback",
+        enabled=True,
+        mode="advisory",
+        calibration_file=str(bad),
+    )
+
+    assert note is not None
+    assert "claude-sonnet-5" in note
+    state = load_state(tmp_path, "static-fallback")
+    assert state["model_route"]["selected_model"] == "claude-sonnet-5"
+    assert state["model_route"]["calibration_applied"] is False
