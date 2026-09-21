@@ -1,5 +1,7 @@
 # Unreleased
 
+# 1.12.0 - 2026-09-21
+
 - **Added automatic capability- and cost-aware model routing.** The new
   `model-route` CLI and MCP `route_task` tool classify task type, complexity,
   and explicit high-risk domains, establish a conservative minimum capability,
