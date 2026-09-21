@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from token_saver.command_handlers.pricing import pricing_main
 from token_saver.pricing import (
     builtin_rates,
     builtin_registry,
@@ -110,3 +111,13 @@ def test_live_source_matcher_detects_changed_rate():
 
     assert module._live_mismatches(registry, matching) == []
     assert module._live_mismatches(registry, drifted) == ["claude-sonnet-5"]
+
+
+def test_pricing_cli_resolves_one_canonical_model(capsys):
+    """Pricing CLI should expose freshness plus exact model rates as JSON."""
+    assert pricing_main(["--model", "claude-sonnet-5", "--json"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"]["fresh"] is True
+    assert list(payload["models"]) == ["claude-sonnet-5"]
+    assert payload["models"]["claude-sonnet-5"]["rates"]["input"] == 2.0
