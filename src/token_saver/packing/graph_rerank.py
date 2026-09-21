@@ -328,9 +328,21 @@ def _apply_semantic_artifact_authority(
         )
 
 
+def _peer_term_key(term: str) -> str:
+    """Normalize one filename-family term without broad query rewriting."""
+    value = term.casefold()
+    if value.endswith("ing") and len(value) > 6:
+        value = value[:-3]
+    if value.endswith("e") and len(value) > 4:
+        value = value[:-1]
+    return value
+
+
 def _peer_name_terms(rel: str) -> set[str]:
     """Return bounded implementation-family terms from one filename stem."""
-    return set(terms(Path(rel).stem)) - _PEER_GENERIC_TERMS
+    values = {_peer_term_key(value) for value in terms(Path(rel).stem)}
+    generic = {_peer_term_key(value) for value in _PEER_GENERIC_TERMS}
+    return {value for value in values - generic if len(value) >= 3}
 
 
 def _apply_semantic_peer_expansion(
@@ -341,7 +353,7 @@ def _apply_semantic_peer_expansion(
     """Promote implementation-family peers of strong semantic witness files."""
     if not semantic_order:
         return
-    query_terms = set(terms(query))
+    query_terms = {_peer_term_key(value) for value in terms(query)}
     seed_terms = [
         (rel, _peer_name_terms(rel))
         for rel in semantic_order[:12]
