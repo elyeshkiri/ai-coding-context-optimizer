@@ -212,3 +212,15 @@ def test_mcp_memory_progressive_round_trip(tmp_path, monkeypatch):
     assert "snippet" in search[0]
     assert full[0]["evidence"].startswith("refresh is")
     assert full[0]["access_count"] == 1
+
+
+
+def test_adaptive_initial_surface_materially_reduces_schema_tokens():
+    """Adaptive startup should reduce recurring schema cost before discovery."""
+    adaptive = tool_registry_for_profile("adaptive").schemas()
+    full = tool_registry_for_profile("full").schemas()
+
+    adaptive_tokens = estimate_tokens(json.dumps(adaptive), ".json")
+    full_tokens = estimate_tokens(json.dumps(full), ".json")
+
+    assert adaptive_tokens < full_tokens * 0.55
