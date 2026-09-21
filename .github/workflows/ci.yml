@@ -29,6 +29,7 @@ jobs:
             --require-frozen > /tmp/output-quality-session.json
       - name: Enforce 40-processor CLI compression ratchet
         run: |
+          set -o pipefail
           token-saver output-replay \
             benchmarks/cli-output-compression-ratchet-v1.frozen.json \
             --require-frozen | tee /tmp/cli-output-compression-ratchet.json
