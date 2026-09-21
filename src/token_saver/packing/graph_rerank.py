@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from ..closure import authoritative_providers, dependency_closure
+from ..lexical import terms
 from ..repo_index import RepositoryIndex
 from ..semantic_retrieval import SemanticVectorIndex
 from .contracts import RankedFile, RankingScoreEvent
@@ -228,6 +231,166 @@ def _apply_semantic_graph_expansion(
         )
 
 
+
+_DESCRIPTOR_FILENAMES = frozenset({
+    "module-info.java",
+    "package-info.java",
+    "package.json",
+    "pyproject.toml",
+    "cargo.toml",
+    "go.mod",
+    "go.work",
+    "pom.xml",
+})
+_ANALYZER_ROLE_TERMS = frozenset({
+    "analyzer", "analysis", "diagnostic", "lint", "linter", "checker", "inspection",
+})
+_ANALYZER_QUERY_TERMS = frozenset({
+    "analyzer", "analysis", "diagnostic", "lint", "linter", "checker",
+    "warning", "warn", "rule", "reported", "report",
+})
+_MODULE_QUERY_TERMS = frozenset({
+    "module", "java", "named", "instrumentation", "export", "exports",
+    "requires", "opens", "readability",
+})
+_PEER_GENERIC_TERMS = frozenset({
+    "base", "default", "helper", "helpers", "index", "internal", "main",
+    "src", "test", "tests", "util", "utils",
+})
+
+
+def _query_artifact_roles(query: str) -> set[str]:
+    """Infer a small set of structural artifact roles from task wording."""
+    query_terms = set(terms(query))
+    roles: set[str] = set()
+    if "module" in query_terms and len(query_terms & _MODULE_QUERY_TERMS) >= 2:
+        roles.add("module-descriptor")
+    if query_terms & _ANALYZER_QUERY_TERMS:
+        roles.add("analyzer")
+    return roles
+
+
+def _file_artifact_roles(rel: str) -> set[str]:
+    """Return structural roles encoded by a repository path or filename."""
+    path = Path(rel)
+    lowered = rel.casefold()
+    path_terms = set(terms(rel))
+    roles: set[str] = set()
+    if path.name.casefold() in _DESCRIPTOR_FILENAMES:
+        roles.add("module-descriptor")
+    if (
+        path_terms & _ANALYZER_ROLE_TERMS
+        or "/analyzers/" in f"/{lowered}/"
+        or path.stem.casefold().endswith("analyzer")
+    ):
+        roles.add("analyzer")
+    return roles
+
+
+def _apply_semantic_artifact_authority(
+    index: RepositoryIndex,
+    ranked: list[RankedFile],
+    query: str,
+    semantic_order: list[str],
+) -> None:
+    """Bridge semantic intent to structurally authoritative artifact roles."""
+    if not semantic_order:
+        return
+    query_roles = _query_artifact_roles(query)
+    if not query_roles:
+        return
+    query_terms = set(terms(query))
+    for item in ranked:
+        matched_roles = query_roles & _file_artifact_roles(item.rel)
+        if not matched_roles:
+            continue
+        record = index.records.get(item.rel)
+        document_terms = set((record.term_counts or {}).keys()) if record else set()
+        overlap = len(query_terms & document_terms)
+        if overlap < 2:
+            continue
+        boost = min(42.0, 24.0 + 3.0 * overlap)
+        before = item.score
+        item.score += boost
+        evidence = (
+            "semantic-artifact-authority:"
+            + ",".join(sorted(matched_roles))
+            + f":overlap={overlap}:boost={boost:.1f}"
+        )
+        item.reasons.append(evidence)
+        item.score_trace.append(
+            RankingScoreEvent.from_scores(
+                "semantic-artifact-authority",
+                before,
+                item.score,
+                (evidence,),
+            )
+        )
+
+
+def _peer_name_terms(rel: str) -> set[str]:
+    """Return bounded implementation-family terms from one filename stem."""
+    return set(terms(Path(rel).stem)) - _PEER_GENERIC_TERMS
+
+
+def _apply_semantic_peer_expansion(
+    ranked: list[RankedFile],
+    query: str,
+    semantic_order: list[str],
+) -> None:
+    """Promote implementation-family peers of strong semantic witness files."""
+    if not semantic_order:
+        return
+    query_terms = set(terms(query))
+    seed_terms = [
+        (rel, _peer_name_terms(rel))
+        for rel in semantic_order[:12]
+    ]
+    seed_terms = [(rel, values) for rel, values in seed_terms if values]
+    if not seed_terms:
+        return
+
+    for item in ranked:
+        candidate_terms = _peer_name_terms(item.rel)
+        if not candidate_terms:
+            continue
+        best: tuple[int, int, str, set[str]] | None = None
+        for seed, terms_for_seed in seed_terms:
+            if seed == item.rel:
+                continue
+            shared = candidate_terms & terms_for_seed
+            if len(shared) < 2:
+                continue
+            query_shared = shared & query_terms
+            if not query_shared and len(shared) < 3:
+                continue
+            score = (len(shared), len(query_shared), seed, shared)
+            if best is None or score[:2] > best[:2]:
+                best = score
+        if best is None:
+            continue
+        shared_count, query_shared_count, seed, shared = best
+        boost = min(
+            20.0,
+            6.0 + 3.0 * shared_count + 2.0 * query_shared_count,
+        )
+        before = item.score
+        item.score += boost
+        evidence = (
+            f"semantic-peer:{seed}:"
+            f"shared={','.join(sorted(shared))}:boost={boost:.1f}"
+        )
+        item.reasons.append(evidence)
+        item.score_trace.append(
+            RankingScoreEvent.from_scores(
+                "semantic-peer",
+                before,
+                item.score,
+                (evidence,),
+            )
+        )
+
+
 def _apply_embedding_rerank_index(
     index: RepositoryIndex,
     query: str,
@@ -325,6 +488,8 @@ def _apply_embedding_rerank_index(
         )
 
     _apply_semantic_graph_expansion(index, ranked, semantic_order)
+    _apply_semantic_artifact_authority(index, ranked, query, semantic_order)
+    _apply_semantic_peer_expansion(ranked, query, semantic_order)
 
 
 def _apply_embedding_rerank(
