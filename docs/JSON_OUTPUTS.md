@@ -583,6 +583,70 @@ current binary; they are not package-version provenance.
 Returns the full `session-effectiveness` object above. With
 `--require-publishable`, a blocked publication gate exits `1`.
 
+
+## \`cost-advisor --json\`
+
+\`\`\`json
+{
+  "schema": 1,
+  "root": "/project",
+  "window_days": 7,
+  "score": {
+    "points": 72,
+    "available_max_points": 80,
+    "percent": 90.0,
+    "coverage": 0.8,
+    "grade": "A",
+    "categories": []
+  },
+  "context": {
+    "always_on_tokens": 1800,
+    "on_demand_tokens": 900,
+    "counter": "≈est",
+    "mcp_servers_configured": [],
+    "largest_always_on": []
+  },
+  "usage": {
+    "summary": {},
+    "models": {},
+    "measured_turns": 12,
+    "mixed_model_turns": 0
+  },
+  "cost": {
+    "available": true,
+    "complete": true,
+    "usd": 0.1234,
+    "priced_usd": 0.1234,
+    "priced_turns": 12,
+    "measured_turns": 12,
+    "coverage": 1.0,
+    "incomplete_reasons": []
+  },
+  "savings": {
+    "estimated_tool_context_tokens": 4200,
+    "by_feature": {},
+    "events": 4,
+    "trust": "...",
+    "fresh_input_once_projection": {
+      "available": true,
+      "by_observed_model_usd": {},
+      "assumption": "..."
+    }
+  },
+  "behavior": {},
+  "continuity": {},
+  "recommendations": [],
+  "evidence": {}
+}
+\`\`\`
+
+\`score.coverage\` is separate from the normalized score so missing telemetry
+cannot silently become a zero or a perfect score. \`cost.usd\` is non-null only
+for complete exact-model pricing coverage; \`priced_usd\` may contain a clearly
+labeled partial subtotal. Estimated transformation savings remain token
+estimates. The fresh-input-once projection is a counterfactual scenario, not an
+API invoice or an end-to-end cost-per-success claim.
+
 ## `cost-report --json`
 
 ```json
