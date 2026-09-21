@@ -109,6 +109,8 @@ def start_output_turn(
                 "pricing_basis",
                 "projected_savings_fraction",
                 "projected_selected_cost_usd",
+                "calibration_applied",
+                "calibration_source",
             )
             if key in route
         },
@@ -352,6 +354,8 @@ def finish_output_turn(
         "route_projected_selected_cost_usd": model_route.get(
             "projected_selected_cost_usd"
         ),
+        "route_calibration_applied": model_route.get("calibration_applied"),
+        "route_calibration_source": model_route.get("calibration_source"),
         **usage,
         "route_matched_actual": (
             route_target in usage["models"]
