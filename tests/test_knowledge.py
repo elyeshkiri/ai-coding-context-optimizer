@@ -182,3 +182,99 @@ def test_for_path_excludes_stale_source(tmp_path, monkeypatch):
     )
 
     assert store.for_path("auth.py") == []
+
+
+
+def test_progressive_memory_disclosure_keeps_index_compact(tmp_path, monkeypatch):
+    """Memory discovery should reveal metadata before expensive full evidence."""
+    root = _project(tmp_path, monkeypatch)
+    store = FindingStore(root)
+    memory = store.remember_memory(
+        claim="Rotate refresh tokens after successful renewal",
+        anchors=["auth.py::refresh_session"],
+        evidence="The current implementation delegates token rotation in the auth path.",
+        applicability="Use when changing login or refresh behavior.",
+        kind="decision",
+        tags=["auth", "sessions"],
+        importance=5,
+    )
+
+    index = store.index("refresh tokens")
+    snippets = store.search("refresh tokens")
+    full = store.get([memory["id"]])
+
+    assert index[0]["id"] == memory["id"]
+    assert index[0]["kind"] == "decision"
+    assert index[0]["importance"] == 5
+    assert "evidence" not in index[0]
+    assert snippets[0]["id"] == memory["id"]
+    assert "implementation" in snippets[0]["snippet"]
+    assert "evidence" not in snippets[0]
+    assert full[0]["evidence"].startswith("The current implementation")
+    assert full[0]["access_count"] == 1
+    assert store.get([memory["id"]])[0]["access_count"] == 2
+
+
+def test_memory_near_duplicate_supersedes_older_active_record(tmp_path, monkeypatch):
+    """Near-identical memory on the same evidence should not stay active twice."""
+    root = _project(tmp_path, monkeypatch)
+    store = FindingStore(root)
+    first = store.remember_memory(
+        claim="Session refresh uses the auth helper for token rotation",
+        anchors=["auth.py"],
+        evidence="Observed in auth.py",
+        applicability="Use for session refresh changes",
+        kind="architecture",
+        tags=["auth"],
+    )
+    second = store.remember_memory(
+        claim="Session refresh uses auth helper for rotating tokens",
+        anchors=["auth.py"],
+        evidence="Reconfirmed in the current auth module",
+        applicability="Use for session refresh changes",
+        kind="architecture",
+        tags=["auth", "rotation"],
+    )
+
+    active = store.index("session refresh", limit=10)
+    all_rows = store.index("session refresh", limit=10, include_stale=True)
+
+    assert [item["id"] for item in active] == [second["id"]]
+    assert first["id"] != second["id"]
+    assert {item["state"] for item in all_rows} == {"active", "superseded"}
+
+
+def test_memory_kind_filter_and_source_staleness(tmp_path, monkeypatch):
+    """Typed memory filtering must still respect source-digest invalidation."""
+    root = _project(tmp_path, monkeypatch)
+    store = FindingStore(root)
+    store.remember_memory(
+        claim="Auth changes require refresh tests",
+        anchors=["auth.py"],
+        evidence="Auth is the source of refresh behavior",
+        applicability="Run when changing authentication",
+        kind="guardrail",
+        importance=5,
+    )
+    store.remember_memory(
+        claim="Auth module owns refresh flow",
+        anchors=["auth.py"],
+        evidence="Current repository structure",
+        applicability="Use while navigating authentication",
+        kind="architecture",
+    )
+
+    assert len(store.index("auth refresh", kind="guardrail")) == 1
+
+    (root / "auth.py").write_text(
+        "def refresh_session(token):\n    return token + '-changed'\n",
+        encoding="utf-8",
+    )
+
+    assert store.index("auth refresh", kind="guardrail") == []
+    stale = store.index(
+        "auth refresh",
+        kind="guardrail",
+        include_stale=True,
+    )
+    assert stale[0]["state"] == "stale"
