@@ -10,6 +10,7 @@ from token_saver.semantic_holdout import (
     _trivial_lexical_files,
     _validate_leakage,
     evaluate_semantic_holdout,
+    merge_semantic_holdout_results,
     query_freeze_hash,
     semantic_ground_truth_hash,
     validate_semantic_holdout,
@@ -211,3 +212,118 @@ def test_three_arm_evaluator_can_recover_semantic_only_target(
     assert task["semantic"]["file_recall"] == 1.0
     assert task["semantic_recovered"] is True
     assert result["summary"]["semantic_recovered_tasks"] == 1
+
+
+
+def test_repository_shards_merge_to_original_evaluation(tmp_path, monkeypatch):
+    """Repository sharding must preserve the original frozen evaluation result."""
+    repositories = {}
+    tasks = []
+    for alias in ("alpha", "beta"):
+        repo = tmp_path / alias
+        repo.mkdir()
+        (repo / "a_noise.py").write_text(
+            "def ordinary_helper():\n    return 'routine bookkeeping'\n",
+            encoding="utf-8",
+        )
+        (repo / "z_target.py").write_text(
+            "def stale_session_artifact(record):\n"
+            "    return not record.timeout_elapsed\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+        subprocess.run(
+            [
+                "git", "-C", str(repo), "-c", "user.name=Test",
+                "-c", "user.email=test@example.invalid",
+                "commit", "-qm", "fixture",
+            ],
+            check=True,
+        )
+        repositories[alias] = {
+            "repository": f"fixture/{alias}",
+            "path": alias,
+        }
+        tasks.append(
+            {
+                "id": f"{alias}-semantic-recovery",
+                "repository": alias,
+                "source_issue": {
+                    "number": 1,
+                    "url": f"https://example.invalid/{alias}/issues/1",
+                },
+                "query": "prevent expired credentials from being reused",
+            }
+        )
+
+    freeze = {
+        "suite_version": 1,
+        "repositories": repositories,
+        "tasks": tasks,
+    }
+    freeze_path = tmp_path / "queries.json"
+    freeze_path.write_text(json.dumps(freeze), encoding="utf-8")
+
+    manifest = {
+        "suite_version": 1,
+        "max_tokens": 500,
+        "max_files": 1,
+        "repositories": repositories,
+        "tasks": [
+            {
+                **task,
+                "files": ["z_target.py"],
+                "forbidden_identifiers": [
+                    "z_target.py",
+                    "stale_session_artifact",
+                ],
+                "eligible": True,
+            }
+            for task in tasks
+        ],
+        "protocol": {
+            "ground_truth_frozen": True,
+            "development_excluded": True,
+            "semantic_natural_language": True,
+            "query_frozen_before_ground_truth": True,
+            "no_identifier_leakage": True,
+            "frozen_at": "2026-09-21T00:00:00Z",
+            "query_freeze_file": "queries.json",
+            "query_freeze_commit": "0" * 40,
+            "query_freeze_sha256": query_freeze_hash(freeze),
+            "ground_truth_sha256": "",
+            "baseline": "distinct-term-overlap@1",
+            "embedding_model": "fixture-model",
+        },
+    }
+    manifest["protocol"]["ground_truth_sha256"] = semantic_ground_truth_hash(
+        manifest
+    )
+    manifest_path = tmp_path / "semantic-holdout-99.frozen.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr(
+        "token_saver.semantic_retrieval._load_encoder",
+        lambda _model: _FakeEncoder(),
+    )
+
+    full = evaluate_semantic_holdout(tmp_path, manifest_path)
+    alpha = evaluate_semantic_holdout(
+        tmp_path,
+        manifest_path,
+        repositories={"alpha"},
+    )
+    beta = evaluate_semantic_holdout(
+        tmp_path,
+        manifest_path,
+        repositories={"beta"},
+    )
+    merged = merge_semantic_holdout_results([beta, alpha], manifest_path)
+
+    assert merged["suite"] == "semantic-holdout-99"
+    assert merged["tasks"] == full["tasks"]
+    assert merged["repositories"] == full["repositories"]
+    assert merged["summary"] == full["summary"]
+    assert merged["protocol"] == full["protocol"]
