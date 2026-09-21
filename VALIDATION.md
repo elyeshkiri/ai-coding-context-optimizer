@@ -1,6 +1,6 @@
-# Validation for 1.12.0
+# Validation for 1.13.0
 
-## Unreleased recoverable optimization-platform mechanics
+## 1.13 recoverable optimization-platform mechanics
 
 The recovery/schema/proxy/prefix/optimizer/browser additions are covered as
 **mechanical and safety evidence only**. They do not yet support a new
@@ -38,7 +38,7 @@ independent task verification and blind quality grading, provider usage/cache
 counters are complete, and cost-per-success passes the existing publication
 gate.
 
-## Unreleased persistent-memory and adaptive-MCP mechanics
+## 1.13 persistent-memory and adaptive-MCP mechanics
 
 The new project-memory and adaptive tool-surface features are mechanically
 validated but do not yet carry an end-to-end savings claim.
@@ -75,6 +75,8 @@ no-identifier-leakage holdout #14 is required for a new external claim.
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
+
+Version 1.13.0 adds progressive persistent project memory, adaptive MCP tool disclosure, recoverable MCP schema compression, universal exact-byte recovery handles, a measured keep-or-revert optimizer, content-free provider-prefix reuse evidence, an opt-in hardened local provider proxy, and focused recoverable browser-context compression. These additions are mechanically and safety validated; no new end-to-end savings percentage is claimed without fresh paired-agent evidence.
 
 Version 1.12.0 adds automatic capability/cost-aware model routing,
 quality-gated routing calibration, the centralized freshness-gated Claude

@@ -1,5 +1,7 @@
 # Unreleased
 
+# 1.13.0 - 2026-09-22
+
 - **Added a recoverable optimization platform across context surfaces.**
   Lossy transforms can now retain exact original bytes in a project-scoped,
   content-addressed SQLite store with `tsr_...` handles, SHA-256 verification,
