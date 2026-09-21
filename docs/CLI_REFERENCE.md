@@ -95,6 +95,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`knowledge-holdout`](commands/knowledge-holdout.md) — run/resume the frozen knowledge read-avoidance/cache-economics holdout.
 - [`knowledge-holdout-evaluate`](commands/knowledge-holdout-evaluate.md) — evaluate completed knowledge-efficiency evidence.
 - [`cost-report`](commands/cost-report.md) — analyze paired cost/success evidence.
+- [`cost-advisor`](commands/cost-advisor.md) — measured local efficiency score, usage pricing, and evidence-linked next actions.
 - [`benchmark`](commands/benchmark.md) — evaluate recorded paired-task evidence.
 
 ## Exit-code conventions
