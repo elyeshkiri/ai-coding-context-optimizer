@@ -109,6 +109,7 @@ def test_adaptive_profile_starts_with_bounded_core():
         "find_symbol",
         "browse_context",
         "memory_index",
+        "recover_context",
         "route_task",
     } == names
     assert len(names) < len(tool_registry_for_profile("full").names())
