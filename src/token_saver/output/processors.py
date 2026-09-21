@@ -341,7 +341,12 @@ class GitStatusProcessor:
             if stripped.startswith("("):
                 continue
 
-            short = re.match(r"^([ MADRCUT?!]{1,2})\s+(.+)$", line)
+            leading_spaces = len(line) - len(line.lstrip(" "))
+            short = (
+                re.match(r"^([ MADRCUT?!]{1,2})\s+(.+)$", line)
+                if leading_spaces <= 2 and not line.startswith("\t")
+                else None
+            )
             if short:
                 changes.append(f"{short.group(1)} {short.group(2).strip()}")
                 continue
