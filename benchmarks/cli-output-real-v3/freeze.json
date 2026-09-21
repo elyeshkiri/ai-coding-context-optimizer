@@ -1,0 +1,23 @@
+{
+  "protocol": {
+    "kind": "provenance-backed-cli-output-corpus-v3",
+    "frozen": true,
+    "frozen_at": "2026-09-21T09:43:00Z",
+    "untuned_before_capture": true,
+    "processor_lock_sha": "18ebda5d623fc01ef2ea5cdf79054ecee7ba76e6",
+    "source_workflow_run_id": 35584642288,
+    "source_artifact_id": 10630834204,
+    "source_artifact_sha256": "f5345e19b1b77ccf41257c7393242c14b6e5dc88d7cc72f0833e0f032241742b",
+    "source_candidate_sha": "12ef49a1130f784f392ae4d5c1c83077a084aeea",
+    "source_checkout_sha": "7ed3b8bbc48d3a8633bb0943599a26091b24b36f",
+    "capture_definition_sha256": "0866719efa899c3d1d81fc2aa70eabe116ceb4401148ced000d854571581baae",
+    "focus": "git-log-status",
+    "claim_boundary": "Fresh real CLI executions captured after v2-guided Git log/status tuning and before any v3 comparison; controlled CI evidence, not production-user logs or end-to-end API-cost evidence."
+  },
+  "summary": {
+    "attempted": 29,
+    "captured": 29,
+    "skipped": 0,
+    "raw_bytes": 14068
+  }
+}
