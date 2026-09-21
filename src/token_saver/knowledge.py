@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -14,11 +15,31 @@ import time
 
 from .state import state_dir
 
-SCHEMA = 1
+SCHEMA = 2
 MAX_FINDINGS = 500
 MAX_ANCHORS = 8
 MAX_INVALIDATORS = 8
+MAX_TAGS = 12
+MAX_RELATED = 12
 CONFIDENCE = {"speculative", "probable", "verified"}
+MEMORY_KINDS = {
+    "finding",
+    "decision",
+    "bugfix",
+    "convention",
+    "guardrail",
+    "architecture",
+    "fact",
+}
+_DECAY_HALF_LIFE_DAYS = {
+    "finding": 180.0,
+    "decision": 365.0,
+    "bugfix": 180.0,
+    "convention": 240.0,
+    "guardrail": 365.0,
+    "architecture": 365.0,
+    "fact": 180.0,
+}
 _TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_\\-]{1,}")
 
 
@@ -177,12 +198,17 @@ class FindingStore:
         invalidators: list[str] | None = None,
         supersedes: list[str] | None = None,
         source: str = "manual",
+        kind: str = "finding",
+        tags: list[str] | None = None,
+        importance: int = 3,
+        related_ids: list[str] | None = None,
     ) -> dict:
-        """Store or refresh one explicit project finding with provenance."""
+        """Store or refresh one explicit project memory with provenance."""
         claim = " ".join(claim.strip().split())
         evidence = " ".join(evidence.strip().split())
         applicability = " ".join(applicability.strip().split())
         confidence = confidence.strip().lower()
+        kind = kind.strip().lower()
         if not claim:
             raise ValueError("knowledge claim must not be empty")
         if not evidence:
@@ -192,6 +218,11 @@ class FindingStore:
         if confidence not in CONFIDENCE:
             allowed = ", ".join(sorted(CONFIDENCE))
             raise ValueError(f"knowledge confidence must be one of: {allowed}")
+        if kind not in MEMORY_KINDS:
+            allowed = ", ".join(sorted(MEMORY_KINDS))
+            raise ValueError(f"knowledge kind must be one of: {allowed}")
+        if isinstance(importance, bool) or not isinstance(importance, int) or not 1 <= importance <= 5:
+            raise ValueError("knowledge importance must be an integer from 1 to 5")
         if not anchors:
             raise ValueError("knowledge findings require at least one repository anchor")
         if len(anchors) > MAX_ANCHORS:
@@ -210,6 +241,16 @@ class FindingStore:
             for value in (supersedes or [])
             if str(value).strip()
         ]
+        tags = sorted({
+            " ".join(str(value).strip().lower().split())
+            for value in (tags or [])
+            if str(value).strip()
+        })[:MAX_TAGS]
+        related_ids = [
+            str(value).strip()
+            for value in (related_ids or [])
+            if str(value).strip()
+        ][:MAX_RELATED]
         record = {
             "id": finding_id,
             "claim": claim,
@@ -217,11 +258,17 @@ class FindingStore:
             "evidence": evidence,
             "applicability": applicability,
             "confidence": confidence,
+            "kind": kind,
+            "tags": tags,
+            "importance": importance,
+            "related_ids": related_ids,
             "invalidators": invalidators,
             "supersedes": supersedes,
             "source": source[:80],
             "created_at": now,
             "updated_at": now,
+            "last_accessed_at": None,
+            "access_count": 0,
             "version": 1,
         }
 
@@ -240,6 +287,8 @@ class FindingStore:
             if previous:
                 record["created_at"] = int(previous.get("created_at", now))
                 record["version"] = int(previous.get("version", 1)) + 1
+                record["access_count"] = int(previous.get("access_count", 0) or 0)
+                record["last_accessed_at"] = previous.get("last_accessed_at")
                 findings[:] = [
                     item
                     for item in findings
@@ -286,6 +335,227 @@ class FindingStore:
         ranked.sort(
             key=lambda pair: (
                 -pair[0],
+                -int(pair[1].get("updated_at", 0)),
+                pair[1].get("id", ""),
+            )
+        )
+        return [item for _, item in ranked[:limit]]
+
+    def remember_memory(
+        self,
+        *,
+        claim: str,
+        anchors: list[str],
+        evidence: str,
+        applicability: str,
+        kind: str,
+        confidence: str = "verified",
+        tags: list[str] | None = None,
+        importance: int = 3,
+        invalidators: list[str] | None = None,
+        related_ids: list[str] | None = None,
+        source: str = "manual",
+        deduplicate: bool = True,
+    ) -> dict:
+        """Store richer project memory while superseding near-duplicate active items."""
+        supersedes: list[str] = []
+        if deduplicate:
+            candidate_tokens = _tokens(claim)
+            candidate_anchor_paths = {
+                self._normalize_anchor(value)["path"] for value in anchors
+            }
+            best: tuple[float, str] | None = None
+            for raw in _load(self.root)["findings"]:
+                if not isinstance(raw, dict):
+                    continue
+                item = self._materialize(raw)
+                if item["state"] != "active":
+                    continue
+                if str(item.get("kind", "finding")) != kind.strip().lower():
+                    continue
+                item_paths = {
+                    str(anchor.get("path"))
+                    for anchor in item.get("anchors", [])
+                    if isinstance(anchor, dict) and anchor.get("path")
+                }
+                if not candidate_anchor_paths.intersection(item_paths):
+                    continue
+                existing_tokens = _tokens(str(item.get("claim") or ""))
+                union = candidate_tokens | existing_tokens
+                similarity = (
+                    len(candidate_tokens & existing_tokens) / len(union)
+                    if union else 0.0
+                )
+                if similarity >= 0.80 and (
+                    best is None or similarity > best[0]
+                ):
+                    best = (similarity, str(item["id"]))
+            if best is not None:
+                supersedes.append(best[1])
+        return self.remember(
+            claim=claim,
+            anchors=anchors,
+            evidence=evidence,
+            applicability=applicability,
+            confidence=confidence,
+            invalidators=invalidators,
+            supersedes=supersedes,
+            source=source,
+            kind=kind,
+            tags=tags,
+            importance=importance,
+            related_ids=related_ids,
+        )
+
+    def index(
+        self,
+        query: str = "",
+        *,
+        kind: str | None = None,
+        limit: int = 20,
+        include_stale: bool = False,
+    ) -> list[dict]:
+        """Return compact memory metadata for cheap first-stage discovery."""
+        rows = self._ranked(
+            query,
+            kind=kind,
+            limit=limit,
+            include_stale=include_stale,
+        )
+        return [
+            {
+                "id": item["id"],
+                "kind": item["kind"],
+                "claim": item["claim"],
+                "confidence": item["confidence"],
+                "importance": item["importance"],
+                "tags": item["tags"],
+                "state": item["state"],
+                "updated_at": item["updated_at"],
+                "score": item["score"],
+                "anchors": [
+                    {
+                        "path": anchor.get("path"),
+                        "symbol": anchor.get("symbol"),
+                    }
+                    for anchor in item.get("anchors", [])
+                    if isinstance(anchor, dict)
+                ],
+            }
+            for item in rows
+        ]
+
+    def search(
+        self,
+        query: str,
+        *,
+        kind: str | None = None,
+        limit: int = 10,
+        include_stale: bool = False,
+    ) -> list[dict]:
+        """Return memory snippets for second-stage relevance confirmation."""
+        rows = self._ranked(
+            query,
+            kind=kind,
+            limit=limit,
+            include_stale=include_stale,
+        )
+        results: list[dict] = []
+        for item in rows:
+            snippet_source = " ".join(
+                part
+                for part in (
+                    str(item.get("applicability") or ""),
+                    str(item.get("evidence") or ""),
+                )
+                if part
+            )
+            snippet = " ".join(snippet_source.split())
+            if len(snippet) > 320:
+                snippet = snippet[:317].rstrip() + "..."
+            results.append(
+                {
+                    "id": item["id"],
+                    "kind": item["kind"],
+                    "claim": item["claim"],
+                    "snippet": snippet,
+                    "confidence": item["confidence"],
+                    "importance": item["importance"],
+                    "tags": item["tags"],
+                    "state": item["state"],
+                    "score": item["score"],
+                    "related_ids": item["related_ids"],
+                }
+            )
+        return results
+
+    def get(
+        self,
+        ids: list[str],
+        *,
+        include_stale: bool = True,
+    ) -> list[dict]:
+        """Return full memory records and update bounded access metadata."""
+        requested = [str(value).strip() for value in ids if str(value).strip()]
+        if not requested:
+            return []
+        requested_set = set(requested)
+        path = knowledge_path(self.root)
+        now = int(time.time())
+        found: dict[str, dict] = {}
+        with _locked(path):
+            payload = _load(self.root)
+            for raw in payload["findings"]:
+                if not isinstance(raw, dict) or raw.get("id") not in requested_set:
+                    continue
+                materialized = self._materialize(raw)
+                if materialized["state"] != "active" and not include_stale:
+                    continue
+                raw["access_count"] = int(raw.get("access_count", 0) or 0) + 1
+                raw["last_accessed_at"] = now
+                materialized["access_count"] = raw["access_count"]
+                materialized["last_accessed_at"] = now
+                found[str(raw["id"])] = materialized
+            if found:
+                payload["updated_at"] = now
+                _atomic_write(path, payload)
+        return [found[value] for value in requested if value in found]
+
+    def _ranked(
+        self,
+        query: str,
+        *,
+        kind: str | None,
+        limit: int,
+        include_stale: bool,
+    ) -> list[dict]:
+        """Rank full memory records for progressive-disclosure surfaces."""
+        if limit < 1:
+            raise ValueError("knowledge memory limit must be at least 1")
+        normalized_kind = kind.strip().lower() if isinstance(kind, str) else None
+        if normalized_kind and normalized_kind not in MEMORY_KINDS:
+            allowed = ", ".join(sorted(MEMORY_KINDS))
+            raise ValueError(f"knowledge kind must be one of: {allowed}")
+        query_tokens = _tokens(query)
+        now = int(time.time())
+        ranked: list[tuple[float, dict]] = []
+        for raw in _load(self.root)["findings"]:
+            if not isinstance(raw, dict):
+                continue
+            item = self._materialize(raw)
+            if item["state"] != "active" and not include_stale:
+                continue
+            if normalized_kind and item["kind"] != normalized_kind:
+                continue
+            score = self._score(item, query_tokens, now=now)
+            if query_tokens and score <= 0:
+                continue
+            item["score"] = round(score, 4)
+            ranked.append((score, item))
+        ranked.sort(
+            key=lambda pair: (
+                -pair[0],
+                -int(pair[1].get("importance", 3)),
                 -int(pair[1].get("updated_at", 0)),
                 pair[1].get("id", ""),
             )
@@ -380,6 +650,30 @@ class FindingStore:
                 stale_reasons.append(f"changed:{path_text}")
             current_anchors.append(current)
         result["anchors"] = current_anchors
+        kind = str(item.get("kind") or "finding").strip().lower()
+        result["kind"] = kind if kind in MEMORY_KINDS else "finding"
+        tags = item.get("tags")
+        result["tags"] = (
+            [str(value) for value in tags if str(value).strip()][:MAX_TAGS]
+            if isinstance(tags, list)
+            else []
+        )
+        importance = item.get("importance", 3)
+        result["importance"] = (
+            importance
+            if isinstance(importance, int)
+            and not isinstance(importance, bool)
+            and 1 <= importance <= 5
+            else 3
+        )
+        related = item.get("related_ids")
+        result["related_ids"] = (
+            [str(value) for value in related if str(value).strip()][:MAX_RELATED]
+            if isinstance(related, list)
+            else []
+        )
+        result["access_count"] = int(item.get("access_count", 0) or 0)
+        result["last_accessed_at"] = item.get("last_accessed_at")
         if item.get("superseded_by"):
             state = "superseded"
         elif stale_reasons:
@@ -391,30 +685,49 @@ class FindingStore:
         return result
 
     @staticmethod
-    def _score(item: dict, query_tokens: set[str]) -> float:
-        """Score one finding for a query without model calls or embeddings."""
+    def _score(
+        item: dict,
+        query_tokens: set[str],
+        *,
+        now: int | None = None,
+    ) -> float:
+        """Score memory using relevance, durable importance, reuse, and gentle decay."""
         if not query_tokens:
-            return 1.0
-        claim = _tokens(str(item.get("claim") or ""))
-        evidence = _tokens(str(item.get("evidence") or ""))
-        applicability = _tokens(str(item.get("applicability") or ""))
-        anchors = {
-            token
-            for anchor in item.get("anchors", [])
-            if isinstance(anchor, dict)
-            for token in _tokens(
-                f"{anchor.get('path', '')} {anchor.get('symbol') or ''}"
+            overlap = 1.0
+        else:
+            claim = _tokens(str(item.get("claim") or ""))
+            evidence = _tokens(str(item.get("evidence") or ""))
+            applicability = _tokens(str(item.get("applicability") or ""))
+            tags = _tokens(" ".join(str(value) for value in item.get("tags", [])))
+            anchors = {
+                token
+                for anchor in item.get("anchors", [])
+                if isinstance(anchor, dict)
+                for token in _tokens(
+                    f"{anchor.get('path', '')} {anchor.get('symbol') or ''}"
+                )
+            }
+            overlap = (
+                4.0 * len(query_tokens & claim)
+                + 2.0 * len(query_tokens & applicability)
+                + 1.0 * len(query_tokens & evidence)
+                + 2.0 * len(query_tokens & anchors)
+                + 2.0 * len(query_tokens & tags)
             )
-        }
-        overlap = (
-            4.0 * len(query_tokens & claim)
-            + 2.0 * len(query_tokens & applicability)
-            + 1.0 * len(query_tokens & evidence)
-            + 2.0 * len(query_tokens & anchors)
-        )
+            if overlap <= 0:
+                return 0.0
         confidence_bonus = {
             "verified": 0.30,
             "probable": 0.15,
             "speculative": 0.0,
         }.get(str(item.get("confidence")), 0.0)
-        return overlap + confidence_bonus
+        importance = int(item.get("importance", 3) or 3)
+        importance_factor = 0.8 + 0.1 * max(1, min(5, importance))
+        access_count = max(0, int(item.get("access_count", 0) or 0))
+        reuse_factor = 1.0 + min(0.20, 0.04 * math.log1p(access_count))
+        updated_at = int(item.get("updated_at", 0) or 0)
+        age_days = max(0.0, ((now or int(time.time())) - updated_at) / 86400.0)
+        kind = str(item.get("kind") or "finding")
+        half_life = _DECAY_HALF_LIFE_DAYS.get(kind, 180.0)
+        freshness_factor = 0.5 + 0.5 / (1.0 + age_days / half_life)
+        return (overlap + confidence_bonus) * importance_factor * reuse_factor * freshness_factor
