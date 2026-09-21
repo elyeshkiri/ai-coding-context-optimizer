@@ -179,7 +179,7 @@ class GitLogProcessor:
             oneline = [
                 line
                 for line in lines
-                if re.match(r"^[0-9a-f]{7,40}\s+\S", line, re.I)
+                if re.match(r"^[0-9a-f]{4,40}\s+\S", line, re.I)
             ]
             if len(lines) > 40 and len(oneline) >= len(lines) * 0.8:
                 kept = lines[:25]
