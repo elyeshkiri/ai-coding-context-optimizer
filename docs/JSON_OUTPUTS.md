@@ -584,9 +584,9 @@ Returns the full `session-effectiveness` object above. With
 `--require-publishable`, a blocked publication gate exits `1`.
 
 
-## \`cost-advisor --json\`
+## `cost-advisor --json`
 
-\`\`\`json
+```json
 {
   "schema": 1,
   "root": "/project",
@@ -638,11 +638,11 @@ Returns the full `session-effectiveness` object above. With
   "recommendations": [],
   "evidence": {}
 }
-\`\`\`
+```
 
-\`score.coverage\` is separate from the normalized score so missing telemetry
-cannot silently become a zero or a perfect score. \`cost.usd\` is non-null only
-for complete exact-model pricing coverage; \`priced_usd\` may contain a clearly
+`score.coverage` is separate from the normalized score so missing telemetry
+cannot silently become a zero or a perfect score. `cost.usd` is non-null only
+for complete exact-model pricing coverage; `priced_usd` may contain a clearly
 labeled partial subtotal. Estimated transformation savings remain token
 estimates. The fresh-input-once projection is a counterfactual scenario, not an
 API invoice or an end-to-end cost-per-success claim.
