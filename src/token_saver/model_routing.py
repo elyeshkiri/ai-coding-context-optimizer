@@ -325,7 +325,8 @@ def route_task(
     if current_model:
         current_rate = rates.get(current_model)
         current_profile_ok = (
-            current_model in _MODEL_PROFILES
+            current_model in allowed
+            and current_model in _MODEL_PROFILES
             and _eligible(
                 current_model,
                 task=task,
