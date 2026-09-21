@@ -248,6 +248,40 @@ model documented real-world CLI output shapes; they are not claimed to be
 production-log captures, model-token billing measurements, or evidence of
 end-to-end coding-task cost reduction.
 
+### Frozen provenance-backed CLI corpus v1
+
+A second output-compression validation layer uses raw output from **real CLI
+executions**, captured before inspecting or tuning against those outputs. The
+capture harness attempted 31 commands on a GitHub-hosted Ubuntu 24 runner and
+successfully captured **30**; Terraform was the only skipped tool because its
+executable was absent. Every raw capture is committed under
+`benchmarks/cli-output-real-v1/`, with the exact tool version, command, exit
+code, byte/line counts, and SHA-256 in the frozen manifest. The original Actions
+artifact SHA-256 is also recorded.
+
+The first same-input comparison pins `ppgranger/token-saver` at
+`19d47b2cc19457c865f2414ad78f8efa80204b43`. Both engines receive the exact
+same 30 raw outputs and are scored with the same Token Saver token estimator and
+critical-line survival predicate:
+
+| Engine | weighted estimated token reduction | critical-line survival | changed cases |
+| --- | ---: | ---: | ---: |
+| elyeshkiri/token-saver | **23.72%** | **100.00%** | 8/30 |
+| ppgranger/token-saver @ 19d47b2c | **23.95%** | **81.25%** | 21/30 |
+
+The reduction difference is **6 estimated output tokens across the full
+corpus** (2,016 versus 2,010). The largest peer reduction advantages occur on
+Git log/status/diff and small Go outputs; the current project is substantially
+smaller on the captured Cargo build/test, Docker build, and Ruff outputs.
+
+This is stronger evidence than representative synthetic fixtures, but its scope
+is still bounded. These are controlled CI executions rather than production
+user logs; several available-tool cases are version/configuration outputs rather
+than large workloads; and critical-line survival is a mechanical diagnostic
+predicate, not a semantic proof that every useful detail survived. Corpus v1 is
+kept immutable. Any tuning informed by its case-level results must treat v1 as
+burned development evidence and validate the change on a fresh corpus version.
+
 The previously recorded broad 24-task SWE-bench run remains
 **non-publishable evidence** (historical only): it exposed harness/grader issues rather
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the
