@@ -7,7 +7,7 @@ import json
 import re
 from typing import Any
 
-from .recovery import RecoveryStore
+from .recovery import RecoveryCapacityError, RecoveryStore
 
 _DROP_ANNOTATIONS = {"title", "examples", "example", "$comment", "$schema"}
 _USER_KEY_MAPS = {
@@ -150,14 +150,23 @@ def compress_tool_catalog(
         )
     handle = None
     if recovery is not None:
-        handle = recovery.put(
-            original,
-            content_type="application/vnd.token-saver.tool-catalog+json",
-            metadata={
-                "transform": "tool-schema-compression",
-                "compressed_bytes": len(compressed),
-            },
-        )
+        try:
+            handle = recovery.put(
+                original,
+                content_type="application/vnd.token-saver.tool-catalog+json",
+                metadata={
+                    "transform": "tool-schema-compression",
+                    "compressed_bytes": len(compressed),
+                },
+            )
+        except RecoveryCapacityError:
+            return ToolSchemaCompression(
+                catalog,
+                False,
+                len(original),
+                len(original),
+                None,
+            )
     return ToolSchemaCompression(
         candidate,
         True,
