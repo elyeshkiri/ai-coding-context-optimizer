@@ -33,10 +33,15 @@ content. The database is not encrypted at rest; protect the state directory with
 the same care as agent transcripts. Token Saver uses private file permissions
 where the platform supports them.
 
-The store has a hard capacity and does not evict older exact source merely to
-make room for a new transform. If an original cannot be stored, that lossy
-transform is refused and the unmodified representation is retained. This
-prevents model-visible recovery handles from becoming intentionally dangling.
+The store has a 512 MiB per-project default hard capacity and does not evict
+older exact source merely to make room for a new transform. If an original
+cannot be stored, that lossy transform is refused and the unmodified
+representation is retained. This prevents model-visible recovery handles from
+becoming intentionally dangling.
+
+v1.13 has no per-record recovery-prune command. Deleting the project recovery
+database manually invalidates every handle it contains, so do that only when no
+active session or saved evidence depends on those handles.
 
 ## Provider reverse-proxy boundary
 
