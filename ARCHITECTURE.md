@@ -143,6 +143,27 @@ Reads bypass the proxy entirely so edits and verification can request exact
 bytes. The prompt hint is read transiently from the Claude transcript tail and
 is not copied into Token Saver state.
 
+### Smart tool-proxy boundary
+
+`token_saver.tool_proxy` is a host-independent application service for large source Read results. The Claude adapter reaches it only through the `HookServices.smart_read_proxy` contract. The ordinary source guard remains the PreToolUse authority and delegates only eligible large, unbounded source Reads when proxying is explicitly enabled.
+
+The data path is evidence preserving:
+
+```text
+verified Read result + latest bounded user-task hint
+        ↓
+structural outline + deterministic candidate windows
+        ↓
+optional free/local selector (Ollama)
+        ↓
+validated/clamped line ranges
+        ↓
+exact excerpts rehydrated from original file content
+        ↓
+bounded updatedToolOutput
+```
+
+Model prose is never treated as source. A malformed response, timeout, or unavailable local model falls back to deterministic range selection. Bounded Reads bypass the proxy entirely so edits and verification can request exact bytes. The prompt hint is read transiently from the Claude transcript tail and is not copied into Token Saver state.
 ### Safe prompt-ingress boundary
 
 Claude's `UserPromptSubmit` hook can block a prompt or add context but cannot
