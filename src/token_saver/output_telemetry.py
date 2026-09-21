@@ -71,6 +71,8 @@ def start_output_turn(
     """Checkpoint one turn without persisting prompt or response content."""
     policy = load_state(root, session_id).get("output_policy")
     policy = policy if isinstance(policy, dict) else {}
+    route = load_state(root, session_id).get("model_route")
+    route = route if isinstance(route, dict) else {}
     pending = {
         "schema": TELEMETRY_SCHEMA,
         "offset": _transcript_offset(transcript_path),
@@ -94,6 +96,19 @@ def start_output_turn(
                 "calibration_samples",
             )
             if key in policy
+        },
+        "model_route": {
+            key: route.get(key)
+            for key in (
+                "task",
+                "complexity_tier",
+                "risk_level",
+                "minimum_capability",
+                "selected_model",
+                "action",
+                "pricing_basis",
+            )
+            if key in route
         },
     }
 
@@ -291,6 +306,12 @@ def finish_output_turn(
     policy = pending.get("policy")
     policy = policy if isinstance(policy, dict) else {}
 
+    model_route = pending.get("model_route")
+    model_route = model_route if isinstance(model_route, dict) else {}
+    route_target = model_route.get("selected_model")
+    if not isinstance(route_target, str) or not route_target:
+        route_target = None
+
     budget = policy.get("max_tokens")
     if isinstance(budget, bool) or not isinstance(budget, int) or budget <= 0:
         budget = None
@@ -316,7 +337,19 @@ def finish_output_turn(
         "complexity_tier": policy.get("complexity_tier"),
         "calibrated": policy.get("calibrated"),
         "calibration_samples": policy.get("calibration_samples"),
+        "route_task": model_route.get("task"),
+        "route_complexity_tier": model_route.get("complexity_tier"),
+        "route_risk_level": model_route.get("risk_level"),
+        "route_minimum_capability": model_route.get("minimum_capability"),
+        "route_target_model": route_target,
+        "route_action": model_route.get("action"),
+        "route_pricing_basis": model_route.get("pricing_basis"),
         **usage,
+        "route_matched_actual": (
+            route_target in usage["models"]
+            if route_target is not None and usage["usage_available"]
+            else None
+        ),
         "budget_utilization": utilization,
         "target_met": (
             output_tokens <= budget
