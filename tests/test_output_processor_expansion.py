@@ -138,3 +138,123 @@ def test_cargo_test_drops_passing_tests_but_preserves_failure():
     assert "auth::refresh ... FAILED" in result.text
     assert "test result: FAILED" in result.text
     assert result.text.count("... ok") < 5
+
+
+
+def test_git_log_compacts_short_verbose_history():
+    """Short verbose logs should still lose author/date/stat boilerplate."""
+    text = (
+        "commit 67b2c0508fc99b2acf977cb077ca9fcd0b008de9 (HEAD -> master)\n"
+        "Author: Corpus <corpus@example.com>\n"
+        "Date:   Mon Sep 21 08:42:22 2026 +0000\n"
+        "\n"
+        "    initial capture fixture\n"
+        "\n"
+        " app.txt | 3 +++\n"
+        " 1 file changed, 3 insertions(+)\n"
+    )
+    result = process_output(text, "git log --decorate --stat -3", min_reduction=0.0)
+    assert result.processor == "git-log"
+    assert result.compressed is True
+    assert "67b2c050" in result.text
+    assert "initial capture fixture" in result.text
+    assert "1 file changed, 3 insertions(+)" in result.text
+    assert "Author:" not in result.text
+    assert "Date:" not in result.text
+
+
+def test_git_status_drops_hints_and_keeps_staging_semantics():
+    """Status compression should retain branch and porcelain-like path state."""
+    text = (
+        "On branch feature/status\n"
+        "Changes to be committed:\n"
+        '  (use "git restore --staged <file>..." to unstage)\n'
+        "        modified:   staged.py\n"
+        "\n"
+        "Changes not staged for commit:\n"
+        '  (use "git add <file>..." to update what will be committed)\n'
+        "        deleted:    removed.py\n"
+        "\n"
+        "Untracked files:\n"
+        '  (use "git add <file>..." to include in what will be committed)\n'
+        "        fresh.py\n"
+    )
+    result = process_output(text, "git status", min_reduction=0.0)
+    assert result.processor == "git-status"
+    assert result.compressed is True
+    assert "On branch feature/status" in result.text
+    assert "M  staged.py" in result.text
+    assert " D removed.py" in result.text
+    assert "?? fresh.py" in result.text
+    assert "(use " not in result.text
+
+
+def test_git_diff_small_patch_avoids_wrapper_and_context_tax():
+    """Small patches should retain exact edits without redundant headers/context."""
+    text = (
+        "diff --git a/app.txt b/app.txt\n"
+        "index 85c3040..86ceddb 100644\n"
+        "--- a/app.txt\n"
+        "+++ b/app.txt\n"
+        "@@ -1,3 +1,3 @@\n"
+        " alpha\n"
+        "-beta\n"
+        "+beta changed\n"
+        " gamma\n"
+    )
+    result = process_output(text, "git diff", min_reduction=0.0)
+    assert result.processor == "git-diff"
+    assert result.compressed is True
+    assert "diff --git a/app.txt b/app.txt" in result.text
+    assert "@@ -1,3 +1,3 @@" in result.text
+    assert "-beta" in result.text
+    assert "+beta changed" in result.text
+    assert "index 85c3040" not in result.text
+    assert " alpha" not in result.text
+    assert "[filtered" not in result.text
+
+
+def test_go_build_small_failure_drops_single_package_header():
+    """A single-package Go build error should reduce to the exact diagnostic."""
+    text = (
+        "# example.com/corpus\n"
+        "./main.go:2:22: undefined: missingSymbol\n"
+    )
+    result = process_output(text, "go build ./...", exit_code=1, min_reduction=0.0)
+    assert result.processor == "go-build"
+    assert result.compressed is True
+    assert result.text == "./main.go:2:22: undefined: missingSymbol\n"
+
+
+def test_go_test_compile_failure_keeps_location_and_package_failure():
+    """Go test compile failures should drop redundant package/bare FAIL lines."""
+    text = (
+        "# example.com/corpus [example.com/corpus.test]\n"
+        "./main.go:2:22: undefined: missingSymbol\n"
+        "FAIL\texample.com/corpus [build failed]\n"
+        "FAIL\n"
+    )
+    result = process_output(text, "go test ./...", exit_code=1, min_reduction=0.0)
+    assert result.processor == "go-test"
+    assert result.compressed is True
+    assert "./main.go:2:22: undefined: missingSymbol" in result.text
+    assert "FAIL\texample.com/corpus [build failed]" in result.text
+    assert "# example.com/corpus" not in result.text
+    assert result.text.splitlines()[-1] != "FAIL"
+
+
+def test_go_test_runtime_failure_preserves_test_and_location():
+    """Runtime Go test failures should preserve failing test identity and message."""
+    text = (
+        "=== RUN   TestRefresh\n"
+        "--- FAIL: TestRefresh (0.00s)\n"
+        "    sample_test.go:8: expected 200, got 401\n"
+        "FAIL\n"
+        "FAIL\texample.com/corpus/auth\t0.003s\n"
+    )
+    result = process_output(text, "go test ./...", exit_code=1, min_reduction=0.0)
+    assert result.processor == "go-test"
+    assert result.compressed is True
+    assert "--- FAIL: TestRefresh (0.00s)" in result.text
+    assert "sample_test.go:8: expected 200, got 401" in result.text
+    assert "FAIL\texample.com/corpus/auth\t0.003s" in result.text
