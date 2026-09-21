@@ -187,6 +187,7 @@ def test_experiment_runs_both_arms_and_independent_verifier(
     assert all((tmp_path / run["transcripts"][0]).is_file() for run in result["runs"])
     assert all(run["output_tokens"] == 10 for run in result["runs"])
     assert all(run["model_calls"] == 1 for run in result["runs"])
+    assert all(run["actual_models"] == ["synthetic-test-model"] for run in result["runs"])
     assert all(
         run["input_tokens"] == (100 if run["condition"] == "baseline" else 60)
         for run in result["runs"]
@@ -441,11 +442,13 @@ def test_condition_profiles_are_frozen_and_exposed_in_dry_run(tmp_path):
             "label": "v1.6-session-baseline",
             "install_token_saver": True,
             "env": {"TOKEN_SAVER_EFFICIENCY": "0"},
+            "model": "baseline-model",
         },
         "enabled": {
             "label": "v1.7-session-efficiency",
             "install_token_saver": True,
             "env": {"TOKEN_SAVER_EFFICIENCY": "1"},
+            "model": "candidate-model",
         },
     }
     payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
@@ -465,6 +468,8 @@ def test_condition_profiles_are_frozen_and_exposed_in_dry_run(tmp_path):
     assert result["condition_profiles"]["enabled"]["label"] == (
         "v1.7-session-efficiency"
     )
+    assert result["condition_profiles"]["baseline"]["model"] == "baseline-model"
+    assert result["condition_profiles"]["enabled"]["model"] == "candidate-model"
 
 
 def test_condition_profiles_reject_extra_or_missing_arm(tmp_path):
@@ -481,4 +486,66 @@ def test_condition_profiles_reject_extra_or_missing_arm(tmp_path):
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="exactly baseline and enabled"):
+        validate_suite(path, require_broad=False)
+
+
+
+def test_condition_profile_model_override_is_used_and_confirmed_in_transcript(
+    tmp_path, monkeypatch
+):
+    """Routing experiments should execute and record the exact model for each arm."""
+    path, _suite_payload = _suite(tmp_path, task_count=1, trials=1)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"] = {
+        "baseline": {
+            "install_token_saver": False,
+            "model": "baseline-model",
+            "env": {},
+        },
+        "enabled": {
+            "install_token_saver": False,
+            "model": "candidate-model",
+            "env": {},
+        },
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(
+        "token_saver.experiment.user_token_saver_hook_configured",
+        lambda: False,
+    )
+
+    result = run_experiment(
+        path,
+        tmp_path / "model-runs.json",
+        allow_development=True,
+    )
+
+    by_condition = {run["condition"]: run for run in result["runs"]}
+    assert by_condition["baseline"]["model"] == "baseline-model"
+    assert by_condition["baseline"]["actual_models"] == ["baseline-model"]
+    assert by_condition["enabled"]["model"] == "candidate-model"
+    assert by_condition["enabled"]["actual_models"] == ["candidate-model"]
+
+
+def test_condition_profile_rejects_empty_model_override(tmp_path):
+    """A malformed arm-specific model must fail before any paid run starts."""
+    path, _suite_payload = _suite(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"] = {
+        "baseline": {
+            "install_token_saver": False,
+            "model": "",
+            "env": {},
+        },
+        "enabled": {
+            "install_token_saver": False,
+            "model": "candidate-model",
+            "env": {},
+        },
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="baseline.model must be nonempty"):
         validate_suite(path, require_broad=False)
