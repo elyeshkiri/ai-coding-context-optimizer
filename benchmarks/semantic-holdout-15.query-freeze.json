@@ -1,0 +1,253 @@
+{
+  "suite_version": 1,
+  "repositories": {
+    "werkzeug": {
+      "repository": "pallets/werkzeug",
+      "path": "semantic-holdout-15/werkzeug",
+      "revision": "015697636f6a0b89de7e8c1921e8fbe9940a8381"
+    },
+    "chi": {
+      "repository": "go-chi/chi",
+      "path": "semantic-holdout-15/chi",
+      "revision": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc"
+    },
+    "axum": {
+      "repository": "tokio-rs/axum",
+      "path": "semantic-holdout-15/axum",
+      "revision": "3696bfe5f1c30ee57f39dfb992b01bbf57bf2c1f"
+    },
+    "gson": {
+      "repository": "google/gson",
+      "path": "semantic-holdout-15/gson",
+      "revision": "854c8255b625cf1e13c701a83ea9ccb4caaa576a"
+    },
+    "polly": {
+      "repository": "App-vNext/Polly",
+      "path": "semantic-holdout-15/polly",
+      "revision": "9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee"
+    },
+    "express": {
+      "repository": "expressjs/express",
+      "path": "semantic-holdout-15/express",
+      "revision": "9a34acf03cb818ff3f8bc40e44176e277a25cbb9"
+    }
+  },
+  "tasks": [
+    {
+      "id": "werkzeug-auth-challenge-whitespace",
+      "repository": "werkzeug",
+      "source_issue": {
+        "number": 3127,
+        "url": "https://github.com/pallets/werkzeug/issues/3127"
+      },
+      "query": "A parameterless HTTP authentication challenge should serialize without trailing whitespace so strict downstream HTTP parsers accept the response header."
+    },
+    {
+      "id": "werkzeug-debugger-missing-source",
+      "repository": "werkzeug",
+      "source_issue": {
+        "number": 3044,
+        "url": "https://github.com/pallets/werkzeug/issues/3044"
+      },
+      "query": "The interactive debugger should still render the original traceback when source lines for a failing frame are unavailable or shorter than the reported line number, rather than crashing while rendering the error page."
+    },
+    {
+      "id": "werkzeug-multipart-split-crlf",
+      "repository": "werkzeug",
+      "source_issue": {
+        "number": 3065,
+        "url": "https://github.com/pallets/werkzeug/issues/3065"
+      },
+      "query": "Multipart file parsing must preserve payload bytes when a transport chunk boundary splits the final carriage-return and line-feed before the multipart boundary, instead of leaking a delimiter byte into the uploaded file."
+    },
+    {
+      "id": "werkzeug-adhoc-ssl-tempfile",
+      "repository": "werkzeug",
+      "source_issue": {
+        "number": 3103,
+        "url": "https://github.com/pallets/werkzeug/issues/3103"
+      },
+      "query": "Creating an ad-hoc development TLS context should close temporary certificate and key file handles promptly so newer Python runtimes do not report leaked temporary resources."
+    },
+    {
+      "id": "chi-undefined-route-loop",
+      "repository": "chi",
+      "source_issue": {
+        "number": 843,
+        "url": "https://github.com/go-chi/chi/issues/843"
+      },
+      "query": "A router that mounts a grouped set of routes at the root should return a normal missing-route response for an undefined path instead of entering an endless route-matching loop."
+    },
+    {
+      "id": "chi-tee-byte-count",
+      "repository": "chi",
+      "source_issue": {
+        "number": 1067,
+        "url": "https://github.com/go-chi/chi/issues/1067"
+      },
+      "query": "When a wrapped HTTP response writer mirrors output to a secondary writer, streaming data from a reader should count each byte exactly once in the recorded response size."
+    },
+    {
+      "id": "chi-write-deadline",
+      "repository": "chi",
+      "source_issue": {
+        "number": 947,
+        "url": "https://github.com/go-chi/chi/issues/947"
+      },
+      "query": "Wrapping an HTTP response writer should preserve support for setting a write deadline when the underlying server connection supports that capability."
+    },
+    {
+      "id": "chi-method-pattern-handler",
+      "repository": "chi",
+      "source_issue": {
+        "number": 899,
+        "url": "https://github.com/go-chi/chi/issues/899"
+      },
+      "query": "Registering a handler function with a route pattern that includes an HTTP method should interpret the method prefix consistently with the generic handler registration API instead of treating it as part of the path and panicking."
+    },
+    {
+      "id": "axum-multipart-disposition-escape",
+      "repository": "axum",
+      "source_issue": {
+        "number": 3775,
+        "url": "https://github.com/tokio-rs/axum/issues/3775"
+      },
+      "query": "Multipart response part names and filenames containing quotes or backslashes must remain inside a single content-disposition parameter instead of being able to alter the serialized header structure."
+    },
+    {
+      "id": "axum-optional-extractor-rejection",
+      "repository": "axum",
+      "source_issue": {
+        "number": 3623,
+        "url": "https://github.com/tokio-rs/axum/issues/3623"
+      },
+      "query": "An optional request-extractor field should become absent only when the extractor reports no value; malformed input should preserve the extractor's rejection instead of silently turning the error into an empty optional value."
+    },
+    {
+      "id": "axum-head-content-length",
+      "repository": "axum",
+      "source_issue": {
+        "number": 3741,
+        "url": "https://github.com/tokio-rs/axum/issues/3741"
+      },
+      "query": "A HEAD response should not advertise a zero content length merely because its body is omitted; when the corresponding GET length is unknown, the content-length header should be left out."
+    },
+    {
+      "id": "axum-via-extractor-rejection",
+      "repository": "axum",
+      "source_issue": {
+        "number": 3160,
+        "url": "https://github.com/tokio-rs/axum/issues/3160"
+      },
+      "query": "A derived request type that delegates extraction through another extractor should expose that extractor's rejection type rather than falling back to a generic response rejection."
+    },
+    {
+      "id": "gson-wildcard-runtime-subclass",
+      "repository": "gson",
+      "source_issue": {
+        "number": 1870,
+        "url": "https://github.com/google/gson/issues/1870"
+      },
+      "query": "Serializing a collection declared with an upper-bounded wildcard should preserve fields introduced by each element's actual runtime subclass instead of serializing only the declared base-class fields."
+    },
+    {
+      "id": "gson-lazy-number-hash",
+      "repository": "gson",
+      "source_issue": {
+        "number": 992,
+        "url": "https://github.com/google/gson/issues/992"
+      },
+      "query": "Two numeric JSON primitive values that compare equal after parsing an integer through a lazy numeric representation must also produce equal hash codes."
+    },
+    {
+      "id": "gson-null-map-key-error",
+      "repository": "gson",
+      "source_issue": {
+        "number": 3037,
+        "url": "https://github.com/google/gson/issues/3037"
+      },
+      "query": "Deserializing an array-encoded map entry whose key is JSON null should fail through the library's documented parse-exception family instead of leaking a raw null-pointer exception from the backing map."
+    },
+    {
+      "id": "gson-unicode-integer-digits",
+      "repository": "gson",
+      "source_issue": {
+        "number": 2994,
+        "url": "https://github.com/google/gson/issues/2994"
+      },
+      "query": "Integer and long deserialization should not silently accept non-ASCII Unicode decimal digits as ordinary JSON numeric values, including when strict parsing is enabled."
+    },
+    {
+      "id": "polly-timeout-caller-token",
+      "repository": "polly",
+      "source_issue": {
+        "number": 3086,
+        "url": "https://github.com/App-vNext/Polly/issues/3086"
+      },
+      "query": "When caller cancellation passes through a timeout strategy, the cancellation exception observed by the caller should identify the original caller token rather than an internal linked timeout token."
+    },
+    {
+      "id": "polly-scheduled-continuation-deadlock",
+      "repository": "polly",
+      "source_issue": {
+        "number": 2948,
+        "url": "https://github.com/App-vNext/Polly/issues/2948"
+      },
+      "query": "Completing a scheduled resilience task must not execute arbitrary caller continuations inline on the executor's single processing thread, where a blocking continuation can deadlock later state transitions."
+    },
+    {
+      "id": "polly-timeout-duration-report",
+      "repository": "polly",
+      "source_issue": {
+        "number": 2815,
+        "url": "https://github.com/App-vNext/Polly/issues/2815"
+      },
+      "query": "A timeout exception produced after a configured five-second timeout should report the configured timeout duration rather than an unrelated negative one-millisecond duration."
+    },
+    {
+      "id": "polly-telemetry-severity",
+      "repository": "polly",
+      "source_issue": {
+        "number": 2750,
+        "url": "https://github.com/App-vNext/Polly/issues/2750"
+      },
+      "query": "A custom telemetry severity policy should be honored for resilience-pipeline start and completion events instead of those events ignoring the configured severity override."
+    },
+    {
+      "id": "express-query-freshness",
+      "repository": "express",
+      "source_issue": {
+        "number": 7365,
+        "url": "https://github.com/expressjs/express/issues/7365"
+      },
+      "query": "A cacheable QUERY request with a matching entity tag should be considered fresh and produce a not-modified response just as conditional GET and HEAD requests do."
+    },
+    {
+      "id": "express-many-query-values",
+      "repository": "express",
+      "source_issue": {
+        "number": 7147,
+        "url": "https://github.com/expressjs/express/issues/7147"
+      },
+      "query": "Repeated query parameters should remain an array even when more than twenty values are supplied, rather than changing shape into an object with numeric keys."
+    },
+    {
+      "id": "express-single-array-query",
+      "repository": "express",
+      "source_issue": {
+        "number": 7178,
+        "url": "https://github.com/expressjs/express/issues/7178"
+      },
+      "query": "A query parameter written with array syntax and a single value should be parsed as an array consistently in hosted environments rather than leaving the brackets in the parameter name."
+    },
+    {
+      "id": "express-error-detail-logging",
+      "repository": "express",
+      "source_issue": {
+        "number": 6462,
+        "url": "https://github.com/expressjs/express/issues/6462"
+      },
+      "query": "Default application error logging should preserve nested causes and other useful error-object metadata instead of reducing the logged value to only its stack string."
+    }
+  ]
+}
