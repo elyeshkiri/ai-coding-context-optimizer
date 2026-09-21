@@ -256,6 +256,79 @@ class RepositoryContextService:
             source=source,
         )
 
+    def remember_memory(
+        self,
+        *,
+        claim: str,
+        anchors: list[str],
+        evidence: str,
+        applicability: str,
+        kind: str,
+        confidence: str = "verified",
+        tags: list[str] | None = None,
+        importance: int = 3,
+        invalidators: list[str] | None = None,
+        related_ids: list[str] | None = None,
+        source: str = "manual",
+        deduplicate: bool = True,
+    ) -> dict:
+        """Persist typed project memory with bounded near-duplicate supersession."""
+        return FindingStore(self.root).remember_memory(
+            claim=claim,
+            anchors=anchors,
+            evidence=evidence,
+            applicability=applicability,
+            kind=kind,
+            confidence=confidence,
+            tags=tags,
+            importance=importance,
+            invalidators=invalidators,
+            related_ids=related_ids,
+            source=source,
+            deduplicate=deduplicate,
+        )
+
+    def memory_index(
+        self,
+        query: str = "",
+        *,
+        kind: str | None = None,
+        limit: int = 20,
+        include_stale: bool = False,
+    ) -> list[dict]:
+        """Return compact persistent-memory metadata for cheap discovery."""
+        return FindingStore(self.root).index(
+            query,
+            kind=kind,
+            limit=limit,
+            include_stale=include_stale,
+        )
+
+    def memory_search(
+        self,
+        query: str,
+        *,
+        kind: str | None = None,
+        limit: int = 10,
+        include_stale: bool = False,
+    ) -> list[dict]:
+        """Return snippets from persistent project memory."""
+        return FindingStore(self.root).search(
+            query,
+            kind=kind,
+            limit=limit,
+            include_stale=include_stale,
+        )
+
+    def memory_get(
+        self,
+        ids: list[str],
+        *,
+        include_stale: bool = True,
+    ) -> list[dict]:
+        """Return full persistent-memory records and record their reuse."""
+        return FindingStore(self.root).get(ids, include_stale=include_stale)
+
     def recall_findings(
         self,
         query: str,
