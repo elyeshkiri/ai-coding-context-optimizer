@@ -183,9 +183,9 @@ def test_git_status_drops_hints_and_keeps_staging_semantics():
     assert result.processor == "git-status"
     assert result.compressed is True
     assert "On branch feature/status" in result.text
-    assert "M  staged.py" in result.text
-    assert " D removed.py" in result.text
-    assert "?? fresh.py" in result.text
+    assert "staged modified: staged.py" in result.text
+    assert "unstaged deleted: removed.py" in result.text
+    assert "untracked: fresh.py" in result.text
     assert "(use " not in result.text
 
 
