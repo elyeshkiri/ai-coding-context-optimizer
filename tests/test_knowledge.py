@@ -228,7 +228,7 @@ def test_memory_near_duplicate_supersedes_older_active_record(tmp_path, monkeypa
         tags=["auth"],
     )
     second = store.remember_memory(
-        claim="Session refresh uses auth helper for rotating tokens",
+        claim="Session refresh uses the auth helper for secure token rotation",
         anchors=["auth.py"],
         evidence="Reconfirmed in the current auth module",
         applicability="Use for session refresh changes",
