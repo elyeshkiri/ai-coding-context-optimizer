@@ -15,7 +15,7 @@ _GIT_STATUS = re.compile(r"\bgit\s+status\b", re.I)
 _SEARCH = re.compile(r"(^|[;&|]\s*|\b)(rg|grep|find)\b", re.I)
 _LINT = re.compile(r"\b(ruff|eslint|pylint|clippy)\b", re.I)
 _TYPECHECK = re.compile(r"\b(tsc|mypy|pyright)\b", re.I)
-_COMPILED_TEST = re.compile(r"\b(go\s+test|cargo\s+test)\b", re.I)
+_COMPILED_TEST = re.compile(r"\b(go\s+test|cargo\s+test|dotnet\s+test)\b", re.I)
 _BUILD = re.compile(
     r"\b(cargo\s+build|go\s+build|gradle|gradlew|mvn|maven|"
     r"npm\s+run\s+build|pnpm\s+(?:run\s+)?build|yarn\s+build)\b",
@@ -396,7 +396,7 @@ class CompiledTestProcessor:
             preprocess(text),
             re.compile(
                 r"(--- FAIL:|\bFAIL\b|\bPASS\b|panicked at|\berror\b|"
-                r"test result:|^ok\s|^\?\s|^FAIL\s)",
+                r"test result:|^ok\s|^\?\s|^FAIL\s|Failed!|Passed!|Total tests:|Failed:|Passed:)",
                 re.I,
             ),
             limit=max(60, max_lines),
