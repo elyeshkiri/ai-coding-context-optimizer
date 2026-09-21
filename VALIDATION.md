@@ -1,5 +1,33 @@
 # Validation for 1.12.0
 
+## Unreleased persistent-memory and adaptive-MCP mechanics
+
+The new project-memory and adaptive tool-surface features are mechanically
+validated but do not yet carry an end-to-end savings claim.
+
+Tests establish that:
+
+- typed memory persists across service instances while retaining source anchors;
+- changed or missing source digests quarantine stale memory before ordinary recall;
+- near-duplicate active memory on the same source evidence is superseded rather
+  than silently competing;
+- progressive disclosure keeps full evidence out of `memory_index` and bounded
+  snippets out of `memory_get` until ids are explicitly selected;
+- full memory access updates bounded reuse metadata without changing source truth;
+- the adaptive MCP profile starts from a smaller schema than `full`;
+- `discover_tools` selects deterministic task groups, expands the live surface,
+  and advertises `listChanged=true`;
+- static `minimal`, `context`, and backward-compatible `full` behavior remains
+  available.
+
+These tests do **not** establish that persistent memory reduces total agent
+tool calls, that adaptive tool disclosure reduces billed input after host-side
+tool caching/deferred loading, or that either feature preserves task success in
+real coding work. Any such claim requires a fresh frozen paired-agent experiment
+with actual tool-use exposure, independent success verification, and measured
+usage/cost counters.
+
+
 The 1.12 semantic-query ensemble is validated mechanically only. Long prompts
 may use the full query plus at most two deterministic exact-vocabulary subviews,
 fused before the existing file-level semantic stage. Short prompts remain
