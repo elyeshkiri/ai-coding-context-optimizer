@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .provider_transform import ProviderTransformResult, transform_provider_request
 
@@ -42,6 +42,7 @@ class ProviderProxyConfig:
     tool_result_min_tokens: int = 800
     timeout_seconds: float = 120.0
     allow_non_loopback: bool = False
+    prefix_tracking: bool = True
 
     def validate(self) -> ProviderProxyConfig:
         """Reject unsafe binding/upstream combinations before serving."""
@@ -119,6 +120,7 @@ def transform_request_bytes(
         compress_schemas=config.compress_schemas,
         compress_tool_results=config.compress_tool_results,
         tool_result_min_tokens=config.tool_result_min_tokens,
+        prefix_tracking=config.prefix_tracking,
     )
     encoded = json.dumps(
         result.body,
@@ -138,10 +140,24 @@ def _upstream_url(base: str, path: str) -> str:
     return urljoin(normalized, relative)
 
 
+class _NoRedirect(HTTPRedirectHandler):
+    """Return redirects to the client instead of forwarding credentials elsewhere."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """Disable urllib's automatic cross-origin redirect following."""
+        del req, fp, code, msg, headers, newurl
+        return None
+
+
+def _open_upstream(request: Request, timeout: float):
+    """Open one upstream request without following provider redirects."""
+    return build_opener(_NoRedirect).open(request, timeout=timeout)
+
+
 def _handler_factory(
     config: ProviderProxyConfig,
     *,
-    opener: Callable = urlopen,
+    opener: Callable = _open_upstream,
 ):
     """Build a request handler bound to one immutable proxy configuration."""
 
@@ -229,6 +245,7 @@ def _handler_factory(
         do_GET = _proxy
         do_DELETE = _proxy
         do_OPTIONS = _proxy
+        do_HEAD = _proxy
 
     return Handler
 
