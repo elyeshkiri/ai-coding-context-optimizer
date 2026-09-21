@@ -123,6 +123,7 @@ class HookConfig:
     model_routing_allowed_models: tuple[str, ...] = ()
     model_routing_min_savings: float = 0.05
     model_routing_conservative: bool = True
+    model_routing_calibration_file: str = ".token-saver.routing-calibration.json"
     efficiency_enabled: bool = True
     continuity_enabled: bool = True
     cross_turn_dedup_enabled: bool = True
@@ -456,6 +457,7 @@ class HookRuntime:
             ),
             min_savings=self.config.model_routing_min_savings,
             conservative=self.config.model_routing_conservative,
+            calibration_file=self.config.model_routing_calibration_file,
         )
         if routing_note:
             context_notes.append(routing_note)
