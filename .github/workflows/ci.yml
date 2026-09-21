@@ -243,3 +243,37 @@ jobs:
           path: cli-corpus-capture
           if-no-files-found: error
           retention-days: 30
+      - name: Check out pinned ppgranger comparator
+        run: |
+          git clone --quiet https://github.com/ppgranger/token-saver.git /tmp/ppgranger-token-saver
+          git -C /tmp/ppgranger-token-saver checkout --quiet 19d47b2cc19457c865f2414ad78f8efa80204b43
+      - name: Compare both engines on frozen real-output corpus
+        run: |
+          python scripts/evaluate_cli_output_real_corpus.py \
+            --corpus benchmarks/cli-output-real-v1 \
+            --ppgranger-path /tmp/ppgranger-token-saver \
+            --ppgranger-sha 19d47b2cc19457c865f2414ad78f8efa80204b43 \
+            --out cli-output-real-v1-comparison.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("cli-output-real-v1-comparison.json").read_text())
+          with Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).open("a") as out:
+              out.write("## Frozen real CLI output comparison\n\n")
+              out.write("| Engine | Weighted token reduction | Critical survival | Changed cases |\n")
+              out.write("| --- | ---: | ---: | ---: |\n")
+              for key in ("elyeshkiri", "ppgranger"):
+                  summary = report[key]["summary"]
+                  out.write(
+                      f"| {key} | {summary['weighted_token_reduction'] * 100:.2f}% "
+                      f"| {summary['critical_survival_rate'] * 100:.2f}% "
+                      f"| {summary['changed_cases']}/{summary['cases']} |\n"
+                  )
+          PY
+      - name: Upload frozen corpus comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-real-v1-comparison-${{ github.event.pull_request.head.sha }}
+          path: cli-output-real-v1-comparison.json
+          if-no-files-found: error
+          retention-days: 30
