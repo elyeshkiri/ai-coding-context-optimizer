@@ -81,6 +81,7 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert 'allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]' in config_text
     assert "min_savings = 0.05" in config_text
     assert "conservative = true" in config_text
+    assert 'calibration_file = ".token-saver.routing-calibration.json"' in config_text
     assert "[efficiency]" in config_text
     assert "continuity = true" in config_text
     assert "dedup = true" in config_text
