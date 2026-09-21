@@ -142,6 +142,13 @@ def test_turn_telemetry_records_model_route_match(tmp_path, monkeypatch):
     assert record["route_matched_actual"] is True
     assert record["route_task"] == "explanation"
 
+    summary = output_telemetry_report(root)["routing"]
+    assert summary["decisions"] == 1
+    assert summary["measured_actual_turns"] == 1
+    assert summary["matched_actual_turns"] == 1
+    assert summary["match_rate"] == 1.0
+    assert summary["targets"] == {"claude-haiku-4-5": 1}
+
 
 def test_telemetry_never_persists_prompt_or_response_content(tmp_path, monkeypatch):
     """Telemetry should retain policy/usage metadata but no user or assistant text."""
