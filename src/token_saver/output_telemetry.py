@@ -71,6 +71,8 @@ def start_output_turn(
     """Checkpoint one turn without persisting prompt or response content."""
     policy = load_state(root, session_id).get("output_policy")
     policy = policy if isinstance(policy, dict) else {}
+    route = load_state(root, session_id).get("model_route")
+    route = route if isinstance(route, dict) else {}
     pending = {
         "schema": TELEMETRY_SCHEMA,
         "offset": _transcript_offset(transcript_path),
@@ -94,6 +96,23 @@ def start_output_turn(
                 "calibration_samples",
             )
             if key in policy
+        },
+        "model_route": {
+            key: route.get(key)
+            for key in (
+                "task",
+                "complexity_tier",
+                "risk_level",
+                "minimum_capability",
+                "selected_model",
+                "action",
+                "pricing_basis",
+                "projected_savings_fraction",
+                "projected_selected_cost_usd",
+                "calibration_applied",
+                "calibration_source",
+            )
+            if key in route
         },
     }
 
@@ -291,6 +310,12 @@ def finish_output_turn(
     policy = pending.get("policy")
     policy = policy if isinstance(policy, dict) else {}
 
+    model_route = pending.get("model_route")
+    model_route = model_route if isinstance(model_route, dict) else {}
+    route_target = model_route.get("selected_model")
+    if not isinstance(route_target, str) or not route_target:
+        route_target = None
+
     budget = policy.get("max_tokens")
     if isinstance(budget, bool) or not isinstance(budget, int) or budget <= 0:
         budget = None
@@ -316,7 +341,27 @@ def finish_output_turn(
         "complexity_tier": policy.get("complexity_tier"),
         "calibrated": policy.get("calibrated"),
         "calibration_samples": policy.get("calibration_samples"),
+        "route_task": model_route.get("task"),
+        "route_complexity_tier": model_route.get("complexity_tier"),
+        "route_risk_level": model_route.get("risk_level"),
+        "route_minimum_capability": model_route.get("minimum_capability"),
+        "route_target_model": route_target,
+        "route_action": model_route.get("action"),
+        "route_pricing_basis": model_route.get("pricing_basis"),
+        "route_projected_savings_fraction": model_route.get(
+            "projected_savings_fraction"
+        ),
+        "route_projected_selected_cost_usd": model_route.get(
+            "projected_selected_cost_usd"
+        ),
+        "route_calibration_applied": model_route.get("calibration_applied"),
+        "route_calibration_source": model_route.get("calibration_source"),
         **usage,
+        "route_matched_actual": (
+            route_target in usage["models"]
+            if route_target is not None and usage["usage_available"]
+            else None
+        ),
         "budget_utilization": utilization,
         "target_met": (
             output_tokens <= budget
@@ -465,6 +510,59 @@ def _group_summary(records: list[dict]) -> dict:
     }
 
 
+def _routing_summary(records: list[dict]) -> dict:
+    """Summarize route-target adoption without inferring quality or success."""
+    routed = [
+        record
+        for record in records
+        if isinstance(record.get("route_target_model"), str)
+        and record["route_target_model"]
+    ]
+    measured = [
+        record
+        for record in routed
+        if isinstance(record.get("route_matched_actual"), bool)
+    ]
+    matched = sum(record.get("route_matched_actual") is True for record in measured)
+    calibrated = sum(
+        record.get("route_calibration_applied") is True for record in routed
+    )
+    projected_savings = [
+        float(record["route_projected_savings_fraction"])
+        for record in routed
+        if isinstance(record.get("route_projected_savings_fraction"), (int, float))
+        and not isinstance(record.get("route_projected_savings_fraction"), bool)
+        and math.isfinite(float(record["route_projected_savings_fraction"]))
+        and 0 <= float(record["route_projected_savings_fraction"]) <= 1
+    ]
+    targets: dict[str, int] = defaultdict(int)
+    actions: dict[str, int] = defaultdict(int)
+    for record in routed:
+        targets[str(record["route_target_model"])] += 1
+        action = record.get("route_action")
+        if isinstance(action, str) and action:
+            actions[action] += 1
+    return {
+        "decisions": len(routed),
+        "measured_actual_turns": len(measured),
+        "matched_actual_turns": matched,
+        "calibrated_decisions": calibrated,
+        "calibrated_decision_rate": (
+            calibrated / len(routed) if routed else None
+        ),
+        "match_rate": matched / len(measured) if measured else None,
+        "mean_projected_savings_fraction": (
+            sum(projected_savings) / len(projected_savings)
+            if projected_savings
+            else None
+        ),
+        "projected_savings_samples": len(projected_savings),
+        "targets": dict(sorted(targets.items())),
+        "actions": dict(sorted(actions.items())),
+        "observational_only": True,
+    }
+
+
 def output_telemetry_report(
     root: Path,
     *,
@@ -505,6 +603,7 @@ def output_telemetry_report(
         "schema": TELEMETRY_SCHEMA,
         "path": str(telemetry_path(root)),
         "summary": _group_summary(records),
+        "routing": _routing_summary(records),
         "by_task_mode": groups,
         "signals": {
             "underused_budget_groups": underused,

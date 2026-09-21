@@ -139,6 +139,7 @@ def reset_session(root: Path, *, reads: bool = True, reminder: bool = True, sess
                 usage={},
                 diagnostics={},
                 output_policy={},
+                model_route={},
             )
         data.pop("output_telemetry_pending", None)
         if reminder:

@@ -136,6 +136,13 @@ def validate_suite(
                 raise ValueError(
                     f"runner.condition_profiles.{condition}.label must be nonempty"
                 )
+            profile_model = profile.get("model")
+            if profile_model is not None and (
+                not isinstance(profile_model, str) or not profile_model.strip()
+            ):
+                raise ValueError(
+                    f"runner.condition_profiles.{condition}.model must be nonempty"
+                )
             profile_env = profile.get("env", {})
             if not isinstance(profile_env, dict) or not all(
                 isinstance(key, str) and isinstance(value, str)
@@ -359,11 +366,17 @@ def _condition_profile(runner: dict, condition: str) -> dict:
             "label": str(raw.get("label") or condition),
             "install_token_saver": bool(raw["install_token_saver"]),
             "env": dict(raw.get("env", {})),
+            "model": (
+                str(raw["model"]).strip()
+                if isinstance(raw.get("model"), str) and raw["model"].strip()
+                else str(runner["model"])
+            ),
         }
     return {
         "label": condition,
         "install_token_saver": condition == "enabled",
         "env": {},
+        "model": str(runner["model"]),
     }
 
 
@@ -538,6 +551,15 @@ def _transcript_usage(path: Path) -> dict:
         "output_tokens": output,
         "model_calls": len(report.turns),
         "tool_calls": len(report.calls),
+        "actual_models": sorted(
+            {
+                str(turn.model)
+                for turn in report.turns
+                if isinstance(turn.model, str)
+                and turn.model
+                and turn.model != "unknown"
+            }
+        ),
     }
 
 
@@ -715,7 +737,6 @@ def run_experiment(
     result, completed = _existing_keys(output_path, suite)
     tasks = {task["id"]: task for task in selected_tasks}
     runner = suite["runner"]
-    model = str(runner["model"])
     timeout = int(runner.get("timeout_seconds", 1800))
     if timeout < 1:
         raise ValueError("runner.timeout_seconds must be positive")
@@ -776,6 +797,7 @@ def run_experiment(
                 profile = _condition_profile(runner, item["condition"])
                 env.update(profile["env"])
                 instrumented = profile["install_token_saver"]
+                run_model = profile["model"]
                 if instrumented:
                     env.pop("TOKEN_SAVER_DISABLED", None)
                     install(worktree)
@@ -789,7 +811,7 @@ def run_experiment(
                     transcript=transcript,
                     prompt=task["prompt"],
                     prompt_file=prompt_file,
-                    model=model,
+                    model=run_model,
                     condition=item["condition"],
                 )
                 agent_rc, seconds = _run_command(
@@ -987,7 +1009,7 @@ def run_experiment(
                     "condition_label": profile["label"],
                     "sequence": sequence,
                     "revision": task["revision"],
-                    "model": model,
+                    "model": run_model,
                     "prompt_sha256": task["prompt_sha256"],
                     "success": success,
                     "validation": validation,

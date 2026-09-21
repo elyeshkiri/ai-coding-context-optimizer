@@ -67,6 +67,7 @@ Available MCP tools:
 - `index_status`
 - `refresh_index`
 - `output_policy`
+- `route_task`
 - `compact_output`
 
 Call `refresh_index` after external file changes when a long-running server must
@@ -165,6 +166,15 @@ adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
 telemetry = true
 
+[model_routing]
+enabled = false
+mode = "advisory"
+current_model = ""
+allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
+min_savings = 0.05
+conservative = true
+calibration_file = ".token-saver.routing-calibration.json"
+
 [efficiency]
 enabled = true
 continuity = true
@@ -196,6 +206,28 @@ max_range_lines = 80
 Automatic generation-policy injection currently uses Claude Code's prompt hook.
 Cursor and Codex still receive the same policy through the `output_policy` MCP
 tool when an orchestrator chooses to call it.
+
+Automatic model routing is opt-in. When enabled, Token Saver classifies the task,
+derives a complexity/risk capability floor, then chooses the cheapest eligible
+model from the freshness-gated pricing registry. Claude Code's prompt hook can
+record and inject the decision but cannot replace the active top-level model.
+Model-selectable orchestrators should call the MCP `route_task` tool and execute
+its `selected_model` / `action` decision directly. The default capability
+profiles are conservative product policy, not model-quality benchmark results.
+
+A quality-gated calibration artifact may admit a cheaper model outside the
+static capability profile for one exact bucket. Generate that artifact only
+from paired arms that differ by model choice alone, after independent
+verification and `blind-grade`:
+
+```bash
+token-saver experiment routing-suite.json --out routing-runs.json
+token-saver blind-grade routing-runs.json
+token-saver model-route-calibrate routing-runs.json
+```
+
+The runtime rechecks hard evidence floors before using any recommendation.
+Invalid calibration falls back to the static conservative router.
 
 ## Troubleshooting and repair
 

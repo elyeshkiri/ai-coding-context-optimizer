@@ -21,6 +21,7 @@ DeltaService = Callable[..., tuple[str, dict]]
 StoreOutputService = Callable[[dict], str]
 UserNudgeService = Callable[[Path, str], str | None]
 GenerationPolicyService = Callable[..., str | None]
+ModelRoutingService = Callable[..., str | None]
 ResetSessionService = Callable[..., None]
 RecordReadService = Callable[..., None]
 DigestService = Callable[[str], str]
@@ -116,6 +117,13 @@ class HookConfig:
     output_policy_max_tokens: int | None = None
     output_policy_calibration_file: str = ".token-saver.output-calibration.json"
     output_telemetry_enabled: bool = True
+    model_routing_enabled: bool = False
+    model_routing_mode: str = "advisory"
+    model_routing_current_model: str = ""
+    model_routing_allowed_models: tuple[str, ...] = ()
+    model_routing_min_savings: float = 0.05
+    model_routing_conservative: bool = True
+    model_routing_calibration_file: str = ".token-saver.routing-calibration.json"
     efficiency_enabled: bool = True
     continuity_enabled: bool = True
     cross_turn_dedup_enabled: bool = True
@@ -158,6 +166,7 @@ class HookServices:
     observe_tool: ObserveToolService = _noop_observe
     ingress_optimizer: IngressOptimizerService = _noop_ingress
     smart_read_proxy: SmartReadProxyService = _noop_smart_read
+    model_route: ModelRoutingService = _noop_context
 
 
 def cap_for(n_lines: int) -> int:
@@ -416,6 +425,7 @@ class HookRuntime:
             enabled=self.config.efficiency_enabled,
         )
 
+        context_notes: list[str] = []
         if self.config.output_policy_enabled:
             generation_note = self.services.generation_policy(
                 root,
@@ -429,10 +439,34 @@ class HookRuntime:
                 calibration_file=self.config.output_policy_calibration_file,
             )
             if generation_note:
-                response["hookSpecificOutput"] = {
-                    "hookEventName": "UserPromptSubmit",
-                    "additionalContext": generation_note,
-                }
+                context_notes.append(generation_note)
+
+        routing_note = self.services.model_route(
+            root,
+            prompt,
+            session_id=payload.get("session_id"),
+            enabled=self.config.model_routing_enabled,
+            mode=self.config.model_routing_mode,
+            current_model=(
+                str(payload.get("model"))
+                if payload.get("model")
+                else self.config.model_routing_current_model or None
+            ),
+            allowed_models=(
+                self.config.model_routing_allowed_models or None
+            ),
+            min_savings=self.config.model_routing_min_savings,
+            conservative=self.config.model_routing_conservative,
+            calibration_file=self.config.model_routing_calibration_file,
+        )
+        if routing_note:
+            context_notes.append(routing_note)
+
+        if context_notes:
+            response["hookSpecificOutput"] = {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": "\n\n".join(context_notes),
+            }
 
         if self.config.output_telemetry_enabled:
             self.services.telemetry_start(

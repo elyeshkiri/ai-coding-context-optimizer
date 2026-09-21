@@ -585,6 +585,78 @@ Returns the full `session-effectiveness` object above. With
 
 
 
+
+## `model-route --json`
+
+```json
+{
+  "task": "debugging",
+  "complexity_tier": "standard",
+  "complexity_score": 1,
+  "risk_level": "normal",
+  "risk_signals": [],
+  "minimum_capability": "balanced",
+  "selected_model": "claude-sonnet-5",
+  "current_model": null,
+  "action": "recommend",
+  "allowed_models": [
+    "claude-haiku-4-5",
+    "claude-sonnet-5",
+    "claude-opus-5"
+  ],
+  "eligible_models": [
+    "claude-sonnet-5",
+    "claude-opus-5"
+  ],
+  "calibrated_models": [],
+  "calibration_applied": false,
+  "calibration_source": null,
+  "estimated_input_tokens": 1200,
+  "input_token_basis": "caller_supplied_complete_input",
+  "estimated_output_tokens": 900,
+  "projected_cost_usd": {},
+  "projected_current_cost_usd": null,
+  "projected_savings_fraction": null,
+  "pricing_basis": "fresh_input_plus_output_one_turn",
+  "reasons": []
+}
+```
+
+`action` is `recommend` when no current model is known, `keep` when the
+current model should remain, `route` when a switch satisfies policy/economic
+rules, or `manual` when the allowed model set cannot satisfy the capability
+gate. Projected economics are counterfactual one-turn estimates, not realized
+task-success-adjusted savings.
+
+## Model-route-calibrate artifact
+
+```json
+{
+  "schema": 1,
+  "source": "routing-runs.json",
+  "source_sha256": "...",
+  "quality_gate": {
+    "minimum_pairs": 10,
+    "minimum_tasks": 5,
+    "minimum_baseline_success_rate": 0.8,
+    "maximum_quality_drop": 0.1,
+    "success_regressions_allowed": 0,
+    "requires_blinded_quality": true,
+    "requires_independent_verification": true,
+    "requires_transcript_model_confirmation": true,
+    "bucket_scope": "exact task + complexity + risk + baseline/candidate model"
+  },
+  "recommendations": [],
+  "groups": []
+}
+```
+
+`recommendations` contains only buckets that pass every hard gate. `groups`
+also retains rejected comparisons with explicit `rejection_reasons`. Runtime
+loading rechecks sample/task floors, success parity, zero regressions, blind
+quality deltas, model ordering, and evidence booleans before any recommendation
+can relax the static router.
+
 ## `pricing --json`
 
 ```json

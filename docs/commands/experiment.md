@@ -23,6 +23,13 @@ judge identity, assignment seed, timeout) and `evidence.pricing_file`. Those
 fields are carried into run checkpoints for `blind-grade` / `evidence-run`
 but do not alter the already-frozen task-definition hash.
 
+For routing experiments, `runner.condition_profiles.baseline.model` and
+`runner.condition_profiles.enabled.model` may override `runner.model` per
+arm. Use the same `install_token_saver` and `env` values in both arms so model
+choice is the only treatment. Each completed run records `actual_models` from
+transcript usage; `model-route-calibrate` requires exactly one actual model and
+requires it to match the declared arm model.
+
 ## Exit codes
 
 `0` success; `2` invalid suite/harness configuration.

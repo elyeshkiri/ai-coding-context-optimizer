@@ -59,6 +59,7 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
             "events": sum(waste.values()),
         },
         "billed_usage": telemetry["summary"],
+        "model_routing": telemetry["routing"],
         "evidence": {
             "billed_usage_source": "Claude transcript usage counters",
             "savings_source": "local observed tool transformations",

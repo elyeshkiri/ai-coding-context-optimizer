@@ -1,5 +1,35 @@
 # Unreleased
 
+- **Added automatic capability- and cost-aware model routing.** The new
+  `model-route` CLI and MCP `route_task` tool classify task type, complexity,
+  and explicit high-risk domains, establish a conservative minimum capability,
+  then choose the lowest projected one-turn cost only among models that satisfy
+  that policy. The default profiled set is Haiku 4.5 / Sonnet 5 / Opus 5.
+- **Added opt-in Claude prompt-hook routing intelligence and adoption telemetry.**
+  `[model_routing] mode = "observe"` records decisions silently; `advisory`
+  additionally injects a bounded recommendation for model-selectable
+  subagents/orchestrators. The hook explicitly does not claim to switch Claude's
+  active top-level model. Stop telemetry records route target versus actual model
+  so adoption can be measured before any savings claim.
+- **Kept model economics evidence bounded.** Routing cost compares fresh input
+  plus the selected output-budget target using the freshness-gated built-in
+  pricing registry. Local prompt-only token estimates are labeled as incomplete
+  input evidence, and routing profiles are documented as conservative product
+  policy rather than benchmark rankings of model quality.
+- **Added quality-gated routing calibration.** Frozen paired experiments can now
+  assign different models per randomized arm while keeping Token Saver/config
+  treatment identical, and record transcript-confirmed actual model ids.
+  `model-route-calibrate` admits a cheaper lower-capability model only for an
+  exact task/complexity/risk bucket after >=10 pairs across >=5 tasks, >=80%
+  baseline success, zero lost baseline successes, complete blind A/B quality
+  parity, independent hidden/post-agent verification, and fresh verified
+  pricing. Rejected groups remain visible with explicit reasons.
+- **Made calibration fail closed at runtime.** The loader rechecks hard sample,
+  success, quality-delta, model-ordering, and evidence floors; malformed or
+  below-floor calibration cannot relax routing. Claude hook routing falls back
+  to the original static conservative policy when a local calibration artifact
+  is invalid.
+
 - **Added a centralized, packaged Claude pricing registry.** Current first-party
   standard/global rates are stored once with explicit source, verification date,
   freshness limit, canonical model ids, aliases, and cache-write/read columns.

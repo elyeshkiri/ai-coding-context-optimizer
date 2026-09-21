@@ -21,6 +21,7 @@ def test_minimal_profile_contains_only_high_frequency_context_tools():
         "browse_context",
         "remember_finding",
         "recall_findings",
+        "route_task",
     )
 
 
@@ -29,6 +30,7 @@ def test_context_profile_includes_knowledge_but_not_output_specialists():
     names = set(tool_registry_for_profile("context").names())
 
     assert {
+        "route_task",
         "recall_findings",
         "remember_finding",
         "knowledge_status",
@@ -45,6 +47,7 @@ def test_full_profile_preserves_existing_default_surface():
     names = set(tool_registry_for_profile("full").names())
 
     assert {
+        "route_task",
         "build_context",
         "compact_output",
         "review_diff",

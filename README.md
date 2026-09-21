@@ -97,6 +97,7 @@ Turn local Token Saver evidence into a practical optimization report:
 token-saver cost-advisor .
 token-saver cost-advisor . --project-only --json
 token-saver pricing --model claude-sonnet-5
+token-saver model-route "Debug this failing authentication handler" --json
 token-saver cost-advisor . \
   --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json
 ```
@@ -105,6 +106,28 @@ The advisor scores only categories with enough evidence and reports score
 coverage separately. It combines measured always-on context, Claude transcript
 usage/cache counters, output-budget fit, continuity/waste signals, and observed
 before/after tool-context reductions.
+
+Automatic model-routing intelligence is available through the CLI, MCP
+`route_task`, and the opt-in Claude prompt hook. Routing first applies a
+deterministic task/complexity/risk capability floor, then selects the cheapest
+eligible profiled model from the fresh built-in pricing registry. Claude's hook
+can advise and measure the decision; model-selectable orchestrators can execute
+it directly through MCP. The built-in capability profiles are conservative
+product policy, not a benchmark ranking of model quality.
+
+Routing can become more aggressive only through a generated quality-gated
+calibration artifact. Calibrate a cheaper arm against the current static-policy
+model on frozen paired tasks, keep all non-model arm settings identical, verify
+task success independently, blind-grade the final responses, then run:
+
+```bash
+token-saver model-route-calibrate routing-runs.json
+```
+
+The default gate requires at least 10 pairs across 5 tasks, at least 80%
+baseline success, zero lost baseline successes, blind correctness/safety/
+weighted-quality parity within 0.10 points, and transcript-confirmed actual
+models. Accepted evidence relaxes only the exact task/complexity/risk bucket.
 
 Pricing is deliberately explicit: dollar usage is calculated only from an
 explicit exact-model rates source. Pass `--rates builtin` to use Token Saver's

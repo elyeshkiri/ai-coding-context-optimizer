@@ -670,3 +670,44 @@ Each view is retrieved independently through the same SQLite/HNSW index and
 persistent query-vector cache, then fused with weighted reciprocal rank before
 the existing non-overlapping chunk aggregation and bounded graph expansion.
 Exact source remains the only rendering authority.
+
+## Model-routing decision boundary
+
+Model routing is an application policy, not a transport concern.
+
+```text
+prompt
+  -> deterministic task classifier
+  -> adaptive complexity tier
+  -> explicit risk escalation
+  -> minimum capability policy
+  -> allowed/profiled model filter
+  -> fresh pricing lookup
+  -> cheapest eligible one-turn projection
+  -> route decision
+```
+
+The price stage runs only after the capability gate. The built-in profiles are
+conservative Token Saver product policy and are not empirical rankings of model
+quality.
+
+Before those edges consume the decision, an optional quality-gated calibration
+artifact may add an exact-bucket exception below the static capability floor.
+Artifacts are generated only from frozen paired model experiments with the same
+non-model arm configuration, independent verifier success, complete blinded
+response quality, and transcript-confirmed model identity. Runtime loading
+rechecks hard sample/success/quality floors before an exception becomes
+eligible. Calibration therefore extends the allow-set; it never replaces the
+static fallback policy.
+
+The same pure decision engine feeds three edges:
+
+- `model-route` CLI for humans and scripts;
+- MCP `route_task` for orchestrators that can actually select a model;
+- Claude `UserPromptSubmit` for opt-in observe/advisory mode.
+
+Claude's hook boundary does not claim to mutate the active top-level model.
+Instead it stores content-free route metadata and can inject a bounded advisory.
+Stop telemetry later compares the route target with the actual model id observed
+in transcript usage counters. This keeps routing adoption measurable without
+turning a recommendation into a savings or task-success claim.
