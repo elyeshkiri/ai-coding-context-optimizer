@@ -89,8 +89,7 @@ def cost_advisor_main(argv: list[str]) -> int:
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument(
         "--rates",
-        type=Path,
-        help="explicit exact-model USD-per-million pricing JSON",
+        help="pricing source: builtin or an explicit exact-model JSON file",
     )
     parser.add_argument(
         "--project-only",
@@ -103,7 +102,13 @@ def cost_advisor_main(argv: list[str]) -> int:
         report = advisor_report(
             Path(args.path),
             days=args.days,
-            rates_path=args.rates,
+            rates_path=(
+                args.rates
+                if args.rates == "builtin"
+                else Path(args.rates)
+                if args.rates
+                else None
+            ),
             user_scope=not args.project_only,
         )
     except (OSError, ValueError) as exc:
