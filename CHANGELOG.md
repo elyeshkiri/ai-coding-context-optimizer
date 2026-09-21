@@ -1,5 +1,18 @@
 # Unreleased
 
+- **Added a measured Cost Intelligence / Efficiency Advisor.** The new
+  \`cost-advisor\` command combines real always-on context measurements, Claude
+  transcript usage/cache counters, output-budget telemetry, continuity/waste
+  signals, and observed Token Saver tool-context reductions into a transparent
+  local efficiency score with explicit evidence coverage and prioritized next
+  actions.
+- **Kept dollars and savings evidence strict.** Token Saver prices usage only
+  from a user-supplied exact-model rate file, refuses to allocate mixed-model
+  turns or unknown cache-write TTLs, and exposes partial pricing as partial.
+  Estimated tool-context savings can be shown under a clearly labeled
+  fresh-input-once counterfactual, but are never promoted to measured API-dollar
+  savings or task-success evidence.
+
 - **Added bounded multi-view semantic query fusion for long prompts.** The full
   user query remains authoritative, while long multi-clause prompts can add up
   to two deterministic subviews made only from exact vocabulary already present
