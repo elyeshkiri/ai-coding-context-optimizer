@@ -137,10 +137,12 @@ Prefer bounded line-range reads instead of globally disabling protection.
 
 The hook stores the original result when replacement is beneficial.
 
-The replacement message includes an id. Recover it with:
+The replacement can include both the legacy paged-output id and a universal
+`tsr_...` recovery handle. Use either path:
 
 ```bash
 token-saver output <id> --stream stdout --offset 1 --limit 80
+token-saver recover tsr_... --path .
 ```
 
 Delete old stored results:
