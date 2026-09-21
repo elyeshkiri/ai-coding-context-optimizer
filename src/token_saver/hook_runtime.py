@@ -446,7 +446,11 @@ class HookRuntime:
             session_id=payload.get("session_id"),
             enabled=self.config.model_routing_enabled,
             mode=self.config.model_routing_mode,
-            current_model=self.config.model_routing_current_model or None,
+            current_model=(
+                str(payload.get("model"))
+                if payload.get("model")
+                else self.config.model_routing_current_model or None
+            ),
             allowed_models=(
                 self.config.model_routing_allowed_models or None
             ),
