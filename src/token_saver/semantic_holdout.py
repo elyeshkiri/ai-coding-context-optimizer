@@ -14,6 +14,7 @@ accepted. Once a suite has been evaluated, it is burned for tuning.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import hashlib
 import json
 from pathlib import Path
@@ -339,9 +340,19 @@ def _summarize(items: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _suite_name(manifest: Path) -> str:
+    """Return a stable suite label derived from the frozen manifest filename."""
+    name = manifest.name
+    suffix = ".frozen.json"
+    return name[: -len(suffix)] if name.endswith(suffix) else manifest.stem
+
+
 def evaluate_semantic_holdout(
     root: Path,
     manifest: Path,
+    *,
+    repositories: set[str] | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     """Evaluate frozen lexical, hybrid-semantic, and trivial-baseline arms."""
     root = root.resolve()
@@ -355,17 +366,26 @@ def evaluate_semantic_holdout(
     revisions: dict[Path, str | None] = {}
     results: list[dict[str, Any]] = []
     by_repository: dict[str, list[dict[str, Any]]] = {}
+    selected_repositories = (
+        {str(alias) for alias in repositories}
+        if repositories is not None
+        else None
+    )
+    emit = progress or (lambda _message: None)
 
     for position, task in enumerate(payload["tasks"], start=1):
+        alias = task.get("repository")
+        if selected_repositories is not None and alias not in selected_repositories:
+            continue
         if not bool(task.get("eligible", True)):
             continue
-        alias = task.get("repository")
         if not isinstance(alias, str) or alias not in specs:
             raise ValueError(f"task {position} references unknown repository {alias!r}")
         repo_root, expected_revision = specs[alias]
         if not repo_root.is_dir():
             raise ValueError(f"repository path does not exist: {repo_root}")
         if repo_root not in indexes:
+            emit(f"[semantic-holdout] repository={alias} indexing")
             revision = _git_revision(repo_root)
             revisions[repo_root] = revision
             if expected_revision and revision != expected_revision:
@@ -388,6 +408,8 @@ def evaluate_semantic_holdout(
         max_tokens = int(task.get("max_tokens", payload.get("max_tokens", 6000)))
         max_files = int(task.get("max_files", payload.get("max_files", 12)))
 
+        task_id = task.get("id", position)
+        emit(f"[semantic-holdout] task={task_id} repository={alias} arm=lexical")
         lexical_pack = build_context_pack(
             repo_root,
             query,
@@ -399,6 +421,7 @@ def evaluate_semantic_holdout(
             embeddings=False,
             cache_enabled=False,
         )
+        emit(f"[semantic-holdout] task={task_id} repository={alias} arm=semantic")
         semantic_pack = build_context_pack(
             repo_root,
             query,
@@ -410,6 +433,7 @@ def evaluate_semantic_holdout(
             embeddings=True,
             cache_enabled=False,
         )
+        emit(f"[semantic-holdout] task={task_id} repository={alias} arm=trivial")
         trivial_files = _trivial_lexical_files(
             index,
             query,
@@ -447,9 +471,14 @@ def evaluate_semantic_holdout(
         }
         results.append(item)
         by_repository.setdefault(alias, []).append(item)
+        emit(
+            f"[semantic-holdout] task={task_id} repository={alias} "
+            f"lexical={lexical['file_recall']:.3f} "
+            f"semantic={semantic['file_recall']:.3f}"
+        )
 
     return {
-        "suite": "semantic-holdout-13",
+        "suite": _suite_name(manifest),
         "tasks": results,
         "excluded_tasks": [
             {
@@ -457,13 +486,113 @@ def evaluate_semantic_holdout(
                 "reason": task.get("exclusion_reason"),
             }
             for task in payload["tasks"]
-            if not bool(task.get("eligible", True))
+            if (
+                not bool(task.get("eligible", True))
+                and (
+                    selected_repositories is None
+                    or task.get("repository") in selected_repositories
+                )
+            )
         ],
         "repositories": {
             alias: _summarize(items)
             for alias, items in sorted(by_repository.items())
         },
         "summary": _summarize(results),
+        "protocol": validation,
+        "claim_boundary": (
+            "This first evaluation burns the suite for tuning. Results measure "
+            "file retrieval on this frozen no-identifier-leakage cohort; they "
+            "are not an API-cost or task-success claim."
+        ),
+    }
+
+
+def merge_semantic_holdout_results(
+    parts: list[dict[str, Any]],
+    manifest: Path,
+) -> dict[str, Any]:
+    """Merge repository-sharded holdout outputs without changing arm semantics."""
+    if not parts:
+        raise ValueError("semantic holdout merge requires at least one partial result")
+
+    manifest = manifest.resolve()
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    validation = validate_semantic_holdout(payload, manifest)
+    suite = _suite_name(manifest)
+    expected_task_order = {
+        task.get("id"): position
+        for position, task in enumerate(payload.get("tasks", []))
+        if isinstance(task, dict)
+    }
+
+    tasks_by_id: dict[object, dict[str, Any]] = {}
+    excluded_by_id: dict[object, dict[str, Any]] = {}
+    seen_repositories: set[str] = set()
+
+    for part in parts:
+        if part.get("suite") != suite:
+            raise ValueError(
+                f"semantic holdout partial suite mismatch: "
+                f"{part.get('suite')!r} != {suite!r}"
+            )
+        if part.get("protocol") != validation:
+            raise ValueError("semantic holdout partial protocol does not match manifest")
+        repositories = part.get("repositories", {})
+        if not isinstance(repositories, dict):
+            raise ValueError("semantic holdout partial repositories must be an object")
+        overlap = seen_repositories & set(repositories)
+        if overlap:
+            raise ValueError(
+                "semantic holdout repository appears in multiple partials: "
+                + ", ".join(sorted(overlap))
+            )
+        seen_repositories.update(str(alias) for alias in repositories)
+
+        for item in part.get("tasks", []):
+            task_id = item.get("id")
+            if task_id in tasks_by_id:
+                raise ValueError(f"duplicate semantic holdout task {task_id!r}")
+            tasks_by_id[task_id] = item
+        for item in part.get("excluded_tasks", []):
+            task_id = item.get("id")
+            excluded_by_id[task_id] = item
+
+    tasks = sorted(
+        tasks_by_id.values(),
+        key=lambda item: expected_task_order.get(item.get("id"), 10**9),
+    )
+    excluded = sorted(
+        excluded_by_id.values(),
+        key=lambda item: expected_task_order.get(item.get("id"), 10**9),
+    )
+    by_repository: dict[str, list[dict[str, Any]]] = {}
+    for item in tasks:
+        alias = str(item.get("repository"))
+        by_repository.setdefault(alias, []).append(item)
+
+    expected_repositories = {
+        str(task.get("repository"))
+        for task in payload.get("tasks", [])
+        if isinstance(task, dict)
+    }
+    if seen_repositories != expected_repositories:
+        missing = sorted(expected_repositories - seen_repositories)
+        extra = sorted(seen_repositories - expected_repositories)
+        raise ValueError(
+            "semantic holdout partial repository coverage mismatch: "
+            f"missing={missing}, extra={extra}"
+        )
+
+    return {
+        "suite": suite,
+        "tasks": tasks,
+        "excluded_tasks": excluded,
+        "repositories": {
+            alias: _summarize(items)
+            for alias, items in sorted(by_repository.items())
+        },
+        "summary": _summarize(tasks),
         "protocol": validation,
         "claim_boundary": (
             "This first evaluation burns the suite for tuning. Results measure "
