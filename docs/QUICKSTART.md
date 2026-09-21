@@ -101,7 +101,8 @@ sizes. These are measurements, not universal savings claims.
 
 ## 6. Optional project configuration
 
-Setup creates:
+Setup creates a project-owned `.token-saver.toml`. A small excerpt of the
+current defaults is:
 
 ```toml
 version = 1
@@ -109,15 +110,21 @@ version = 1
 [hooks]
 guard = true
 read_max_lines = 220
-reread = false
-delta = false
-min_lines = 40
-keep_tail = 15
-allow = []
+
+[mcp]
+profile = "full"
+adaptive_max_tools = 12
+compress_schemas = false
+
+[provider]
+prefix_tracking = true
 ```
 
-Environment variables override the project file. See
-[Configuration](CONFIGURATION.md) for the full precedence and migration rules.
+The generated file contains additional output, routing, efficiency, ingress,
+retrieval, and Smart Tool Proxy defaults. Setup does not overwrite an existing
+project-owned config on upgrade; missing keys use runtime defaults until you add
+them. Environment variables take precedence. See
+[Configuration](CONFIGURATION.md) for the complete file and migration rules.
 
 ## 7. Recover or remove
 
