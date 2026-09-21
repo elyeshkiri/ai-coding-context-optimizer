@@ -51,6 +51,22 @@ class RepositoryContextServiceContract(Protocol):
         """Persist one explicit evidence-backed project finding."""
         ...
 
+    def remember_memory(self, **kwargs) -> dict:
+        """Persist typed project memory."""
+        ...
+
+    def memory_index(self, query: str = "", **kwargs) -> list[dict]:
+        """Return compact project-memory metadata."""
+        ...
+
+    def memory_search(self, query: str, **kwargs) -> list[dict]:
+        """Return project-memory snippets."""
+        ...
+
+    def memory_get(self, ids: list[str], **kwargs) -> list[dict]:
+        """Return full project-memory records."""
+        ...
+
     def recall_findings(self, query: str, **kwargs) -> list[dict]:
         """Recall current project findings relevant to a query."""
         ...

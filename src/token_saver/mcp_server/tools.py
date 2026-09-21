@@ -14,6 +14,7 @@ from ..model_routing import (
 )
 from ..patch_context import build_diff_context, review_patch
 from .contracts import McpToolContext, McpToolSpec
+from .tool_surface import ADAPTIVE_CORE, adaptive_surface_description, adaptive_tool_names
 
 
 class McpToolRegistry:
@@ -180,6 +181,84 @@ def _knowledge_status(context: McpToolContext, arguments: dict) -> dict:
     """Return knowledge counts without exposing finding contents."""
     del arguments
     return context.repository.knowledge_status()
+
+
+def _remember_memory(context: McpToolContext, arguments: dict) -> dict:
+    """Persist typed project memory without storing raw conversation text."""
+    anchors = arguments.get("anchors")
+    tags = arguments.get("tags")
+    invalidators = arguments.get("invalidators")
+    related_ids = arguments.get("related_ids")
+    return context.repository.remember_memory(
+        claim=str(arguments.get("claim", "")),
+        anchors=[str(value) for value in anchors] if isinstance(anchors, list) else [],
+        evidence=str(arguments.get("evidence", "")),
+        applicability=str(arguments.get("applicability", "")),
+        kind=str(arguments.get("kind", "fact")),
+        confidence=str(arguments.get("confidence", "verified")),
+        tags=[str(value) for value in tags] if isinstance(tags, list) else None,
+        importance=int(arguments.get("importance", 3)),
+        invalidators=(
+            [str(value) for value in invalidators]
+            if isinstance(invalidators, list)
+            else None
+        ),
+        related_ids=(
+            [str(value) for value in related_ids]
+            if isinstance(related_ids, list)
+            else None
+        ),
+        source="mcp-memory",
+        deduplicate=bool(arguments.get("deduplicate", True)),
+    )
+
+
+def _memory_index(context: McpToolContext, arguments: dict) -> list[dict]:
+    """Return compact memory metadata as the cheapest discovery layer."""
+    kind = arguments.get("kind")
+    return context.repository.memory_index(
+        str(arguments.get("query", "")),
+        kind=str(kind) if kind else None,
+        limit=int(arguments.get("limit", 20)),
+        include_stale=bool(arguments.get("include_stale", False)),
+    )
+
+
+def _memory_search(context: McpToolContext, arguments: dict) -> list[dict]:
+    """Return bounded memory snippets for relevance confirmation."""
+    kind = arguments.get("kind")
+    return context.repository.memory_search(
+        str(arguments.get("query", "")),
+        kind=str(kind) if kind else None,
+        limit=int(arguments.get("limit", 10)),
+        include_stale=bool(arguments.get("include_stale", False)),
+    )
+
+
+def _memory_get(context: McpToolContext, arguments: dict) -> list[dict]:
+    """Return full memory records only after explicit id selection."""
+    ids = arguments.get("ids")
+    return context.repository.memory_get(
+        [str(value) for value in ids] if isinstance(ids, list) else [],
+        include_stale=bool(arguments.get("include_stale", True)),
+    )
+
+
+def _discover_tools(context: McpToolContext, arguments: dict) -> dict:
+    """Suggest and describe a bounded specialist MCP surface for one task."""
+    del context
+    query = str(arguments.get("query", ""))
+    max_tools = int(arguments.get("max_tools", 12))
+    names = adaptive_tool_names(
+        query,
+        DEFAULT_TOOL_REGISTRY.names(),
+        max_tools=max_tools,
+    )
+    registry = DEFAULT_TOOL_REGISTRY.select(names)
+    result = adaptive_surface_description(query, names)
+    result["schemas"] = registry.schemas()
+    result["refresh_tools_list"] = True
+    return result
 
 
 def _build_diff_context(context: McpToolContext, arguments: dict) -> dict:
@@ -419,6 +498,118 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
             _knowledge_status,
         ),
         McpToolSpec(
+            "remember_memory",
+            "Persist typed project memory with source anchors, importance, tags, and deduplication.",
+            {
+                "type": "object",
+                "required": ["claim", "anchors", "evidence", "applicability", "kind"],
+                "properties": {
+                    "claim": {"type": "string"},
+                    "anchors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {"type": "string"},
+                    },
+                    "evidence": {"type": "string"},
+                    "applicability": {"type": "string"},
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "decision",
+                            "bugfix",
+                            "convention",
+                            "guardrail",
+                            "architecture",
+                            "fact",
+                            "finding",
+                        ],
+                    },
+                    "confidence": {
+                        "type": "string",
+                        "enum": ["speculative", "probable", "verified"],
+                    },
+                    "tags": {
+                        "type": "array",
+                        "maxItems": 12,
+                        "items": {"type": "string"},
+                    },
+                    "importance": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "invalidators": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "related_ids": {
+                        "type": "array",
+                        "maxItems": 12,
+                        "items": {"type": "string"},
+                    },
+                    "deduplicate": {"type": "boolean"},
+                },
+            },
+            _remember_memory,
+        ),
+        McpToolSpec(
+            "memory_index",
+            "Cheap first-stage project-memory lookup returning compact metadata only.",
+            {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+                    "include_stale": {"type": "boolean"},
+                },
+            },
+            _memory_index,
+        ),
+        McpToolSpec(
+            "memory_search",
+            "Second-stage project-memory search returning claims and bounded snippets.",
+            {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 30},
+                    "include_stale": {"type": "boolean"},
+                },
+            },
+            _memory_search,
+        ),
+        McpToolSpec(
+            "memory_get",
+            "Fetch full project-memory records by id after discovery confirms relevance.",
+            {
+                "type": "object",
+                "required": ["ids"],
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "items": {"type": "string"},
+                    },
+                    "include_stale": {"type": "boolean"},
+                },
+            },
+            _memory_get,
+        ),
+        McpToolSpec(
+            "discover_tools",
+            "Select a bounded specialist MCP tool set for the current task and return its schemas.",
+            {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "max_tools": {"type": "integer", "minimum": 6, "maximum": 24},
+                },
+            },
+            _discover_tools,
+        ),
+        McpToolSpec(
             "build_diff_context",
             "Build context around the current Git patch and its impact closure.",
             {
@@ -542,7 +733,21 @@ MCP_TOOL_PROFILES = {
         "recall_findings",
         "remember_finding",
         "knowledge_status",
+        "memory_index",
+        "memory_search",
+        "memory_get",
+        "remember_memory",
     ),
+    "memory": (
+        "build_context",
+        "find_symbol",
+        "memory_index",
+        "memory_search",
+        "memory_get",
+        "remember_memory",
+        "knowledge_status",
+    ),
+    "adaptive": ADAPTIVE_CORE,
 }
 
 

@@ -6,9 +6,11 @@ import json
 import os
 from pathlib import Path
 
+from ..runtime_config import settings_for
 from .contracts import McpToolContext
 from .services import IndexService
-from .tools import McpToolRegistry, tool_registry_for_profile
+from .tool_surface import adaptive_tool_names
+from .tools import DEFAULT_TOOL_REGISTRY, McpToolRegistry, tool_registry_for_profile
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_VERSION = "1.0.0"
@@ -39,20 +41,63 @@ class McpProtocol:
     ):
         """Compose one protocol session from repository scope and services."""
         self.root = root
+        self._profile = "custom" if registry is not None else ""
+        self._adaptive_max_tools = 12
         if registry is not None:
             self.registry = registry
         else:
-            selected_profile = profile or os.environ.get(
-                "TOKEN_SAVER_MCP_PROFILE",
-                "full",
+            settings = settings_for(root)
+            selected_profile = (
+                profile
+                or os.environ.get("TOKEN_SAVER_MCP_PROFILE")
+                or settings.mcp_profile
             )
-            self.registry = tool_registry_for_profile(selected_profile)
+            self._profile = selected_profile.strip().lower()
+            self._adaptive_max_tools = settings.mcp_adaptive_max_tools
+            self.registry = tool_registry_for_profile(self._profile)
+            if self._profile == "adaptive":
+                initial_task = os.environ.get("TOKEN_SAVER_MCP_TASK", "").strip()
+                if initial_task:
+                    names = adaptive_tool_names(
+                        initial_task,
+                        DEFAULT_TOOL_REGISTRY.names(),
+                        max_tools=self._adaptive_max_tools,
+                    )
+                    self.registry = DEFAULT_TOOL_REGISTRY.select(names)
         self.index_service = index_service or IndexService(root)
 
     def call_tool(self, name: str, arguments: dict) -> dict:
-        """Call one registered tool and encode its result as MCP content."""
+        """Call one registered tool and update adaptive disclosure when requested."""
         context = McpToolContext(self.root, self.index_service)
-        return result_content(self.registry.call(name, context, arguments))
+        effective_arguments = arguments
+        if self._profile == "adaptive" and name == "discover_tools":
+            effective_arguments = dict(arguments)
+            requested_max = int(
+                effective_arguments.get("max_tools", self._adaptive_max_tools)
+            )
+            effective_arguments["max_tools"] = min(
+                requested_max,
+                self._adaptive_max_tools,
+            )
+        value = self.registry.call(name, context, effective_arguments)
+        if self._profile == "adaptive" and name == "discover_tools":
+            if isinstance(value, dict):
+                requested = value.get("tools")
+                if isinstance(requested, list):
+                    active = {
+                        str(tool_name)
+                        for tool_name in requested
+                        if str(tool_name) in DEFAULT_TOOL_REGISTRY.names()
+                    }
+                    ordered = [
+                        tool_name
+                        for tool_name in DEFAULT_TOOL_REGISTRY.names()
+                        if tool_name in active
+                    ]
+                    self.registry = DEFAULT_TOOL_REGISTRY.select(ordered)
+                    value["active_tools"] = list(self.registry.names())
+                    value["list_changed"] = True
+        return result_content(value)
 
     def handle_message(self, message: dict) -> dict | None:
         """Handle one normalized JSON-RPC request or notification."""
@@ -65,7 +110,9 @@ class McpProtocol:
         if method == "initialize":
             result = {
                 "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {"tools": {"listChanged": False}},
+                "capabilities": {
+                    "tools": {"listChanged": self._profile == "adaptive"}
+                },
                 "serverInfo": {
                     "name": "token-saver",
                     "version": SERVER_VERSION,

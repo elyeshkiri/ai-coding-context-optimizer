@@ -1,5 +1,24 @@
 # Unreleased
 
+- **Expanded durable knowledge into progressive persistent project memory.**
+  Typed decisions, bugfixes, conventions, guardrails, architecture notes, facts,
+  and findings now share the existing evidence-backed store with tags,
+  importance, related-memory ids, source-digest staleness, reuse metadata,
+  gentle age decay, and bounded near-duplicate supersession. MCP callers use
+  `memory_index` -> `memory_search` -> `memory_get` so discovery does not
+  require loading full memory records.
+- **Added adaptive MCP tool-surface disclosure.** The opt-in `adaptive`
+  profile starts from six core schemas and uses `discover_tools(query)` to
+  activate bounded memory/retrieval/review/output/routing groups for the current
+  task. The server advertises `listChanged=true`, returns exact selected
+  schemas in the discovery result, and keeps `full` as the default explicit
+  compatibility fallback. Project config supports `[mcp] profile` and
+  `adaptive_max_tools`.
+- **Kept memory and tool selection local and non-generative.** No raw
+  conversation text is auto-harvested, no memory is silently injected into
+  ordinary context packs, and adaptive tool selection is deterministic rather
+  than delegated to another model.
+
 # 1.12.0 - 2026-09-21
 
 - **Added automatic capability- and cost-aware model routing.** The new

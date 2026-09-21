@@ -523,25 +523,64 @@ context pack. CLI/MCP callers explicitly write and recall them, which keeps the
 existing retrieval holdouts unchanged while creating a measurable path to future
 cross-session read/reasoning avoidance.
 
-The same surface is available through MCP as `remember_finding`,
+The original surface remains available through MCP as `remember_finding`,
 `recall_findings`, and `knowledge_status`.
 
-### Progressive MCP tool disclosure
+The richer project-memory layer builds on the same evidence store rather than a
+second database. Memories can be typed as `decision`, `bugfix`,
+`convention`, `guardrail`, `architecture`, `fact`, or `finding`, with
+tags, importance, related-memory ids, bounded reuse counters, and gentle
+time-decay in ranking. Source digests still win over memory: changed or missing
+anchors make a record stale regardless of its importance or reuse.
 
-Token Saver can advertise a smaller MCP schema when a host needs only its common
-repository-context operations:
+Agents use progressive disclosure rather than loading full memory records into
+every turn:
+
+```text
+memory_index(query)     # compact ids / claims / types / scores
+        ↓
+memory_search(query)    # bounded applicability/evidence snippets
+        ↓
+memory_get(ids)         # full records only after relevance is confirmed
+```
+
+`remember_memory` performs bounded near-duplicate detection within the same
+memory type and source anchors; a close replacement supersedes the older active
+record instead of leaving two competing memories. Token Saver still does not
+auto-harvest raw conversation text or silently inject project memory into normal
+context packs.
+
+### Adaptive MCP tool disclosure
+
+Token Saver can advertise a smaller MCP schema instead of paying for every tool
+definition on every request:
 
 ```bash
 TOKEN_SAVER_MCP_PROFILE=minimal token-saver serve .
 TOKEN_SAVER_MCP_PROFILE=context token-saver serve .
+TOKEN_SAVER_MCP_PROFILE=memory token-saver serve .
+TOKEN_SAVER_MCP_PROFILE=adaptive token-saver serve .
 TOKEN_SAVER_MCP_PROFILE=full token-saver serve .
 ```
 
-`full` remains the default for backward compatibility. `minimal` exposes the
-high-frequency context + durable-knowledge tools; `context` adds ranking,
-impact, feedback, index, and knowledge-status operations while omitting diff and
-output-specialist schemas. Unknown profile names fail closed instead of silently
-selecting another surface.
+`full` remains the default and explicit compatibility fallback. `adaptive`
+starts with six core tools, including `discover_tools`. The agent supplies the
+current task description; Token Saver deterministically maps it to bounded
+memory, retrieval, review, output, and routing groups, returns the exact selected
+schemas, expands the live `tools/list` surface, and advertises MCP
+`listChanged=true`.
+
+Project configuration can opt in without changing host MCP files:
+
+```toml
+[mcp]
+profile = "adaptive"
+adaptive_max_tools = 12
+```
+
+The selector uses task vocabulary only, makes no model call, and defaults to
+repository-retrieval specialists when the task is ambiguous. Unknown profile
+names fail closed instead of silently selecting another surface.
 
 ## Knowledge-assisted read avoidance and cache economics
 

@@ -21,6 +21,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10
     import tomli as tomllib
 
 CONFIG_NAME = ".token-saver.toml"
+MCP_PROFILES = ("minimal", "context", "memory", "adaptive", "full")
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,8 @@ class RuntimeSettings:
     tool_proxy_timeout_seconds: float = 6.0
     tool_proxy_max_ranges: int = 4
     tool_proxy_max_range_lines: int = 80
+    mcp_profile: str = "full"
+    mcp_adaptive_max_tools: int = 12
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -192,6 +195,9 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     tool_proxy = payload.get("tool_proxy", {})
     if not isinstance(tool_proxy, dict):
         raise ValueError(f"Expected [tool_proxy] table in Token Saver config: {path}")
+    mcp = payload.get("mcp", {})
+    if not isinstance(mcp, dict):
+        raise ValueError(f"Expected [mcp] table in Token Saver config: {path}")
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -327,6 +333,21 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         tool_proxy_max_range_lines=_positive_int(
             tool_proxy.get("max_range_lines"),
             80,
+        ),
+        mcp_profile=_choice(
+            mcp.get("profile"),
+            "full",
+            MCP_PROFILES,
+        ),
+        mcp_adaptive_max_tools=min(
+            24,
+            max(
+                6,
+                _positive_int(
+                    mcp.get("adaptive_max_tools"),
+                    12,
+                ),
+            ),
         ),
     )
 
@@ -614,5 +635,21 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
                 minimum=1,
             )
             or base.tool_proxy_max_range_lines
+        ),
+        mcp_profile=_env_choice(
+            "TOKEN_SAVER_MCP_PROFILE",
+            base.mcp_profile,
+            MCP_PROFILES,
+        ),
+        mcp_adaptive_max_tools=min(
+            24,
+            int(
+                _env_int(
+                    "TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS",
+                    base.mcp_adaptive_max_tools,
+                    minimum=6,
+                )
+                or base.mcp_adaptive_max_tools
+            ),
         ),
     )
