@@ -162,6 +162,8 @@ def _handler_factory(
     """Build a request handler bound to one immutable proxy configuration."""
 
     class Handler(BaseHTTPRequestHandler):
+        """Forward one client connection through the fixed proxy configuration."""
+
         server_version = "TokenSaverProviderProxy/1"
 
         def log_message(self, format: str, *args) -> None:
@@ -173,6 +175,7 @@ def _handler_factory(
             )
 
         def _proxy(self) -> None:
+            """Transform one supported request and stream the upstream response."""
             length_header = self.headers.get("Content-Length")
             if self.command in {"POST", "PUT", "PATCH"} and length_header is None:
                 self.send_error(411, "Content-Length required")
