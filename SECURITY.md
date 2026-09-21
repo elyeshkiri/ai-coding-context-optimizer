@@ -71,7 +71,7 @@ Smart Tool Proxy is disabled by default. When enabled with the default `provider
 
 Changing that endpoint to a remote host changes the privacy boundary: the bounded task/source evidence is then sent to that host. Configure remote endpoints only when that provider is approved to receive the repository material.
 
-The selector is not trusted as source truth. Returned JSON can only nominate line ranges; Token Saver validates/clamps those ranges and re-reads the delivered code from the original file. Model-generated orientation is labeled non-authoritative. If the selector fails, deterministic local range selection is used. Bounded Reads are never proxied.
+The selector is not trusted as source truth. Returned JSON can only nominate line ranges; Token Saver validates/clamps those ranges and re-reads the delivered code from the original file. No model-generated selector prose is forwarded to Claude. If the selector fails, deterministic local range selection is used. Bounded Reads are never proxied.
 
 The latest user task may be read transiently from the local Claude transcript tail to orient selection. Token Saver does not persist that prompt text in Smart Tool Proxy state. Operational savings telemetry stores only token counts and the selector label, not the source excerpts or task text.
 ## Semantic vector state
