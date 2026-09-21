@@ -12,7 +12,7 @@
     "query_freeze_file": "semantic-holdout-14.query-freeze.json",
     "query_freeze_commit": "5d22e62c88aa95307695e2e96da7630b87e58c32",
     "query_freeze_sha256": "2b96b273353c0dd76da0dd8bcdcd7a0cdbb93ca253b43409ff4fee2734d95f4a",
-    "ground_truth_sha256": "",
+    "ground_truth_sha256": "c1d16ce0289305533055de2406143d692e82f7bca35e2fc47f054306d3f9ed92",
     "baseline": "distinct-term-overlap@12",
     "embedding_model": "all-MiniLM-L6-v2",
     "first_run_burns_suite": true,
