@@ -278,3 +278,33 @@ jobs:
           path: cli-output-real-v1-comparison.json
           if-no-files-found: error
           retention-days: 30
+
+
+  cli-corpus-v2-capture:
+    # Fresh proof corpus: capture only. Do not evaluate or tune from this job.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]' mypy pylint
+      - run: npm install -g typescript eslint
+      - name: Capture untouched CLI corpus v2
+        run: |
+          python scripts/capture_cli_output_corpus_v2.py \
+            --out cli-corpus-v2-capture \
+            --workspace .tmp-cli-corpus-v2 \
+            --min-captures 22
+      - name: Upload untouched CLI corpus v2
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-corpus-v2-raw-${{ github.event.pull_request.head.sha }}
+          path: cli-corpus-v2-capture
+          if-no-files-found: error
+          retention-days: 30
