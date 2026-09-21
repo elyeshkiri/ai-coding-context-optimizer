@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from .specialized_processors import extended_processors
 from .text import ensure_newline, filter_text, preprocess
 
 _PYTEST = re.compile(r"\b(pytest|py\.test|python\s+-m\s+pytest)\b", re.I)
@@ -502,8 +503,6 @@ class GenericProcessor:
 
 def default_processors() -> list:
     """Return fresh instances of the complete built-in processor set."""
-    from .specialized_processors import extended_processors
-
     return [
         PytestProcessor(),
         JsTestProcessor(),
