@@ -87,7 +87,9 @@ def evaluate_quality_manifest(
     if require_frozen and not protocol["valid"]:
         raise ValueError(
             "frozen output-quality manifest requires frozen=true, frozen_at, "
-            "and matching definition_sha256"
+            "and matching definition_sha256; "
+            f"computed={protocol['computed_definition_sha256']} "
+            f"declared={protocol['declared_definition_sha256']}"
         )
 
     results: list[dict] = []
