@@ -1,9 +1,10 @@
 """PreToolUse guard: stop full-file reads of large source before they hit context.
 
-Rewriting a Read *result* into an outline is harmful — Edit matches exact
-bytes — so this hook never touches PostToolUse Read. It intercepts the
-*request*: a Read of a large source file with no offset/limit is denied and
-replaced with an outline plus the ranges to ask for.
+By default a Read of a large source file with no offset/limit is denied before
+it enters context and replaced with an outline plus ranges to ask for. When the
+opt-in Smart Tool Proxy is enabled, eligible reads are delegated to PostToolUse:
+the proxy returns bounded exact excerpts and keeps ranged Reads as the exact-byte
+escape hatch for editing.
 
 A whole-file ``cat`` through Bash is the same dump by another route, so a plain
 ``cat <large source file>`` is denied the same way. Only a lone ``cat`` command
@@ -277,6 +278,12 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
             }
         }
     if n_lines <= max_lines:
+        return None
+
+    if (
+        settings.tool_proxy_enabled
+        and estimate_tokens(text, path.suffix) >= settings.tool_proxy_min_tokens
+    ):
         return None
 
     return _deny(_outline_reason(path, text, n_lines, "a full Read"))

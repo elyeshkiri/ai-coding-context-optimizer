@@ -87,6 +87,9 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert "packet_tokens = 1600" in config_text
     assert "[retrieval]" in config_text
     assert "cache = true" in config_text
+    assert "[tool_proxy]" in config_text
+    assert "enabled = false" in config_text
+    assert 'provider = "ollama"' in config_text
     assert "cache_max_entries = 64" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))

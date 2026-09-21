@@ -1,5 +1,17 @@
 # Unreleased
 
+- **Added an opt-in Smart Tool Proxy for large Claude Code Reads.** Eligible
+  unbounded source Reads can now pass through PreToolUse and be replaced at
+  PostToolUse with a bounded evidence packet. A local/free Ollama model selects
+  candidate line ranges, but Token Saver validates the ranges and rehydrates
+  exact code from the original file. Selector-generated prose is never
+  forwarded to Claude.
+- **Added deterministic failure fallback and exact-read recovery.** Missing,
+  slow, or malformed local-model responses fall back to structural/lexical
+  selection, while bounded Reads bypass proxying entirely for edit-grade source.
+  The feature is disabled by default and records only content-free savings
+  telemetry.
+
 - **Strengthened semantic/vector discovery without tuning against burned
   holdout #13.** Semantic indexing now emits declaration-aware chunks carrying
   kind, parent and signature metadata in addition to overlapping fallback

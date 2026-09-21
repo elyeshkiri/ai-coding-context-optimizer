@@ -97,11 +97,13 @@ The Claude Code integration uses four distinct boundaries:
   policy when the task/mode changes, so completion tokens can be avoided before
   they are generated;
 - `PreToolUse` protects against unbounded large source reads and lone
-  `cat <large-source>` dumps;
+  `cat <large-source>` dumps; when the opt-in Smart Tool Proxy is enabled,
+  eligible large Reads are delegated to PostToolUse instead of denied;
 - `PostToolUse` can reduce large Bash stdout through the failure-aware output
-  processor registry, collapse exact repeated command output, and observe
-  Read/Edit/Write working-state changes while keeping replaced Bash output
-  recoverable locally;
+  processor registry, collapse exact repeated command output, and replace an
+  eligible full-file Read with local/free-model-guided **exact source ranges**.
+  Selector-generated prose is not forwarded; delivered code is re-read from
+  the source file, and bounded Reads remain untouched for edit-grade bytes;
 - `SessionStart` resume/compact can inject a bounded structured continuity
   checkpoint containing working files, redacted recent commands, and validation
   status without copying conversation text;
@@ -177,6 +179,18 @@ packet_tokens = 1600
 [retrieval]
 cache = true
 cache_max_entries = 64
+
+[tool_proxy]
+enabled = false
+provider = "ollama"
+model = "qwen2.5-coder:7b"
+endpoint = "http://127.0.0.1:11434"
+min_tokens = 2500
+target_tokens = 1800
+model_input_tokens = 12000
+timeout_seconds = 6.0
+max_ranges = 4
+max_range_lines = 80
 ```
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.

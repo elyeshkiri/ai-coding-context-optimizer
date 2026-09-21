@@ -617,3 +617,85 @@ def test_runtime_passes_ingress_threshold_configuration(tmp_path):
             },
         )
     ]
+
+
+def test_runtime_can_replace_verified_full_read_with_smart_proxy(tmp_path):
+    """PostToolUse should replace only the delivered Read content, not read-state evidence."""
+    source = tmp_path / "module.py"
+    original = "value = 1\n" * 300
+    source.write_text(original, encoding="utf-8")
+    recorded = []
+    proxy_calls = []
+
+    def record_read(root, path, digest, **kwargs):
+        """Capture the original read fingerprint."""
+        recorded.append((root, path, digest, kwargs))
+
+    def smart_read_proxy(root, path, content, **kwargs):
+        """Return a deterministic compact packet while capturing proxy inputs."""
+        proxy_calls.append((root, path, content, kwargs))
+        return "TOKEN SAVER SMART READ\nEXACT SOURCE LINES 1-1\nvalue = 1\n"
+
+    runtime = HookRuntime(
+        _services(
+            record_read=record_read,
+            digest=lambda text: "original-digest",
+            smart_read_proxy=smart_read_proxy,
+        ),
+        HookConfig(tool_proxy_enabled=True),
+    )
+
+    code, response = runtime.run(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Read",
+            "cwd": str(tmp_path),
+            "session_id": "s1",
+            "transcript_path": str(tmp_path / "session.jsonl"),
+            "tool_input": {"file_path": str(source)},
+            "tool_response": {"file": {"content": original, "filePath": str(source)}},
+        }
+    )
+
+    assert code == 0
+    assert response is not None
+    updated = response["hookSpecificOutput"]["updatedToolOutput"]
+    assert updated["file"]["content"].startswith("TOKEN SAVER SMART READ")
+    assert recorded == [
+        (
+            Path(tmp_path),
+            source,
+            "original-digest",
+            {"session_id": "s1"},
+        )
+    ]
+    assert proxy_calls[0][2] == original
+    assert proxy_calls[0][3]["enabled"] is True
+
+
+def test_runtime_never_proxies_bounded_read(tmp_path):
+    """A bounded Read is already exact minimal evidence and must remain untouched."""
+    source = tmp_path / "module.py"
+    original = "value = 1\n" * 20
+    source.write_text(original, encoding="utf-8")
+    calls = []
+    runtime = HookRuntime(
+        _services(
+            smart_read_proxy=lambda *args, **kwargs: calls.append((args, kwargs))
+            or "unexpected",
+        ),
+        HookConfig(tool_proxy_enabled=True),
+    )
+
+    result = runtime.run(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Read",
+            "cwd": str(tmp_path),
+            "tool_input": {"file_path": str(source), "offset": 1, "limit": 20},
+            "tool_response": {"file": {"content": original}},
+        }
+    )
+
+    assert result == (0, None)
+    assert calls == []

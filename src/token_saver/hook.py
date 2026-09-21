@@ -36,6 +36,7 @@ from .hook_runtime import (
 from .policy import user_nudge
 from .runtime_config import settings_for
 from .state import record_read, reset_session
+from .tool_proxy import proxy_read
 
 def _passthrough() -> int:
     """Return the successful exit status that tells Claude to keep original data."""
@@ -69,6 +70,16 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         ingress_enabled=settings.ingress_enabled,
         ingress_threshold_tokens=settings.ingress_threshold_tokens,
         ingress_packet_tokens=settings.ingress_packet_tokens,
+        tool_proxy_enabled=settings.tool_proxy_enabled,
+        tool_proxy_provider=settings.tool_proxy_provider,
+        tool_proxy_model=settings.tool_proxy_model,
+        tool_proxy_endpoint=settings.tool_proxy_endpoint,
+        tool_proxy_min_tokens=settings.tool_proxy_min_tokens,
+        tool_proxy_target_tokens=settings.tool_proxy_target_tokens,
+        tool_proxy_model_input_tokens=settings.tool_proxy_model_input_tokens,
+        tool_proxy_timeout_seconds=settings.tool_proxy_timeout_seconds,
+        tool_proxy_max_ranges=settings.tool_proxy_max_ranges,
+        tool_proxy_max_range_lines=settings.tool_proxy_max_range_lines,
     )
 
 
@@ -100,6 +111,7 @@ def _services() -> HookServices:
         deduplicate_output=deduplicate_output,
         observe_tool=observe_tool,
         ingress_optimizer=maybe_stage_prompt,
+        smart_read_proxy=proxy_read,
     )
 
 
