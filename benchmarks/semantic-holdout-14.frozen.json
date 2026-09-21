@@ -257,8 +257,7 @@
       ],
       "forbidden_identifiers": [
         "mod.rs",
-        "HyperlinkPath",
-        "encode"
+        "HyperlinkPath"
       ],
       "eligible": true
     },
