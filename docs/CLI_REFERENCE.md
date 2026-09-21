@@ -62,6 +62,9 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`output`](commands/output.md) — page a saved original command result.
 - [`outputs-prune`](commands/outputs-prune.md) — prune old saved outputs.
 - [`hook`](commands/hook.md) — Claude hook stdin/stdout adapter.
+- [`recover`](commands/recover.md) — recover exact bytes from a `tsr_...` handle.
+- [`recovery-status`](commands/recovery-status.md) — inspect exact-recovery capacity.
+- [`browser-context`](commands/browser-context.md) — focus captured HTML/AX-like context with exact recovery.
 
 ## Measurement and context hygiene
 
@@ -76,6 +79,9 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`check`](commands/check.md) — CI context-budget/map-freshness check.
 - [`estimate`](commands/estimate.md) — estimate/count tokens.
 - [`mcp-prune`](commands/mcp-prune.md) — identify/disable unused MCP servers.
+- [`prefix-status`](commands/prefix-status.md) — inspect stable provider-prefix reuse evidence.
+- [`optimize`](commands/optimize.md) — plan/apply/evaluate reversible measured config optimizations.
+- [`provider-proxy`](commands/provider-proxy.md) — run the opt-in local provider optimization reverse proxy.
 
 ## Retrieval validation and ranking regression
 
