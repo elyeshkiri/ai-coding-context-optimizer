@@ -64,6 +64,10 @@ packet_tokens = 1600
 cache = true
 cache_max_entries = 64
 
+[mcp]
+profile = "full"
+adaptive_max_tools = 12
+
 [tool_proxy]
 enabled = false
 provider = "ollama"
@@ -176,6 +180,28 @@ The replacement must save at least a bounded token floor; if cache economics is
 also enabled it must additionally clear the configured projected-cost threshold.
 The model can always request a bounded `Read` range when exact implementation
 bytes are needed.
+
+## MCP tool disclosure
+
+The MCP server defaults to the backward-compatible `full` tool surface.
+Projects can opt into smaller static profiles or deterministic per-task
+disclosure:
+
+| TOML key | Default | Meaning |
+|---|---:|---|
+| `mcp.profile` | `"full"` | Advertised tool profile: `minimal`, `context`, `memory`, `adaptive`, or `full`. |
+| `mcp.adaptive_max_tools` | `12` | Maximum schemas selected by one adaptive discovery pass; the six core tools are always retained. |
+
+With `profile = "adaptive"`, the initial surface contains only
+`discover_tools`, core repository context tools, `memory_index`, and
+`route_task`. Calling `discover_tools` with the current task returns the
+selected specialist schemas and expands subsequent `tools/list` responses.
+The protocol advertises MCP `listChanged=true` in this mode. Selection is
+local and deterministic; it does not call an LLM.
+
+Persistent memory itself remains explicit. `memory_index` is the cheap metadata
+layer, `memory_search` adds bounded snippets, and `memory_get` returns full
+records by id. No raw conversation text is automatically persisted.
 
 ## Prompt ingress
 
@@ -297,6 +323,8 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_INGRESS_PACKET_TOKENS` | `ingress.packet_tokens` |
 | `TOKEN_SAVER_RETRIEVAL_CACHE` | `retrieval.cache` |
 | `TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES` | `retrieval.cache_max_entries` |
+| `TOKEN_SAVER_MCP_PROFILE` | `mcp.profile` |
+| `TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS` | `mcp.adaptive_max_tools` |
 | `TOKEN_SAVER_TOOL_PROXY` | `tool_proxy.enabled` |
 | `TOKEN_SAVER_TOOL_PROXY_PROVIDER` | `tool_proxy.provider` |
 | `TOKEN_SAVER_TOOL_PROXY_MODEL` | `tool_proxy.model` |
