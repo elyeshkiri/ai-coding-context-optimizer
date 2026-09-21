@@ -1,6 +1,6 @@
 # Token Saver documentation
 
-Use this page as the documentation map for Token Saver 1.10.
+Use this page as the documentation map for the current Token Saver release.
 
 ## Start here
 
@@ -38,6 +38,8 @@ token-saver doctor
 token-saver browse / pack / MCP
         ↓
 token-saver sessions / audit
+        ↓
+optional: optimize / provider-proxy / browser-context
         ↓
 benchmark only when success is independently verifiable
 ```
