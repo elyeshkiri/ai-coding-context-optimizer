@@ -142,8 +142,7 @@ def test_ollama_range_selection_is_rehydrated_from_exact_source(tmp_path, monkey
         def read(self):
             """Return one valid Ollama response envelope."""
             selected = {
-                "summary": "invented orientation should stay advisory",
-                "ranges": [{"start": 141, "end": 144, "reason": "target"}],
+                "ranges": [{"start": 141, "end": 144}],
             }
             return json.dumps({"response": json.dumps(selected)}).encode()
 
@@ -167,7 +166,7 @@ def test_ollama_range_selection_is_rehydrated_from_exact_source(tmp_path, monkey
 
     assert result is not None
     assert "selector: ollama:free-coder" in result
-    assert "invented orientation should stay advisory" in result
+    assert "No selector-generated prose is forwarded" in result
     assert "def refresh_session(token):" in result
     assert "return rotate_token(token)" in result
 
