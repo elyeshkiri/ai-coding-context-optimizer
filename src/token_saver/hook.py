@@ -35,6 +35,7 @@ from .hook_runtime import (
     cap_for as cap_for,
 )
 from .policy import user_nudge
+from .recovery import RecoveryStore
 from .runtime_config import settings_for
 from .state import record_read, reset_session
 from .tool_proxy import proxy_read
@@ -121,6 +122,15 @@ def _services() -> HookServices:
         ingress_optimizer=maybe_stage_prompt,
         smart_read_proxy=proxy_read,
         model_route=automatic_model_route,
+        recovery_output=lambda root, text, **kwargs: RecoveryStore(root).put(
+            text,
+            content_type=str(kwargs.get("content_type", "text/plain")),
+            metadata=(
+                kwargs.get("metadata")
+                if isinstance(kwargs.get("metadata"), dict)
+                else {}
+            ),
+        ),
     )
 
 
