@@ -54,6 +54,16 @@ class RuntimeSettings:
     ingress_packet_tokens: int = 1600
     retrieval_cache: bool = True
     retrieval_cache_max_entries: int = 64
+    tool_proxy_enabled: bool = False
+    tool_proxy_provider: str = "ollama"
+    tool_proxy_model: str = "qwen2.5-coder:7b"
+    tool_proxy_endpoint: str = "http://127.0.0.1:11434"
+    tool_proxy_min_tokens: int = 2500
+    tool_proxy_target_tokens: int = 1800
+    tool_proxy_model_input_tokens: int = 12000
+    tool_proxy_timeout_seconds: float = 6.0
+    tool_proxy_max_ranges: int = 4
+    tool_proxy_max_range_lines: int = 80
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -162,6 +172,9 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     retrieval = payload.get("retrieval", {})
     if not isinstance(retrieval, dict):
         raise ValueError(f"Expected [retrieval] table in Token Saver config: {path}")
+    tool_proxy = payload.get("tool_proxy", {})
+    if not isinstance(tool_proxy, dict):
+        raise ValueError(f"Expected [tool_proxy] table in Token Saver config: {path}")
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -230,6 +243,41 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         retrieval_cache_max_entries=_positive_int(
             retrieval.get("cache_max_entries"),
             64,
+        ),
+        tool_proxy_enabled=_bool(tool_proxy.get("enabled"), False),
+        tool_proxy_provider=_choice(
+            tool_proxy.get("provider"),
+            "ollama",
+            ("ollama", "deterministic"),
+        ),
+        tool_proxy_model=_string(tool_proxy.get("model"), "qwen2.5-coder:7b"),
+        tool_proxy_endpoint=_string(
+            tool_proxy.get("endpoint"),
+            "http://127.0.0.1:11434",
+        ),
+        tool_proxy_min_tokens=_positive_int(
+            tool_proxy.get("min_tokens"),
+            2500,
+        ),
+        tool_proxy_target_tokens=_positive_int(
+            tool_proxy.get("target_tokens"),
+            1800,
+        ),
+        tool_proxy_model_input_tokens=_positive_int(
+            tool_proxy.get("model_input_tokens"),
+            12000,
+        ),
+        tool_proxy_timeout_seconds=_positive_float(
+            tool_proxy.get("timeout_seconds"),
+            6.0,
+        ),
+        tool_proxy_max_ranges=_positive_int(
+            tool_proxy.get("max_ranges"),
+            4,
+        ),
+        tool_proxy_max_range_lines=_positive_int(
+            tool_proxy.get("max_range_lines"),
+            80,
         ),
     )
 
@@ -420,5 +468,67 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
                 minimum=1,
             )
             or base.retrieval_cache_max_entries
+        ),
+        tool_proxy_enabled=_env_bool(
+            "TOKEN_SAVER_TOOL_PROXY",
+            base.tool_proxy_enabled,
+        ),
+        tool_proxy_provider=_env_choice(
+            "TOKEN_SAVER_TOOL_PROXY_PROVIDER",
+            base.tool_proxy_provider,
+            ("ollama", "deterministic"),
+        ),
+        tool_proxy_model=_env_string(
+            "TOKEN_SAVER_TOOL_PROXY_MODEL",
+            base.tool_proxy_model,
+        ),
+        tool_proxy_endpoint=_env_string(
+            "TOKEN_SAVER_TOOL_PROXY_ENDPOINT",
+            base.tool_proxy_endpoint,
+        ),
+        tool_proxy_min_tokens=int(
+            _env_int(
+                "TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS",
+                base.tool_proxy_min_tokens,
+                minimum=200,
+            )
+            or base.tool_proxy_min_tokens
+        ),
+        tool_proxy_target_tokens=int(
+            _env_int(
+                "TOKEN_SAVER_TOOL_PROXY_TARGET_TOKENS",
+                base.tool_proxy_target_tokens,
+                minimum=200,
+            )
+            or base.tool_proxy_target_tokens
+        ),
+        tool_proxy_model_input_tokens=int(
+            _env_int(
+                "TOKEN_SAVER_TOOL_PROXY_MODEL_INPUT_TOKENS",
+                base.tool_proxy_model_input_tokens,
+                minimum=400,
+            )
+            or base.tool_proxy_model_input_tokens
+        ),
+        tool_proxy_timeout_seconds=_env_float(
+            "TOKEN_SAVER_TOOL_PROXY_TIMEOUT_SECONDS",
+            base.tool_proxy_timeout_seconds,
+            minimum=0.2,
+        ),
+        tool_proxy_max_ranges=int(
+            _env_int(
+                "TOKEN_SAVER_TOOL_PROXY_MAX_RANGES",
+                base.tool_proxy_max_ranges,
+                minimum=1,
+            )
+            or base.tool_proxy_max_ranges
+        ),
+        tool_proxy_max_range_lines=int(
+            _env_int(
+                "TOKEN_SAVER_TOOL_PROXY_MAX_RANGE_LINES",
+                base.tool_proxy_max_range_lines,
+                minimum=1,
+            )
+            or base.tool_proxy_max_range_lines
         ),
     )
