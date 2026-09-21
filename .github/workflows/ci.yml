@@ -212,3 +212,34 @@ jobs:
       - run: python -m pip install -e '.[dev]' 'hnswlib>=0.8,<1'
       - name: Exercise semantic exact-source contracts through HNSW
         run: python -m pytest -q tests/test_semantic_retrieval.py
+
+
+  cli-corpus-capture:
+    # Capture untouched real command output before any further processor tuning.
+    # The artifact is evidence input, not a benchmark claim by itself.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]' mypy pylint
+      - run: npm install -g typescript eslint
+      - name: Capture provenance-backed CLI outputs
+        run: |
+          python scripts/capture_cli_output_corpus.py \
+            --out cli-corpus-capture \
+            --workspace .tmp-cli-corpus-workspace \
+            --min-captures 20
+      - name: Upload untouched CLI corpus
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-corpus-${{ github.event.pull_request.head.sha }}
+          path: cli-corpus-capture
+          if-no-files-found: error
+          retention-days: 30
