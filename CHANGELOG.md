@@ -1,5 +1,30 @@
 # Unreleased
 
+# 1.11.0 - 2026-09-21
+
+- **Expanded CLI output compression from 12 to 40 built-in processors.**
+  Dedicated Git, Docker, Kubernetes, Terraform, Helm, Pulumi, Cargo, Go,
+  Maven/Gradle, lint/typecheck, and structured-query families now compress
+  command-specific evidence while the existing failure-aware routing,
+  critical-line recovery, and minimum-benefit gate remain authoritative.
+- **Added regression ratchets for output quality and routing.** A hash-frozen
+  40-case synthetic suite locks processor identity, required evidence,
+  no-hallucination constraints, and minimum token-reduction floors. The suite
+  passes 40/40 with 100% required-evidence preservation and 100% processor
+  identity match on its representative fixtures.
+- **Added provenance-backed real CLI compression evidence.** Three successively
+  fresh corpora were captured and frozen before comparison/tuning. On untouched
+  Git-focused corpus v3, Token Saver measured 50.50% weighted estimated output
+  reduction with 100% mechanically detected critical-line survival versus
+  51.25% / 80% for the pinned ppgranger comparator. Git status led 62.90% to
+  61.75%; Git log was within 1.42 percentage points. These controlled CLI
+  measurements are not an end-to-end model/API cost-per-success claim.
+- **Hardened Git and Go compression from burned-corpus findings.** Git log now
+  compacts verbose commit metadata and stat summaries, Git status strips help
+  prose while preserving branch/stage/path state, Git diff removes redundant
+  patch boilerplate while retaining exact edits, and Go build/test keeps exact
+  actionable diagnostics while dropping redundant package/pass chatter.
+
 - **Added an opt-in Smart Tool Proxy for large Claude Code Reads.** Eligible
   unbounded source Reads can now pass through PreToolUse and be replaced at
   PostToolUse with a bounded evidence packet. A local/free Ollama model selects
