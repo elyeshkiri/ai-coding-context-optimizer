@@ -66,12 +66,12 @@ with actual tool-use exposure, independent success verification, and measured
 usage/cost counters.
 
 
-The 1.12 semantic-query ensemble is validated mechanically only. Long prompts
-may use the full query plus at most two deterministic exact-vocabulary subviews,
-fused before the existing file-level semantic stage. Short prompts remain
-single-view and warm query vectors remain persistent. Burned semantic holdout
-#13 is not used to tune or score this change; a fresh frozen
-no-identifier-leakage holdout #14 is required for a new external claim.
+The 1.12 semantic-query ensemble is mechanically validated and has now also
+been evaluated on fresh semantic holdout #14. Long prompts may use the full
+query plus at most two deterministic exact-vocabulary subviews, fused before
+the existing file-level semantic stage. Short prompts remain single-view and
+warm query vectors remain persistent. Holdout #13 was not used to tune or score
+that release, and holdout #14 was frozen independently before its first run.
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
@@ -84,9 +84,10 @@ pricing registry, and the measured cost-efficiency advisor. Calibration may
 relax one exact routing bucket only after frozen paired model experiments,
 independent task-success verification, complete blinded quality grading,
 transcript-confirmed model identity, and the documented hard sample/success
-floors. The release also includes the mechanically validated multi-view
-semantic-query ensemble while deliberately keeping semantic generalization
-claims frozen pending holdout #14.
+floors. The release also includes the multi-view semantic-query ensemble. Its
+fresh external semantic evidence is the first complete holdout #14 run described
+below; later reruns of #14 are development evidence only because the suite was
+burned by that first evaluation.
 
 The 1.10 semantic mechanism is covered by deterministic tests that establish:
 
@@ -135,9 +136,42 @@ This is modest positive retrieval evidence, not proof of a strong semantic
 generalization advantage and not an API-cost/task-success claim. Holdout #13 is
 now **burned**. The semantic-retrieval-v3 changes (structure-aware chunks,
 multi-hit file aggregation, lexical-independent semantic fusion, and bounded
-semantic-witness graph expansion) are deliberately not tuned or scored against
-#13. A fresh holdout #14 is required before those changes can support any new
-external-generalization claim.
+semantic-witness graph expansion) were deliberately not tuned or scored against
+#13.
+
+Semantic holdout #14 was then frozen independently with query-freeze SHA-256
+`2b96b273353c0dd76da0dd8bcdcd7a0cdbb93ca253b43409ff4fee2734d95f4a`
+and ground-truth SHA-256
+`c1d16ce0289305533055de2406143d692e82f7bca35e2fc47f054306d3f9ed92`.
+It covers 24 issue-derived queries across Click, Echo, ripgrep, Mockito, Vite,
+and ASP.NET Core; four tasks were conservatively excluded after ground-truth
+review, leaving **20 eligible no-identifier-leakage tasks**.
+
+The first complete fresh run was GitHub Actions **35615316639**, using the same
+pinned `all-MiniLM-L6-v2` revision and exact cosine:
+
+| Arm | File recall |
+| --- | ---: |
+| Token Saver hybrid semantic | **82.50%** |
+| Token Saver lexical/structural | **80.00%** |
+| Trivial distinct-term lexical | **70.00%** |
+
+Semantic improved aggregate file recall by **2.5 percentage points**, introduced
+**zero regressions**, and partially recovered one two-file ASP.NET Core target
+without producing a complete task recovery. Mean estimated context reduction
+was effectively unchanged (98.9516% semantic vs 98.9515% lexical).
+
+That first run permanently **burned holdout #14**. A later development rerun
+after structural-authority improvements reached 87.5% semantic recall versus
+the same 80.0% lexical recall with zero regressions, but it is not fresh
+generalization evidence and must not replace the 82.5% first-run result in
+public claims.
+
+Holdout #15 currently has only its 24 natural-language queries and six pinned
+repository revisions frozen in
+`benchmarks/semantic-holdout-15.query-freeze.json`. Ground truth and a first
+evaluation have not yet been completed, so #15 contributes **no retrieval result
+yet**.
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
