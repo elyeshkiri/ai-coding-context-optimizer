@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from pathlib import Path
 
 from ..output_saver import build_output_policy, compact_output
 from ..model_routing import (
