@@ -111,7 +111,7 @@ def test_cost_advisor_cli_can_use_fresh_builtin_registry(
 ):
     """The explicit builtin source should price matching measured model usage."""
     monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setattr("time.time", lambda: 2_000_000_100)
+    monkeypatch.setattr("time.time", lambda: 1_789_992_100)
     root = tmp_path / "repo"
     root.mkdir()
     _write_turns(root, tmp_path / "state", [_turn() for _ in range(5)])
