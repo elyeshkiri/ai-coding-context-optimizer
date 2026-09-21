@@ -42,8 +42,8 @@ TOOL_GROUPS = {
         "refresh_semantic_index",
     ),
     "review": (
-        "build_diff_context",
         "review_diff",
+        "build_diff_context",
         "analyze_change_impact",
     ),
     "output": (
