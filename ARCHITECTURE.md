@@ -163,7 +163,7 @@ exact excerpts rehydrated from original file content
 bounded updatedToolOutput
 ```
 
-Model prose is never treated as source. A malformed response, timeout, or unavailable local model falls back to deterministic range selection. Bounded Reads bypass the proxy entirely so edits and verification can request exact bytes. The prompt hint is read transiently from the Claude transcript tail and is not copied into Token Saver state.
+No selector-generated prose is forwarded to the premium model. A malformed response, timeout, or unavailable local model falls back to deterministic range selection. Bounded Reads bypass the proxy entirely so edits and verification can request exact bytes. The prompt hint is read transiently from the Claude transcript tail and is not copied into Token Saver state.
 ### Safe prompt-ingress boundary
 
 Claude's `UserPromptSubmit` hook can block a prompt or add context but cannot
