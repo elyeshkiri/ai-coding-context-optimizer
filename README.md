@@ -1062,13 +1062,17 @@ Large successful Bash output is compressed only when the replacement is material
 
 Errors, exceptions, tracebacks, failed assertions, interrupted commands, images, unsupported structured responses, and stderr are treated conservatively. Test failures preserve diagnostic evidence.
 
-Before replacing output, Token Saver stores the original result locally. The model receives a retrieval command instead of being forced to rerun the command:
+Before replacing output, Token Saver stores the original result locally. The
+replacement keeps the legacy paged-output id and also emits a universal
+`tsr_...` recovery handle when available:
 
 ```bash
 token-saver output OUTPUT_ID --stream stdout --offset 1 --limit 80
+token-saver recover tsr_... --path .
 ```
 
-Prune old originals explicitly:
+MCP clients can use `recover_context` for the same `tsr_...` handle. Prune
+legacy paged-output originals explicitly:
 
 ```bash
 token-saver outputs-prune --days 7
