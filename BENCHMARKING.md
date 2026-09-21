@@ -347,6 +347,45 @@ them private when needed; the checked-in suite definition, revision pins, prompt
 hashes, verifier definitions, rates, and aggregate result are sufficient to make
 the experimental design auditable.
 
+### v1.13 optimization-platform treatment exposure
+
+The v1.13 recovery/schema/prefix/proxy/browser/optimizer additions are not
+assigned a new savings percentage merely because their mechanism tests pass.
+A publishable bundle experiment must keep the task, repository revision, model,
+turn/tool limits, verifier, and pricing source identical between paired arms.
+
+For the broad platform bundle, the control should use the same installed Token
+Saver binary with the new treatment surfaces disabled or left at their
+backward-compatible defaults. The treatment may enable adaptive MCP disclosure,
+recoverable schema compression, provider request transformation, and other
+declared v1.13 surfaces. **Do not change the model between arms** when the goal
+is to measure this bundle; model-routing savings require their own calibrated
+experiment or a design that explicitly isolates model choice.
+
+The experiment artifact must prove treatment exposure rather than assuming that
+configuration implies use. At minimum, report:
+
+- MCP profile/tool-list exposure and whether schema compression actually changed
+  an advertised catalog;
+- provider transform activation and before/after request-token estimates;
+- stable-prefix hit/miss counters when prefix tracking is part of the treatment;
+- recovery handles emitted and successful exact-recovery spot checks;
+- memory/tool-result/browser optimizations only on tasks where those surfaces
+  were actually exercised;
+- total tool calls, repeated Reads/commands, provider input/cache/output usage,
+  latency, verifier success, and blind response quality.
+
+A feature that never activates is not evidence for that feature. Bundle-level
+cost-per-success may still be measured when the randomized treatment is the
+whole declared platform, but the report must preserve per-feature activation so
+readers can distinguish “enabled” from “used.”
+
+The existing publication gate remains authoritative: enough distinct tasks and
+paired trials, independent verification, blind quality parity, complete
+model/cache-aware pricing evidence, and a strictly positive task-cluster 95%
+confidence-interval lower bound for cost-per-success reduction. There is
+currently **no completed publishable v1.13 bundle experiment** in the repository.
+
 ## Paired agent outcomes
 
 Record independently validated baseline and Token Saver runs using the schema in
