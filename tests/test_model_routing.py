@@ -6,10 +6,14 @@ import json
 
 import pytest
 
+from token_saver.command_handlers.model_routing import model_route_main
+from token_saver.hook import _config_from_env, run_user_prompt
 from token_saver.model_routing import (
     automatic_model_route,
     route_task,
 )
+from token_saver.runtime_config import settings_for
+from token_saver.serve import call_tool
 from token_saver.state import load as load_state
 
 
@@ -176,3 +180,120 @@ def test_decision_json_contract_is_serializable():
     assert "claude-haiku-4-5" in encoded
     assert payload["pricing_basis"] == "fresh_input_plus_output_one_turn"
     assert payload["input_token_basis"] == "local_prompt_text_estimate_only"
+
+
+def test_model_route_cli_emits_machine_readable_decision(capsys):
+    """CLI consumers should receive the same routing contract as the library."""
+    assert model_route_main(
+        [
+            "What is Redis?",
+            "--input-tokens",
+            "1000",
+            "--output-tokens",
+            "300",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["selected_model"] == "claude-haiku-4-5"
+    assert payload["minimum_capability"] == "economy"
+    assert payload["pricing_basis"] == "fresh_input_plus_output_one_turn"
+
+
+def test_route_task_is_available_to_mcp_orchestrators(tmp_path):
+    """MCP clients that can select models should get a direct routing decision."""
+    result = call_tool(
+        tmp_path,
+        "route_task",
+        {
+            "prompt": "Debug this failing handler.",
+            "input_tokens": 1200,
+            "output_tokens": 500,
+        },
+    )
+    payload = json.loads(result["content"][0]["text"])
+
+    assert payload["selected_model"] == "claude-sonnet-5"
+    assert payload["action"] == "recommend"
+
+
+def test_model_routing_config_and_environment_overrides(tmp_path, monkeypatch):
+    """Project routing policy should be explicit with temporary env overrides."""
+    (tmp_path / ".token-saver.toml").write_text(
+        """[model_routing]
+enabled = true
+mode = "observe"
+current_model = "claude-sonnet-5"
+allowed_models = ["claude-haiku-4-5", "claude-sonnet-5"]
+min_savings = 0.20
+conservative = false
+""",
+        encoding="utf-8",
+    )
+
+    configured = settings_for(tmp_path)
+    assert configured.model_routing_enabled is True
+    assert configured.model_routing_mode == "observe"
+    assert configured.model_routing_current_model == "claude-sonnet-5"
+    assert configured.model_routing_allowed_models == (
+        "claude-haiku-4-5",
+        "claude-sonnet-5",
+    )
+    assert configured.model_routing_min_savings == pytest.approx(0.20)
+    assert configured.model_routing_conservative is False
+
+    hook_config = _config_from_env(tmp_path)
+    assert hook_config.model_routing_enabled is True
+    assert hook_config.model_routing_mode == "observe"
+
+    monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_MODE", "advisory")
+    monkeypatch.setenv(
+        "TOKEN_SAVER_MODEL_ROUTING_ALLOWED",
+        "claude-sonnet-5:claude-opus-5",
+    )
+    monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS", "0.10")
+    monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE", "1")
+    overridden = settings_for(tmp_path)
+
+    assert overridden.model_routing_mode == "advisory"
+    assert overridden.model_routing_allowed_models == (
+        "claude-sonnet-5",
+        "claude-opus-5",
+    )
+    assert overridden.model_routing_min_savings == pytest.approx(0.10)
+    assert overridden.model_routing_conservative is True
+
+
+def test_claude_prompt_hook_automatically_injects_advisory_when_enabled(
+    tmp_path, monkeypatch
+):
+    """Claude's prompt hook should auto-decide while stating its host limitation."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    (tmp_path / ".token-saver.toml").write_text(
+        """[output]
+enabled = false
+
+[model_routing]
+enabled = true
+mode = "advisory"
+allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
+""",
+        encoding="utf-8",
+    )
+
+    code, response = run_user_prompt(
+        {
+            "hook_event_name": "UserPromptSubmit",
+            "cwd": str(tmp_path),
+            "session_id": "route-session",
+            "prompt": "What is Redis?",
+        }
+    )
+
+    assert code == 0
+    assert response is not None
+    context = response["hookSpecificOutput"]["additionalContext"]
+    assert "TOKEN SAVER MODEL ROUTE" in context
+    assert "claude-haiku-4-5" in context
+    assert "cannot switch the active top-level model itself" in context
