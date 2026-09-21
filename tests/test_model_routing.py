@@ -361,6 +361,21 @@ def _routing_calibration_manifest(tmp_path, *, degrade_quality=False, regress=Fa
             )
     assert pair_count == MIN_CALIBRATION_PAIRS
     payload = {
+        "runner": {
+            "model": "claude-sonnet-5",
+            "condition_profiles": {
+                "baseline": {
+                    "install_token_saver": True,
+                    "model": "claude-sonnet-5",
+                    "env": {"TOKEN_SAVER_MODEL_ROUTING": "0"},
+                },
+                "enabled": {
+                    "install_token_saver": True,
+                    "model": "claude-haiku-4-5",
+                    "env": {"TOKEN_SAVER_MODEL_ROUTING": "0"},
+                },
+            },
+        },
         "protocol": {
             "task_definitions_frozen": True,
             "condition_order_randomized": True,
@@ -520,3 +535,29 @@ def test_model_route_cli_can_apply_calibration_file(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["selected_model"] == "claude-haiku-4-5"
     assert payload["calibration_applied"] is True
+
+
+
+def test_calibration_rejects_non_model_treatment_difference(tmp_path):
+    """A routing benchmark may differ by model, not by Token Saver/config state."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"]["enabled"]["env"] = {
+        "TOKEN_SAVER_MODEL_ROUTING": "1"
+    }
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="may differ only by model/label"):
+        calibrate_model_routing(manifest)
+
+
+def test_runtime_loader_rechecks_quality_summary_metrics(tmp_path):
+    """Boolean gate flags cannot hide a quality delta below the runtime floor."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    artifact = calibrate_model_routing(manifest)
+    artifact["recommendations"][0]["mean_correctness_delta"] = -1.0
+    path = tmp_path / "forged-quality.json"
+    path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="below safety floors"):
+        load_routing_calibration(path)
