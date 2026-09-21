@@ -11,6 +11,22 @@ token-saver model-route PROMPT [--input-tokens N] [--output-tokens N]
   [--min-savings FRACTION] [--non-conservative] [--json]
 ```
 
+## Arguments and options
+
+- `PROMPT` — task text to classify and route.
+- `--input-tokens N` — complete request input size when known; otherwise only
+  the prompt text is locally estimated.
+- `--output-tokens N` — explicit output projection size; otherwise the
+  adaptive normal-mode output budget is used.
+- `--current-model MODEL` — exact current model id for keep/route economics.
+- `--allowed-model MODEL` — repeat to restrict candidate models.
+- `--min-savings FRACTION` — minimum projected saving required to switch away
+  from a current model that already satisfies the capability policy; default
+  `0.05`.
+- `--non-conservative` — disable the additional high-risk keyword escalation;
+  task and complexity capability floors still apply.
+- `--json` — emit the stable machine-readable decision.
+
 ## Decision order
 
 1. classify the task with the same deterministic task classifier used by output
