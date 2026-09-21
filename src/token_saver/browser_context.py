@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 import re
 
 from .estimate import estimate_tokens
-from .recovery import RecoveryStore
+from .recovery import RecoveryCapacityError, RecoveryStore
 
 _INTERACTIVE = {
     "a", "button", "input", "select", "option", "textarea",
@@ -158,14 +158,24 @@ def compress_browser_payload(
 
     handle = None
     if recovery is not None:
-        handle = recovery.put(
-            text,
-            content_type="text/html" if looks_html else "text/plain",
-            metadata={
-                "transform": "browser-context",
-                "query_terms": list(matched),
-            },
-        )
+        try:
+            handle = recovery.put(
+                text,
+                content_type="text/html" if looks_html else "text/plain",
+                metadata={
+                    "transform": "browser-context",
+                    "query_terms": list(matched),
+                },
+            )
+        except RecoveryCapacityError:
+            return BrowserContextResult(
+                text=text,
+                changed=False,
+                original_tokens=original_tokens,
+                output_tokens=original_tokens,
+                recovery_handle=None,
+                matched_terms=matched,
+            )
         body += f"\n[token-saver recovery: {handle}]"
         output_tokens = estimate_tokens(body)
         if output_tokens >= original_tokens:
