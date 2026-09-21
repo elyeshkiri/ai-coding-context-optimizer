@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ipaddress
 import json
 from pathlib import Path
 import sys
-from typing import Callable
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse, urlsplit
 from urllib.request import Request, urlopen
@@ -43,7 +43,7 @@ class ProviderProxyConfig:
     timeout_seconds: float = 120.0
     allow_non_loopback: bool = False
 
-    def validate(self) -> "ProviderProxyConfig":
+    def validate(self) -> ProviderProxyConfig:
         """Reject unsafe binding/upstream combinations before serving."""
         if not 1 <= int(self.port) <= 65535:
             raise ValueError("proxy port must be in 1..65535")
