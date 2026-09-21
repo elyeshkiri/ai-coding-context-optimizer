@@ -153,3 +153,57 @@ def test_quality_replay_rejects_introduced_forbidden_text(tmp_path, monkeypatch)
     assert case["passed"] is False
     assert case["introduced_forbidden"] == ["FABRICATED_DIAGNOSTIC"]
     assert result["summary"]["no_hallucination_rate"] == 0.0
+
+
+
+def test_quality_replay_enforces_expected_processor(tmp_path):
+    """Frozen ratchets should fail when command routing changes unexpectedly."""
+    manifest = tmp_path / "quality.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {
+                        "id": "routing",
+                        "command": "git status",
+                        "text": "On branch main\n" + ("hint\n" * 100),
+                        "expected_processor": "git-log",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = evaluate_quality_manifest(manifest)
+    case = report["cases"][0]
+    assert case["processor"] == "git-status"
+    assert case["expected_processor"] == "git-log"
+    assert case["processor_ok"] is False
+    assert case["passed"] is False
+    assert report["summary"]["processor_match_rate"] == 0.0
+
+
+def test_quality_replay_accepts_matching_expected_processor(tmp_path):
+    """Matching processor identity should participate in a passing contract."""
+    manifest = tmp_path / "quality.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {
+                        "id": "routing",
+                        "command": "git status",
+                        "text": "On branch main\n" + ("hint\n" * 100),
+                        "expected_processor": "git-status",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = evaluate_quality_manifest(manifest)
+    case = report["cases"][0]
+    assert case["processor_ok"] is True
+    assert report["summary"]["processor_match_rate"] == 1.0
