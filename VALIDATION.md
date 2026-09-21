@@ -1,10 +1,11 @@
-# Validation for 1.10.0
+# Validation for 1.11.0
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
 
-Version 1.10.0 adds a new semantic-retrieval mechanism but deliberately does
-not rewrite the historical retrieval headline from mechanism tests alone.
+Version 1.11.0 adds the expanded CLI-output compression system, provenance-
+backed real-output evidence, Smart Tool Proxy, and semantic-retrieval follow-up
+while deliberately keeping each claim bounded to the evidence that supports it.
 Semantic retrieval remains opt-in, so the existing deterministic/frozen default
 retrieval gates continue to measure the validated structural/lexical baseline.
 
