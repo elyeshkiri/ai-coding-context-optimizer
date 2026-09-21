@@ -33,6 +33,7 @@ EfficiencyPromptService = Callable[..., None]
 DeduplicateOutputService = Callable[..., str | None]
 ObserveToolService = Callable[..., str | None]
 IngressOptimizerService = Callable[..., object | None]
+SmartReadProxyService = Callable[..., str | None]
 
 
 def _noop_session_start(*args, **kwargs) -> None:
@@ -65,6 +66,12 @@ def _noop_ingress(*args, **kwargs) -> object | None:
 
 def _noop_observe(*args, **kwargs) -> str | None:
     """Return no behavioral-efficiency nudge."""
+    del args, kwargs
+    return None
+
+
+def _noop_smart_read(*args, **kwargs) -> str | None:
+    """Return no smart-read replacement."""
     del args, kwargs
     return None
 
@@ -116,6 +123,16 @@ class HookConfig:
     ingress_enabled: bool = False
     ingress_threshold_tokens: int = 12000
     ingress_packet_tokens: int = 1600
+    tool_proxy_enabled: bool = False
+    tool_proxy_provider: str = "ollama"
+    tool_proxy_model: str = "qwen2.5-coder:7b"
+    tool_proxy_endpoint: str = "http://127.0.0.1:11434"
+    tool_proxy_min_tokens: int = 2500
+    tool_proxy_target_tokens: int = 1800
+    tool_proxy_model_input_tokens: int = 12000
+    tool_proxy_timeout_seconds: float = 6.0
+    tool_proxy_max_ranges: int = 4
+    tool_proxy_max_range_lines: int = 80
 
 
 @dataclass(frozen=True)
@@ -140,6 +157,7 @@ class HookServices:
     deduplicate_output: DeduplicateOutputService = _noop_dedup
     observe_tool: ObserveToolService = _noop_observe
     ingress_optimizer: IngressOptimizerService = _noop_ingress
+    smart_read_proxy: SmartReadProxyService = _noop_smart_read
 
 
 def cap_for(n_lines: int) -> int:
@@ -444,7 +462,7 @@ class HookRuntime:
         return 0, None
 
     def run_post_read(self, payload: dict) -> HookResponse:
-        """Record a verified full-file read plus structured efficiency state."""
+        """Record a verified read and optionally replace a large full-file result."""
 
         root = self.cwd(payload)
         tool_input = payload.get("tool_input") or {}
@@ -458,39 +476,87 @@ class HookRuntime:
             or tool_input.get("path")
             or tool_input.get("filePath")
         )
-        if raw and not ranged:
-            path = Path(str(raw))
-            if not path.is_absolute():
-                path = root / path
-            if path.is_file():
+        response = payload.get("tool_response")
+        resolved_path: Path | None = None
+        original_text = ""
+        verified_full_read = False
+
+        if raw:
+            resolved_path = Path(str(raw))
+            if not resolved_path.is_absolute():
+                resolved_path = root / resolved_path
+            if resolved_path.is_file():
                 try:
-                    text = path.read_text(encoding="utf-8", errors="replace")
+                    original_text = resolved_path.read_text(
+                        encoding="utf-8",
+                        errors="replace",
+                    )
                 except OSError:
-                    text = ""
-                response = payload.get("tool_response")
+                    original_text = ""
                 info = response.get("file") if isinstance(response, dict) else None
-                if text and isinstance(info, dict) and info.get("content") == text:
+                verified_full_read = bool(
+                    original_text
+                    and not ranged
+                    and isinstance(info, dict)
+                    and info.get("content") == original_text
+                )
+                if verified_full_read:
                     self.services.record_read(
                         root,
-                        path,
-                        self.services.digest(text),
+                        resolved_path,
+                        self.services.digest(original_text),
                         session_id=payload.get("session_id"),
                     )
 
-        note = self.services.observe_tool(
-            root,
-            payload,
-            enabled=self.config.efficiency_enabled,
-            waste_detection=self.config.waste_detection_enabled,
-        )
-        if not note:
-            return 0, None
-        return 0, {
-            "hookSpecificOutput": {
-                "hookEventName": "PostToolUse",
-                "additionalContext": note,
-            }
+        delivered_text = original_text
+        updated: dict | None = None
+        if (
+            verified_full_read
+            and resolved_path is not None
+            and isinstance(response, dict)
+        ):
+            proxied = self.services.smart_read_proxy(
+                root,
+                resolved_path,
+                original_text,
+                transcript_path=payload.get("transcript_path"),
+                enabled=self.config.tool_proxy_enabled,
+                provider=self.config.tool_proxy_provider,
+                model=self.config.tool_proxy_model,
+                endpoint=self.config.tool_proxy_endpoint,
+                min_tokens=self.config.tool_proxy_min_tokens,
+                target_tokens=self.config.tool_proxy_target_tokens,
+                model_input_tokens=self.config.tool_proxy_model_input_tokens,
+                timeout_seconds=self.config.tool_proxy_timeout_seconds,
+                max_ranges=self.config.tool_proxy_max_ranges,
+                max_range_lines=self.config.tool_proxy_max_range_lines,
+            )
+            if proxied is not None and proxied != original_text:
+                info = response.get("file")
+                if isinstance(info, dict):
+                    updated = dict(response)
+                    updated_file = dict(info)
+                    updated_file["content"] = proxied
+                    updated["file"] = updated_file
+                    delivered_text = proxied
+
+        observe_kwargs = {
+            "enabled": self.config.efficiency_enabled,
+            "waste_detection": self.config.waste_detection_enabled,
         }
+        if verified_full_read:
+            observe_kwargs["original_text"] = original_text
+            observe_kwargs["delivered_text"] = delivered_text
+        note = self.services.observe_tool(root, payload, **observe_kwargs)
+
+        if updated is None and not note:
+            return 0, None
+        specific: dict = {"hookEventName": "PostToolUse"}
+        if updated is not None:
+            specific["updatedToolOutput"] = updated
+        if note:
+            specific["additionalContext"] = note
+        return 0, {"hookSpecificOutput": specific}
 
     def run_post_state_only(self, payload: dict) -> HookResponse:
         """Record Edit/Write activity without rewriting the tool result."""
