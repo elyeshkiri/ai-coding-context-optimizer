@@ -161,3 +161,54 @@ def test_project_config_can_select_adaptive_profile(tmp_path, monkeypatch):
 
     assert "discover_tools" in names
     assert "compact_output" not in names
+
+
+
+def test_mcp_memory_progressive_round_trip(tmp_path, monkeypatch):
+    """MCP memory tools should preserve the index-search-get disclosure contract."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    (tmp_path / "auth.py").write_text(
+        "def refresh(token):\n    return token\n",
+        encoding="utf-8",
+    )
+    protocol = McpProtocol(tmp_path, profile="memory")
+
+    remembered = json.loads(
+        protocol.call_tool(
+            "remember_memory",
+            {
+                "claim": "Refresh tokens are handled in auth",
+                "anchors": ["auth.py::refresh"],
+                "evidence": "refresh is the current implementation entry point",
+                "applicability": "Use for authentication changes",
+                "kind": "architecture",
+                "tags": ["auth", "session"],
+                "importance": 4,
+            },
+        )["content"][0]["text"]
+    )
+    index = json.loads(
+        protocol.call_tool(
+            "memory_index",
+            {"query": "authentication refresh"},
+        )["content"][0]["text"]
+    )
+    search = json.loads(
+        protocol.call_tool(
+            "memory_search",
+            {"query": "authentication refresh"},
+        )["content"][0]["text"]
+    )
+    full = json.loads(
+        protocol.call_tool(
+            "memory_get",
+            {"ids": [remembered["id"]]},
+        )["content"][0]["text"]
+    )
+
+    assert index[0]["id"] == remembered["id"]
+    assert "evidence" not in index[0]
+    assert search[0]["id"] == remembered["id"]
+    assert "snippet" in search[0]
+    assert full[0]["evidence"].startswith("refresh is")
+    assert full[0]["access_count"] == 1
