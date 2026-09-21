@@ -69,17 +69,26 @@ class McpProtocol:
     def call_tool(self, name: str, arguments: dict) -> dict:
         """Call one registered tool and update adaptive disclosure when requested."""
         context = McpToolContext(self.root, self.index_service)
-        value = self.registry.call(name, context, arguments)
+        effective_arguments = arguments
+        if self._profile == "adaptive" and name == "discover_tools":
+            effective_arguments = dict(arguments)
+            requested_max = int(
+                effective_arguments.get("max_tools", self._adaptive_max_tools)
+            )
+            effective_arguments["max_tools"] = min(
+                requested_max,
+                self._adaptive_max_tools,
+            )
+        value = self.registry.call(name, context, effective_arguments)
         if self._profile == "adaptive" and name == "discover_tools":
             if isinstance(value, dict):
                 requested = value.get("tools")
                 if isinstance(requested, list):
-                    active = set(self.registry.names())
-                    active.update(
+                    active = {
                         str(tool_name)
                         for tool_name in requested
                         if str(tool_name) in DEFAULT_TOOL_REGISTRY.names()
-                    )
+                    }
                     ordered = [
                         tool_name
                         for tool_name in DEFAULT_TOOL_REGISTRY.names()
