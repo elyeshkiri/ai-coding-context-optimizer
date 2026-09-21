@@ -13,6 +13,7 @@ ADAPTIVE_CORE = (
     "find_symbol",
     "browse_context",
     "memory_index",
+    "recover_context",
     "route_task",
 )
 
@@ -25,6 +26,11 @@ TOOL_GROUPS = {
         "recall_findings",
         "remember_finding",
         "knowledge_status",
+    ),
+    "recovery": (
+        "recover_context",
+        "recovery_status",
+        "prefix_status",
     ),
     "retrieval": (
         "explain_ranking",
@@ -54,6 +60,10 @@ _GROUP_TERMS = {
         "memory", "remember", "recall", "previous", "prior", "decision",
         "convention", "guardrail", "architecture", "bugfix", "history",
         "session", "knowledge",
+    },
+    "recovery": {
+        "recover", "recovery", "original", "exact", "bytes", "tsr",
+        "prefix", "cache",
     },
     "retrieval": {
         "search", "find", "where", "symbol", "context", "semantic", "index",
