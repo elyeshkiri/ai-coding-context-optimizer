@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import closing
 from dataclasses import dataclass
 import hashlib
 import json
@@ -115,7 +116,7 @@ class RecoveryStore:
             ensure_ascii=False,
         )
         now = int(time.time())
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             existing = connection.execute(
                 "SELECT 1 FROM recovery WHERE handle = ?",
                 (handle,),
@@ -153,7 +154,7 @@ class RecoveryStore:
         if not isinstance(handle, str) or not handle.startswith(_HANDLE_PREFIX):
             raise ValueError("invalid recovery handle")
         now = int(time.time())
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 """
                 SELECT handle, content_type, payload, metadata_json, created_at,
@@ -192,7 +193,7 @@ class RecoveryStore:
 
     def info(self, handle: str) -> dict:
         """Return metadata without returning payload bytes."""
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 """
                 SELECT handle, content_type, length(payload), metadata_json,
@@ -216,7 +217,7 @@ class RecoveryStore:
 
     def stats(self) -> dict:
         """Return capacity and record counts without exposing recovered content."""
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 """
                 SELECT COUNT(*), COALESCE(SUM(length(payload)), 0)
