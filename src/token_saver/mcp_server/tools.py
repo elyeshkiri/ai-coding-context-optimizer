@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ..output_saver import build_output_policy, compact_output
+from ..model_routing import DEFAULT_ALLOWED_MODELS, route_task
 from ..patch_context import build_diff_context, review_patch
 from .contracts import McpToolContext, McpToolSpec
 
@@ -192,6 +193,38 @@ def _review_diff(context: McpToolContext, arguments: dict) -> dict:
         base=str(arguments.get("base", "HEAD")),
         staged=bool(arguments.get("staged", False)),
     )
+
+
+def _route_task(context: McpToolContext, arguments: dict) -> dict:
+    """Return one model-routing decision for a model-selectable orchestrator."""
+    del context
+    allowed = arguments.get("allowed_models")
+    return route_task(
+        str(arguments.get("prompt", "")),
+        input_tokens=(
+            int(arguments["input_tokens"])
+            if "input_tokens" in arguments
+            else None
+        ),
+        output_tokens=(
+            int(arguments["output_tokens"])
+            if "output_tokens" in arguments
+            else None
+        ),
+        current_model=(
+            str(arguments["current_model"])
+            if arguments.get("current_model")
+            else None
+        ),
+        allowed_models=(
+            [str(value) for value in allowed]
+            if isinstance(allowed, list)
+            else DEFAULT_ALLOWED_MODELS
+        ),
+        min_savings=float(arguments.get("min_savings", 0.05)),
+        conservative=bool(arguments.get("conservative", True)),
+    ).to_dict()
+
 
 
 def _output_policy(context: McpToolContext, arguments: dict) -> dict:
@@ -398,6 +431,32 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
             _review_diff,
         ),
         McpToolSpec(
+            "route_task",
+            "Choose the cheapest policy-eligible model for a task using the fresh pricing registry.",
+            {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                    "prompt": {"type": "string"},
+                    "input_tokens": {"type": "integer", "minimum": 1},
+                    "output_tokens": {"type": "integer", "minimum": 1},
+                    "current_model": {"type": "string"},
+                    "allowed_models": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {"type": "string"},
+                    },
+                    "min_savings": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                    },
+                    "conservative": {"type": "boolean"},
+                },
+            },
+            _route_task,
+        ),
+        McpToolSpec(
             "output_policy",
             "Return a generation-time response policy for reducing output tokens.",
             {
@@ -447,6 +506,7 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
 
 MCP_TOOL_PROFILES = {
     "minimal": (
+        "route_task",
         "build_context",
         "find_symbol",
         "browse_context",
@@ -454,6 +514,7 @@ MCP_TOOL_PROFILES = {
         "remember_finding",
     ),
     "context": (
+        "route_task",
         "build_context",
         "find_symbol",
         "browse_context",
