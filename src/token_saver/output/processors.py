@@ -340,21 +340,18 @@ class GitStatusProcessor:
                     continue
                 path = stripped.split(":", 1)[1].strip()
                 if len(code) == 2:
-                    xy = code
-                elif section == "staged":
-                    xy = code + " "
-                elif section == "unstaged":
-                    xy = " " + code
+                    changes.append(f"{code} {path}")
+                elif section in {"staged", "unstaged"}:
+                    changes.append(f"{section} {prefix}: {path}")
                 else:
-                    xy = code
-                changes.append(f"{xy} {path}")
+                    changes.append(f"{prefix}: {path}")
                 matched_long = True
                 break
             if matched_long:
                 continue
 
             if section == "untracked" and not stripped.startswith("("):
-                changes.append(f"?? {stripped}")
+                changes.append(f"untracked: {stripped}")
 
         rows = [*headers, *changes[: max(40, max_lines)]]
         if len(changes) > len(rows) - len(headers):
