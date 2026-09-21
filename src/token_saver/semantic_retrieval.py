@@ -9,6 +9,7 @@ lossy editing source.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import hashlib
 import json
 import math
@@ -299,8 +300,9 @@ def _effective_backend(path: Path, meta: dict[str, str]) -> str:
     return "sqlite-cosine"
 
 
-def _load_encoder(model: str) -> Encoder:
-    """Load one already-downloaded local sentence-transformer model."""
+@lru_cache(maxsize=4)
+def _load_encoder_cached(model: str, revision: str | None) -> Encoder:
+    """Load and reuse one immutable local sentence-transformer model revision."""
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
@@ -309,7 +311,6 @@ def _load_encoder(model: str) -> Encoder:
             "pip install 'claude-token-saver[embeddings]'"
         ) from exc
     try:
-        revision = _model_revision()
         return SentenceTransformer(
             model,
             revision=revision,
@@ -319,6 +320,11 @@ def _load_encoder(model: str) -> Encoder:
         raise RuntimeError(
             f"local embedding model {model} is not downloaded"
         ) from exc
+
+
+def _load_encoder(model: str) -> Encoder:
+    """Return a process-shared encoder keyed by model and immutable revision."""
+    return _load_encoder_cached(model, _model_revision())
 
 
 def _vector(value) -> list[float]:
