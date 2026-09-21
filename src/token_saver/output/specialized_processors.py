@@ -72,10 +72,146 @@ class SpecializedLineProcessor:
         )
 
 
+class GitDiffProcessor:
+    """Compact patches to file/hunk identity plus exact changed lines."""
+
+    name = "git-diff"
+    priority = 24
+    handles_failure = False
+    _command = re.compile(r"^\s*git\b.*\bdiff\b", re.I)
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command is a git diff invocation."""
+        return bool(self._command.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Remove index/context boilerplate while preserving patch semantics."""
+        del command, failed, max_lines, keep_tail
+        prepared = preprocess(text)
+        lines = prepared.splitlines()
+        if not any(line.startswith("diff --git ") for line in lines):
+            return prepared
+
+        kept = [
+            line
+            for line in lines
+            if (
+                line.startswith(("diff --git ", "@@ ", "@@@ "))
+                or (line.startswith("+") and not line.startswith("+++"))
+                or (line.startswith("-") and not line.startswith("---"))
+                or line.startswith(
+                    (
+                        "new file mode ",
+                        "deleted file mode ",
+                        "old mode ",
+                        "new mode ",
+                        "similarity index ",
+                        "rename from ",
+                        "rename to ",
+                        "copy from ",
+                        "copy to ",
+                        "Binary files ",
+                        "GIT binary patch",
+                        "\\ No newline at end of file",
+                    )
+                )
+            )
+        ]
+        if not kept:
+            return prepared
+        candidate = "\n".join(kept) + "\n"
+        return candidate if len(candidate.encode()) < len(text.encode()) else text
+
+
+class GoBuildProcessor:
+    """Compact Go compiler failures to exact actionable diagnostics."""
+
+    name = "go-build"
+    priority = 34
+    handles_failure = True
+    _command = re.compile(r"^\s*go\s+build\b", re.I)
+    _diagnostic = re.compile(
+        r"(?:\.go:\d+(?::\d+)?:|undefined:|cannot use|syntax error|"
+        r"too many arguments|not enough arguments|invalid operation|link:)"
+    )
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command is a Go build invocation."""
+        return bool(self._command.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep exact compiler diagnostics and only needed package context."""
+        del command, failed, max_lines, keep_tail
+        prepared = preprocess(text)
+        lines = prepared.splitlines()
+        packages = [line for line in lines if line.startswith("# ")]
+        diagnostics = [line for line in lines if self._diagnostic.search(line)]
+        if not diagnostics:
+            return prepared
+
+        kept = [*packages, *diagnostics] if len(packages) > 1 else diagnostics
+        candidate = "\n".join(dict.fromkeys(kept)) + "\n"
+        return candidate if len(candidate.encode()) < len(text.encode()) else text
+
+
+class GoTestProcessor:
+    """Compact Go test output to failures, locations, and package summaries."""
+
+    name = "go-test"
+    priority = 34
+    handles_failure = True
+    _command = re.compile(r"^\s*go\s+test\b", re.I)
+    _diagnostic = re.compile(
+        r"(?:\.go:\d+(?::\d+)?:|^--- FAIL:|^panic:|^FAIL\s+\S+|"
+        r"undefined:|cannot use|syntax error)"
+    )
+
+    def matches(self, command: str) -> bool:
+        """Return whether the command is a Go test invocation."""
+        return bool(self._command.search(command))
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        """Keep exact failing-test evidence while dropping pass/build chatter."""
+        del command, failed, max_lines, keep_tail
+        prepared = preprocess(text)
+        lines = prepared.splitlines()
+        packages = [line for line in lines if line.startswith("# ")]
+        kept = [line for line in lines if self._diagnostic.search(line)]
+        if len(packages) > 1:
+            kept = [*packages, *kept]
+        if not kept:
+            return prepared
+        candidate = "\n".join(dict.fromkeys(kept)) + "\n"
+        return candidate if len(candidate.encode()) < len(text.encode()) else text
+
+
 # name, priority, command regex, evidence regex, label, handles_failure,
 # minimum kept-line budget, preserve every matching line
 _SPECS = [
-    ("git-diff", 24, r"^\s*git\b.*\bdiff\b", r"^(?:diff --git |index |--- |\+\+\+ |@@|[+-](?![+-]))", "git diff", False, 120, True),
     ("git-show", 25, r"^\s*git\b.*\bshow\b", r"^(?:commit |Author:|Date:|diff --git |index |--- |\+\+\+ |@@|[+-](?![+-]))", "git show", False, 120, True),
     ("git-branch", 26, r"^\s*git\b.*\bbranch\b", r".+", "git branch", False, 80, False),
     ("git-remote", 27, r"^\s*git\b.*\b(?:push|pull|fetch|remote)\b", r"(?:^From |^To |->|\[new |\[rejected\]|up.to.date|fast-forward|error:|fatal:|warning:)", "git remote", True, 80, False),
@@ -93,8 +229,6 @@ _SPECS = [
     ("cargo-build", 34, r"^\s*cargo\s+(?:build|check)\b", r"(?:^error(?:\[E\d+\])?:|^warning:|^\s*-->\s|^\s*= (?:help|note):|Finished|could not compile)", "cargo build", True, 100, False),
     ("cargo-clippy", 34, r"^\s*cargo\s+clippy\b", r"(?:^error(?:\[E\d+\])?:|^warning:|^\s*-->\s|^\s*= (?:help|note):|Finished|could not compile)", "cargo clippy", True, 100, False),
     ("cargo-test", 34, r"^\s*cargo\s+test\b", r"(?:test result:|^test .+ \.\.\. (?:FAILED|ignored)|panicked at|^failures:|^error:|FAILED)", "cargo test", True, 100, False),
-    ("go-build", 34, r"^\s*go\s+build\b", r"(?:\.go:\d+(?::\d+)?:|^#\s|undefined:|cannot use|syntax error|build failed)", "go build", True, 100, False),
-    ("go-test", 34, r"^\s*go\s+test\b", r"(?:^--- (?:FAIL|PASS):|^FAIL\b|^ok\s|^\?\s|panic:|\.go:\d+(?::\d+)?:)", "go test", True, 100, False),
     ("maven", 34, r"^\s*(?:\./)?mvnw?\b", r"(?:\[ERROR\]|\[WARNING\]|BUILD (?:SUCCESS|FAILURE)|Tests run:|Failures:|Errors:|Failed to execute goal)", "maven", True, 100, False),
     ("gradle", 34, r"^\s*(?:\./)?gradlew?\b", r"(?:^> Task .+ (?:FAILED|UP-TO-DATE)|BUILD (?:SUCCESSFUL|FAILED)|FAILURE:|\* What went wrong:|error:|warning:)", "gradle", True, 100, False),
     ("ruff", 34, r"^\s*(?:python\s+-m\s+)?ruff\b", r"(?:^.+:\d+:\d+:\s+[A-Z]+\d+\s|^Found \d+ error|^All checks passed)", "ruff", True, 120, False),
@@ -106,6 +240,11 @@ _SPECS = [
 ]
 
 
-def extended_processors() -> list[SpecializedLineProcessor]:
+def extended_processors() -> list:
     """Return the 28 specialized processors added to the core inventory."""
-    return [SpecializedLineProcessor(*spec) for spec in _SPECS]
+    return [
+        GitDiffProcessor(),
+        GoBuildProcessor(),
+        GoTestProcessor(),
+        *[SpecializedLineProcessor(*spec) for spec in _SPECS],
+    ]
