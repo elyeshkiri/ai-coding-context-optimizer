@@ -12,7 +12,7 @@ from typing import Any
 from .browser_context import compress_browser_payload
 from .estimate import estimate_tokens
 from .output.pipeline import process_output
-from .prefix_cache import PrefixPlan, observe_prefix
+from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
 from .recovery import RecoveryCapacityError, RecoveryStore
 from .tool_schema import compress_tool_catalog
 
@@ -173,6 +173,7 @@ def transform_provider_request(
     compress_tool_results: bool = True,
     tool_result_min_tokens: int = 800,
     recovery_capacity_bytes: int = 512 * 1024 * 1024,
+    prefix_tracking: bool = True,
 ) -> ProviderTransformResult:
     """Optimize a provider JSON request while retaining exact transformed source."""
     if not isinstance(body, dict):
@@ -258,7 +259,20 @@ def transform_provider_request(
         schema_handle = None
         output_tokens = original_tokens
 
-    prefix = observe_prefix(root, provider, transformed)
+    if prefix_tracking:
+        prefix = observe_prefix(root, provider, transformed)
+    else:
+        fingerprint, tokens, size, components = stable_prefix_fingerprint(
+            transformed
+        )
+        prefix = PrefixPlan(
+            fingerprint=fingerprint,
+            stable_tokens=tokens,
+            stable_bytes=size,
+            components=components,
+            previous_fingerprint=None,
+            reused=False,
+        )
     return ProviderTransformResult(
         body=transformed,
         changed=changed,
