@@ -14,9 +14,11 @@ from token_saver.packing.contracts import RankedFile
 from token_saver.closure import ClosureItem
 from token_saver.packing.graph_rerank import (
     _apply_embedding_rerank_index,
+    _apply_semantic_artifact_authority,
     _apply_semantic_graph_expansion,
+    _apply_semantic_peer_expansion,
 )
-from token_saver.repo_index import RepositoryIndex, build_index
+from token_saver.repo_index import RepositoryIndex, build_index, record_for_text
 from token_saver.semantic_retrieval import (
     SemanticHit,
     SemanticVectorIndex,
@@ -647,3 +649,181 @@ def test_process_encoder_cache_reuses_same_model_revision(monkeypatch):
         ]
     finally:
         semantic_module._load_encoder_cached.cache_clear()
+
+
+
+def test_medium_long_single_clause_gets_exact_front_and_back_query_windows():
+    """Medium-long behavioral prompts should avoid full-query semantic dilution."""
+    query = (
+        "A mock configured to return itself for fluent calls should not return "
+        "the mock for a method whose generic return type resolves to an "
+        "incompatible terminal type."
+    )
+
+    views = _semantic_query_views(query)
+
+    assert len(views) == 3
+    assert views[0] == query
+    original = query.split()
+    for view in views[1:]:
+        assert len(view.split()) < len(original)
+        assert all(word in original for word in view.split())
+
+
+def test_semantic_artifact_authority_promotes_java_module_descriptor(tmp_path):
+    """Module-oriented intent should surface a matching Java module descriptor."""
+    records = {
+        "src/main/java/module-info.java": record_for_text(
+            "src/main/java/module-info.java",
+            "module org.example { requires java.instrument; exports org.example.internal; }",
+        ),
+        "src/main/java/org/example/InstrumentationAccessor.java": record_for_text(
+            "src/main/java/org/example/InstrumentationAccessor.java",
+            "class InstrumentationAccessor { void startAgent() {} }",
+        ),
+    }
+    index = RepositoryIndex(root=tmp_path, records=records)
+    ranked = [
+        RankedFile(
+            tmp_path / "src/main/java/org/example/InstrumentationAccessor.java",
+            "src/main/java/org/example/InstrumentationAccessor.java",
+            "",
+            "",
+            40.0,
+        ),
+        RankedFile(
+            tmp_path / "src/main/java/module-info.java",
+            "src/main/java/module-info.java",
+            "",
+            "",
+            2.0,
+        ),
+    ]
+
+    _apply_semantic_artifact_authority(
+        index,
+        ranked,
+        (
+            "Named Java modules should not fail during agent startup because "
+            "internal classes are inaccessible to the instrumentation module."
+        ),
+        ["src/main/java/org/example/InstrumentationAccessor.java"],
+    )
+
+    descriptor = next(item for item in ranked if item.rel.endswith("module-info.java"))
+    assert descriptor.score > 20.0
+    assert any(
+        reason.startswith("semantic-artifact-authority:module-descriptor")
+        for reason in descriptor.reasons
+    )
+
+
+def test_semantic_artifact_authority_promotes_diagnostic_analyzer(tmp_path):
+    """Warning-oriented intent should promote a lexically relevant analyzer artifact."""
+    records = {
+        "src/Runtime/AuthorizationMiddleware.cs": record_for_text(
+            "src/Runtime/AuthorizationMiddleware.cs",
+            "class AuthorizationMiddleware { void Invoke() {} }",
+        ),
+        "src/Analyzers/UseAuthorizationAnalyzer.cs": record_for_text(
+            "src/Analyzers/UseAuthorizationAnalyzer.cs",
+            (
+                "class UseAuthorizationAnalyzer { "
+                "void Analyze() { ReportDiagnosticForAuthorizationMiddlewareRoutingEndpoint(); } }"
+            ),
+        ),
+    }
+    index = RepositoryIndex(root=tmp_path, records=records)
+    ranked = [
+        RankedFile(
+            tmp_path / "src/Runtime/AuthorizationMiddleware.cs",
+            "src/Runtime/AuthorizationMiddleware.cs",
+            "",
+            "",
+            50.0,
+        ),
+        RankedFile(
+            tmp_path / "src/Analyzers/UseAuthorizationAnalyzer.cs",
+            "src/Analyzers/UseAuthorizationAnalyzer.cs",
+            "",
+            "",
+            3.0,
+        ),
+    ]
+
+    _apply_semantic_artifact_authority(
+        index,
+        ranked,
+        (
+            "Authorization middleware inside a routing branch should not trigger "
+            "a warning when endpoint ordering is correct."
+        ),
+        ["src/Runtime/AuthorizationMiddleware.cs"],
+    )
+
+    analyzer = next(item for item in ranked if item.rel.endswith("UseAuthorizationAnalyzer.cs"))
+    assert analyzer.score > 25.0
+    assert any(
+        reason.startswith("semantic-artifact-authority:analyzer")
+        for reason in analyzer.reasons
+    )
+
+
+def test_semantic_peer_expansion_promotes_parallel_provider_family(tmp_path):
+    """A strong semantic provider may surface a parallel implementation peer."""
+    ranked = [
+        RankedFile(
+            tmp_path / "src/OutputCacheKeyProvider.cs",
+            "src/OutputCacheKeyProvider.cs",
+            "",
+            "",
+            60.0,
+        ),
+        RankedFile(
+            tmp_path / "src/ResponseCachingKeyProvider.cs",
+            "src/ResponseCachingKeyProvider.cs",
+            "",
+            "",
+            4.0,
+        ),
+        RankedFile(
+            tmp_path / "src/UnrelatedHandler.cs",
+            "src/UnrelatedHandler.cs",
+            "",
+            "",
+            10.0,
+        ),
+    ]
+
+    _apply_semantic_peer_expansion(
+        ranked,
+        (
+            "Cache keys must distinguish multiple vary header values so "
+            "different requests cannot collide."
+        ),
+        ["src/OutputCacheKeyProvider.cs"],
+    )
+
+    peer = next(item for item in ranked if item.rel.endswith("ResponseCachingKeyProvider.cs"))
+    unrelated = next(item for item in ranked if item.rel.endswith("UnrelatedHandler.cs"))
+    assert peer.score > 15.0
+    assert unrelated.score == 10.0
+    assert any(reason.startswith("semantic-peer:") for reason in peer.reasons)
+
+
+def test_semantic_peer_expansion_rejects_single_generic_name_overlap(tmp_path):
+    """One broad filename token is insufficient semantic peer evidence."""
+    ranked = [
+        RankedFile(tmp_path / "src/CacheProvider.cs", "src/CacheProvider.cs", "", "", 20.0),
+        RankedFile(tmp_path / "src/AuthProvider.cs", "src/AuthProvider.cs", "", "", 5.0),
+    ]
+
+    _apply_semantic_peer_expansion(
+        ranked,
+        "cache entries should preserve multiple values",
+        ["src/CacheProvider.cs"],
+    )
+
+    candidate = next(item for item in ranked if item.rel.endswith("AuthProvider.cs"))
+    assert candidate.score == 5.0
+    assert not any(reason.startswith("semantic-peer:") for reason in candidate.reasons)
