@@ -1,0 +1,253 @@
+{
+  "suite_version": 1,
+  "repositories": {
+    "click": {
+      "repository": "pallets/click",
+      "path": "semantic-holdout-14/click",
+      "revision": "6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1"
+    },
+    "echo": {
+      "repository": "labstack/echo",
+      "path": "semantic-holdout-14/echo",
+      "revision": "3d084be9022432c5a5257924c7d74bfc3444b456"
+    },
+    "ripgrep": {
+      "repository": "BurntSushi/ripgrep",
+      "path": "semantic-holdout-14/ripgrep",
+      "revision": "3fce3b5bb0236da2df6d99672afb8a719642eca7"
+    },
+    "mockito": {
+      "repository": "mockito/mockito",
+      "path": "semantic-holdout-14/mockito",
+      "revision": "9c5f36fb9f2ad89fbaab828d33d144cd398a4079"
+    },
+    "vite": {
+      "repository": "vitejs/vite",
+      "path": "semantic-holdout-14/vite",
+      "revision": "e9078f865cdff6bed77cd729214a7e2868f126b5"
+    },
+    "aspnetcore": {
+      "repository": "dotnet/aspnetcore",
+      "path": "semantic-holdout-14/aspnetcore",
+      "revision": "9817792d3ba9aa6f6c9ac5804a672ce5954f3288"
+    }
+  },
+  "tasks": [
+    {
+      "id": "click-prompt-ctrl-c-race",
+      "repository": "click",
+      "source_issue": {
+        "number": 3802,
+        "url": "https://github.com/pallets/click/issues/3802"
+      },
+      "query": "Interrupting an interactive prompt with Ctrl-C should abort cleanly without a secondary unhandled exception caused by terminal output cleanup."
+    },
+    {
+      "id": "click-windows-unicode-help",
+      "repository": "click",
+      "source_issue": {
+        "number": 2121,
+        "url": "https://github.com/pallets/click/issues/2121"
+      },
+      "query": "Command help containing non-ASCII characters should render on Windows terminals without failing with an encoding error."
+    },
+    {
+      "id": "click-windows-url-launch",
+      "repository": "click",
+      "source_issue": {
+        "number": 3272,
+        "url": "https://github.com/pallets/click/issues/3272"
+      },
+      "query": "Opening a URL from a command-line application on Windows should invoke the operating-system launcher without a file-not-found error."
+    },
+    {
+      "id": "click-windows-pager-text-stream",
+      "repository": "click",
+      "source_issue": {
+        "number": 3740,
+        "url": "https://github.com/pallets/click/issues/3740"
+      },
+      "query": "Writing ordinary text through the pager on Windows should receive a text-capable stream instead of failing because the temporary pager stream expects bytes."
+    },
+    {
+      "id": "echo-group-method-not-allowed",
+      "repository": "echo",
+      "source_issue": {
+        "number": 1981,
+        "url": "https://github.com/labstack/echo/issues/1981"
+      },
+      "query": "A request using the wrong HTTP method for a route inside a middleware-enabled group should produce method-not-allowed rather than being mistaken for a missing route."
+    },
+    {
+      "id": "echo-group-notfound-fallback",
+      "repository": "echo",
+      "source_issue": {
+        "number": 2485,
+        "url": "https://github.com/labstack/echo/issues/2485"
+      },
+      "query": "A route group with middleware should still fall back to the application's root missing-route handler when no more specific handler exists."
+    },
+    {
+      "id": "echo-bind-nonstring-map",
+      "repository": "echo",
+      "source_issue": {
+        "number": 2552,
+        "url": "https://github.com/labstack/echo/issues/2552"
+      },
+      "query": "Binding request parameters into a map whose values are not assignable from strings should not panic; incompatible values should be handled safely."
+    },
+    {
+      "id": "echo-h2c-trailers",
+      "repository": "echo",
+      "source_issue": {
+        "number": 2367,
+        "url": "https://github.com/labstack/echo/issues/2367"
+      },
+      "query": "HTTP response trailers should be transmitted correctly when the server uses cleartext HTTP/2, matching the behavior seen with HTTP/1.1."
+    },
+    {
+      "id": "ripgrep-parallel-panic-hang",
+      "repository": "ripgrep",
+      "source_issue": {
+        "number": 3009,
+        "url": "https://github.com/BurntSushi/ripgrep/issues/3009"
+      },
+      "query": "A panic in one worker while walking files in parallel should propagate or terminate promptly instead of leaving the traversal nondeterministically hung."
+    },
+    {
+      "id": "ripgrep-all-patterns-same-strategy",
+      "repository": "ripgrep",
+      "source_issue": {
+        "number": 3290,
+        "url": "https://github.com/BurntSushi/ripgrep/issues/3290"
+      },
+      "query": "Checking whether every pattern matches a path must test each individual pattern, even when several patterns are optimized into the same matching strategy."
+    },
+    {
+      "id": "ripgrep-ignore-multiple-roots-order",
+      "repository": "ripgrep",
+      "source_issue": {
+        "number": 3320,
+        "url": "https://github.com/BurntSushi/ripgrep/issues/3320"
+      },
+      "query": "Ignore rules should be applied consistently when several explicit search roots are supplied, regardless of the order of those roots."
+    },
+    {
+      "id": "ripgrep-hyperlink-double-encoding",
+      "repository": "ripgrep",
+      "source_issue": {
+        "number": 3447,
+        "url": "https://github.com/BurntSushi/ripgrep/issues/3447"
+      },
+      "query": "Generated file hyperlinks for paths containing spaces and non-ASCII characters should percent-encode each path component exactly once."
+    },
+    {
+      "id": "mockito-clear-cache-parameter-metadata",
+      "repository": "mockito",
+      "source_issue": {
+        "number": 3763,
+        "url": "https://github.com/mockito/mockito/issues/3763"
+      },
+      "query": "Clearing mocking caches should not strip method parameter names or other reflection metadata from classes that were previously mocked."
+    },
+    {
+      "id": "mockito-record-annotated-parameter",
+      "repository": "mockito",
+      "source_issue": {
+        "number": 3107,
+        "url": "https://github.com/mockito/mockito/issues/3107"
+      },
+      "query": "The first attempt to mock a record with an annotation on one constructor component should succeed consistently instead of failing only for certain parameter arrangements."
+    },
+    {
+      "id": "mockito-generic-self-answer",
+      "repository": "mockito",
+      "source_issue": {
+        "number": 3613,
+        "url": "https://github.com/mockito/mockito/issues/3613"
+      },
+      "query": "A mock configured to return itself for fluent calls should not return the mock for a method whose generic return type resolves to an incompatible terminal type."
+    },
+    {
+      "id": "mockito-module-path-agent",
+      "repository": "mockito",
+      "source_issue": {
+        "number": 3612,
+        "url": "https://github.com/mockito/mockito/issues/3612"
+      },
+      "query": "Tests running as named Java modules should not fail during agent startup because internal mocking classes are inaccessible to the instrumentation module."
+    },
+    {
+      "id": "vite-localhost-proxy-ip-family",
+      "repository": "vite",
+      "source_issue": {
+        "number": 23312,
+        "url": "https://github.com/vitejs/vite/issues/23312"
+      },
+      "query": "On Windows, a development server bound to localhost should remain reachable through another local development server's proxy even when IPv4 and IPv6 resolution order differs."
+    },
+    {
+      "id": "vite-ssr-computed-default-param",
+      "repository": "vite",
+      "source_issue": {
+        "number": 23232,
+        "url": "https://github.com/vitejs/vite/issues/23232"
+      },
+      "query": "During server-side module transformation, an imported value used as a computed key inside a destructured function parameter with a default value should be rewritten correctly instead of becoming an undefined bare reference."
+    },
+    {
+      "id": "vite-windows-crossdrive-symlink",
+      "repository": "vite",
+      "source_issue": {
+        "number": 23197,
+        "url": "https://github.com/vitejs/vite/issues/23197"
+      },
+      "query": "Test setup modules should resolve correctly on Windows when the project is entered through a directory link that crosses drive letters, rather than collapsing the setup path to a drive root."
+    },
+    {
+      "id": "vite-css-layer-order",
+      "repository": "vite",
+      "source_issue": {
+        "number": 23229,
+        "url": "https://github.com/vitejs/vite/issues/23229"
+      },
+      "query": "CSS minification must preserve an explicit cascade-layer ordering declaration because removing it can change stylesheet precedence."
+    },
+    {
+      "id": "aspnetcore-blazor-template-content",
+      "repository": "aspnetcore",
+      "source_issue": {
+        "number": 50831,
+        "url": "https://github.com/dotnet/aspnetcore/issues/50831"
+      },
+      "query": "Rendering child content inside a standard HTML template element should place nodes in the element's template content rather than attaching them as ordinary children."
+    },
+    {
+      "id": "aspnetcore-auth-analyzer-map",
+      "repository": "aspnetcore",
+      "source_issue": {
+        "number": 50880,
+        "url": "https://github.com/dotnet/aspnetcore/issues/50880"
+      },
+      "query": "Authorization middleware nested inside a path-mapped application branch should not trigger a warning that it is outside the routing and endpoint region when its local ordering is correct."
+    },
+    {
+      "id": "aspnetcore-cache-multivalue-vary",
+      "repository": "aspnetcore",
+      "source_issue": {
+        "number": 66721,
+        "url": "https://github.com/dotnet/aspnetcore/issues/66721"
+      },
+      "query": "Cache keys must distinguish multiple values of the same vary header from one concatenated header value so semantically different requests cannot collide."
+    },
+    {
+      "id": "aspnetcore-wasm-devcert",
+      "repository": "aspnetcore",
+      "source_issue": {
+        "number": 64731,
+        "url": "https://github.com/dotnet/aspnetcore/issues/64731"
+      },
+      "query": "A WebAssembly development server in a development environment should automatically use an available trusted HTTPS development certificate after package upgrades, without requiring an explicit certificate path."
+    }
+  ]
+}
