@@ -350,7 +350,11 @@ class GitStatusProcessor:
             if matched_long:
                 continue
 
-            if section == "untracked" and not stripped.startswith("("):
+            if (
+                section == "untracked"
+                and line[:1].isspace()
+                and not stripped.startswith("(")
+            ):
                 changes.append(f"untracked: {stripped}")
 
         rows = [*headers, *changes[: max(40, max_lines)]]
