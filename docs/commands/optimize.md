@@ -26,8 +26,9 @@ token-saver optimize [path] --status
 
 ## Exit codes
 
-`0` command completed; `2` invalid proposal/run/configuration or insufficient
-runtime input for the requested mutation.
+`0` command completed, including evaluations that return
+`insufficient-baseline` or `insufficient-treatment`; `2` means an invalid
+proposal/run/configuration, malformed arguments, or another refused operation.
 
 ## Output contract
 
