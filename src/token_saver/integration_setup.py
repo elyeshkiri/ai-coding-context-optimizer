@@ -50,6 +50,7 @@ current_model = ""
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
+calibration_file = ".token-saver.routing-calibration.json"
 
 [efficiency]
 enabled = true
