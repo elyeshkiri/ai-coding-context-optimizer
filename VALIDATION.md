@@ -282,6 +282,61 @@ predicate, not a semantic proof that every useful detail survived. Corpus v1 is
 kept immutable. Any tuning informed by its case-level results must treat v1 as
 burned development evidence and validate the change on a fresh corpus version.
 
+Corpus v1 was subsequently used exactly that way: Git log/status/diff and Go
+compression were tuned from its case-level deltas. On the **burned development
+corpus**, the candidate moved from **23.72% to 28.91%** weighted estimated token
+reduction while retaining **100%** critical-line survival; the pinned peer
+remained at **23.95% / 81.25%**. These post-tuning v1 numbers are development
+evidence only and are not used as the proof claim.
+
+### Fresh provenance-backed CLI corpus v2
+
+Corpus v2 was constructed with a different Git history/worktree shape and
+different Go failure modes, plus unrelated control commands. Processor behavior
+was locked at commit
+`bb246458069527e5555bfb9c9625f2750fe53936` before capture. The capture-only
+workflow then executed **27/27 real commands with 0 skips**, producing 9,025 raw
+bytes. No compressor comparison was run before the exact Actions artifact was
+frozen into Git at `benchmarks/cli-output-real-v2/corpus.zip`.
+
+The frozen proof records source workflow run `35581545244`, source artifact
+`10629774546`, artifact SHA-256
+`6fc01f573b80a6f4768118d27fe38dedddab1543a2d499ee477e286e36051253`,
+and capture-definition SHA-256
+`ea2461863c384c4c0b56437882a961a817632e6d2af99e81c83b157d220b404b`.
+Only after that freeze was committed was the same pinned ppgranger revision
+enabled in the comparator.
+
+On this untouched v2 proof set:
+
+| Engine | weighted estimated token reduction | critical-line survival | estimated output tokens |
+| --- | ---: | ---: | ---: |
+| elyeshkiri/token-saver | **30.80%** | **100.00%** | **1,777** |
+| ppgranger/token-saver @ 19d47b2c | **28.23%** | **76.92%** | 1,843 |
+
+That is a **2.57 percentage-point overall reduction advantage** and 66 fewer
+estimated output tokens for the candidate on the same 27 raw outputs, while all
+mechanically detected critical lines survive.
+
+The tuned subfamilies are not uniformly ahead, so the result is reported
+without hiding the remaining gap:
+
+| Fresh v2 subset | elyeshkiri reduction | ppgranger reduction | elyeshkiri critical survival | ppgranger critical survival |
+| --- | ---: | ---: | ---: | ---: |
+| Git diff | **31.84%** | 28.86% | 100% | 100% |
+| Go build/test | **36.67%** | 24.29% | **100%** | 75% |
+| Git status | 49.71% | **54.91%** | 100% | 100% |
+| Git log | 62.62% | **79.05%** | 100% | 100% |
+| Git status/diff + Go, excluding Git log | **38.87%** | 34.93% | **100%** | 75% |
+| All targeted Git status/diff/log + Go | 48.80% | **53.39%** | **100%** | 75% |
+
+The fresh corpus therefore validates a real overall gain and specifically
+validates the Git-diff and Go improvements, but it also shows that Git log
+compression remains materially more aggressive in the pinned peer and Git
+status retains a smaller residual gap. No processor tuning was performed after
+observing v2. Any future work on those remaining gaps must treat v2 as burned
+and prove changes on a fresh v3 corpus.
+
 The previously recorded broad 24-task SWE-bench run remains
 **non-publishable evidence** (historical only): it exposed harness/grader issues rather
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the
