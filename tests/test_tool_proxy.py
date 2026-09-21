@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from token_saver.guard import decide_read
+from token_saver.runtime_config import settings_for
 from token_saver.tool_proxy import latest_user_task, proxy_read
 
 
@@ -179,3 +180,42 @@ def test_guard_delegates_eligible_large_read_to_posttool_proxy(tmp_path, monkeyp
     monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS", "1")
 
     assert decide_read({"file_path": str(source)}, cwd=tmp_path) is None
+
+
+def test_tool_proxy_config_resolves_toml_and_environment(tmp_path, monkeypatch):
+    """Project policy should be explicit and environment overrides should win."""
+    (tmp_path / ".token-saver.toml").write_text(
+        """[tool_proxy]
+enabled = true
+provider = "deterministic"
+model = "tiny-coder"
+endpoint = "http://127.0.0.1:9999"
+min_tokens = 3000
+target_tokens = 1200
+model_input_tokens = 9000
+timeout_seconds = 4.5
+max_ranges = 3
+max_range_lines = 60
+""",
+        encoding="utf-8",
+    )
+
+    configured = settings_for(tmp_path)
+    assert configured.tool_proxy_enabled is True
+    assert configured.tool_proxy_provider == "deterministic"
+    assert configured.tool_proxy_model == "tiny-coder"
+    assert configured.tool_proxy_min_tokens == 3000
+    assert configured.tool_proxy_timeout_seconds == 4.5
+
+    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY", "0")
+    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_PROVIDER", "ollama")
+    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MODEL", "local-model")
+    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS", "4200")
+    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MAX_RANGE_LINES", "44")
+    overridden = settings_for(tmp_path)
+
+    assert overridden.tool_proxy_enabled is False
+    assert overridden.tool_proxy_provider == "ollama"
+    assert overridden.tool_proxy_model == "local-model"
+    assert overridden.tool_proxy_min_tokens == 4200
+    assert overridden.tool_proxy_max_range_lines == 44
