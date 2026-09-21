@@ -109,6 +109,14 @@ def evaluate_quality_manifest(
         ):
             raise ValueError(f"case {case_id!r} exit_code must be an integer")
 
+        expected_processor = case.get("expected_processor")
+        if expected_processor is not None and (
+            not isinstance(expected_processor, str) or not expected_processor.strip()
+        ):
+            raise ValueError(
+                f"case {case_id!r} expected_processor must be a non-empty string"
+            )
+
         required = case.get("must_preserve", [])
         if not isinstance(required, list) or not all(
             isinstance(item, str) and item for item in required
@@ -166,13 +174,24 @@ def evaluate_quality_manifest(
         ]
         budget_ok = max_tokens is None or output_tokens <= max_tokens
         reduction_ok = reduction + 1e-12 >= float(min_reduction)
-        passed = not missing and not introduced and budget_ok and reduction_ok
+        processor_ok = (
+            expected_processor is None or result.processor == expected_processor
+        )
+        passed = (
+            not missing
+            and not introduced
+            and budget_ok
+            and reduction_ok
+            and processor_ok
+        )
 
         results.append(
             {
                 "id": case_id,
                 "command": command,
                 "processor": result.processor,
+                "expected_processor": expected_processor,
+                "processor_ok": processor_ok,
                 "failure_detected": result.failed,
                 "compressed": result.compressed,
                 "original_tokens": original_tokens,
@@ -205,6 +224,9 @@ def evaluate_quality_manifest(
             ),
             "preservation_rate": (
                 sum(item["preservation_ok"] for item in results) / len(results)
+            ),
+            "processor_match_rate": (
+                sum(item["processor_ok"] for item in results) / len(results)
             ),
             "no_hallucination_rate": (
                 sum(item["no_hallucination"] for item in results) / len(results)
