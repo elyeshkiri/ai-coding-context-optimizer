@@ -79,6 +79,8 @@ class RuntimeSettings:
     tool_proxy_max_range_lines: int = 80
     mcp_profile: str = "full"
     mcp_adaptive_max_tools: int = 12
+    mcp_compress_schemas: bool = False
+    prefix_tracking: bool = True
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -198,6 +200,9 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     mcp = payload.get("mcp", {})
     if not isinstance(mcp, dict):
         raise ValueError(f"Expected [mcp] table in Token Saver config: {path}")
+    provider = payload.get("provider", {})
+    if not isinstance(provider, dict):
+        raise ValueError(f"Expected [provider] table in Token Saver config: {path}")
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -342,12 +347,20 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         mcp_adaptive_max_tools=min(
             24,
             max(
-                6,
+                7,
                 _positive_int(
                     mcp.get("adaptive_max_tools"),
                     12,
                 ),
             ),
+        ),
+        mcp_compress_schemas=_bool(
+            mcp.get("compress_schemas"),
+            False,
+        ),
+        prefix_tracking=_bool(
+            provider.get("prefix_tracking"),
+            True,
         ),
     )
 
@@ -647,9 +660,17 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
                 _env_int(
                     "TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS",
                     base.mcp_adaptive_max_tools,
-                    minimum=6,
+                    minimum=7,
                 )
                 or base.mcp_adaptive_max_tools
             ),
+        ),
+        mcp_compress_schemas=_env_bool(
+            "TOKEN_SAVER_MCP_COMPRESS_SCHEMAS",
+            base.mcp_compress_schemas,
+        ),
+        prefix_tracking=_env_bool(
+            "TOKEN_SAVER_PREFIX_TRACKING",
+            base.prefix_tracking,
         ),
     )

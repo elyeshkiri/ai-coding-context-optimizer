@@ -1,5 +1,29 @@
 # Unreleased
 
+- **Added a recoverable optimization platform across context surfaces.**
+  Lossy transforms can now retain exact original bytes in a project-scoped,
+  content-addressed SQLite store with `tsr_...` handles, SHA-256 verification,
+  hard capacity, and no eviction. The contract is exposed through CLI/MCP and
+  bridges Claude Bash-output compression while keeping the legacy paged-output
+  interface.
+- **Combined adaptive MCP disclosure with conservative tool-schema compression.**
+  Selected catalogs can drop annotation-only metadata and shorten long
+  descriptions while preserving tool/property identity, argument-construction
+  fields, and recognized constraint sentences. Exact original catalogs remain
+  recoverable; compression fails closed when recovery is unavailable.
+- **Added a measured keep-or-revert optimizer, stable provider-prefix evidence,
+  and an opt-in provider reverse proxy.** The optimizer edits only Token
+  Saver-owned project config, backs up exact prior bytes, compares
+  provider-reported tokens/turn, and can restore the previous config
+  automatically. The local proxy is loopback-only by default, disables
+  automatic upstream redirects, forwards provider responses unchanged, and
+  composes recoverable request transforms with content-free prefix reuse
+  accounting.
+- **Added focused browser-context compression for captured HTML/AX-like text.**
+  Query-neighborhood evidence and an interactive skeleton can replace large
+  captured payloads only when the result is smaller and the full original is
+  recoverable. Token Saver does not fetch arbitrary URLs for this feature.
+
 - **Expanded durable knowledge into progressive persistent project memory.**
   Typed decisions, bugfixes, conventions, guardrails, architecture notes, facts,
   and findings now share the existing evidence-backed store with tags,
@@ -8,7 +32,7 @@
   `memory_index` -> `memory_search` -> `memory_get` so discovery does not
   require loading full memory records.
 - **Added adaptive MCP tool-surface disclosure.** The opt-in `adaptive`
-  profile starts from six core schemas and uses `discover_tools(query)` to
+  profile starts from seven core schemas and uses `discover_tools(query)` to
   activate bounded memory/retrieval/review/output/routing groups for the current
   task. The server advertises `listChanged=true`, returns exact selected
   schemas in the discovery result, and keeps `full` as the default explicit

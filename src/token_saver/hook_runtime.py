@@ -19,6 +19,7 @@ HookResponse = tuple[int, dict | None]
 GuardService = Callable[[dict], HookResponse]
 DeltaService = Callable[..., tuple[str, dict]]
 StoreOutputService = Callable[[dict], str]
+RecoveryOutputService = Callable[..., str | None]
 UserNudgeService = Callable[[Path, str], str | None]
 GenerationPolicyService = Callable[..., str | None]
 ModelRoutingService = Callable[..., str | None]
@@ -40,6 +41,12 @@ SmartReadProxyService = Callable[..., str | None]
 def _noop_session_start(*args, **kwargs) -> None:
     """Ignore an efficiency session-start event."""
     del args, kwargs
+
+
+def _noop_recovery(*args, **kwargs) -> str | None:
+    """Return no universal recovery handle."""
+    del args, kwargs
+    return None
 
 
 def _noop_context(*args, **kwargs) -> str | None:
@@ -167,6 +174,7 @@ class HookServices:
     ingress_optimizer: IngressOptimizerService = _noop_ingress
     smart_read_proxy: SmartReadProxyService = _noop_smart_read
     model_route: ModelRoutingService = _noop_context
+    recovery_output: RecoveryOutputService = _noop_recovery
 
 
 def cap_for(n_lines: int) -> int:
@@ -302,11 +310,20 @@ class HookRuntime:
                 }
             return 0, None
 
-        note = (
+        legacy_note = (
             "\n[token-saver: filtered output; original saved. "
-            "Retrieve: token-saver output {id} --stream stdout --offset 1 --limit 80]\n"
+            "Retrieve: token-saver output {id} --stream stdout --offset 1 --limit 80]"
         )
-        candidate = replacement["stdout"] + note.format(id="0" * 32)
+        recovery_note = (
+            "\n[token-saver recovery: {handle}; "
+            "use recover_context or token-saver recover]"
+        )
+        candidate = (
+            replacement["stdout"]
+            + legacy_note.format(id="0" * 32)
+            + recovery_note.format(handle="tsr_" + "0" * 32)
+            + "\n"
+        )
         if (
             self.services.estimate_tokens(original)
             - self.services.estimate_tokens(candidate)
@@ -331,8 +348,22 @@ class HookRuntime:
                 }
             return 0, None
 
+        recovery_handle = self.services.recovery_output(
+            root,
+            original,
+            content_type="text/plain",
+            metadata={
+                "transform": "hook-output-compression",
+                "command": command[:500],
+            },
+        )
         output_id = self.services.store_output(response)
-        replacement["stdout"] += note.format(id=output_id)
+        replacement["stdout"] += legacy_note.format(id=output_id)
+        if recovery_handle:
+            replacement["stdout"] += recovery_note.format(
+                handle=recovery_handle
+            )
+        replacement["stdout"] += "\n"
         behavior_note = self.services.observe_tool(
             root,
             payload,

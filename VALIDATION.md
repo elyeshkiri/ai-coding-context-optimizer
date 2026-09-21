@@ -1,5 +1,43 @@
 # Validation for 1.12.0
 
+## Unreleased recoverable optimization-platform mechanics
+
+The recovery/schema/proxy/prefix/optimizer/browser additions are covered as
+**mechanical and safety evidence only**. They do not yet support a new
+end-to-end token, dollar-cost, task-success, or cost-per-success claim.
+
+Tests require that:
+
+- exact recovery is content-addressed, SHA-256 verified, private, deduplicated,
+  and refuses a new lossy transform instead of evicting old source when capacity
+  is exhausted;
+- MCP schema compression preserves names, user-defined property identities,
+  required/default/const/enum construction semantics, and recognized constraint
+  sentences, while the exact original catalog remains recoverable;
+- the adaptive MCP core always retains `recover_context` and bounded discovery
+  replaces rather than accumulates specialist tools;
+- provider request transformation falls back to the original complete request
+  when exact recovery cannot be stored;
+- stable-prefix reuse evidence excludes the latest user turn and persists only
+  content-free fingerprints/counters;
+- the provider reverse proxy refuses non-loopback binding unless explicitly
+  permitted, refuses non-local plaintext HTTP upstreams, cannot let an
+  absolute-form request target escape the configured upstream origin, and does
+  not automatically follow upstream redirects;
+- browser focusing operates only on caller-supplied captured payloads, preserves
+  the requested neighborhood/actionable skeleton, and returns the original when
+  exact recovery cannot be guaranteed;
+- optimizer mutations first save exact config bytes and can automatically restore
+  them when sufficient provider-reported treatment turns do not improve the
+  configured tokens-per-turn threshold.
+
+These checks prove implementation invariants, not model quality equivalence.
+A publishable savings claim requires a fresh paired-agent experiment in which
+the optimized arm actually exercises these mechanisms, both arms receive
+independent task verification and blind quality grading, provider usage/cache
+counters are complete, and cost-per-success passes the existing publication
+gate.
+
 ## Unreleased persistent-memory and adaptive-MCP mechanics
 
 The new project-memory and adaptive tool-surface features are mechanically

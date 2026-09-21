@@ -55,6 +55,14 @@ from .command_handlers.model_routing import (
     model_route_calibrate_main,
     model_route_main,
 )
+from .command_handlers.optimization import (
+    browser_context_main,
+    optimize_main,
+    prefix_status_main,
+    provider_proxy_main,
+    recover_main,
+    recovery_status_main,
+)
 from .command_handlers.output import (
     output_benchmark_main,
     output_calibrate_main,
@@ -136,6 +144,12 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("model-route", model_route_main),
         CommandSpec("model-route-calibrate", model_route_calibrate_main),
         CommandSpec("dashboard", dashboard_main),
+        CommandSpec("optimize", optimize_main),
+        CommandSpec("recover", recover_main),
+        CommandSpec("recovery-status", recovery_status_main),
+        CommandSpec("prefix-status", prefix_status_main),
+        CommandSpec("provider-proxy", provider_proxy_main),
+        CommandSpec("browser-context", browser_context_main),
         CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),
         CommandSpec("setup", setup_main),

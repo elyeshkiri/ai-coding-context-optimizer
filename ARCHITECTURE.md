@@ -28,6 +28,44 @@ The dependency arrows point inward toward contracts and pure application logic.
 Host-specific JSON, environment variables, persistence, and subprocess behavior
 stay at the edges.
 
+## Recoverable optimization boundary
+
+Lossy context transformations now share one content-addressed recovery contract:
+
+```text
+caller / host / local provider proxy
+        ↓
+deterministic transform
+  ├── MCP schema compression
+  ├── historical tool-output compression
+  ├── browser payload focusing
+  └── hook output compression
+        ↓
+RecoveryStore.put(exact original) ──→ tsr_<sha256-prefix>
+        ↓
+serve smaller representation + recovery handle
+```
+
+`RecoveryStore` is project-scoped persistence, not a ranking or compression
+engine. Compressors decide whether a transform is safe/useful; recovery only
+establishes exact source availability. Capacity exhaustion fails closed: the
+caller keeps the original representation instead of evicting an older recovery
+record and creating a dangling handle.
+
+Provider interception is kept at an explicit edge. `provider_transform.py` is
+the pure-ish request composition layer: schema reduction, large historical
+tool-result reduction, browser focusing, and stable-prefix accounting.
+`provider_proxy.py` owns HTTP/network behavior and remains opt-in. It binds to
+loopback by default, forwards response bytes unchanged, and does not
+automatically follow upstream redirects.
+
+Stable-prefix accounting stores hashes/sizes/counters through
+`prefix_cache.py`; it never becomes repository truth. The closed-loop
+`optimizer.py` may propose and mutate only Token Saver project configuration.
+Every mutation is journaled with an exact recovery backup and is evaluated
+against later provider-reported token evidence before it can be retained as a
+measured local improvement.
+
 ## Command boundary
 
 `token_saver.entry` no longer owns a branch for every top-level command. New
@@ -44,6 +82,7 @@ Command implementations are grouped vertically under
 - `experiment.py` — paired experiments and cost-per-success reporting;
 - `host.py` — host setup/doctor/uninstall, validation, completion, and MCP serving;
 - `output.py` — output policy, compaction, replay, explain, and benchmarks;
+- `optimization.py` — recovery, provider proxy, browser focusing, prefix evidence, and closed-loop optimization;
 - `patch.py` — diff-context packing and patch review.
 
 The registry imports these handlers directly. `token_saver.commands` is retained

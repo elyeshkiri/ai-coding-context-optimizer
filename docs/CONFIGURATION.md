@@ -67,6 +67,10 @@ cache_max_entries = 64
 [mcp]
 profile = "full"
 adaptive_max_tools = 12
+compress_schemas = false
+
+[provider]
+prefix_tracking = true
 
 [tool_proxy]
 enabled = false
@@ -190,11 +194,12 @@ disclosure:
 | TOML key | Default | Meaning |
 |---|---:|---|
 | `mcp.profile` | `"full"` | Advertised tool profile: `minimal`, `context`, `memory`, `adaptive`, or `full`. |
-| `mcp.adaptive_max_tools` | `12` | Maximum schemas selected by one adaptive discovery pass; the six core tools are always retained. |
+| `mcp.adaptive_max_tools` | `12` | Maximum schemas selected by one adaptive discovery pass; the seven core tools are always retained. |
+| `mcp.compress_schemas` | `false` | Compress selected MCP schema annotations/descriptions conservatively and store the exact original catalog in recovery. |
 
 With `profile = "adaptive"`, the initial surface contains only
-`discover_tools`, core repository context tools, `memory_index`, and
-`route_task`. Calling `discover_tools` with the current task returns the
+`discover_tools`, core repository context tools, `memory_index`,
+`recover_context`, and `route_task`. Calling `discover_tools` with the current task returns the
 selected specialist schemas and expands subsequent `tools/list` responses.
 The protocol advertises MCP `listChanged=true` in this mode. Selection is
 local and deterministic; it does not call an LLM.
@@ -202,6 +207,22 @@ local and deterministic; it does not call an LLM.
 Persistent memory itself remains explicit. `memory_index` is the cheap metadata
 layer, `memory_search` adds bounded snippets, and `memory_get` returns full
 records by id. No raw conversation text is automatically persisted.
+
+## Provider prefix evidence and local proxy
+
+Provider-prefix tracking stores only a SHA-256 fingerprint, estimated size,
+component labels, and hit/miss counters for the **post-transform** stable
+request prefix. Raw provider request text is not copied into this state.
+
+| TOML key | Default | Meaning |
+|---|---:|---|
+| `provider.prefix_tracking` | `true` | Keep content-free stable-prefix reuse counters when provider request transformation is active. |
+
+The network-facing proxy itself is intentionally not auto-started from project
+configuration. Start it explicitly with `token-saver provider-proxy
+--upstream ...`. It binds to loopback by default, requires HTTPS for non-local
+upstreams, forwards provider responses unchanged, and fails closed to the
+original request whenever a lossy transform cannot store exact recovery bytes.
 
 ## Prompt ingress
 
@@ -325,6 +346,8 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES` | `retrieval.cache_max_entries` |
 | `TOKEN_SAVER_MCP_PROFILE` | `mcp.profile` |
 | `TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS` | `mcp.adaptive_max_tools` |
+| `TOKEN_SAVER_MCP_COMPRESS_SCHEMAS` | `mcp.compress_schemas` |
+| `TOKEN_SAVER_PREFIX_TRACKING` | `provider.prefix_tracking` |
 | `TOKEN_SAVER_TOOL_PROXY` | `tool_proxy.enabled` |
 | `TOKEN_SAVER_TOOL_PROXY_PROVIDER` | `tool_proxy.provider` |
 | `TOKEN_SAVER_TOOL_PROXY_MODEL` | `tool_proxy.model` |
@@ -438,7 +461,11 @@ export TOKEN_SAVER_STATE_DIR=/another/private/path
 ```
 
 Saved original command output is local and can be paged with `token-saver
-output` or pruned with `token-saver outputs-prune`.
+output` or pruned with `token-saver outputs-prune`. New lossy optimization
+surfaces also use the project-scoped content-addressed recovery store and emit
+`tsr_...` handles recoverable with `token-saver recover` or MCP
+`recover_context`. The recovery store refuses new transforms rather than
+evicting old source when its hard capacity would be exceeded.
 
 See [Security & privacy](../SECURITY.md) for persistence boundaries.
 

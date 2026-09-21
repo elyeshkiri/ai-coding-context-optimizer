@@ -20,6 +20,50 @@ Context rendering applies the project's existing secret-redaction path where
 documented, but users should still avoid committing credentials or treating an
 AI-agent context layer as a secret-management system.
 
+## Exact recovery store
+
+Lossy optimization surfaces can store exact original bytes in a private
+project-scoped SQLite recovery database under `TOKEN_SAVER_STATE_DIR`.
+Recovery handles begin with `tsr_` and are derived from SHA-256 content
+identity. Retrieval verifies the full stored digest before returning bytes.
+
+Recovery handles are identifiers, **not authorization tokens**. Anyone who can
+access the local Token Saver state directory may be able to recover project
+content. The database is not encrypted at rest; protect the state directory with
+the same care as agent transcripts. Token Saver uses private file permissions
+where the platform supports them.
+
+The store has a hard capacity and does not evict older exact source merely to
+make room for a new transform. If an original cannot be stored, that lossy
+transform is refused and the unmodified representation is retained. This
+prevents model-visible recovery handles from becoming intentionally dangling.
+
+## Provider reverse-proxy boundary
+
+`token-saver provider-proxy` is explicit and opt-in. It can observe provider
+request bodies and authorization headers because it sits between the selected
+agent/client and the configured provider origin. Token Saver does not enable or
+install this proxy automatically.
+
+The proxy:
+
+- binds to a loopback IP by default; non-loopback listening requires an explicit
+  override and external access control remains the operator's responsibility;
+- requires HTTPS for non-local upstreams and refuses credentials embedded in the
+  upstream URL;
+- strips the incoming Host header and hop-by-hop transport headers;
+- joins only the incoming path/query onto the configured upstream origin, so an
+  absolute-form request target cannot select another destination;
+- disables automatic upstream redirect following, preventing provider
+  authorization headers from being silently replayed to a redirect origin;
+- transforms only supported JSON request bodies within a bounded size;
+- forwards provider response bytes without semantic rewriting.
+
+Prefix telemetry stores only canonical SHA-256 fingerprints, component labels,
+estimated sizes, and hit/miss counters. It does not copy provider request text.
+Browser-context optimization consumes caller-supplied captured HTML/text and
+does not fetch arbitrary web URLs itself.
+
 ## Oversized-prompt ingress state
 
 Prompt ingress optimization is **disabled by default** because its safety model

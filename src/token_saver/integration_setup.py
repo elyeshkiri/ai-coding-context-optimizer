@@ -76,6 +76,10 @@ cache_max_entries = 64
 [mcp]
 profile = "full"
 adaptive_max_tools = 12
+compress_schemas = false
+
+[provider]
+prefix_tracking = true
 
 [tool_proxy]
 enabled = false
