@@ -16,6 +16,19 @@
   pricing registry. Local prompt-only token estimates are labeled as incomplete
   input evidence, and routing profiles are documented as conservative product
   policy rather than benchmark rankings of model quality.
+- **Added quality-gated routing calibration.** Frozen paired experiments can now
+  assign different models per randomized arm while keeping Token Saver/config
+  treatment identical, and record transcript-confirmed actual model ids.
+  `model-route-calibrate` admits a cheaper lower-capability model only for an
+  exact task/complexity/risk bucket after >=10 pairs across >=5 tasks, >=80%
+  baseline success, zero lost baseline successes, complete blind A/B quality
+  parity, independent hidden/post-agent verification, and fresh verified
+  pricing. Rejected groups remain visible with explicit reasons.
+- **Made calibration fail closed at runtime.** The loader rechecks hard sample,
+  success, quality-delta, model-ordering, and evidence floors; malformed or
+  below-floor calibration cannot relax routing. Claude hook routing falls back
+  to the original static conservative policy when a local calibration artifact
+  is invalid.
 
 - **Added a centralized, packaged Claude pricing registry.** Current first-party
   standard/global rates are stored once with explicit source, verification date,
