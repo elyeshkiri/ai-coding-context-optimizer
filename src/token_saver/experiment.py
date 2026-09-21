@@ -737,7 +737,6 @@ def run_experiment(
     result, completed = _existing_keys(output_path, suite)
     tasks = {task["id"]: task for task in selected_tasks}
     runner = suite["runner"]
-    model = str(runner["model"])
     timeout = int(runner.get("timeout_seconds", 1800))
     if timeout < 1:
         raise ValueError("runner.timeout_seconds must be positive")
