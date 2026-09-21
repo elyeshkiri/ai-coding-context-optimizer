@@ -115,6 +115,20 @@ can advise and measure the decision; model-selectable orchestrators can execute
 it directly through MCP. The built-in capability profiles are conservative
 product policy, not a benchmark ranking of model quality.
 
+Routing can become more aggressive only through a generated quality-gated
+calibration artifact. Calibrate a cheaper arm against the current static-policy
+model on frozen paired tasks, keep all non-model arm settings identical, verify
+task success independently, blind-grade the final responses, then run:
+
+```bash
+token-saver model-route-calibrate routing-runs.json
+```
+
+The default gate requires at least 10 pairs across 5 tasks, at least 80%
+baseline success, zero lost baseline successes, blind correctness/safety/
+weighted-quality parity within 0.10 points, and transcript-confirmed actual
+models. Accepted evidence relaxes only the exact task/complexity/risk bucket.
+
 Pricing is deliberately explicit: dollar usage is calculated only from an
 explicit exact-model rates source. Pass `--rates builtin` to use Token Saver's
 source-attributed, freshness-gated packaged registry, or supply a frozen JSON
