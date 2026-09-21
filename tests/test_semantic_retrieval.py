@@ -609,3 +609,41 @@ def test_multiview_query_vectors_are_persisted_for_warm_model_free_reuse(
         (hit.path, hit.start_line, hit.end_line, hit.rank)
         for hit in initial
     ]
+
+
+
+def test_process_encoder_cache_reuses_same_model_revision(monkeypatch):
+    """Repeated semantic index objects should share one immutable model instance."""
+    import sys
+    from types import ModuleType
+
+    import token_saver.semantic_retrieval as semantic_module
+
+    calls = []
+    fake_module = ModuleType("sentence_transformers")
+
+    class FakeSentenceTransformer:
+        """Capture model construction without the optional ML dependency."""
+
+        def __init__(self, model, *, revision=None, local_files_only=False):
+            calls.append((model, revision, local_files_only))
+
+    fake_module.SentenceTransformer = FakeSentenceTransformer
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+    semantic_module._load_encoder_cached.cache_clear()
+    try:
+        monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-a")
+        first = semantic_module._load_encoder("fixture-model")
+        second = semantic_module._load_encoder("fixture-model")
+
+        monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-b")
+        third = semantic_module._load_encoder("fixture-model")
+
+        assert first is second
+        assert third is not first
+        assert calls == [
+            ("fixture-model", "revision-a", True),
+            ("fixture-model", "revision-b", True),
+        ]
+    finally:
+        semantic_module._load_encoder_cached.cache_clear()
