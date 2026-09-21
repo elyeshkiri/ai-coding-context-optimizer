@@ -1,0 +1,15 @@
+F821 Undefined name `missing_state`
+ --> lint_state.py:2:12
+  |
+1 | def value():
+2 |     return missing_state + missing_retry
+  |            ^^^^^^^^^^^^^
+
+F821 Undefined name `missing_retry`
+ --> lint_state.py:2:28
+  |
+1 | def value():
+2 |     return missing_state + missing_retry
+  |                            ^^^^^^^^^^^^^
+
+Found 2 errors.

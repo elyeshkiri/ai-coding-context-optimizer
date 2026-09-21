@@ -1,0 +1,45 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________________________________ test_state __________________________________
+
+    def test_state():
+        actual = {'status': 409, 'retry': 2}
+>       assert actual == {'status': 200, 'retry': 1}
+E       AssertionError: assert {'status': 409, 'retry': 2} == {'status': 200, 'retry': 1}
+E         
+E         Differing items:
+E         {'status': 409} != {'status': 200}
+E         {'retry': 2} != {'retry': 1}
+E         
+E         Full diff:
+E           {
+E         -     'status': 200,
+E         ?               ^ ^
+E         +     'status': 409,
+E         ?               ^ ^
+E         -     'retry': 1,
+E         ?              ^
+E         +     'retry': 2,
+E         ?              ^
+E           }
+
+test_state.py:3: AssertionError
+=========================== short test summary info ============================
+FAILED test_state.py::test_state - AssertionError: assert {'status': 409, 'retry': 2} == {'status': 200, 'retry': 1}
+  
+  Differing items:
+  {'status': 409} != {'status': 200}
+  {'retry': 2} != {'retry': 1}
+  
+  Full diff:
+    {
+  -     'status': 200,
+  ?               ^ ^
+  +     'status': 409,
+  ?               ^ ^
+  -     'retry': 1,
+  ?              ^
+  +     'retry': 2,
+  ?              ^
+    }
+1 failed in 0.03s

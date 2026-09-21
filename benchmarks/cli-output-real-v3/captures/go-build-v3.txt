@@ -1,0 +1,4 @@
+# example.com/v3build/cmd/app
+cmd/app/main.go:3:23: not enough arguments in call to add
+	have (number)
+	want (int, int)

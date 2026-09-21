@@ -1,0 +1,19 @@
+diff --git a/docs/retries.md b/docs/retries.md
+deleted file mode 100644
+index 2eacf77..0000000
+--- a/docs/retries.md
++++ /dev/null
+@@ -1,2 +0,0 @@
+-retries=3
+-backoff=linear
+diff --git a/src/api.txt b/src/api.txt
+index 320acce..1d94cbe 100644
+--- a/src/api.txt
++++ b/src/api.txt
+@@ -1,3 +1,4 @@
+-route=/v1
+-status=201
++route=/v2
++status=202
+ header=x-v3
++mode=preview

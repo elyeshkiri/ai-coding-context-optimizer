@@ -1,0 +1,11 @@
+diff --git a/src/feature_flag.txt b/src/feature_flag.txt
+new file mode 100644
+index 0000000..a714dcb
+--- /dev/null
++++ b/src/feature_flag.txt
+@@ -0,0 +1 @@
++git_v3=true
+diff --git a/src/metrics.txt b/src/telemetry.txt
+similarity index 100%
+rename from src/metrics.txt
+rename to src/telemetry.txt
