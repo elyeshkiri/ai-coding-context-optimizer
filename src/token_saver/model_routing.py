@@ -1013,8 +1013,20 @@ def automatic_model_route(
     calibration_path = Path(calibration_file)
     if not calibration_path.is_absolute():
         calibration_path = root / calibration_path
+    calibration: dict = {}
     try:
         calibration = load_routing_calibration(calibration_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        append_event(
+            root,
+            {
+                "kind": "model_route_calibration_rejected",
+                "feature": "model_routing",
+                "reason": str(exc)[:160],
+            },
+        )
+
+    try:
         decision = route_task(
             prompt,
             current_model=current_model,
@@ -1028,7 +1040,7 @@ def automatic_model_route(
             ),
             calibration=calibration,
         )
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except ValueError as exc:
         append_event(
             root,
             {
