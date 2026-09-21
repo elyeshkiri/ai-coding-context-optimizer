@@ -451,6 +451,12 @@ def automatic_model_route(
             "selected_model": decision.selected_model,
             "action": decision.action,
             "pricing_basis": decision.pricing_basis,
+            "projected_savings_fraction": decision.projected_savings_fraction,
+            "projected_selected_cost_usd": (
+                decision.projected_cost_usd.get(decision.selected_model)
+                if decision.selected_model is not None
+                else None
+            ),
         }
 
     update_state(root, mutate, session_id)
