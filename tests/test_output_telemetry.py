@@ -96,6 +96,53 @@ def test_turn_telemetry_measures_only_transcript_bytes_after_prompt(tmp_path, mo
     assert record["turn_status"] == "completed"
 
 
+def test_turn_telemetry_records_model_route_match(tmp_path, monkeypatch):
+    """Routing telemetry should record target-versus-actual model without prompt text."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text("", encoding="utf-8")
+    _set_policy(root, "s1")
+
+    def mutate(data):
+        data["model_route"] = {
+            "task": "explanation",
+            "complexity_tier": "simple",
+            "risk_level": "normal",
+            "minimum_capability": "economy",
+            "selected_model": "claude-haiku-4-5",
+            "action": "route",
+            "pricing_basis": "fresh_input_plus_output_one_turn",
+        }
+
+    update_state(root, mutate, "s1")
+    start_output_turn(root, transcript_path=transcript, session_id="s1")
+    with transcript.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                _assistant(
+                    "m1",
+                    100,
+                    model="claude-haiku-4-5",
+                )
+            )
+            + "\n"
+        )
+
+    record = finish_output_turn(
+        root,
+        transcript_path=transcript,
+        session_id="s1",
+    )
+
+    assert record is not None
+    assert record["route_target_model"] == "claude-haiku-4-5"
+    assert record["route_action"] == "route"
+    assert record["route_matched_actual"] is True
+    assert record["route_task"] == "explanation"
+
+
 def test_telemetry_never_persists_prompt_or_response_content(tmp_path, monkeypatch):
     """Telemetry should retain policy/usage metadata but no user or assistant text."""
     monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
