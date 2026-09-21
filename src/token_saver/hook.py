@@ -70,6 +70,7 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         model_routing_allowed_models=settings.model_routing_allowed_models,
         model_routing_min_savings=settings.model_routing_min_savings,
         model_routing_conservative=settings.model_routing_conservative,
+        model_routing_calibration_file=settings.model_routing_calibration_file,
         efficiency_enabled=settings.efficiency_enabled,
         continuity_enabled=settings.continuity_enabled,
         cross_turn_dedup_enabled=settings.cross_turn_dedup,
