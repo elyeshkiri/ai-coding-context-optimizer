@@ -498,6 +498,38 @@ def _group_summary(records: list[dict]) -> dict:
     }
 
 
+def _routing_summary(records: list[dict]) -> dict:
+    """Summarize route-target adoption without inferring quality or success."""
+    routed = [
+        record
+        for record in records
+        if isinstance(record.get("route_target_model"), str)
+        and record["route_target_model"]
+    ]
+    measured = [
+        record
+        for record in routed
+        if isinstance(record.get("route_matched_actual"), bool)
+    ]
+    matched = sum(record.get("route_matched_actual") is True for record in measured)
+    targets: dict[str, int] = defaultdict(int)
+    actions: dict[str, int] = defaultdict(int)
+    for record in routed:
+        targets[str(record["route_target_model"])] += 1
+        action = record.get("route_action")
+        if isinstance(action, str) and action:
+            actions[action] += 1
+    return {
+        "decisions": len(routed),
+        "measured_actual_turns": len(measured),
+        "matched_actual_turns": matched,
+        "match_rate": matched / len(measured) if measured else None,
+        "targets": dict(sorted(targets.items())),
+        "actions": dict(sorted(actions.items())),
+        "observational_only": True,
+    }
+
+
 def output_telemetry_report(
     root: Path,
     *,
@@ -538,6 +570,7 @@ def output_telemetry_report(
         "schema": TELEMETRY_SCHEMA,
         "path": str(telemetry_path(root)),
         "summary": _group_summary(records),
+        "routing": _routing_summary(records),
         "by_task_mode": groups,
         "signals": {
             "underused_budget_groups": underused,
