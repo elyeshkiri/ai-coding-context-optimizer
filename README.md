@@ -89,6 +89,29 @@ Start with the task-oriented docs instead of searching this README:
 
 The complete documentation map is [docs/README.md](docs/README.md).
 
+## Cost intelligence and efficiency advisor
+
+Turn local Token Saver evidence into a practical optimization report:
+
+```bash
+token-saver cost-advisor .
+token-saver cost-advisor . --project-only --json
+token-saver cost-advisor . \
+  --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json
+```
+
+The advisor scores only categories with enough evidence and reports score
+coverage separately. It combines measured always-on context, Claude transcript
+usage/cache counters, output-budget fit, continuity/waste signals, and observed
+before/after tool-context reductions.
+
+Pricing is deliberately explicit: dollar usage is calculated only from a
+user-supplied exact-model rates file. Mixed-model turns, missing model prices,
+or unknown cache-write TTLs stay visibly unpriced instead of being allocated by
+assumption. Estimated tool-context savings may be shown under a clearly labeled
+fresh-input-once scenario, but are **not** presented as measured API savings or
+cost-per-success evidence.
+
 ## Safe oversized-prompt ingress
 
 Claude Code's `UserPromptSubmit` hook can block a prompt or add context, but
