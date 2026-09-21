@@ -233,6 +233,21 @@ The checked-in `benchmarks/output-quality.example.json` demonstrates the
 portable quality-contract format. See `OUTPUT_OPTIMIZATION.md` for the
 processor and Delta contracts.
 
+The CLI-compression parity work adds a separate frozen ratchet at
+`benchmarks/cli-output-compression-ratchet-v1.frozen.json`. It contains one
+representative canonical case for each of the 40 built-in processors and seals
+the case definitions with SHA-256. Each case can lock the expected processor,
+required evidence, forbidden fabricated evidence, and a minimum token-reduction
+floor. CI replays the suite with `--require-frozen`, and the shell uses
+`pipefail` so a failed quality contract cannot be hidden by report capture.
+
+The current 40-case replay passes **40/40 cases**, with **74.52% weighted
+estimated token reduction**, **100% required-evidence preservation**, **100%
+processor-identity match**, and **100% no-hallucination rate**. These fixtures
+model documented real-world CLI output shapes; they are not claimed to be
+production-log captures, model-token billing measurements, or evidence of
+end-to-end coding-task cost reduction.
+
 The previously recorded broad 24-task SWE-bench run remains
 **non-publishable evidence** (historical only): it exposed harness/grader issues rather
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the
