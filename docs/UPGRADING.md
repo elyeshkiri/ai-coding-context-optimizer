@@ -2,6 +2,76 @@
 
 Token Saver treats setup as an idempotent repair/migration operation.
 
+## 1.13 recoverable optimization platform
+
+Version 1.13 adds persistent typed project memory, adaptive MCP disclosure,
+recoverable MCP schema compression, universal `tsr_...` recovery handles, the
+measured keep-or-revert optimizer, provider-prefix reuse telemetry, an opt-in
+local provider proxy, and focused browser-context compression.
+
+Existing projects remain compatible without editing `.token-saver.toml`:
+
+- `mcp.profile` still defaults to `"full"`;
+- `mcp.compress_schemas` defaults to `false`;
+- `provider.prefix_tracking` defaults to `true`, but it records data only
+  when provider request transformation is actually used;
+- the provider proxy never starts automatically;
+- persistent memory is explicit and does not auto-harvest conversation text.
+
+Newly generated configs include the current `[mcp]` and `[provider]` keys.
+Setup does not overwrite an existing project-owned config, so add those keys
+manually only when you want to opt in.
+
+Lossy v1.13 surfaces can emit `tsr_...` handles. Recover them with
+`token-saver recover` or MCP `recover_context`. The older
+`token-saver output OUTPUT_ID` path remains supported for saved Bash output.
+
+The local provider proxy is a new trust boundary. It is loopback-only by
+default, requires HTTPS for non-local upstreams, and is never installed into a
+host automatically. Read [Security & privacy](../SECURITY.md) before pointing a
+client at it.
+
+## 1.12 routing and cost intelligence
+
+Version 1.12 adds the centralized pricing registry, cost advisor, automatic
+model-routing policy, and quality-gated routing calibration. Model routing
+remains opt-in. Existing projects therefore keep their prior model behavior
+until `[model_routing] enabled = true` or the corresponding environment
+override is set.
+
+Historical benchmark rate files remain frozen. Do not replace old benchmark
+prices with the current built-in registry when reproducing a historical result.
+
+## 1.11 output, Smart Tool Proxy, and semantic retrieval
+
+Version 1.11 expands command-output processors, adds the opt-in Smart Tool Proxy
+for large Claude Reads, and strengthens semantic retrieval. Smart Tool Proxy is
+disabled by default. Existing configs do not need migration unless you want to
+enable `[tool_proxy]`.
+
+If project-managed Claude hooks were created by an older version, rerun
+`token-saver setup .` so managed hook definitions match the installed package.
+
+## 1.10 persistent semantic index
+
+Version 1.10 introduces persistent chunk-level semantic retrieval and optional
+HNSW acceleration. Semantic retrieval remains opt-in and uses local model
+weights only. Existing lexical/structural workflows require no migration.
+
+Changing `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` intentionally creates distinct
+semantic state instead of reusing vectors produced by different weights.
+
+## 1.9 ingress, retrieval cache, knowledge, and marketplace packaging
+
+Version 1.9 adds safe oversized-prompt staging, persistent retrieval-result
+caching, the optional Rust fastpath, durable evidence-backed project knowledge,
+static MCP profiles, and Claude Code marketplace packaging.
+
+Prompt staging and knowledge-assisted read avoidance remain opt-in. Existing
+projects can keep their current config; rerun setup when you want the current
+managed Claude/Cursor/Codex representation or marketplace-compatible generated
+plugin assets.
+
 ## 1.8 frozen session-efficiency holdout
 
 Version 1.8 adds benchmark/evaluation commands and a paid workflow; it does not
