@@ -340,7 +340,7 @@ def capture(out_dir: Path, workspace: Path) -> dict:
             "kind": "provenance-backed-cli-output-corpus-v2-capture",
             "captured": True,
             "untuned_before_capture": True,
-            "processor_lock_sha": "43ec1693e208b9d12502fac7a43bc70009c59740",
+            "processor_lock_sha": "bb246458069527e5555bfb9c9625f2750fe53936",
         },
         "environment": {
             "platform": platform.platform(),
