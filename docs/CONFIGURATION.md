@@ -169,8 +169,8 @@ responses, or tool output into its continuity snapshot.
 Continuity stores only task class, working file paths, bounded redacted command
 labels/fingerprints, validation outcomes, failure fingerprints, and counters.
 Command labels apply best-effort credential redaction before persistence.
-Original compressed Bash output continues to use Token Saver's separate private
-recoverable-output store.
+Compressed Bash output keeps the legacy paged-output store for compatibility and
+also receives a universal `tsr_...` recovery handle when the hook replaces stdout.
 
 `/clear` resets the active working checkpoint. `/compact` and resume retain
 the structured working set but reset transient per-turn counters. Cross-turn
@@ -266,24 +266,6 @@ Bounded Reads bypass this feature and remain the exact-byte path for edits and
 verification. The current user task is read transiently from the Claude
 transcript tail when available; it is not persisted by the proxy.
 
-## Smart Tool Proxy
-
-Smart Tool Proxy applies only to verified, unbounded repository source Reads. It is disabled by default. With `provider = "ollama"`, a free/local model selects relevant source ranges from a bounded structural/exact candidate packet. Token Saver validates those ranges and delivers exact source bytes from the original file. If the model cannot be reached or returns unusable output, deterministic selection is used instead.
-
-| TOML key | Default | Meaning |
-|---|---:|---|
-| `tool_proxy.enabled` | `false` | Enable PostToolUse replacement for eligible large full-file source Reads. |
-| `tool_proxy.provider` | `"ollama"` | Selector backend: `ollama` or `deterministic`. |
-| `tool_proxy.model` | `"qwen2.5-coder:7b"` | Ollama model name used only for range/orientation selection. |
-| `tool_proxy.endpoint` | `"http://127.0.0.1:11434"` | Ollama base URL. A non-loopback endpoint changes the privacy boundary. |
-| `tool_proxy.min_tokens` | `2500` | Minimum estimated full-file size eligible for proxying. |
-| `tool_proxy.target_tokens` | `1800` | Target upper size for the packet returned to Claude. |
-| `tool_proxy.model_input_tokens` | `12000` | Maximum estimated candidate-evidence budget sent to the selector. |
-| `tool_proxy.timeout_seconds` | `6.0` | Selector HTTP timeout before deterministic fallback. |
-| `tool_proxy.max_ranges` | `4` | Maximum validated ranges selected for exact delivery. |
-| `tool_proxy.max_range_lines` | `80` | Maximum lines in any selected range. |
-
-Bounded Reads bypass this feature and remain the exact-byte path for edits and verification. The current user task is read transiently from the Claude transcript tail when available; it is not persisted by the proxy.
 ## Retrieval cache
 
 | TOML key | Default | Meaning |
@@ -348,16 +330,6 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS` | `mcp.adaptive_max_tools` |
 | `TOKEN_SAVER_MCP_COMPRESS_SCHEMAS` | `mcp.compress_schemas` |
 | `TOKEN_SAVER_PREFIX_TRACKING` | `provider.prefix_tracking` |
-| `TOKEN_SAVER_TOOL_PROXY` | `tool_proxy.enabled` |
-| `TOKEN_SAVER_TOOL_PROXY_PROVIDER` | `tool_proxy.provider` |
-| `TOKEN_SAVER_TOOL_PROXY_MODEL` | `tool_proxy.model` |
-| `TOKEN_SAVER_TOOL_PROXY_ENDPOINT` | `tool_proxy.endpoint` |
-| `TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS` | `tool_proxy.min_tokens` |
-| `TOKEN_SAVER_TOOL_PROXY_TARGET_TOKENS` | `tool_proxy.target_tokens` |
-| `TOKEN_SAVER_TOOL_PROXY_MODEL_INPUT_TOKENS` | `tool_proxy.model_input_tokens` |
-| `TOKEN_SAVER_TOOL_PROXY_TIMEOUT_SECONDS` | `tool_proxy.timeout_seconds` |
-| `TOKEN_SAVER_TOOL_PROXY_MAX_RANGES` | `tool_proxy.max_ranges` |
-| `TOKEN_SAVER_TOOL_PROXY_MAX_RANGE_LINES` | `tool_proxy.max_range_lines` |
 | `TOKEN_SAVER_TOOL_PROXY` | `tool_proxy.enabled` |
 | `TOKEN_SAVER_TOOL_PROXY_PROVIDER` | `tool_proxy.provider` |
 | `TOKEN_SAVER_TOOL_PROXY_MODEL` | `tool_proxy.model` |
