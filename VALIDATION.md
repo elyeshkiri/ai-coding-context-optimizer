@@ -337,6 +337,60 @@ status retains a smaller residual gap. No processor tuning was performed after
 observing v2. Any future work on those remaining gaps must treat v2 as burned
 and prove changes on a fresh v3 corpus.
 
+### Fresh provenance-backed CLI corpus v3
+
+Corpus v3 targets the remaining Git log/status gap using a new nine-commit Git
+history, mixed staged/unstaged/untracked worktree state, porcelain v1/v2 status,
+verbose/stat/reverse/fuller/oneline/graph log variants, and unrelated control
+commands. Git log/status behavior was locked at commit
+`18ebda5d623fc01ef2ea5cdf79054ecee7ba76e6` before capture.
+
+The capture-only workflow executed **29/29 real commands with 0 skips** and
+produced 14,068 raw bytes. The source workflow is `35584642288`, source
+artifact `10630834204`, source artifact SHA-256
+`f5345e19b1b77ccf41257c7393242c14b6e5dc88d7cc72f0833e0f032241742b`,
+and capture-definition SHA-256
+`0866719efa899c3d1d81fc2aa70eabe116ceb4401148ced000d854571581baae`.
+
+The first archive-backed comparison attempt was rejected before evaluation
+because the committed ZIP digest did not match the source artifact. No result
+was produced from that attempt. The corpus was then stored as the independently
+verified raw capture files with their original per-file SHA-256s; CI verifies
+all raw hashes and the frozen definition before invoking either compressor.
+
+On this untouched v3 proof set:
+
+| Engine | weighted estimated token reduction | critical-line survival |
+| --- | ---: | ---: |
+| elyeshkiri/token-saver | 50.50% | **100.00%** |
+| ppgranger/token-saver @ 19d47b2c | **51.25%** | 80.00% |
+
+The overall compression difference is only **0.75 percentage points** on the
+same 29 raw outputs, while the candidate preserves every mechanically detected
+critical line.
+
+The target families show that the original gap is now close to parity:
+
+| Fresh v3 subset | elyeshkiri reduction | ppgranger reduction |
+| --- | ---: | ---: |
+| Git status (4 cases) | **62.90%** | 61.75% |
+| Git log (6 cases) | 78.21% | **79.63%** |
+| Git log + status (10 cases) | 75.28% | **76.20%** |
+
+Compared with v2, Git status moved from a peer advantage to a **1.15-point
+candidate advantage**, and the Git-log gap contracted from **16.43 points**
+(62.62% versus 79.05%) to **1.42 points**. Combined Git log/status is now within
+**0.92 percentage points** of the pinned peer on fresh evidence.
+
+The per-shape results remain intentionally visible. The candidate is ahead on
+the fresh long-status and porcelain-v2 cases and on `--format=fuller --stat`,
+while the pinned peer remains more aggressive on several standard
+`git log --stat` variants. Already compact one-line and graph log outputs are
+left unchanged by both implementations in this corpus.
+
+No processor tuning was performed after observing v3. Corpus v3 is now burned
+proof evidence; any further Git-log compression work requires a fresh v4 corpus.
+
 The previously recorded broad 24-task SWE-bench run remains
 **non-publishable evidence** (historical only): it exposed harness/grader issues rather
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the
