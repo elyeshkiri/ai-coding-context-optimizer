@@ -44,7 +44,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "ready": true,
-  "version": "1.13.0",
+  "version": "<installed-version>",
   "token_saver_executable": "/path/to/token-saver",
   "root": "absolute project path",
   "config_path": "/project/.token-saver.toml",
@@ -153,8 +153,8 @@ state, not a degraded/error JSON contract.
 ```json
 {
   "schema": 1,
-  "version": "1.13.0",
-  "path": "/absolute/private/token-saver/claude-plugin/token-saver-1.13.0",
+  "version": "<installed-version>",
+  "path": "/absolute/private/token-saver/claude-plugin/token-saver-<installed-version>",
   "rendered": true
 }
 ```
