@@ -410,6 +410,7 @@ current_model = "" # optional exact model id when the host does not supply one
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
+calibration_file = ".token-saver.routing-calibration.json"
 ```
 
 Environment overrides:
@@ -420,9 +421,26 @@ Environment overrides:
 - `TOKEN_SAVER_MODEL_ROUTING_ALLOWED` (colon-separated exact model ids)
 - `TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS`
 - `TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE`
+- `TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE`
 
 `observe` computes/stores decisions without prompt injection. `advisory`
 also injects a bounded host-neutral recommendation. The Claude prompt hook
 cannot change the active top-level model; use MCP `route_task` from an
 orchestrator that can actually select a model.
 
+
+
+Routing calibration can only make policy more aggressive when a generated
+artifact passes the runtime safety floors. Create it from a frozen paired
+experiment with identical arm configuration except model choice, independent
+post-agent verification, and complete blind A/B quality grading:
+
+```bash
+token-saver experiment routing-suite.json --out routing-runs.json
+token-saver blind-grade routing-runs.json
+token-saver model-route-calibrate routing-runs.json
+```
+
+Accepted recommendations are exact-bucket exceptions, not global model
+downgrades. A missing, malformed, or below-floor artifact falls back to the
+static conservative router.
