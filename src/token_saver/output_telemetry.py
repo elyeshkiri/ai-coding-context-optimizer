@@ -520,6 +520,14 @@ def _routing_summary(records: list[dict]) -> dict:
         if isinstance(record.get("route_matched_actual"), bool)
     ]
     matched = sum(record.get("route_matched_actual") is True for record in measured)
+    projected_savings = [
+        float(record["route_projected_savings_fraction"])
+        for record in routed
+        if isinstance(record.get("route_projected_savings_fraction"), (int, float))
+        and not isinstance(record.get("route_projected_savings_fraction"), bool)
+        and math.isfinite(float(record["route_projected_savings_fraction"]))
+        and 0 <= float(record["route_projected_savings_fraction"]) <= 1
+    ]
     targets: dict[str, int] = defaultdict(int)
     actions: dict[str, int] = defaultdict(int)
     for record in routed:
@@ -532,6 +540,12 @@ def _routing_summary(records: list[dict]) -> dict:
         "measured_actual_turns": len(measured),
         "matched_actual_turns": matched,
         "match_rate": matched / len(measured) if measured else None,
+        "mean_projected_savings_fraction": (
+            sum(projected_savings) / len(projected_savings)
+            if projected_savings
+            else None
+        ),
+        "projected_savings_samples": len(projected_savings),
         "targets": dict(sorted(targets.items())),
         "actions": dict(sorted(actions.items())),
         "observational_only": True,
