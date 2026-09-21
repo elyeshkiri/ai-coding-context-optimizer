@@ -17,6 +17,11 @@ from token_saver.semantic_holdout import (
 )
 
 
+def _print_progress(message: str) -> None:
+    """Write one immediately visible holdout progress record to stderr."""
+    print(message, file=sys.stderr, flush=True)
+
+
 def main() -> int:
     """Run the semantic holdout command-line harness."""
     parser = argparse.ArgumentParser()
@@ -76,11 +81,7 @@ def main() -> int:
         ]
         result = merge_semantic_holdout_results(parts, manifest)
     else:
-        progress = (
-            lambda message: print(message, file=sys.stderr, flush=True)
-            if args.progress
-            else None
-        )
+        progress = _print_progress if args.progress else None
         result = evaluate_semantic_holdout(
             manifest.parent,
             manifest,
