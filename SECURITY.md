@@ -160,14 +160,19 @@ The analysis is local.
 
 ## Saved command output
 
-When the Claude hook safely replaces a large command result, the original can be
-stored locally so it remains recoverable.
+When the Claude hook safely replaces a large command result, the original is
+stored locally for recovery. The legacy paged-output id remains supported and
+v1.13 also emits a project-scoped `tsr_...` handle when universal recovery
+storage succeeds.
 
-Retrieve it with:
+Retrieve through either compatible path:
 
 ```bash
 token-saver output <id>
+token-saver recover tsr_... --path .
 ```
+
+MCP clients can resolve the universal handle with `recover_context`.
 
 Prune old outputs with:
 
