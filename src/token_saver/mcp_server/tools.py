@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+import base64
 from pathlib import Path
 
 from ..output_saver import build_output_policy, compact_output
@@ -13,6 +14,8 @@ from ..model_routing import (
     route_task,
 )
 from ..patch_context import build_diff_context, review_patch
+from ..prefix_cache import prefix_status
+from ..recovery import RecoveryStore
 from .contracts import McpToolContext, McpToolSpec
 from .tool_surface import ADAPTIVE_CORE, adaptive_surface_description, adaptive_tool_names
 
@@ -242,6 +245,40 @@ def _memory_get(context: McpToolContext, arguments: dict) -> list[dict]:
         [str(value) for value in ids] if isinstance(ids, list) else [],
         include_stale=bool(arguments.get("include_stale", True)),
     )
+
+
+def _recover_context(context: McpToolContext, arguments: dict) -> dict:
+    """Recover exact bytes stored before a lossy Token Saver transform."""
+    handle = str(arguments.get("handle", ""))
+    record = RecoveryStore(context.root).get(handle)
+    try:
+        text = record.payload.decode("utf-8")
+        encoding = "utf-8"
+        payload = text
+    except UnicodeDecodeError:
+        encoding = "base64"
+        payload = base64.b64encode(record.payload).decode("ascii")
+    return {
+        "handle": record.handle,
+        "content_type": record.content_type,
+        "encoding": encoding,
+        "payload": payload,
+        "size_bytes": record.size_bytes,
+        "metadata": record.metadata,
+        "access_count": record.access_count,
+    }
+
+
+def _recovery_status(context: McpToolContext, arguments: dict) -> dict:
+    """Return exact-recovery capacity metadata without source bytes."""
+    del arguments
+    return RecoveryStore(context.root).stats()
+
+
+def _prefix_status(context: McpToolContext, arguments: dict) -> dict:
+    """Return stable-prefix reuse counters without provider request content."""
+    del arguments
+    return prefix_status(context.root)
 
 
 def _discover_tools(context: McpToolContext, arguments: dict) -> dict:
@@ -597,6 +634,30 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
             _memory_get,
         ),
         McpToolSpec(
+            "recover_context",
+            "Recover exact bytes by a tsr_ recovery handle emitted by a lossy Token Saver transform.",
+            {
+                "type": "object",
+                "required": ["handle"],
+                "properties": {
+                    "handle": {"type": "string", "pattern": "^tsr_[0-9a-f]{32}$"}
+                },
+            },
+            _recover_context,
+        ),
+        McpToolSpec(
+            "recovery_status",
+            "Report project recovery-store capacity and record counts without returning source bytes.",
+            {"type": "object", "properties": {}},
+            _recovery_status,
+        ),
+        McpToolSpec(
+            "prefix_status",
+            "Report stable provider-prefix reuse counters without request content.",
+            {"type": "object", "properties": {}},
+            _prefix_status,
+        ),
+        McpToolSpec(
             "discover_tools",
             "Select a bounded specialist MCP tool set for the current task and return its schemas.",
             {
@@ -604,7 +665,7 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
                 "required": ["query"],
                 "properties": {
                     "query": {"type": "string"},
-                    "max_tools": {"type": "integer", "minimum": 6, "maximum": 24},
+                    "max_tools": {"type": "integer", "minimum": 7, "maximum": 24},
                 },
             },
             _discover_tools,
