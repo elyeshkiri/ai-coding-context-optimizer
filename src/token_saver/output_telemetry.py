@@ -524,6 +524,9 @@ def _routing_summary(records: list[dict]) -> dict:
         if isinstance(record.get("route_matched_actual"), bool)
     ]
     matched = sum(record.get("route_matched_actual") is True for record in measured)
+    calibrated = sum(
+        record.get("route_calibration_applied") is True for record in routed
+    )
     projected_savings = [
         float(record["route_projected_savings_fraction"])
         for record in routed
@@ -543,6 +546,10 @@ def _routing_summary(records: list[dict]) -> dict:
         "decisions": len(routed),
         "measured_actual_turns": len(measured),
         "matched_actual_turns": matched,
+        "calibrated_decisions": calibrated,
+        "calibrated_decision_rate": (
+            calibrated / len(routed) if routed else None
+        ),
         "match_rate": matched / len(measured) if measured else None,
         "mean_projected_savings_fraction": (
             sum(projected_savings) / len(projected_savings)
