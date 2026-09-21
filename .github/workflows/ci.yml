@@ -368,7 +368,7 @@ jobs:
 
 
   cli-corpus-v3-compare:
-    # Corpus v3 is immutable in Git. Evaluate only the frozen archive.
+    # Corpus v3 is immutable in Git. Verify raw hashes, then evaluate only those bytes.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -384,9 +384,8 @@ jobs:
           git -C /tmp/ppgranger-token-saver checkout --quiet 19d47b2cc19457c865f2414ad78f8efa80204b43
       - name: Compare both engines on untouched frozen corpus v3
         run: |
-          python scripts/evaluate_cli_output_real_archive.py \
-            --archive benchmarks/cli-output-real-v3/corpus.zip \
-            --freeze benchmarks/cli-output-real-v3/freeze.json \
+          python scripts/evaluate_cli_output_real_corpus.py \
+            --corpus benchmarks/cli-output-real-v3 \
             --ppgranger-path /tmp/ppgranger-token-saver \
             --ppgranger-sha 19d47b2cc19457c865f2414ad78f8efa80204b43 \
             --out cli-output-real-v3-comparison.json
