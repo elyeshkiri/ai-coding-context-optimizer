@@ -6,10 +6,17 @@ import json
 
 import pytest
 
-from token_saver.command_handlers.model_routing import model_route_main
+from token_saver.command_handlers.model_routing import (
+    model_route_calibrate_main,
+    model_route_main,
+)
 from token_saver.hook import _config_from_env, run_user_prompt
 from token_saver.model_routing import (
+    MIN_CALIBRATION_PAIRS,
+    MIN_CALIBRATION_TASKS,
     automatic_model_route,
+    calibrate_model_routing,
+    load_routing_calibration,
     route_task,
 )
 from token_saver.runtime_config import settings_for
@@ -300,3 +307,216 @@ allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
     assert "TOKEN SAVER MODEL ROUTE" in context
     assert "claude-haiku-4-5" in context
     assert "cannot switch the active top-level model itself" in context
+
+
+
+def _routing_calibration_manifest(tmp_path, *, degrade_quality=False, regress=False):
+    """Write strict paired Sonnet-vs-Haiku debugging evidence."""
+    quality = {
+        "correctness": 5,
+        "completeness": 5,
+        "actionability": 5,
+        "safety": 5,
+        "concision": 5,
+    }
+    tasks = []
+    runs = []
+    pair_count = 0
+    for task_index in range(MIN_CALIBRATION_TASKS):
+        task_id = f"debug-{task_index}"
+        prompt = f"Debug the failing request handler case {task_index}."
+        tasks.append({"id": task_id, "prompt": prompt})
+        for trial in range(1, 3):
+            pair_count += 1
+            baseline_quality = dict(quality)
+            candidate_quality = dict(quality)
+            if degrade_quality and task_index == 0 and trial == 1:
+                candidate_quality["correctness"] = 4
+            candidate_success = not (
+                regress and task_index == 0 and trial == 1
+            )
+            runs.extend(
+                [
+                    {
+                        "task": task_id,
+                        "trial": trial,
+                        "condition": "baseline",
+                        "model": "claude-sonnet-5",
+                        "actual_models": ["claude-sonnet-5"],
+                        "success": True,
+                        "quality": baseline_quality,
+                        "blocker": False,
+                    },
+                    {
+                        "task": task_id,
+                        "trial": trial,
+                        "condition": "enabled",
+                        "model": "claude-haiku-4-5",
+                        "actual_models": ["claude-haiku-4-5"],
+                        "success": candidate_success,
+                        "quality": candidate_quality,
+                        "blocker": False,
+                    },
+                ]
+            )
+    assert pair_count == MIN_CALIBRATION_PAIRS
+    payload = {
+        "protocol": {
+            "task_definitions_frozen": True,
+            "condition_order_randomized": True,
+            "independent_verification": True,
+            "history_isolated": True,
+            "hidden_tests_after_agent": True,
+        },
+        "tasks": tasks,
+        "quality_evaluation": {
+            "blinded": True,
+            "judge": "independent-blind-grader",
+            "pair_count": pair_count,
+            "completed_pairs": pair_count,
+        },
+        "runs": runs,
+    }
+    path = tmp_path / "routing-runs.json"
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
+
+
+def test_quality_gated_calibration_can_promote_exact_debug_bucket(tmp_path):
+    """Strong paired evidence may admit Haiku only for the exact proven bucket."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    artifact = calibrate_model_routing(manifest)
+
+    assert len(artifact["recommendations"]) == 1
+    recommendation = artifact["recommendations"][0]
+    assert recommendation["task"] == "debugging"
+    assert recommendation["risk_level"] == "normal"
+    assert recommendation["baseline_model"] == "claude-sonnet-5"
+    assert recommendation["candidate_model"] == "claude-haiku-4-5"
+    assert recommendation["pairs"] == MIN_CALIBRATION_PAIRS
+    assert recommendation["tasks"] == MIN_CALIBRATION_TASKS
+    assert recommendation["regressions"] == 0
+
+    decision = route_task(
+        "Debug the failing request handler case 99.",
+        input_tokens=1500,
+        output_tokens=500,
+        calibration=artifact,
+    )
+    assert decision.selected_model == "claude-haiku-4-5"
+    assert decision.calibration_applied is True
+    assert decision.calibrated_models == ("claude-haiku-4-5",)
+    assert "quality_gated_calibration_applied" in decision.reasons
+
+    unrelated = route_task(
+        "Review the failing request handler case 99.",
+        input_tokens=1500,
+        output_tokens=500,
+        calibration=artifact,
+    )
+    assert unrelated.selected_model == "claude-sonnet-5"
+    assert unrelated.calibration_applied is False
+
+
+def test_calibration_rejects_any_baseline_to_candidate_success_regression(tmp_path):
+    """One independently verified lost success blocks the whole bucket promotion."""
+    manifest = _routing_calibration_manifest(tmp_path, regress=True)
+    artifact = calibrate_model_routing(manifest)
+
+    assert artifact["recommendations"] == []
+    group = artifact["groups"][0]
+    assert group["regressions"] == 1
+    assert "task_success_regression" in group["rejection_reasons"]
+
+
+def test_calibration_rejects_blind_quality_regression(tmp_path):
+    """A material pair-level blind correctness drop blocks promotion."""
+    manifest = _routing_calibration_manifest(tmp_path, degrade_quality=True)
+    artifact = calibrate_model_routing(manifest)
+
+    assert artifact["recommendations"] == []
+    assert "blind_quality_regression" in artifact["groups"][0]["rejection_reasons"]
+
+
+def test_calibration_requires_transcript_confirmed_model_identity(tmp_path):
+    """Declared provider models are not enough to train routing policy."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["runs"][1]["actual_models"] = ["claude-sonnet-5"]
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="does not match transcript actual model"):
+        calibrate_model_routing(manifest)
+
+
+def test_runtime_loader_rejects_hand_weakened_calibration_artifact(tmp_path):
+    """Editing evidence counts below hard floors must fail closed at runtime."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    artifact = calibrate_model_routing(manifest)
+    artifact["recommendations"][0]["pairs"] = 1
+    path = tmp_path / "weak-calibration.json"
+    path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="below safety floors"):
+        load_routing_calibration(path)
+
+
+def test_calibration_requires_frozen_independent_blind_evidence(tmp_path):
+    """Unblinded or non-independent experiments must never relax model policy."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["protocol"]["independent_verification"] = False
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="protocol gates"):
+        calibrate_model_routing(manifest)
+
+    manifest = _routing_calibration_manifest(tmp_path)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["quality_evaluation"]["blinded"] = False
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="blinded quality evidence"):
+        calibrate_model_routing(manifest)
+
+
+def test_model_route_calibrate_cli_writes_reusable_artifact(tmp_path, capsys):
+    """The CLI should produce the exact artifact consumed by runtime routing."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    artifact = tmp_path / "routing-calibration.json"
+
+    assert model_route_calibrate_main(
+        [str(manifest), "--out", str(artifact)]
+    ) == 0
+    output = capsys.readouterr().out
+    assert "1 accepted routing bucket" in output
+
+    loaded = load_routing_calibration(artifact)
+    decision = route_task(
+        "Debug the failing request handler case 100.",
+        calibration=loaded,
+    )
+    assert decision.selected_model == "claude-haiku-4-5"
+    assert decision.calibration_applied is True
+
+
+def test_model_route_cli_can_apply_calibration_file(tmp_path, capsys):
+    """Human/script routing should consume the same calibrated policy as hooks/MCP."""
+    manifest = _routing_calibration_manifest(tmp_path)
+    artifact = tmp_path / "routing-calibration.json"
+    artifact.write_text(
+        json.dumps(calibrate_model_routing(manifest)),
+        encoding="utf-8",
+    )
+
+    assert model_route_main(
+        [
+            "Debug the failing request handler case 101.",
+            "--calibration-file",
+            str(artifact),
+            "--json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["selected_model"] == "claude-haiku-4-5"
+    assert payload["calibration_applied"] is True
