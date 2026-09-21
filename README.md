@@ -97,6 +97,7 @@ Turn local Token Saver evidence into a practical optimization report:
 token-saver cost-advisor .
 token-saver cost-advisor . --project-only --json
 token-saver pricing --model claude-sonnet-5
+token-saver model-route "Debug this failing authentication handler" --json
 token-saver cost-advisor . \
   --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json
 ```
@@ -105,6 +106,14 @@ The advisor scores only categories with enough evidence and reports score
 coverage separately. It combines measured always-on context, Claude transcript
 usage/cache counters, output-budget fit, continuity/waste signals, and observed
 before/after tool-context reductions.
+
+Automatic model-routing intelligence is available through the CLI, MCP
+`route_task`, and the opt-in Claude prompt hook. Routing first applies a
+deterministic task/complexity/risk capability floor, then selects the cheapest
+eligible profiled model from the fresh built-in pricing registry. Claude's hook
+can advise and measure the decision; model-selectable orchestrators can execute
+it directly through MCP. The built-in capability profiles are conservative
+product policy, not a benchmark ranking of model quality.
 
 Pricing is deliberately explicit: dollar usage is calculated only from an
 explicit exact-model rates source. Pass `--rates builtin` to use Token Saver's
