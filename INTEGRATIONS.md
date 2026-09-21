@@ -56,19 +56,24 @@ The MCP process is local and uses newline-delimited JSON-RPC over stdio:
 token-saver serve /absolute/path/to/project
 ```
 
-Available MCP tools:
+The default `full` profile exposes repository context, ranking/impact,
+semantic-index, patch review, output policy, model routing, and persistent-memory
+tools. Persistent memory uses a progressive contract:
 
-- `build_context`
-- `find_symbol`
-- `analyze_change_impact`
-- `build_diff_context`
-- `review_diff`
-- `report_context_feedback`
-- `index_status`
-- `refresh_index`
-- `output_policy`
-- `route_task`
-- `compact_output`
+- `memory_index` — compact ids/claims/types/scores;
+- `memory_search` — bounded snippets for relevance confirmation;
+- `memory_get` — full records by selected id;
+- `remember_memory` — typed evidence-backed project memory.
+
+Existing `remember_finding`, `recall_findings`, and `knowledge_status`
+remain supported.
+
+For lower recurring tool-schema cost, set `[mcp] profile = "adaptive"` in
+`.token-saver.toml` or export `TOKEN_SAVER_MCP_PROFILE=adaptive`. The initial
+surface stays small and includes `discover_tools`; a discovery call selects
+bounded specialist groups for the current task, returns their exact schemas, and
+expands subsequent `tools/list` responses. Set `profile = "full"` at any time
+for the backward-compatible complete surface.
 
 Call `refresh_index` after external file changes when a long-running server must
 see the new source immediately. Context generation otherwise reuses the current
