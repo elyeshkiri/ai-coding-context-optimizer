@@ -136,7 +136,7 @@ def test_lint_processor_preserves_failure_locations():
         exit_code=1,
         min_reduction=0.0,
     )
-    assert result.processor == "lint"
+    assert result.processor == "ruff"
     assert result.failed is True
     assert "src/app.py:42:5" in result.text
     assert "F821" in result.text
@@ -155,7 +155,7 @@ def test_typecheck_processor_preserves_ts_diagnostics():
         exit_code=2,
         min_reduction=0.0,
     )
-    assert result.processor == "typecheck"
+    assert result.processor == "tsc"
     assert "TS2322" in result.text
 
 
@@ -172,7 +172,7 @@ def test_compiled_test_processor_preserves_go_failure_summary():
         exit_code=1,
         min_reduction=0.0,
     )
-    assert result.processor == "compiled-test"
+    assert result.processor == "go-test"
     assert "--- FAIL: TestRefresh" in result.text
     assert "FAIL example/auth" in result.text
 
@@ -191,7 +191,7 @@ def test_build_processor_keeps_compiler_error():
         exit_code=101,
         min_reduction=0.0,
     )
-    assert result.processor == "build"
+    assert result.processor == "cargo-build"
     assert "cannot find value" in result.text
     assert "src/main.rs:18:9" in result.text
 
