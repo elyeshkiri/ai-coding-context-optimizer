@@ -9,6 +9,7 @@ import sys
 
 from ..cache_economics import assess_context_rewrite
 from ..efficiency import continuity_report, dashboard_report
+from ..efficiency.advisor import advisor_report
 from ..efficiency.dashboard import render_dashboard_html
 
 
@@ -78,6 +79,86 @@ def dashboard_main(argv: list[str]) -> int:
     if args.html:
         print(f"html: {Path(args.html).expanduser().resolve()}")
     return 0
+
+
+
+def cost_advisor_main(argv: list[str]) -> int:
+    """Show measured local cost intelligence and prioritized efficiency actions."""
+    parser = argparse.ArgumentParser(prog="token-saver cost-advisor")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--days", type=int, default=7)
+    parser.add_argument(
+        "--rates",
+        type=Path,
+        help="explicit exact-model USD-per-million pricing JSON",
+    )
+    parser.add_argument(
+        "--project-only",
+        action="store_true",
+        help="exclude user-scope Claude instructions from the context audit",
+    )
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        report = advisor_report(
+            Path(args.path),
+            days=args.days,
+            rates_path=args.rates,
+            user_scope=not args.project_only,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    score = report["score"]
+    grade = score["grade"] or "insufficient evidence"
+    print(f"TOKEN SAVER COST ADVISOR — {report['window_days']} days")
+    print(
+        f"efficiency score: {score['percent']:.1f}% ({grade}); "
+        f"evidence coverage {score['coverage']:.0%}"
+    )
+    print(f"always-on context: {_tokens(report['context']['always_on_tokens'])} tokens")
+    print(
+        "estimated tool-context saved: "
+        f"{_tokens(report['savings']['estimated_tool_context_tokens'])} tokens"
+    )
+    cost = report["cost"]
+    if cost["usd"] is not None:
+        print(f"observed usage cost: USD {cost['usd']:.4f} (complete)")
+    elif cost["priced_usd"] is not None:
+        print(
+            f"observed usage cost: USD {cost['priced_usd']:.4f} partial "
+            f"({cost['priced_turns']}/{cost['measured_turns']} turns priced)"
+        )
+    else:
+        print("observed usage cost: not priced")
+    print("score breakdown:")
+    for category in score["categories"]:
+        if category["available"]:
+            print(
+                f"  {category['name']:<25} "
+                f"{category['score']:>5}/{category['weight']}"
+            )
+        else:
+            print(f"  {category['name']:<25}   n/a  ({category['reason']})")
+    print("next actions:")
+    if not report["recommendations"]:
+        print("  none from current evidence")
+    for item in report["recommendations"]:
+        print(
+            f"  [{item['priority']}] {item['action']} "
+            f"— {item['evidence']}"
+        )
+    print(
+        "evidence: measured usage/context is separate from estimated savings; "
+        "no task-success or end-to-end cost claim"
+    )
+    return 0
+
 
 
 def continuity_main(argv: list[str]) -> int:
