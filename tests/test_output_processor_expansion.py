@@ -158,7 +158,7 @@ def test_git_log_compacts_short_verbose_history():
     assert result.compressed is True
     assert "67b2c050" in result.text
     assert "initial capture fixture" in result.text
-    assert "1 file changed, 3 insertions(+)" in result.text
+    assert "[+3]" in result.text
     assert "Author:" not in result.text
     assert "Date:" not in result.text
 
@@ -183,9 +183,9 @@ def test_git_status_drops_hints_and_keeps_staging_semantics():
     assert result.processor == "git-status"
     assert result.compressed is True
     assert "On branch feature/status" in result.text
-    assert "staged modified: staged.py" in result.text
-    assert "unstaged deleted: removed.py" in result.text
-    assert "untracked: fresh.py" in result.text
+    assert "S modified: staged.py" in result.text
+    assert "U deleted: removed.py" in result.text
+    assert "? fresh.py" in result.text
     assert "(use " not in result.text
 
 
@@ -258,3 +258,96 @@ def test_go_test_runtime_failure_preserves_test_and_location():
     assert "--- FAIL: TestRefresh (0.00s)" in result.text
     assert "sample_test.go:8: expected 200, got 401" in result.text
     assert "FAIL\texample.com/corpus/auth\t0.003s" in result.text
+
+
+
+def test_git_log_stat_compacts_each_commit_without_dropping_counts():
+    """Verbose stat logs should keep subjects and compact per-commit change totals."""
+    text = (
+        "commit aaaaaaaa11111111111111111111111111111111 (HEAD -> feature/v3, main)\n"
+        "Author: Example <example@example.com>\n"
+        "Date:   Mon Sep 7 10:00:00 2026 +0000\n\n"
+        "    tune parser\n\n"
+        " src/a.py | 3 ++-\n"
+        " 1 file changed, 2 insertions(+), 1 deletion(-)\n\n"
+        "commit bbbbbbbb22222222222222222222222222222222\n"
+        "Author: Example <example@example.com>\n"
+        "Date:   Sun Sep 6 10:00:00 2026 +0000\n\n"
+        "    add fixtures\n\n"
+        " tests/a.py | 4 ++++\n"
+        " tests/b.py | 2 ++\n"
+        " 2 files changed, 6 insertions(+)\n"
+    )
+    result = process_output(
+        text,
+        "git log --decorate --stat -2",
+        min_reduction=0.0,
+    )
+    assert result.processor == "git-log"
+    assert result.compressed is True
+    assert "aaaaaaaa [HEAD>feature/v3,main] tune parser [+2 -1]" in result.text
+    assert "bbbbbbbb add fixtures [2f +6]" in result.text
+    assert "Author:" not in result.text
+    assert "src/a.py |" not in result.text
+
+
+def test_git_log_without_stat_does_not_invent_change_totals():
+    """Log compression should only emit compact stats when the command requested them."""
+    text = (
+        "commit cccccccc33333333333333333333333333333333\n"
+        "Author: Example <example@example.com>\n"
+        "Date:   Tue Sep 8 10:00:00 2026 +0000\n\n"
+        "    plain subject\n\n"
+        " src/a.py | 1 +\n"
+        " 1 file changed, 1 insertion(+)\n"
+    )
+    result = process_output(text, "git log -1", min_reduction=0.0)
+    assert result.processor == "git-log"
+    assert result.compressed is True
+    assert result.text == "cccccccc plain subject\n"
+
+
+def test_git_status_short_branch_routes_to_status_not_branch():
+    """The --branch option on git status must not be mistaken for git branch."""
+    text = (
+        "## feature/v3...origin/feature/v3 [ahead 2]\n"
+        " M src/app.py\n"
+        "A  src/new.py\n"
+        "?? notes/\n"
+    )
+    info = explain_processor("git status --short --branch", exit_code=0)
+    assert info["processor"] == "git-status"
+    result = process_output(
+        text,
+        "git status --short --branch",
+        exit_code=0,
+        min_reduction=0.0,
+    )
+    assert result.processor == "git-status"
+    assert "## feature/v3...origin/feature/v3 [ahead 2]" in result.text
+    assert " M src/app.py" in result.text
+    assert "A  src/new.py" in result.text
+    assert "?? notes/" in result.text
+
+
+def test_git_status_long_uses_compact_state_prefixes():
+    """Long status keeps exact state wording with one-character stage prefixes."""
+    text = (
+        "On branch feature/v3\n"
+        "Changes to be committed:\n"
+        "        renamed:    src/old.py -> src/new.py\n"
+        "        modified:   src/staged.py\n"
+        "Changes not staged for commit:\n"
+        "        deleted:    docs/old.md\n"
+        "        modified:   src/live.py\n"
+        "Untracked files:\n"
+        "        notes/todo.txt\n"
+    )
+    result = process_output(text, "git status", min_reduction=0.0)
+    assert result.processor == "git-status"
+    assert result.compressed is True
+    assert "S renamed: src/old.py -> src/new.py" in result.text
+    assert "S modified: src/staged.py" in result.text
+    assert "U deleted: docs/old.md" in result.text
+    assert "U modified: src/live.py" in result.text
+    assert "? notes/todo.txt" in result.text
