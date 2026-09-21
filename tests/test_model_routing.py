@@ -432,7 +432,7 @@ def test_quality_gated_calibration_can_promote_exact_debug_bucket(tmp_path):
     assert "quality_gated_calibration_applied" in decision.reasons
 
     unrelated = route_task(
-        "Review the failing request handler case 99.",
+        "Review this pull request for maintainability and API consistency.",
         input_tokens=1500,
         output_tokens=500,
         calibration=artifact,
