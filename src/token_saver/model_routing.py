@@ -17,6 +17,7 @@ from .efficiency.store import append_event
 from .estimate import estimate_tokens
 from .generation_policy import classify_output_task
 from .output_budget import adaptive_output_budget
+from .output_saver import OUTPUT_TASKS
 from .policy import looks_like_new_task
 from .pricing import builtin_rates
 from .state import load as load_state
@@ -200,6 +201,7 @@ def route_task(
     allowed_models: tuple[str, ...] | list[str] | None = None,
     min_savings: float = 0.05,
     conservative: bool = True,
+    task_override: str | None = None,
 ) -> ModelRouteDecision:
     """Choose the cheapest model that first satisfies capability rules."""
     if isinstance(input_tokens, bool) or (
@@ -213,7 +215,12 @@ def route_task(
     if not 0 <= min_savings <= 1:
         raise ValueError("min_savings must be between 0 and 1")
 
-    task = classify_output_task(prompt) or "general"
+    if task_override is not None:
+        task = task_override.strip().lower()
+        if task not in OUTPUT_TASKS:
+            raise ValueError(f"unknown routing task override: {task_override}")
+    else:
+        task = classify_output_task(prompt) or "general"
     budget = adaptive_output_budget(prompt, task=task, mode="normal")
     complexity = budget.complexity_tier
     risk_level, risk_signals = _risk(prompt)
@@ -395,6 +402,15 @@ def automatic_model_route(
             "unknown model routing mode; expected one of: "
             + ", ".join(ROUTING_MODES)
         )
+    previous = load_state(root, session_id).get("model_route")
+    previous = previous if isinstance(previous, dict) else {}
+    new_task = looks_like_new_task(prompt)
+    detected_task = classify_output_task(prompt)
+    inherited_task = (
+        str(previous.get("task") or "")
+        if detected_task is None and not new_task
+        else ""
+    )
     try:
         decision = route_task(
             prompt,
@@ -402,6 +418,11 @@ def automatic_model_route(
             allowed_models=allowed_models,
             min_savings=min_savings,
             conservative=conservative,
+            task_override=(
+                inherited_task
+                if inherited_task in OUTPUT_TASKS
+                else detected_task
+            ),
         )
     except ValueError as exc:
         append_event(
@@ -418,12 +439,7 @@ def automatic_model_route(
         f"{decision.task}:{decision.complexity_tier}:"
         f"{decision.minimum_capability}:{decision.selected_model}:{decision.action}"
     )
-    previous = load_state(root, session_id).get("model_route")
-    previous = previous if isinstance(previous, dict) else {}
-    repeated = (
-        previous.get("signature") == signature
-        and not looks_like_new_task(prompt)
-    )
+    repeated = previous.get("signature") == signature and not new_task
 
     def mutate(data: dict) -> None:
         data["model_route"] = {
