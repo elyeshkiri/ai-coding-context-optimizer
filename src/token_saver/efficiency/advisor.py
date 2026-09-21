@@ -302,6 +302,42 @@ def _recommendations(audit_report, dashboard: dict, signals: dict, score: dict, 
             if count:
                 items.append(("high" if feature == "retry_loop" else "medium", "reduce-" + feature.replace("_", "-"), f"{feature.replace('_', ' ')}: {count} signal(s)", action))
 
+    routing = dashboard.get("model_routing", {})
+    route_decisions = _num(routing.get("decisions"))
+    route_measured = _num(routing.get("measured_actual_turns"))
+    match_rate = routing.get("match_rate")
+    if (
+        route_decisions >= 5
+        and route_measured >= 5
+        and isinstance(match_rate, (int, float))
+        and not isinstance(match_rate, bool)
+        and float(match_rate) < 0.50
+    ):
+        items.append(
+            (
+                "medium",
+                "wire-model-route-action",
+                f"route target matched actual model on {float(match_rate):.1%} of measured routed turns",
+                "Use the route_task MCP decision in a model-selectable orchestrator; Claude prompt hooks are advisory only.",
+            )
+        )
+    projected = routing.get("mean_projected_savings_fraction")
+    projected_samples = _num(routing.get("projected_savings_samples"))
+    if (
+        projected_samples >= 3
+        and isinstance(projected, (int, float))
+        and not isinstance(projected, bool)
+        and float(projected) >= 0.20
+    ):
+        items.append(
+            (
+                "medium",
+                "review-model-routing-opportunity",
+                f"fresh-input one-turn projected switch savings average {float(projected):.1%} across {projected_samples} routed turns",
+                "Review model-route decisions and validate task success before enabling stronger automatic host actions.",
+            )
+        )
+
     if not rates_supplied:
         items.append(("info", "supply-pricing", "No exact-model pricing file supplied", "Pass --rates FILE to price measured usage; Token Saver will not guess model prices."))
     elif not cost.get("complete") and cost.get("measured_turns"):
@@ -370,6 +406,7 @@ def advisor_report(root: Path, *, days: int = 7, rates_path: str | Path | None =
         },
         "behavior": dashboard["behavior"],
         "continuity": dashboard["continuity"],
+        "model_routing": dashboard["model_routing"],
         "recommendations": _recommendations(
             audited, dashboard, telemetry.get("signals", {}), score, cost, rates is not None
         ),
@@ -379,9 +416,17 @@ def advisor_report(root: Path, *, days: int = 7, rates_path: str | Path | None =
                 "Claude transcript usage/cache counters",
                 "exact model ids on single-model turns",
                 "waste and continuity events",
+                "route target versus actual model when transcript usage is available",
             ],
             "estimated": ["tool-context tokens saved from observed before/after text"],
-            "projected": ["fresh-input-once scenario from explicit rates"] if projection else [],
+            "projected": (
+                [
+                    "fresh-input-once scenario from explicit rates",
+                    "model-route one-turn switch economics when current model is configured",
+                ]
+                if projection or dashboard["model_routing"].get("projected_savings_samples")
+                else []
+            ),
             "not_claimed": [
                 "task success",
                 "quality preservation from operational telemetry",
