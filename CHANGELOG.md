@@ -1,5 +1,19 @@
 # Unreleased
 
+- **Added bounded multi-view semantic query fusion for long prompts.** The full
+  user query remains authoritative, while long multi-clause prompts can add up
+  to two deterministic subviews made only from exact vocabulary already present
+  in the prompt. Per-view chunk rankings are fused with weighted reciprocal-rank
+  evidence, reducing whole-prompt semantic dilution without generated synonyms,
+  inferred identifiers, or repository-specific query expansion.
+- **Kept semantic persistence and exact-source authority unchanged.** Each
+  deterministic query view reuses the existing persistent query-vector cache;
+  short prompts remain on the historical single-vector path, and final context
+  still comes from current repository bytes. These mechanism tests do not make a
+  new external semantic-recall claim: burned holdout #13 is not used for tuning,
+  and a fresh no-identifier-leakage holdout #14 is required before publishing
+  generalization results.
+
 # 1.11.0 - 2026-09-21
 
 - **Expanded CLI output compression from 12 to 40 built-in processors.**

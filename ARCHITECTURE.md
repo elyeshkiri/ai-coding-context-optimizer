@@ -659,3 +659,14 @@ behavior or duplicating repository logic.
 `tests/test_ranking_calibration_workflow.py`, and `tests/test_documentation.py`
 lock in these extension seams and public documentation contracts so future
 features can grow without silently breaking discoverability or evidence links.
+
+### Semantic query views
+
+When optional semantic retrieval is enabled, concise prompts use one persistent
+query vector. Long prompts can add at most two deterministic views extracted
+from clauses or overlapping word windows. Views contain only original user-query
+vocabulary; no model-generated expansion or repository identifier is introduced.
+Each view is retrieved independently through the same SQLite/HNSW index and
+persistent query-vector cache, then fused with weighted reciprocal rank before
+the existing non-overlapping chunk aggregation and bounded graph expansion.
+Exact source remains the only rendering authority.

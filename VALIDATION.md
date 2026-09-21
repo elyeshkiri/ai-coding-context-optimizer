@@ -1,5 +1,12 @@
 # Validation for 1.11.0
 
+The current unreleased semantic-query ensemble is validated mechanically only.
+Long prompts may use the full query plus at most two deterministic exact-vocabulary
+subviews, fused before the existing file-level semantic stage. Short prompts
+remain single-view and warm query vectors remain persistent. Burned semantic
+holdout #13 is not used to tune or score this change; a fresh frozen
+no-identifier-leakage holdout #14 is required for a new external claim.
+
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
 

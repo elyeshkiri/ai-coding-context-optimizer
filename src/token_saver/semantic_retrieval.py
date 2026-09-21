@@ -13,10 +13,12 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import sqlite3
 from typing import Protocol
 
+from .lexical import terms
 from .repo_index import RepositoryIndex
 from .state import state_dir
 
@@ -29,6 +31,161 @@ DEFAULT_MIN_SCORE = 0.12
 MAX_EMBED_CHARS = 12000
 SYMBOL_CONTEXT_LINES = 3
 MAX_SYMBOL_CHUNK_LINES = 96
+MAX_QUERY_VIEWS = 3
+QUERY_VIEW_MIN_TERMS = 5
+QUERY_VIEW_LONG_TERMS = 24
+QUERY_FUSION_K = 60.0
+
+
+def _normalize_query_view(value: str) -> str:
+    """Collapse whitespace without inventing or rewriting query vocabulary."""
+    return " ".join(value.split()).strip()
+
+
+def _semantic_query_views(
+    query: str,
+    *,
+    max_views: int = MAX_QUERY_VIEWS,
+) -> list[str]:
+    """Return bounded exact-vocabulary semantic views of one user query.
+
+    The full query is always first. Long multi-clause prompts additionally
+    contribute their strongest clauses. A long single-clause prompt falls back
+    to overlapping front/back word windows. Every added view consists only of
+    words already present in the original query, so this stage cannot inject
+    repository identifiers or model-generated expansion terms.
+    """
+    if max_views <= 0:
+        raise ValueError("semantic max query views must be positive")
+    normalized = _normalize_query_view(query)
+    if not normalized:
+        return []
+
+    views = [normalized]
+    if max_views == 1:
+        return views
+
+    lexical_terms = terms(normalized)
+    if len(set(lexical_terms)) < QUERY_VIEW_MIN_TERMS:
+        return views
+
+    raw_parts = re.split(r"(?:\n+|(?<=[.!?;])\s+)", query)
+    candidates: list[tuple[int, int, int, str]] = []
+    seen = {normalized.casefold()}
+    for position, raw in enumerate(raw_parts):
+        value = _normalize_query_view(raw)
+        if not value or value.casefold() in seen:
+            continue
+        distinct = len(set(terms(value)))
+        if distinct < QUERY_VIEW_MIN_TERMS or len(value) < 24:
+            continue
+        candidates.append((-distinct, -len(value), position, value))
+
+    for _neg_terms, _neg_len, _position, value in sorted(candidates):
+        key = value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        views.append(value)
+        if len(views) >= max_views:
+            return views
+
+    # A single long sentence can still contain semantically distinct beginning
+    # and ending concepts. Use overlapping exact word windows rather than an
+    # inferred summary or generated rewrite.
+    if len(views) == 1 and len(lexical_terms) >= QUERY_VIEW_LONG_TERMS:
+        words = normalized.split()
+        window_size = max(12, math.ceil(len(words) * 0.60))
+        if window_size < len(words):
+            for window in (words[:window_size], words[-window_size:]):
+                value = " ".join(window)
+                key = value.casefold()
+                if key in seen:
+                    continue
+                seen.add(key)
+                views.append(value)
+                if len(views) >= max_views:
+                    break
+    return views
+
+
+def _semantic_hit_key(hit: SemanticHit) -> tuple[str, int, int, str]:
+    """Return stable identity for one semantic chunk hit across query views."""
+    return (
+        hit.path,
+        hit.start_line,
+        hit.end_line,
+        hit.symbol or "",
+    )
+
+
+def _fuse_query_view_hits(
+    hit_lists: list[list[SemanticHit]],
+    *,
+    top_k: int,
+) -> list[SemanticHit]:
+    """Fuse per-view chunk ranks with weighted reciprocal-rank fusion."""
+    if not hit_lists:
+        return []
+    if len(hit_lists) == 1:
+        return hit_lists[0][:top_k]
+
+    aggregated: dict[
+        tuple[str, int, int, str],
+        dict[str, object],
+    ] = {}
+    for view_index, hits in enumerate(hit_lists):
+        weight = 1.0 if view_index == 0 else 0.90
+        for hit in hits:
+            key = _semantic_hit_key(hit)
+            state = aggregated.setdefault(
+                key,
+                {
+                    "rrf": 0.0,
+                    "best_score": hit.score,
+                    "best_rank": hit.rank,
+                    "hit": hit,
+                    "views": set(),
+                },
+            )
+            state["rrf"] = float(state["rrf"]) + (
+                weight / (QUERY_FUSION_K + hit.rank)
+            )
+            state["best_rank"] = min(int(state["best_rank"]), hit.rank)
+            if hit.score > float(state["best_score"]):
+                state["best_score"] = hit.score
+                state["hit"] = hit
+            views = state["views"]
+            assert isinstance(views, set)
+            views.add(view_index)
+
+    ordered = sorted(
+        aggregated.values(),
+        key=lambda state: (
+            -float(state["rrf"]),
+            -float(state["best_score"]),
+            int(state["best_rank"]),
+            _semantic_hit_key(state["hit"]),
+        ),
+    )
+    fused: list[SemanticHit] = []
+    for rank, state in enumerate(ordered[:top_k], start=1):
+        best = state["hit"]
+        assert isinstance(best, SemanticHit)
+        views = state["views"]
+        assert isinstance(views, set)
+        fused.append(
+            SemanticHit(
+                path=best.path,
+                start_line=best.start_line,
+                end_line=best.end_line,
+                score=float(state["best_score"]),
+                rank=rank,
+                symbol=best.symbol,
+                query_views=len(views),
+            )
+        )
+    return fused
 
 
 class Encoder(Protocol):
@@ -49,6 +206,7 @@ class SemanticHit:
     score: float
     rank: int
     symbol: str | None = None
+    query_views: int = 1
 
     def evidence(self) -> str:
         """Return compact human-readable ranking evidence."""
@@ -749,6 +907,69 @@ class SemanticVectorIndex:
             )
         return hits
 
+    def _query_exact(
+        self,
+        conn: sqlite3.Connection,
+        query_vector: list[float],
+        *,
+        top_k: int,
+        min_score: float,
+    ) -> list[SemanticHit]:
+        """Return deterministic exact-cosine hits for one query vector."""
+        scored: list[tuple[float, sqlite3.Row]] = []
+        for row in conn.execute(
+            """
+            SELECT path, start_line, end_line, symbol, vector_json
+            FROM chunks
+            """
+        ):
+            vector = [float(value) for value in json.loads(row["vector_json"])]
+            score = _cosine(query_vector, vector)
+            if score >= min_score:
+                scored.append((score, row))
+        scored.sort(
+            key=lambda pair: (
+                -pair[0],
+                str(pair[1]["path"]),
+                int(pair[1]["start_line"]),
+            )
+        )
+        return [
+            SemanticHit(
+                path=str(row["path"]),
+                start_line=int(row["start_line"]),
+                end_line=int(row["end_line"]),
+                score=float(score),
+                rank=rank,
+                symbol=str(row["symbol"]) if row["symbol"] else None,
+            )
+            for rank, (score, row) in enumerate(scored[:top_k], start=1)
+        ]
+
+    def _query_single(
+        self,
+        conn: sqlite3.Connection,
+        query_vector: list[float],
+        *,
+        top_k: int,
+        min_score: float,
+    ) -> list[SemanticHit]:
+        """Return ANN or exact-cosine hits for one semantic query view."""
+        ann_hits = self._query_ann(
+            conn,
+            query_vector,
+            top_k=top_k,
+            min_score=min_score,
+        )
+        if ann_hits is not None:
+            return ann_hits
+        return self._query_exact(
+            conn,
+            query_vector,
+            top_k=top_k,
+            min_score=min_score,
+        )
+
     def query(
         self,
         query: str,
@@ -761,47 +982,27 @@ class SemanticVectorIndex:
             raise ValueError("semantic top_k must be positive")
         if not -1.0 <= min_score <= 1.0:
             raise ValueError("semantic min_score must be between -1 and 1")
+        views = _semantic_query_views(query)
+        if not views:
+            return []
         self.sync()
         conn = _connect(self.path)
         try:
-            query_vector = self._query_vector(conn, query)
-            ann_hits = self._query_ann(
-                conn,
-                query_vector,
+            per_view_hits: list[list[SemanticHit]] = []
+            for view in views:
+                query_vector = self._query_vector(conn, view)
+                per_view_hits.append(
+                    self._query_single(
+                        conn,
+                        query_vector,
+                        top_k=top_k,
+                        min_score=min_score,
+                    )
+                )
+            return _fuse_query_view_hits(
+                per_view_hits,
                 top_k=top_k,
-                min_score=min_score,
             )
-            if ann_hits is not None:
-                return ann_hits
-            scored: list[tuple[float, sqlite3.Row]] = []
-            for row in conn.execute(
-                """
-                SELECT path, start_line, end_line, symbol, vector_json
-                FROM chunks
-                """
-            ):
-                vector = [float(value) for value in json.loads(row["vector_json"])]
-                score = _cosine(query_vector, vector)
-                if score >= min_score:
-                    scored.append((score, row))
-            scored.sort(
-                key=lambda pair: (
-                    -pair[0],
-                    str(pair[1]["path"]),
-                    int(pair[1]["start_line"]),
-                )
-            )
-            return [
-                SemanticHit(
-                    path=str(row["path"]),
-                    start_line=int(row["start_line"]),
-                    end_line=int(row["end_line"]),
-                    score=float(score),
-                    rank=rank,
-                    symbol=str(row["symbol"]) if row["symbol"] else None,
-                )
-                for rank, (score, row) in enumerate(scored[:top_k], start=1)
-            ]
         finally:
             conn.close()
 

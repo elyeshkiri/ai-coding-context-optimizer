@@ -21,6 +21,8 @@ from token_saver.semantic_retrieval import (
     SemanticHit,
     SemanticVectorIndex,
     _chunk_source,
+    _fuse_query_view_hits,
+    _semantic_query_views,
     semantic_status,
 )
 
@@ -60,6 +62,34 @@ class FailEncoder:
         """Fail if a supposedly warm semantic lookup calls the model."""
         del sentences, normalize_embeddings
         raise AssertionError("warm semantic lookup unexpectedly loaded encoder")
+
+
+class EnsembleEncoder:
+    """Encoder fixture where full-query dilution differs from clause intent."""
+
+    def __init__(self):
+        """Track batches so warm multi-view cache reuse can be asserted."""
+        self.calls: list[list[str]] = []
+
+    def encode(self, sentences, *, normalize_embeddings=True):
+        """Map two intent clauses to target while the combined prompt maps noise."""
+        del normalize_embeddings
+        values = list(sentences)
+        self.calls.append(values)
+        vectors = []
+        for text in values:
+            lowered = text.lower()
+            has_expired = "expired credentials" in lowered
+            has_stale = "stale authentication artifacts" in lowered
+            if has_expired and has_stale:
+                vectors.append([0.0, 1.0, 0.0])
+            elif has_expired or has_stale or "target_behavior_marker" in lowered:
+                vectors.append([1.0, 0.0, 0.0])
+            elif "noise_behavior_marker" in lowered:
+                vectors.append([0.0, 1.0, 0.0])
+            else:
+                vectors.append([0.0, 0.0, 1.0])
+        return vectors
 
 
 def _repo(tmp_path):
@@ -436,3 +466,146 @@ def test_semantic_witness_can_promote_one_hop_provider(tmp_path, monkeypatch):
         for reason in provider.reasons
     )
     assert any(event.stage == "semantic-graph" for event in provider.score_trace)
+
+
+
+def test_short_semantic_query_remains_single_view():
+    """Ordinary concise prompts should preserve the historical single-vector path."""
+    query = "prevent expired credentials from being reused"
+
+    assert _semantic_query_views(query) == [query]
+
+
+def test_multiclause_semantic_views_use_only_original_query_vocabulary():
+    """Subview extraction must not invent identifiers, synonyms, or model prose."""
+    query = (
+        "Expired credentials should never be reused after their session timeout. "
+        "Stale authentication artifacts must be rejected during renewal rather "
+        "than accepted by the active session."
+    )
+
+    views = _semantic_query_views(query)
+
+    assert len(views) == 3
+    assert views[0] == query
+    original_words = set(query.lower().replace(".", "").split())
+    for view in views[1:]:
+        assert set(view.lower().replace(".", "").split()) <= original_words
+    assert "session_guard" not in " ".join(views).lower()
+    assert "stale_session_artifact" not in " ".join(views).lower()
+
+
+def test_long_single_clause_gets_exact_front_and_back_query_windows():
+    """Long single-sentence prompts should get bounded exact-word fallback views."""
+    words = [
+        "investigate", "request", "routing", "behavior", "around", "connection",
+        "lifecycle", "when", "multiple", "headers", "arrive", "from", "proxies",
+        "while", "authentication", "state", "expires", "during", "renewal",
+        "without", "reusing", "stale", "credentials", "or", "cached",
+        "authorization", "material", "across", "subsequent", "requests",
+    ]
+    query = " ".join(words)
+
+    views = _semantic_query_views(query)
+
+    assert len(views) == 3
+    assert views[0] == query
+    for view in views[1:]:
+        assert all(word in words for word in view.split())
+        assert len(view.split()) < len(words)
+
+
+def test_query_view_fusion_rewards_corroborated_chunks():
+    """Independent clause agreement should outrank a full-query-only distractor."""
+    target = SemanticHit("target.py", 10, 20, 0.93, 1, "target")
+    noise = SemanticHit("noise.py", 1, 9, 0.99, 1, "noise")
+
+    fused = _fuse_query_view_hits(
+        [
+            [noise, SemanticHit("target.py", 10, 20, 0.40, 2, "target")],
+            [target],
+            [SemanticHit("target.py", 10, 20, 0.91, 1, "target")],
+        ],
+        top_k=2,
+    )
+
+    assert fused[0].path == "target.py"
+    assert fused[0].query_views == 3
+    assert fused[0].score == pytest.approx(0.93)
+    assert fused[1].path == "noise.py"
+
+
+def test_multiview_query_recovers_target_diluted_by_combined_prompt(
+    tmp_path,
+    monkeypatch,
+):
+    """Two exact intent clauses should rescue a target missed by the full vector."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "a_noise.py").write_text(
+        "def noise_behavior_marker():\n    return 'generic account dashboard'\n",
+        encoding="utf-8",
+    )
+    (root / "z_target.py").write_text(
+        "def target_behavior_marker(record):\n"
+        "    return not record.timeout_elapsed\n",
+        encoding="utf-8",
+    )
+    index = build_index(root, persist=False)
+    encoder = EnsembleEncoder()
+    semantic = SemanticVectorIndex(root, index, encoder=encoder)
+    query = (
+        "Expired credentials should never be reused after their session timeout. "
+        "Stale authentication artifacts must be rejected during renewal rather "
+        "than accepted by the active session."
+    )
+
+    hits = semantic.query(query, top_k=2)
+
+    assert hits[0].path == "z_target.py"
+    assert hits[0].query_views >= 2
+    assert any(hit.path == "a_noise.py" for hit in hits)
+
+
+def test_multiview_query_vectors_are_persisted_for_warm_model_free_reuse(
+    tmp_path,
+    monkeypatch,
+):
+    """Every deterministic query view should reuse the persistent vector cache."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "target.py").write_text(
+        "def target_behavior_marker(record):\n"
+        "    return not record.timeout_elapsed\n",
+        encoding="utf-8",
+    )
+    (root / "noise.py").write_text(
+        "def noise_behavior_marker():\n    return 'dashboard'\n",
+        encoding="utf-8",
+    )
+    index = build_index(root, persist=False)
+    query = (
+        "Expired credentials should never be reused after their session timeout. "
+        "Stale authentication artifacts must be rejected during renewal rather "
+        "than accepted by the active session."
+    )
+    encoder = EnsembleEncoder()
+
+    first = SemanticVectorIndex(root, index, encoder=encoder)
+    initial = first.query(query, top_k=4)
+
+    # One chunk-embedding batch plus one query-vector call per deterministic view.
+    assert len(encoder.calls) == 1 + len(_semantic_query_views(query))
+
+    warm = SemanticVectorIndex(root, index, encoder=FailEncoder())
+    repeated = warm.query(query, top_k=4)
+
+    assert [
+        (hit.path, hit.start_line, hit.end_line, hit.rank)
+        for hit in repeated
+    ] == [
+        (hit.path, hit.start_line, hit.end_line, hit.rank)
+        for hit in initial
+    ]
