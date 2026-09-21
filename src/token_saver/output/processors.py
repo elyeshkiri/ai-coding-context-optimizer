@@ -241,7 +241,8 @@ class GitStatusProcessor:
             preprocess(text),
             re.compile(
                 r"(^On branch|^Your branch|^Changes|^Untracked|^nothing to commit|"
-                r"^\s*[MADRCU?!]{1,2}\s+|^\s*(modified|deleted|new file|renamed):)",
+                r"^\s*[MADRCU?!]{1,2}\s+|^\s*(modified|deleted|new file|renamed):|"
+                r"^\s{2,}\S)",
                 re.I,
             ),
             limit=max(40, max_lines),
