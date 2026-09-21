@@ -8,7 +8,11 @@ import os
 from pathlib import Path
 
 from .generation_policy import OUTPUT_TASK_OPTIONS
-from .model_routing import DEFAULT_ALLOWED_MODELS, ROUTING_MODES
+from .model_routing import (
+    DEFAULT_ALLOWED_MODELS,
+    DEFAULT_ROUTING_CALIBRATION_FILE,
+    ROUTING_MODES,
+)
 from .output_saver import OUTPUT_MODES
 
 try:
@@ -46,6 +50,7 @@ class RuntimeSettings:
     model_routing_allowed_models: tuple[str, ...] = DEFAULT_ALLOWED_MODELS
     model_routing_min_savings: float = 0.05
     model_routing_conservative: bool = True
+    model_routing_calibration_file: str = DEFAULT_ROUTING_CALIBRATION_FILE
     efficiency_enabled: bool = True
     continuity_enabled: bool = True
     cross_turn_dedup: bool = True
@@ -244,6 +249,10 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         ),
         model_routing_conservative=_bool(
             model_routing.get("conservative"), True
+        ),
+        model_routing_calibration_file=_string(
+            model_routing.get("calibration_file"),
+            DEFAULT_ROUTING_CALIBRATION_FILE,
         ),
         efficiency_enabled=_bool(efficiency.get("enabled"), True),
         continuity_enabled=_bool(efficiency.get("continuity"), True),
@@ -463,6 +472,10 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         model_routing_conservative=_env_bool(
             "TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE",
             base.model_routing_conservative,
+        ),
+        model_routing_calibration_file=_env_string(
+            "TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE",
+            base.model_routing_calibration_file,
         ),
         efficiency_enabled=_env_bool(
             "TOKEN_SAVER_EFFICIENCY", base.efficiency_enabled
