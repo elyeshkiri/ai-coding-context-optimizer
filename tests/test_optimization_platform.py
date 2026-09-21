@@ -12,7 +12,11 @@ from token_saver.mcp_server.protocol import McpProtocol
 from token_saver.mcp_server.tools import McpToolRegistry
 from token_saver.optimizer import apply_optimization, evaluate_optimization
 from token_saver.prefix_cache import observe_prefix, prefix_status
-from token_saver.provider_proxy import ProviderProxyConfig, transform_request_bytes
+from token_saver.provider_proxy import (
+    ProviderProxyConfig,
+    _upstream_url,
+    transform_request_bytes,
+)
 from token_saver.provider_transform import transform_provider_request
 from token_saver.recovery import RecoveryCapacityError, RecoveryStore
 from token_saver.tool_schema import compress_tool_catalog
@@ -329,3 +333,41 @@ def test_mcp_tools_list_schema_compression_has_recovery_metadata(
     original_catalog = json.loads(RecoveryStore(tmp_path).get(handle).payload)
     assert original_catalog[0]["name"] == "inspect"
     assert original_catalog[0]["description"] == long_description
+
+
+
+def test_provider_proxy_absolute_form_request_cannot_escape_upstream_origin():
+    """Proxy-style absolute request targets must keep the configured provider origin."""
+    target = _upstream_url(
+        "https://api.example.com/v1/",
+        "https://attacker.invalid/steal?x=1",
+    )
+
+    assert target == "https://api.example.com/v1/steal?x=1"
+    assert "attacker.invalid" not in target
+
+
+def test_provider_prefix_tracking_can_be_disabled_without_changing_transform(
+    tmp_path, monkeypatch
+):
+    """Disabling prefix telemetry should not disable request optimization."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    noisy = "\n".join("progress " + "x" * 80 for _ in range(150))
+    body = {
+        "messages": [
+            {"role": "tool", "content": noisy},
+            {"role": "user", "content": "diagnose"},
+        ]
+    }
+
+    result = transform_provider_request(
+        root,
+        "openai",
+        body,
+        prefix_tracking=False,
+    )
+
+    assert result.changed is True
+    assert prefix_status(root)["providers"] == {}
