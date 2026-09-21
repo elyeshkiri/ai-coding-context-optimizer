@@ -691,6 +691,15 @@ The price stage runs only after the capability gate. The built-in profiles are
 conservative Token Saver product policy and are not empirical rankings of model
 quality.
 
+Before those edges consume the decision, an optional quality-gated calibration
+artifact may add an exact-bucket exception below the static capability floor.
+Artifacts are generated only from frozen paired model experiments with the same
+non-model arm configuration, independent verifier success, complete blinded
+response quality, and transcript-confirmed model identity. Runtime loading
+rechecks hard sample/success/quality floors before an exception becomes
+eligible. Calibration therefore extends the allow-set; it never replaces the
+static fallback policy.
+
 The same pure decision engine feeds three edges:
 
 - `model-route` CLI for humans and scripts;
