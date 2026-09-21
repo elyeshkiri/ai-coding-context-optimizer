@@ -1,7 +1,7 @@
 # Unreleased
 
 - **Added a measured Cost Intelligence / Efficiency Advisor.** The new
-  \`cost-advisor\` command combines real always-on context measurements, Claude
+  `cost-advisor` command combines real always-on context measurements, Claude
   transcript usage/cache counters, output-budget telemetry, continuity/waste
   signals, and observed Token Saver tool-context reductions into a transparent
   local efficiency score with explicit evidence coverage and prioritized next
