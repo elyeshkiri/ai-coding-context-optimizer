@@ -1,20 +1,24 @@
-# Validation for 1.11.0
+# Validation for 1.12.0
 
-The current unreleased semantic-query ensemble is validated mechanically only.
-Long prompts may use the full query plus at most two deterministic exact-vocabulary
-subviews, fused before the existing file-level semantic stage. Short prompts
-remain single-view and warm query vectors remain persistent. Burned semantic
-holdout #13 is not used to tune or score this change; a fresh frozen
+The 1.12 semantic-query ensemble is validated mechanically only. Long prompts
+may use the full query plus at most two deterministic exact-vocabulary subviews,
+fused before the existing file-level semantic stage. Short prompts remain
+single-view and warm query vectors remain persistent. Burned semantic holdout
+#13 is not used to tune or score this change; a fresh frozen
 no-identifier-leakage holdout #14 is required for a new external claim.
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
 
-Version 1.11.0 adds the expanded CLI-output compression system, provenance-
-backed real-output evidence, Smart Tool Proxy, and semantic-retrieval follow-up
-while deliberately keeping each claim bounded to the evidence that supports it.
-Semantic retrieval remains opt-in, so the existing deterministic/frozen default
-retrieval gates continue to measure the validated structural/lexical baseline.
+Version 1.12.0 adds automatic capability/cost-aware model routing,
+quality-gated routing calibration, the centralized freshness-gated Claude
+pricing registry, and the measured cost-efficiency advisor. Calibration may
+relax one exact routing bucket only after frozen paired model experiments,
+independent task-success verification, complete blinded quality grading,
+transcript-confirmed model identity, and the documented hard sample/success
+floors. The release also includes the mechanically validated multi-view
+semantic-query ensemble while deliberately keeping semantic generalization
+claims frozen pending holdout #14.
 
 The 1.10 semantic mechanism is covered by deterministic tests that establish:
 
