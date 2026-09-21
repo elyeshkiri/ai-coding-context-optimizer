@@ -10,7 +10,7 @@ from pathlib import Path
 import sys
 from typing import Callable
 from urllib.error import HTTPError
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlsplit
 from urllib.request import Request, urlopen
 
 from .provider_transform import ProviderTransformResult, transform_provider_request
@@ -129,9 +129,13 @@ def transform_request_bytes(
 
 
 def _upstream_url(base: str, path: str) -> str:
-    """Join a request path to the configured upstream origin."""
+    """Join only the incoming path/query to the configured upstream origin."""
+    parsed = urlsplit(path)
+    relative = parsed.path.lstrip("/")
+    if parsed.query:
+        relative += "?" + parsed.query
     normalized = base.rstrip("/") + "/"
-    return urljoin(normalized, path.lstrip("/"))
+    return urljoin(normalized, relative)
 
 
 def _handler_factory(
