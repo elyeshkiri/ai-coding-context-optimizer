@@ -24,9 +24,10 @@ jobs:
         run: interrogate src/token_saver
       - name: Enforce frozen command-output preservation floor
         run: |
+          set -o pipefail
           token-saver output-replay \
             benchmarks/output-quality-session-v17.frozen.json \
-            --require-frozen > /tmp/output-quality-session.json
+            --require-frozen | tee /tmp/output-quality-session.json
       - name: Enforce 40-processor CLI compression ratchet
         run: |
           set -o pipefail
