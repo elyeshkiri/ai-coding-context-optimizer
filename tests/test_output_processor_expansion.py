@@ -96,3 +96,45 @@ def test_specialized_failure_processors_preserve_diagnostics(
     result = process_output(text, command, exit_code=1, min_reduction=0.0)
     assert result.processor == expected
     assert diagnostic in result.text
+
+
+
+def test_git_status_preserves_untracked_filename():
+    """Human-readable git status must retain files listed under Untracked files."""
+    text = (
+        "On branch feature\n"
+        "Untracked files:\n"
+        "  new_file.py\n"
+        + ("hint line\n" * 120)
+    )
+    result = process_output(text, "git status", exit_code=0, min_reduction=0.0)
+    assert result.processor == "git-status"
+    assert "new_file.py" in result.text
+
+
+def test_docker_build_drops_progress_but_preserves_failure():
+    """BuildKit progress chatter should not crowd out the actionable failure."""
+    text = (
+        "\n".join(f"#12 0.1 compiling layer {index}" for index in range(120))
+        + "\n#13 ERROR: process failed\n"
+        + "ERROR: failed to solve build graph\n"
+    )
+    result = process_output(text, "docker build .", exit_code=1, min_reduction=0.0)
+    assert result.processor == "docker-build"
+    assert "failed to solve build graph" in result.text
+    assert result.text.count("compiling layer") < 5
+
+
+def test_cargo_test_drops_passing_tests_but_preserves_failure():
+    """Cargo test compression should summarize passes and keep failing evidence."""
+    text = (
+        "\n".join(f"test passing_{index} ... ok" for index in range(120))
+        + "\ntest auth::refresh ... FAILED\n"
+        + "failures:\n    auth::refresh\n"
+        + "test result: FAILED. 120 passed; 1 failed\n"
+    )
+    result = process_output(text, "cargo test", exit_code=101, min_reduction=0.0)
+    assert result.processor == "cargo-test"
+    assert "auth::refresh ... FAILED" in result.text
+    assert "test result: FAILED" in result.text
+    assert result.text.count("... ok") < 5
