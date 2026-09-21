@@ -564,7 +564,7 @@ TOKEN_SAVER_MCP_PROFILE=full token-saver serve .
 ```
 
 `full` remains the default and explicit compatibility fallback. `adaptive`
-starts with six core tools, including `discover_tools`. The agent supplies the
+starts with seven core tools, including `discover_tools` and exact `recover_context`. The agent supplies the
 current task description; Token Saver deterministically maps it to bounded
 memory, retrieval, review, output, and routing groups, returns the exact selected
 schemas, expands the live `tools/list` surface, and advertises MCP
@@ -576,11 +576,79 @@ Project configuration can opt in without changing host MCP files:
 [mcp]
 profile = "adaptive"
 adaptive_max_tools = 12
+compress_schemas = true
 ```
 
 The selector uses task vocabulary only, makes no model call, and defaults to
 repository-retrieval specialists when the task is ambiguous. Unknown profile
 names fail closed instead of silently selecting another surface.
+
+## Recoverable optimization platform
+
+Token Saver can now apply the same fail-closed recovery rule across several
+lossy context surfaces. When an optimization omits source, the exact original
+can be stored under a content-addressed `tsr_...` handle and recovered with:
+
+```bash
+token-saver recover tsr_...
+token-saver recovery-status .
+```
+
+MCP exposes the same path through `recover_context`. Recovery is
+project-scoped, SHA-256 verified, capacity bounded, and non-evicting: if the
+original cannot be retained, the lossy transform is not served.
+
+Adaptive MCP disclosure can be combined with recoverable schema compression:
+first advertise fewer task-relevant tools, then remove annotation-only schema
+cost and shorten long descriptions while preserving argument-construction
+fields and recognized constraints. The complete original tool catalog remains
+recoverable.
+
+A local closed-loop optimizer turns Token Saver's existing telemetry into
+reversible experiments:
+
+```bash
+token-saver optimize .
+token-saver optimize . --apply adaptive-mcp
+# do normal measured work
+token-saver optimize . --evaluate opt_...
+```
+
+It only mutates Token Saver-owned project configuration, backs up the exact
+previous bytes first, and by default restores them when enough
+provider-reported post-change turns fail to improve the requested
+tokens-per-turn threshold. This operational decision is not treated as
+task-success or quality evidence.
+
+For clients that can point at a custom provider base URL, the opt-in local
+reverse proxy moves request optimization closer to the actual API boundary:
+
+```bash
+token-saver provider-proxy . \
+  --provider anthropic \
+  --upstream https://api.anthropic.com
+```
+
+The proxy is loopback-only by default, requires HTTPS for non-local upstreams,
+does not automatically follow upstream redirects, forwards provider responses
+unchanged, and composes recoverable tool-schema/tool-result compression with
+content-free stable-prefix reuse accounting. Inspect the latter with
+`token-saver prefix-status .`.
+
+Large browser payloads captured by another tool can be focused locally without
+giving Token Saver arbitrary browsing authority:
+
+```bash
+token-saver browser-context page.html --query "ORD-0173 save"
+```
+
+This keeps matching neighborhoods plus a compact interactive skeleton and
+stores exact omitted bytes for recovery. It never fetches the URL itself.
+
+These mechanisms have regression/safety coverage, but no new end-to-end savings
+percentage is claimed until a fresh paired-agent experiment verifies treatment
+exposure, independent task success, blind quality parity, provider usage/cache
+evidence, and cost per successful task.
 
 ## Knowledge-assisted read avoidance and cache economics
 
