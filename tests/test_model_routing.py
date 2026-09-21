@@ -65,7 +65,10 @@ implementation plan before modifying the repository.
 """
     decision = route_task(prompt, input_tokens=5000, output_tokens=1500)
 
-    assert decision.task == "coding"
+    # The shared output classifier gives explicit "failure" vocabulary
+    # debugging precedence; routing should reuse that classifier rather than
+    # invent a second task taxonomy. The safety outcome is still deep routing.
+    assert decision.task == "debugging"
     assert decision.risk_level == "high"
     assert decision.minimum_capability == "deep"
     assert decision.selected_model == "claude-opus-5"
