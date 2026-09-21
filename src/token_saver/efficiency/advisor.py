@@ -314,7 +314,7 @@ def _recommendations(audit_report, dashboard: dict, signals: dict, score: dict, 
     ]
 
 
-def advisor_report(root: Path, *, days: int = 7, rates_path: Path | None = None, user_scope: bool = True) -> dict:
+def advisor_report(root: Path, *, days: int = 7, rates_path: str | Path | None = None, user_scope: bool = True) -> dict:
     """Build one measured local cost-intelligence report."""
     if days <= 0:
         raise ValueError("days must be positive")

@@ -96,6 +96,7 @@ Turn local Token Saver evidence into a practical optimization report:
 ```bash
 token-saver cost-advisor .
 token-saver cost-advisor . --project-only --json
+token-saver pricing --model claude-sonnet-5
 token-saver cost-advisor . \
   --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json
 ```
@@ -105,8 +106,10 @@ coverage separately. It combines measured always-on context, Claude transcript
 usage/cache counters, output-budget fit, continuity/waste signals, and observed
 before/after tool-context reductions.
 
-Pricing is deliberately explicit: dollar usage is calculated only from a
-user-supplied exact-model rates file. Mixed-model turns, missing model prices,
+Pricing is deliberately explicit: dollar usage is calculated only from an
+explicit exact-model rates source. Pass `--rates builtin` to use Token Saver's
+source-attributed, freshness-gated packaged registry, or supply a frozen JSON
+rate file for reproducible historical evidence. Mixed-model turns, missing model prices,
 or unknown cache-write TTLs stay visibly unpriced instead of being allocated by
 assumption. Estimated tool-context savings may be shown under a clearly labeled
 fresh-input-once scenario, but are **not** presented as measured API savings or

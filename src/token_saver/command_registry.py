@@ -62,6 +62,7 @@ from .command_handlers.output import (
     output_telemetry_main,
 )
 from .command_handlers.patch import pack_diff_main, review_main
+from .command_handlers.pricing import pricing_main
 from .pack_cli import main as pack_main
 
 CommandHandler = Callable[[list[str]], int]
@@ -127,6 +128,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("session-holdout-evaluate", session_holdout_evaluate_main),
         CommandSpec("cost-report", cost_report_main),
         CommandSpec("cost-advisor", cost_advisor_main),
+        CommandSpec("pricing", pricing_main),
         CommandSpec("dashboard", dashboard_main),
         CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),

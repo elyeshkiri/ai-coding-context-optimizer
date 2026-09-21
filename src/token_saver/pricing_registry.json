@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "provider": "anthropic",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "verified_at": "2026-09-21",
+  "max_age_days": 30,
+  "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "source_markdown_url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+  "scope": "Claude API standard global pricing only; excludes batch, fast mode, data-residency multipliers, and partner-operated cloud pricing.",
+  "models": {
+    "claude-fable-5-1": {
+      "display_name": "Claude Fable 5.1",
+      "aliases": [],
+      "rates": {
+        "input": 10,
+        "cache_write_5m": 12.5,
+        "cache_write_1h": 20,
+        "cache_read": 0.25,
+        "output": 50
+      }
+    },
+    "claude-opus-5": {
+      "display_name": "Claude Opus 5",
+      "aliases": [],
+      "rates": {
+        "input": 5,
+        "cache_write_5m": 6.25,
+        "cache_write_1h": 10,
+        "cache_read": 0.5,
+        "output": 25
+      }
+    },
+    "claude-sonnet-5": {
+      "display_name": "Claude Sonnet 5",
+      "aliases": [],
+      "rates": {
+        "input": 2,
+        "cache_write_5m": 2.5,
+        "cache_write_1h": 4,
+        "cache_read": 0.2,
+        "output": 10
+      }
+    },
+    "claude-sonnet-4-6": {
+      "display_name": "Claude Sonnet 4.6",
+      "aliases": [],
+      "rates": {
+        "input": 3,
+        "cache_write_5m": 3.75,
+        "cache_write_1h": 6,
+        "cache_read": 0.3,
+        "output": 15
+      }
+    },
+    "claude-haiku-4-5": {
+      "display_name": "Claude Haiku 4.5",
+      "aliases": [
+        "claude-haiku-4-5-20251001"
+      ],
+      "rates": {
+        "input": 1,
+        "cache_write_5m": 1.25,
+        "cache_write_1h": 2,
+        "cache_read": 0.1,
+        "output": 5
+      }
+    }
+  }
+}

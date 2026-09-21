@@ -584,6 +584,47 @@ Returns the full `session-effectiveness` object above. With
 `--require-publishable`, a blocked publication gate exits `1`.
 
 
+
+## `pricing --json`
+
+```json
+{
+  "status": {
+    "schema": 1,
+    "provider": "anthropic",
+    "currency": "USD",
+    "unit": "per_million_tokens",
+    "verified_at": "2026-09-21",
+    "age_days": 0,
+    "max_age_days": 30,
+    "fresh": true,
+    "model_count": 5,
+    "alias_count": 1,
+    "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "source_markdown_url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+    "scope": "..."
+  },
+  "models": {
+    "claude-sonnet-5": {
+      "display_name": "Claude Sonnet 5",
+      "aliases": [],
+      "rates": {
+        "input": 2.0,
+        "cache_write_5m": 2.5,
+        "cache_write_1h": 4.0,
+        "cache_read": 0.2,
+        "output": 10.0
+      }
+    }
+  }
+}
+```
+
+Rates are USD per million tokens. The built-in registry is limited to the scope
+reported in `status.scope`; it does not silently apply batch, fast-mode,
+data-residency, or partner-cloud modifiers. With `--model`, `models` contains
+only the resolved canonical registry entry.
+
 ## `cost-advisor --json`
 
 ```json

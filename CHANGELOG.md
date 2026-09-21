@@ -1,5 +1,17 @@
 # Unreleased
 
+- **Added a centralized, packaged Claude pricing registry.** Current first-party
+  standard/global rates are stored once with explicit source, verification date,
+  freshness limit, canonical model ids, aliases, and cache-write/read columns.
+  `token-saver pricing` exposes the registry and its provenance; operational
+  `cost-advisor --rates builtin` fails closed when the registry is stale.
+- **Added pricing-drift CI without making normal PRs depend on the network.**
+  Deterministic CI validates schema and freshness on relevant changes, while a
+  weekly/manual workflow also compares every packaged model's five price columns
+  against Anthropic's official Markdown pricing table. Historical benchmark rate
+  files remain explicit and frozen so upstream price changes cannot rewrite past
+  cost evidence.
+
 - **Added a measured Cost Intelligence / Efficiency Advisor.** The new
   `cost-advisor` command combines real always-on context measurements, Claude
   transcript usage/cache counters, output-budget telemetry, continuity/waste
