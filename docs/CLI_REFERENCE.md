@@ -97,6 +97,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`cost-report`](commands/cost-report.md) — analyze paired cost/success evidence.
 - [`cost-advisor`](commands/cost-advisor.md) — measured local efficiency score, usage pricing, and evidence-linked next actions.
 - [`pricing`](commands/pricing.md) — inspect the verified built-in Claude pricing registry and freshness metadata.
+- [`model-route`](commands/model-route.md) — choose the cheapest policy-eligible model and emit an orchestrator-ready routing decision.
 - [`benchmark`](commands/benchmark.md) — evaluate recorded paired-task evidence.
 
 ## Exit-code conventions
