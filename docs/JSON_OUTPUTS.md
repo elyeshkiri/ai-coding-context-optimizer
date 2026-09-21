@@ -608,6 +608,9 @@ Returns the full `session-effectiveness` object above. With
     "claude-sonnet-5",
     "claude-opus-5"
   ],
+  "calibrated_models": [],
+  "calibration_applied": false,
+  "calibration_source": null,
   "estimated_input_tokens": 1200,
   "input_token_basis": "caller_supplied_complete_input",
   "estimated_output_tokens": 900,
@@ -624,6 +627,35 @@ current model should remain, `route` when a switch satisfies policy/economic
 rules, or `manual` when the allowed model set cannot satisfy the capability
 gate. Projected economics are counterfactual one-turn estimates, not realized
 task-success-adjusted savings.
+
+## Model-route-calibrate artifact
+
+```json
+{
+  "schema": 1,
+  "source": "routing-runs.json",
+  "source_sha256": "...",
+  "quality_gate": {
+    "minimum_pairs": 10,
+    "minimum_tasks": 5,
+    "minimum_baseline_success_rate": 0.8,
+    "maximum_quality_drop": 0.1,
+    "success_regressions_allowed": 0,
+    "requires_blinded_quality": true,
+    "requires_independent_verification": true,
+    "requires_transcript_model_confirmation": true,
+    "bucket_scope": "exact task + complexity + risk + baseline/candidate model"
+  },
+  "recommendations": [],
+  "groups": []
+}
+```
+
+`recommendations` contains only buckets that pass every hard gate. `groups`
+also retains rejected comparisons with explicit `rejection_reasons`. Runtime
+loading rechecks sample/task floors, success parity, zero regressions, blind
+quality deltas, model ordering, and evidence booleans before any recommendation
+can relax the static router.
 
 ## `pricing --json`
 
