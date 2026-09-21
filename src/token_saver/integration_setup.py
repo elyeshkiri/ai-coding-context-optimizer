@@ -63,6 +63,18 @@ packet_tokens = 1600
 [retrieval]
 cache = true
 cache_max_entries = 64
+
+[tool_proxy]
+enabled = false
+provider = "ollama"
+model = "qwen2.5-coder:7b"
+endpoint = "http://127.0.0.1:11434"
+min_tokens = 2500
+target_tokens = 1800
+model_input_tokens = 12000
+timeout_seconds = 6.0
+max_ranges = 4
+max_range_lines = 80
 """
 
 
