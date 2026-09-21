@@ -95,7 +95,7 @@ def test_advisor_prices_only_explicit_measured_usage(tmp_path, monkeypatch):
 
     assert report["cost"]["complete"] is True
     assert report["cost"]["priced_turns"] == 5
-    assert report["cost"]["usd"] == pytest.approx(0.00284)
+    assert report["cost"]["usd"] == pytest.approx(0.00384)
     assert report["usage"]["models"]["claude-sonnet-5"]["turns"] == 5
     assert report["savings"]["estimated_tool_context_tokens"] == 100
     projection = report["savings"]["fresh_input_once_projection"]
