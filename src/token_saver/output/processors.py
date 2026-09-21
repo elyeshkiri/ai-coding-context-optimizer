@@ -168,8 +168,8 @@ class GitLogProcessor:
         max_lines: int,
         keep_tail: int,
     ) -> str:
-        """Keep commit identity, decoration, subject, and diff-stat totals."""
-        del command, failed, keep_tail
+        """Keep commit identity and subject with compact refs and diff stats."""
+        del failed, keep_tail
         prepared = preprocess(text)
         lines = prepared.splitlines()
         commit_starts = [
@@ -193,23 +193,41 @@ class GitLogProcessor:
 
         compact: list[str] = []
         starts = [*commit_starts, len(lines)]
+        wants_stats = bool(re.search(r"(?:^|\s)--stat(?:\s|$)", command))
         for position, start in enumerate(commit_starts):
             block = lines[start : starts[position + 1]]
             commit_line = block[0][len("commit ") :].strip()
             commit_id, _, decoration = commit_line.partition(" ")
             label = commit_id[:8]
+
+            refs = ""
             if decoration.startswith("("):
-                label += " " + decoration
+                refs = decoration.strip("()")
+                refs = refs.replace("HEAD -> ", "HEAD>")
+                refs = re.sub(r"\s*,\s*", ",", refs)
 
             subject = ""
-            summary = ""
+            stat = ""
             for line in block[1:]:
                 stripped = line.strip()
-                if re.match(
-                    r"^\d+ files? changed(?:, .*?(?:insertion|deletion)s?\(.*?\))*$",
+                summary = re.match(
+                    r"^(\d+) files? changed(?:, (\d+) insertions?\(\+\))?"
+                    r"(?:, (\d+) deletions?\(-\))?$",
                     stripped,
-                ):
-                    summary = stripped
+                )
+                if summary:
+                    if wants_stats:
+                        files = int(summary.group(1))
+                        inserted = int(summary.group(2) or 0)
+                        deleted = int(summary.group(3) or 0)
+                        parts = []
+                        if files > 1:
+                            parts.append(f"{files}f")
+                        if inserted:
+                            parts.append(f"+{inserted}")
+                        if deleted:
+                            parts.append(f"-{deleted}")
+                        stat = " ".join(parts)
                     continue
                 if (
                     subject
@@ -222,10 +240,12 @@ class GitLogProcessor:
                     subject = stripped
 
             row = label
+            if refs:
+                row += f" [{refs}]"
             if subject:
                 row += " " + subject
-            if summary:
-                row += " | " + summary
+            if stat:
+                row += f" [{stat}]"
             compact.append(row)
             if len(compact) >= max(20, max_lines):
                 break
@@ -323,6 +343,9 @@ class GitStatusProcessor:
             if stripped.startswith(("On branch", "Your branch", "HEAD detached")):
                 headers.append(stripped)
                 continue
+            if stripped.startswith("## "):
+                headers.append(stripped)
+                continue
             if stripped.startswith(("nothing to commit", "no changes added")):
                 headers.append(stripped)
                 continue
@@ -359,8 +382,10 @@ class GitStatusProcessor:
                 path = stripped.split(":", 1)[1].strip()
                 if len(code) == 2:
                     changes.append(f"{code} {path}")
-                elif section in {"staged", "unstaged"}:
-                    changes.append(f"{section} {prefix}: {path}")
+                elif section == "staged":
+                    changes.append(f"S {prefix}: {path}")
+                elif section == "unstaged":
+                    changes.append(f"U {prefix}: {path}")
                 else:
                     changes.append(f"{prefix}: {path}")
                 matched_long = True
@@ -373,7 +398,7 @@ class GitStatusProcessor:
                 and line[:1].isspace()
                 and not stripped.startswith("(")
             ):
-                changes.append(f"untracked: {stripped}")
+                changes.append(f"? {stripped}")
 
         rows = [*headers, *changes[: max(40, max_lines)]]
         if len(changes) > len(rows) - len(headers):
