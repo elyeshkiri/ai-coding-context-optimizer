@@ -70,10 +70,16 @@ remain supported.
 
 For lower recurring tool-schema cost, set `[mcp] profile = "adaptive"` in
 `.token-saver.toml` or export `TOKEN_SAVER_MCP_PROFILE=adaptive`. The initial
-surface stays small and includes `discover_tools`; a discovery call selects
-bounded specialist groups for the current task, returns their exact schemas, and
-expands subsequent `tools/list` responses. Set `profile = "full"` at any time
-for the backward-compatible complete surface.
+surface stays small and includes `discover_tools` plus exact
+`recover_context`; a discovery call selects bounded specialist groups for the
+current task, returns their exact schemas, and replaces the specialist portion
+of subsequent `tools/list` responses.
+
+Set `mcp.compress_schemas = true` to additionally remove annotation-only
+schema metadata and shorten long descriptions conservatively. When compression
+is beneficial, the exact original catalog is stored under a `tsr_...` recovery
+handle. Set `profile = "full"` and/or `compress_schemas = false` as the
+compatibility fallback for hosts with limited dynamic-tool support.
 
 Call `refresh_index` after external file changes when a long-running server must
 see the new source immediately. Context generation otherwise reuses the current
@@ -82,6 +88,39 @@ in-memory snapshot for predictable low latency.
 The GitHub Actions example is intentionally a reporting/validation workflow. It
 does not modify a pull request or publish benchmark claims.
 
+
+## Provider base-URL integration
+
+The v1.13 provider proxy is separate from Claude/Cursor/Codex managed setup. It
+is an explicit local reverse proxy for clients that can choose their API base
+URL:
+
+```bash
+token-saver provider-proxy . \
+  --provider anthropic \
+  --upstream https://api.anthropic.com
+```
+
+Point the client at the printed loopback URL using that client's supported
+base-URL setting. Token Saver does not rewrite host configuration to enable the
+proxy automatically.
+
+The proxy can combine recoverable tool-schema compression, large historical
+tool-result compression, captured browser-context focusing, and stable-prefix
+reuse accounting before the request reaches the configured upstream. Provider
+responses are forwarded unchanged. Non-local plaintext upstreams, embedded URL
+credentials, cross-origin absolute-form targets, and automatic redirect
+following are refused by design.
+
+Use:
+
+```bash
+token-saver prefix-status .
+token-saver recovery-status .
+```
+
+to inspect content-free prefix evidence and recovery capacity. See
+[Security & privacy](SECURITY.md) before enabling this network boundary.
 
 ## Claude Code output optimization
 
@@ -194,6 +233,14 @@ packet_tokens = 1600
 [retrieval]
 cache = true
 cache_max_entries = 64
+
+[mcp]
+profile = "full"
+adaptive_max_tools = 12
+compress_schemas = false
+
+[provider]
+prefix_tracking = true
 
 [tool_proxy]
 enabled = false
