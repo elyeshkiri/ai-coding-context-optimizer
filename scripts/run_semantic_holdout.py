@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 from token_saver.semantic_holdout import (
     evaluate_semantic_holdout,
+    merge_semantic_holdout_results,
     query_freeze_hash,
     semantic_ground_truth_hash,
     validate_semantic_holdout,
@@ -24,6 +26,23 @@ def main() -> int:
         default="benchmarks/semantic-holdout-13.frozen.json",
     )
     parser.add_argument("--output")
+    parser.add_argument(
+        "--repository",
+        action="append",
+        default=[],
+        help="evaluate only one repository alias; may be repeated",
+    )
+    parser.add_argument(
+        "--merge-input",
+        action="append",
+        default=[],
+        help="merge repository-sharded result JSON; may be repeated",
+    )
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="emit task/repository progress to stderr",
+    )
     parser.add_argument("--print-query-freeze-hash", action="store_true")
     parser.add_argument("--print-ground-truth-hash", action="store_true")
     parser.add_argument("--validate-only", action="store_true")
@@ -50,7 +69,24 @@ def main() -> int:
         print(json.dumps(validate_semantic_holdout(payload, manifest), indent=2))
         return 0
 
-    result = evaluate_semantic_holdout(manifest.parent, manifest)
+    if args.merge_input:
+        parts = [
+            json.loads(Path(value).read_text(encoding="utf-8"))
+            for value in args.merge_input
+        ]
+        result = merge_semantic_holdout_results(parts, manifest)
+    else:
+        progress = (
+            lambda message: print(message, file=sys.stderr, flush=True)
+            if args.progress
+            else None
+        )
+        result = evaluate_semantic_holdout(
+            manifest.parent,
+            manifest,
+            repositories=set(args.repository) if args.repository else None,
+            progress=progress,
+        )
     rendered = json.dumps(result, indent=2) + "\n"
     if args.output:
         Path(args.output).write_text(rendered, encoding="utf-8")
