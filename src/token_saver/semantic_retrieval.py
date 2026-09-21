@@ -109,7 +109,7 @@ def _semantic_query_views(
     return views
 
 
-def _semantic_hit_key(hit: "SemanticHit") -> tuple[str, int, int, str]:
+def _semantic_hit_key(hit: SemanticHit) -> tuple[str, int, int, str]:
     """Return stable identity for one semantic chunk hit across query views."""
     return (
         hit.path,
@@ -120,10 +120,10 @@ def _semantic_hit_key(hit: "SemanticHit") -> tuple[str, int, int, str]:
 
 
 def _fuse_query_view_hits(
-    hit_lists: list[list["SemanticHit"]],
+    hit_lists: list[list[SemanticHit]],
     *,
     top_k: int,
-) -> list["SemanticHit"]:
+) -> list[SemanticHit]:
     """Fuse per-view chunk ranks with weighted reciprocal-rank fusion."""
     if not hit_lists:
         return []
