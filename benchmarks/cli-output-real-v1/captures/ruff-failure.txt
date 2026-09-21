@@ -1,0 +1,8 @@
+F821 Undefined name `missing_name`
+ --> lint_sample.py:2:12
+  |
+1 | def f():
+2 |     return missing_name
+  |            ^^^^^^^^^^^^
+
+Found 1 error.

@@ -233,6 +233,164 @@ The checked-in `benchmarks/output-quality.example.json` demonstrates the
 portable quality-contract format. See `OUTPUT_OPTIMIZATION.md` for the
 processor and Delta contracts.
 
+The CLI-compression parity work adds a separate frozen ratchet at
+`benchmarks/cli-output-compression-ratchet-v1.frozen.json`. It contains one
+representative canonical case for each of the 40 built-in processors and seals
+the case definitions with SHA-256. Each case can lock the expected processor,
+required evidence, forbidden fabricated evidence, and a minimum token-reduction
+floor. CI replays the suite with `--require-frozen`, and the shell uses
+`pipefail` so a failed quality contract cannot be hidden by report capture.
+
+The current 40-case replay passes **40/40 cases**, with **74.52% weighted
+estimated token reduction**, **100% required-evidence preservation**, **100%
+processor-identity match**, and **100% no-hallucination rate**. These fixtures
+model documented real-world CLI output shapes; they are not claimed to be
+production-log captures, model-token billing measurements, or evidence of
+end-to-end coding-task cost reduction.
+
+### Frozen provenance-backed CLI corpus v1
+
+A second output-compression validation layer uses raw output from **real CLI
+executions**, captured before inspecting or tuning against those outputs. The
+capture harness attempted 31 commands on a GitHub-hosted Ubuntu 24 runner and
+successfully captured **30**; Terraform was the only skipped tool because its
+executable was absent. Every raw capture is committed under
+`benchmarks/cli-output-real-v1/`, with the exact tool version, command, exit
+code, byte/line counts, and SHA-256 in the frozen manifest. The original Actions
+artifact SHA-256 is also recorded.
+
+The first same-input comparison pins `ppgranger/token-saver` at
+`19d47b2cc19457c865f2414ad78f8efa80204b43`. Both engines receive the exact
+same 30 raw outputs and are scored with the same Token Saver token estimator and
+critical-line survival predicate:
+
+| Engine | weighted estimated token reduction | critical-line survival | changed cases |
+| --- | ---: | ---: | ---: |
+| elyeshkiri/token-saver | **23.72%** | **100.00%** | 8/30 |
+| ppgranger/token-saver @ 19d47b2c | **23.95%** | **81.25%** | 21/30 |
+
+The reduction difference is **6 estimated output tokens across the full
+corpus** (2,016 versus 2,010). The largest peer reduction advantages occur on
+Git log/status/diff and small Go outputs; the current project is substantially
+smaller on the captured Cargo build/test, Docker build, and Ruff outputs.
+
+This is stronger evidence than representative synthetic fixtures, but its scope
+is still bounded. These are controlled CI executions rather than production
+user logs; several available-tool cases are version/configuration outputs rather
+than large workloads; and critical-line survival is a mechanical diagnostic
+predicate, not a semantic proof that every useful detail survived. Corpus v1 is
+kept immutable. Any tuning informed by its case-level results must treat v1 as
+burned development evidence and validate the change on a fresh corpus version.
+
+Corpus v1 was subsequently used exactly that way: Git log/status/diff and Go
+compression were tuned from its case-level deltas. On the **burned development
+corpus**, the candidate moved from **23.72% to 28.91%** weighted estimated token
+reduction while retaining **100%** critical-line survival; the pinned peer
+remained at **23.95% / 81.25%**. These post-tuning v1 numbers are development
+evidence only and are not used as the proof claim.
+
+### Fresh provenance-backed CLI corpus v2
+
+Corpus v2 was constructed with a different Git history/worktree shape and
+different Go failure modes, plus unrelated control commands. Processor behavior
+was locked at commit
+`bb246458069527e5555bfb9c9625f2750fe53936` before capture. The capture-only
+workflow then executed **27/27 real commands with 0 skips**, producing 9,025 raw
+bytes. No compressor comparison was run before the exact Actions artifact was
+frozen into Git at `benchmarks/cli-output-real-v2/corpus.zip`.
+
+The frozen proof records source workflow run `35581545244`, source artifact
+`10629774546`, artifact SHA-256
+`6fc01f573b80a6f4768118d27fe38dedddab1543a2d499ee477e286e36051253`,
+and capture-definition SHA-256
+`ea2461863c384c4c0b56437882a961a817632e6d2af99e81c83b157d220b404b`.
+Only after that freeze was committed was the same pinned ppgranger revision
+enabled in the comparator.
+
+On this untouched v2 proof set:
+
+| Engine | weighted estimated token reduction | critical-line survival | estimated output tokens |
+| --- | ---: | ---: | ---: |
+| elyeshkiri/token-saver | **30.80%** | **100.00%** | **1,777** |
+| ppgranger/token-saver @ 19d47b2c | **28.23%** | **76.92%** | 1,843 |
+
+That is a **2.57 percentage-point overall reduction advantage** and 66 fewer
+estimated output tokens for the candidate on the same 27 raw outputs, while all
+mechanically detected critical lines survive.
+
+The tuned subfamilies are not uniformly ahead, so the result is reported
+without hiding the remaining gap:
+
+| Fresh v2 subset | elyeshkiri reduction | ppgranger reduction | elyeshkiri critical survival | ppgranger critical survival |
+| --- | ---: | ---: | ---: | ---: |
+| Git diff | **31.84%** | 28.86% | 100% | 100% |
+| Go build/test | **36.67%** | 24.29% | **100%** | 75% |
+| Git status | 49.71% | **54.91%** | 100% | 100% |
+| Git log | 62.62% | **79.05%** | 100% | 100% |
+| Git status/diff + Go, excluding Git log | **38.87%** | 34.93% | **100%** | 75% |
+| All targeted Git status/diff/log + Go | 48.80% | **53.39%** | **100%** | 75% |
+
+The fresh corpus therefore validates a real overall gain and specifically
+validates the Git-diff and Go improvements, but it also shows that Git log
+compression remains materially more aggressive in the pinned peer and Git
+status retains a smaller residual gap. No processor tuning was performed after
+observing v2. Any future work on those remaining gaps must treat v2 as burned
+and prove changes on a fresh v3 corpus.
+
+### Fresh provenance-backed CLI corpus v3
+
+Corpus v3 targets the remaining Git log/status gap using a new nine-commit Git
+history, mixed staged/unstaged/untracked worktree state, porcelain v1/v2 status,
+verbose/stat/reverse/fuller/oneline/graph log variants, and unrelated control
+commands. Git log/status behavior was locked at commit
+`18ebda5d623fc01ef2ea5cdf79054ecee7ba76e6` before capture.
+
+The capture-only workflow executed **29/29 real commands with 0 skips** and
+produced 14,068 raw bytes. The source workflow is `35584642288`, source
+artifact `10630834204`, source artifact SHA-256
+`f5345e19b1b77ccf41257c7393242c14b6e5dc88d7cc72f0833e0f032241742b`,
+and capture-definition SHA-256
+`0866719efa899c3d1d81fc2aa70eabe116ceb4401148ced000d854571581baae`.
+
+The first archive-backed comparison attempt was rejected before evaluation
+because the committed ZIP digest did not match the source artifact. No result
+was produced from that attempt. The corpus was then stored as the independently
+verified raw capture files with their original per-file SHA-256s; CI verifies
+all raw hashes and the frozen definition before invoking either compressor.
+
+On this untouched v3 proof set:
+
+| Engine | weighted estimated token reduction | critical-line survival |
+| --- | ---: | ---: |
+| elyeshkiri/token-saver | 50.50% | **100.00%** |
+| ppgranger/token-saver @ 19d47b2c | **51.25%** | 80.00% |
+
+The overall compression difference is only **0.75 percentage points** on the
+same 29 raw outputs, while the candidate preserves every mechanically detected
+critical line.
+
+The target families show that the original gap is now close to parity:
+
+| Fresh v3 subset | elyeshkiri reduction | ppgranger reduction |
+| --- | ---: | ---: |
+| Git status (4 cases) | **62.90%** | 61.75% |
+| Git log (6 cases) | 78.21% | **79.63%** |
+| Git log + status (10 cases) | 75.28% | **76.20%** |
+
+Compared with v2, Git status moved from a peer advantage to a **1.15-point
+candidate advantage**, and the Git-log gap contracted from **16.43 points**
+(62.62% versus 79.05%) to **1.42 points**. Combined Git log/status is now within
+**0.92 percentage points** of the pinned peer on fresh evidence.
+
+The per-shape results remain intentionally visible. The candidate is ahead on
+the fresh long-status and porcelain-v2 cases and on `--format=fuller --stat`,
+while the pinned peer remains more aggressive on several standard
+`git log --stat` variants. Already compact one-line and graph log outputs are
+left unchanged by both implementations in this corpus.
+
+No processor tuning was performed after observing v3. Corpus v3 is now burned
+proof evidence; any further Git-log compression work requires a fresh v4 corpus.
+
 The previously recorded broad 24-task SWE-bench run remains
 **non-publishable evidence** (historical only): it exposed harness/grader issues rather
 than a trustworthy product-effect estimate. Version 1.6.0 repairs the

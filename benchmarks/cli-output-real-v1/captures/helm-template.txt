@@ -1,0 +1,8 @@
+---
+# Source: capture/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: capture
+data:
+  value: real-output

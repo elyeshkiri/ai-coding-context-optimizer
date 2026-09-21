@@ -1,0 +1,2 @@
+types.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.
+types.ts(2,7): error TS2322: Type '"fast"' is not assignable to type '"safe"'.

@@ -1,0 +1,367 @@
+{
+  "protocol": {
+    "kind": "provenance-backed-cli-output-corpus",
+    "frozen": true,
+    "frozen_at": "2026-09-21T08:44:00Z",
+    "untuned_before_capture": true,
+    "source_workflow_run_id": 35579266837,
+    "source_artifact_id": 10629303031,
+    "source_artifact_sha256": "fcd3505426e3a1586db66b8b4df2fdd3058f2c2bc27c2afab41ec4c23b39a384",
+    "source_head_sha": "4f03e94eb23ea317724f3e20751689158d24ae95",
+    "claim_boundary": "Real CLI executions on a GitHub-hosted Ubuntu runner; not production-user logs and not end-to-end API-cost evidence.",
+    "freeze_sha256": "aa9653c288514465f2dba3a0c7c036733f1f77a6d8f61f883ce4fd93b8376323"
+  },
+  "environment": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.12.14",
+    "runner_os": "Linux",
+    "runner_arch": "X64",
+    "image_os": "ubuntu24",
+    "image_version": "20260907.300.1"
+  },
+  "summary": {
+    "attempted": 31,
+    "captured": 30,
+    "skipped": 1,
+    "raw_bytes": 9308
+  },
+  "captures": [
+    {
+      "id": "git-status",
+      "tool": "git",
+      "tool_version": "git version 2.55.0",
+      "command": "git status --untracked-files=all",
+      "exit_code": 0,
+      "output_path": "captures/git-status.txt",
+      "output_sha256": "91a3b14413a779bca5495d2f1b83b04a493145e49fa2405a5dc56c14535f4db1",
+      "output_bytes": 367,
+      "output_lines": 11
+    },
+    {
+      "id": "git-diff",
+      "tool": "git",
+      "tool_version": "git version 2.55.0",
+      "command": "git diff",
+      "exit_code": 0,
+      "output_path": "captures/git-diff.txt",
+      "output_sha256": "7338b7b68036fe55ccfec0b79875c59dc338666c68a262be1351b230296b0c76",
+      "output_bytes": 139,
+      "output_lines": 9
+    },
+    {
+      "id": "git-log",
+      "tool": "git",
+      "tool_version": "git version 2.55.0",
+      "command": "git log --decorate --stat -3",
+      "exit_code": 0,
+      "output_path": "captures/git-log.txt",
+      "output_sha256": "da10ba72fa9089445cf295c1652d44d50ce7da656570ef1cdf05bfab17ace09b",
+      "output_bytes": 220,
+      "output_lines": 8
+    },
+    {
+      "id": "git-show",
+      "tool": "git",
+      "tool_version": "git version 2.55.0",
+      "command": "git show --stat --oneline HEAD",
+      "exit_code": 0,
+      "output_path": "captures/git-show.txt",
+      "output_sha256": "a6ed269160ea7b4f96df5aad33a16d7cd3e7dda6637b72122bd49daee4085296",
+      "output_bytes": 82,
+      "output_lines": 3
+    },
+    {
+      "id": "git-branch",
+      "tool": "git",
+      "tool_version": "git version 2.55.0",
+      "command": "git branch -avv",
+      "exit_code": 0,
+      "output_path": "captures/git-branch.txt",
+      "output_sha256": "7ee692e3d56672fa36c5b5337a53ac3b2e1d1d3bfab34616149150528cddaabb",
+      "output_bytes": 41,
+      "output_lines": 1
+    },
+    {
+      "id": "git-remote-failure",
+      "tool": "git",
+      "tool_version": "git version 2.55.0",
+      "command": "git push origin main",
+      "exit_code": 1,
+      "output_path": "captures/git-remote-failure.txt",
+      "output_sha256": "c2ddf40e2f5911309a8c38d00335c3f6887357e2ea97abfdfc1f9af3748e43d7",
+      "output_bytes": 87,
+      "output_lines": 2
+    },
+    {
+      "id": "pytest-failure",
+      "tool": "pytest",
+      "tool_version": "pytest 9.1.1",
+      "command": "pytest -q",
+      "exit_code": 1,
+      "output_path": "captures/pytest-failure.txt",
+      "output_sha256": "0434f335c686c39aa6edcaa080de0563f85863bd50c80ed1fd3e604093a86b95",
+      "output_bytes": 617,
+      "output_lines": 14
+    },
+    {
+      "id": "ruff-failure",
+      "tool": "ruff",
+      "tool_version": "ruff 0.16.8",
+      "command": "ruff check lint_sample.py",
+      "exit_code": 1,
+      "output_path": "captures/ruff-failure.txt",
+      "output_sha256": "3fb978e76d7df8a71e7f87e8620d9eb3d7f5a1d3337b6fd94b16da2817cce8c1",
+      "output_bytes": 149,
+      "output_lines": 8
+    },
+    {
+      "id": "mypy-failure",
+      "tool": "mypy",
+      "tool_version": "mypy 2.3.1 (compiled: yes)",
+      "command": "mypy type_sample.py",
+      "exit_code": 1,
+      "output_path": "captures/mypy-failure.txt",
+      "output_sha256": "8dcb12f92593509a29299ccc65af5a27db47ba0f0245dfce4715e460106f8bc8",
+      "output_bytes": 148,
+      "output_lines": 2
+    },
+    {
+      "id": "pylint-failure",
+      "tool": "pylint",
+      "tool_version": "pylint 4.0.8",
+      "command": "pylint lint_sample.py --score=no",
+      "exit_code": 18,
+      "output_path": "captures/pylint-failure.txt",
+      "output_sha256": "2e0fbc62ca65b7c71961ae1b08befe31a4d7686fd797ade49ec22d180a8d5376",
+      "output_bytes": 288,
+      "output_lines": 4
+    },
+    {
+      "id": "npm-install",
+      "tool": "npm",
+      "tool_version": "10.9.8",
+      "command": "npm install --ignore-scripts --no-audit --no-fund",
+      "exit_code": 0,
+      "output_path": "captures/npm-install.txt",
+      "output_sha256": "37642aff9173bfa56781365b81722acc89c8ba83c0f1c85b28f959d140367346",
+      "output_bytes": 21,
+      "output_lines": 2
+    },
+    {
+      "id": "npm-build-failure",
+      "tool": "npm",
+      "tool_version": "10.9.8",
+      "command": "npm run build",
+      "exit_code": 1,
+      "output_path": "captures/npm-build-failure.txt",
+      "output_sha256": "15ebf0d2ede8466bed1581fd91a949082d3563b315ecf5b5e99996c399ad3ef8",
+      "output_bytes": 568,
+      "output_lines": 19
+    },
+    {
+      "id": "tsc-failure",
+      "tool": "tsc",
+      "tool_version": "Version 7.0.2",
+      "command": "tsc --noEmit --pretty false type.ts",
+      "exit_code": 1,
+      "output_path": "captures/tsc-failure.txt",
+      "output_sha256": "dbd353f2f290394f5d05ba66c5ce6046a31eea00a6ab243b7e9e0f9f6b556b2e",
+      "output_bytes": 78,
+      "output_lines": 1
+    },
+    {
+      "id": "eslint-failure",
+      "tool": "eslint",
+      "tool_version": "v10.11.0",
+      "command": "eslint lint.js",
+      "exit_code": 1,
+      "output_path": "captures/eslint-failure.txt",
+      "output_sha256": "1ee161c88f9768dd132f1f19217b52bdc665fe17e379d6405934ce8fd71c5495",
+      "output_bytes": 346,
+      "output_lines": 8
+    },
+    {
+      "id": "cargo-build-failure",
+      "tool": "cargo",
+      "tool_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "command": "cargo build",
+      "exit_code": 101,
+      "output_path": "captures/cargo-build-failure.txt",
+      "output_sha256": "6d6c9c15eb8451bd2daf477f32f455c786103d65fc16aac62237a6b003aa31f4",
+      "output_bytes": 1004,
+      "output_lines": 17
+    },
+    {
+      "id": "cargo-clippy-failure",
+      "tool": "cargo",
+      "tool_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "command": "cargo clippy",
+      "exit_code": 101,
+      "output_path": "captures/cargo-clippy-failure.txt",
+      "output_sha256": "32b449f32c5c54c76e402821158593db905ff1668c7b1c89a235e2ce02a147e4",
+      "output_bytes": 1017,
+      "output_lines": 17
+    },
+    {
+      "id": "cargo-test-failure",
+      "tool": "cargo",
+      "tool_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "command": "cargo test",
+      "exit_code": 101,
+      "output_path": "captures/cargo-test-failure.txt",
+      "output_sha256": "ae0ec7de5dd03193bb48e922ad28dda2923a793b001cee3d74c11233f5b2f18e",
+      "output_bytes": 752,
+      "output_lines": 24
+    },
+    {
+      "id": "go-build-failure",
+      "tool": "go",
+      "tool_version": "go version go1.24.13 linux/amd64",
+      "command": "go build ./...",
+      "exit_code": 1,
+      "output_path": "captures/go-build-failure.txt",
+      "output_sha256": "35d461ced2e62b1d8892dda0952a9485572b3b9006bdb1195d422e93c46bec4c",
+      "output_bytes": 62,
+      "output_lines": 2
+    },
+    {
+      "id": "go-test-failure",
+      "tool": "go",
+      "tool_version": "go version go1.24.13 linux/amd64",
+      "command": "go test ./...",
+      "exit_code": 1,
+      "output_path": "captures/go-test-failure.txt",
+      "output_sha256": "6b360975e6e5988a182ce485066411f47c90e10b3684ada92872171c8be07ce2",
+      "output_bytes": 132,
+      "output_lines": 4
+    },
+    {
+      "id": "dotnet-test",
+      "tool": "dotnet",
+      "tool_version": "10.0.400",
+      "command": "dotnet test --nologo",
+      "exit_code": 1,
+      "output_path": "captures/dotnet-test.txt",
+      "output_sha256": "63161e3942dddfd1111e5ddd4e092a72bf6fd28b561ea778535b237ba5a4595d",
+      "output_bytes": 136,
+      "output_lines": 1
+    },
+    {
+      "id": "maven-version",
+      "tool": "mvn",
+      "tool_version": "Apache Maven 3.9.16 (2bdd9fddda4b155ebf8000e807eb73fd829a51d5)",
+      "command": "mvn --version",
+      "exit_code": 0,
+      "output_path": "captures/maven-version.txt",
+      "output_sha256": "bc5bcc50b812bdb646aee285a24ca645a2554ef857d963f0985f209111ef0a82",
+      "output_bytes": 323,
+      "output_lines": 5
+    },
+    {
+      "id": "gradle-version",
+      "tool": "gradle",
+      "tool_version": "Welcome to Gradle 9.7.1!",
+      "command": "gradle --version",
+      "exit_code": 0,
+      "output_path": "captures/gradle-version.txt",
+      "output_sha256": "79fe0c7ca34e39f1f3abafbab6acf160f97a3cdd2c05cb24dd75156777bb04f5",
+      "output_bytes": 549,
+      "output_lines": 15
+    },
+    {
+      "id": "docker-ps",
+      "tool": "docker",
+      "tool_version": "Docker version 28.0.4, build b8034c0",
+      "command": "docker ps -a",
+      "exit_code": 0,
+      "output_path": "captures/docker-ps.txt",
+      "output_sha256": "f95becc007e273e85566e7ed2126c0fec7ebe43307f85564bcb1537f50aa0a98",
+      "output_bytes": 71,
+      "output_lines": 1
+    },
+    {
+      "id": "docker-build-failure",
+      "tool": "docker",
+      "tool_version": "Docker version 28.0.4, build b8034c0",
+      "command": "docker build --progress=plain .",
+      "exit_code": 1,
+      "output_path": "captures/docker-build-failure.txt",
+      "output_sha256": "699a9fe79f23abec59c8c0713a7014acf0663b9aaca0bf259c426d94b6e40c22",
+      "output_bytes": 1662,
+      "output_lines": 43
+    },
+    {
+      "id": "docker-compose-config",
+      "tool": "docker",
+      "tool_version": "Docker version 28.0.4, build b8034c0",
+      "command": "docker compose config",
+      "exit_code": 0,
+      "output_path": "captures/docker-compose-config.txt",
+      "output_sha256": "8e1df21e8871c2d85cd02b18b290db12e74ec4fc198fbee9d89a3dd7ed6c49da",
+      "output_bytes": 197,
+      "output_lines": 13
+    },
+    {
+      "id": "docker-inspect-failure",
+      "tool": "docker",
+      "tool_version": "Docker version 28.0.4, build b8034c0",
+      "command": "docker inspect token-saver-missing-container",
+      "exit_code": 1,
+      "output_path": "captures/docker-inspect-failure.txt",
+      "output_sha256": "31753d7e840466c0011e075c8bad1b1a59969a97658f3e36e7b1a38dbbcc5237",
+      "output_bytes": 56,
+      "output_lines": 2
+    },
+    {
+      "id": "jq-query",
+      "tool": "jq",
+      "tool_version": "jq-1.7",
+      "command": "printf '%s\\n' '{\"items\":[1,2,3]}' | jq '.items[]'",
+      "exit_code": 0,
+      "output_path": "captures/jq-query.txt",
+      "output_sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+      "output_bytes": 6,
+      "output_lines": 3
+    },
+    {
+      "id": "helm-template",
+      "tool": "helm",
+      "tool_version": "v3.21.4+g813176c",
+      "command": "helm template capture .",
+      "exit_code": 0,
+      "output_path": "captures/helm-template.txt",
+      "output_sha256": "8fa204c337e35b0cf5ac819146132936fc880b246fa7243cffb8df99eee89643",
+      "output_bytes": 131,
+      "output_lines": 8
+    },
+    {
+      "id": "kubectl-client",
+      "tool": "kubectl",
+      "tool_version": "Client Version: v1.37.0",
+      "command": "kubectl version --client=true",
+      "exit_code": 0,
+      "output_path": "captures/kubectl-client.txt",
+      "output_sha256": "cff41c5c1c0b06575a00709441c99f383a1261093c77bf24d29dc31c351502e4",
+      "output_bytes": 50,
+      "output_lines": 2
+    },
+    {
+      "id": "pulumi-version",
+      "tool": "pulumi",
+      "tool_version": "v3.261.0",
+      "command": "pulumi version",
+      "exit_code": 0,
+      "output_path": "captures/pulumi-version.txt",
+      "output_sha256": "d781a8fbe95a1e6269a4fec6260f8818221a5f37b593d57e703fd222df74425a",
+      "output_bytes": 9,
+      "output_lines": 1
+    }
+  ],
+  "skipped": [
+    {
+      "id": "terraform-plan",
+      "tool": "terraform",
+      "reason": "executable-not-found"
+    }
+  ]
+}

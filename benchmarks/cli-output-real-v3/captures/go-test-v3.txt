@@ -1,0 +1,6 @@
+=== RUN   TestToken
+    session_test.go:4: token=expired want=active
+--- FAIL: TestToken (0.00s)
+FAIL
+FAIL	example.com/v3tests/session	0.002s
+FAIL

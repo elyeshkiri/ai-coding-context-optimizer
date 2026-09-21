@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from .specialized_processors import extended_processors
 from .text import ensure_newline, filter_text, preprocess
 
 _PYTEST = re.compile(r"\b(pytest|py\.test|python\s+-m\s+pytest)\b", re.I)
@@ -14,7 +15,7 @@ _GIT_STATUS = re.compile(r"\bgit\s+status\b", re.I)
 _SEARCH = re.compile(r"(^|[;&|]\s*|\b)(rg|grep|find)\b", re.I)
 _LINT = re.compile(r"\b(ruff|eslint|pylint|clippy)\b", re.I)
 _TYPECHECK = re.compile(r"\b(tsc|mypy|pyright)\b", re.I)
-_COMPILED_TEST = re.compile(r"\b(go\s+test|cargo\s+test)\b", re.I)
+_COMPILED_TEST = re.compile(r"\b(go\s+test|cargo\s+test|dotnet\s+test)\b", re.I)
 _BUILD = re.compile(
     r"\b(cargo\s+build|go\s+build|gradle|gradlew|mvn|maven|"
     r"npm\s+run\s+build|pnpm\s+(?:run\s+)?build|yarn\s+build)\b",
@@ -148,7 +149,7 @@ class JsTestProcessor:
 
 
 class GitLogProcessor:
-    """Compress long ``git log`` output to the leading commit inventory."""
+    """Compress ``git log`` into a compact commit inventory."""
 
     name = "git-log"
     priority = 30
@@ -167,15 +168,93 @@ class GitLogProcessor:
         max_lines: int,
         keep_tail: int,
     ) -> str:
-        """Compress a long git log while preserving leading history."""
-        lines = preprocess(text).splitlines()
-        if len(lines) <= 40:
-            return ensure_newline(text)
-        clipped = (
-            "\n".join(lines[:25])
-            + f"\n[filtered git log: {len(lines) - 25} commits omitted]\n"
-        )
-        return clipped if len(clipped) < len(text) else text
+        """Keep commit identity and subject with compact refs and diff stats."""
+        del failed, keep_tail
+        prepared = preprocess(text)
+        lines = prepared.splitlines()
+        commit_starts = [
+            index for index, line in enumerate(lines) if line.startswith("commit ")
+        ]
+        if not commit_starts:
+            oneline = [
+                line
+                for line in lines
+                if re.match(r"^[0-9a-f]{4,40}\s+\S", line, re.I)
+            ]
+            if len(lines) > 40 and len(oneline) >= len(lines) * 0.8:
+                kept = lines[:25]
+                candidate = (
+                    "\n".join(kept)
+                    + f"\n... {len(lines) - len(kept)} older commits omitted\n"
+                )
+                if len(candidate.encode()) < len(text.encode()):
+                    return candidate
+            return filter_text(prepared, max_lines, 10, prepared=True)
+
+        compact: list[str] = []
+        starts = [*commit_starts, len(lines)]
+        wants_stats = bool(re.search(r"(?:^|\s)--stat(?:\s|$)", command))
+        for position, start in enumerate(commit_starts):
+            block = lines[start : starts[position + 1]]
+            commit_line = block[0][len("commit ") :].strip()
+            commit_id, _, decoration = commit_line.partition(" ")
+            label = commit_id[:8]
+
+            refs = ""
+            if decoration.startswith("("):
+                refs = decoration.strip("()")
+                refs = refs.replace("HEAD -> ", "HEAD>")
+                refs = re.sub(r"\s*,\s*", ",", refs)
+
+            subject = ""
+            stat = ""
+            for line in block[1:]:
+                stripped = line.strip()
+                summary = re.match(
+                    r"^(\d+) files? changed(?:, (\d+) insertions?\(\+\))?"
+                    r"(?:, (\d+) deletions?\(-\))?$",
+                    stripped,
+                )
+                if summary:
+                    if wants_stats:
+                        files = int(summary.group(1))
+                        inserted = int(summary.group(2) or 0)
+                        deleted = int(summary.group(3) or 0)
+                        parts = []
+                        if files > 1:
+                            parts.append(f"{files}f")
+                        if inserted:
+                            parts.append(f"+{inserted}")
+                        if deleted:
+                            parts.append(f"-{deleted}")
+                        stat = " ".join(parts)
+                    continue
+                if (
+                    subject
+                    or not stripped
+                    or stripped.startswith(("Author:", "Date:", "Merge:"))
+                    or re.match(r"^.+\s+\|\s+\d+", stripped)
+                ):
+                    continue
+                if line.startswith(("    ", "\t")):
+                    subject = stripped
+
+            row = label
+            if refs:
+                row += f" [{refs}]"
+            if subject:
+                row += " " + subject
+            if stat:
+                row += f" [{stat}]"
+            compact.append(row)
+            if len(compact) >= max(20, max_lines):
+                break
+
+        omitted = len(commit_starts) - len(compact)
+        if omitted > 0:
+            compact.append(f"... {omitted} older commits omitted")
+        candidate = "\n".join(compact) + "\n"
+        return candidate if len(candidate.encode()) < len(text.encode()) else text
 
 
 class PackageInstallProcessor:
@@ -215,7 +294,7 @@ class PackageInstallProcessor:
 
 
 class GitStatusProcessor:
-    """Compress git status output while retaining changed-file inventory."""
+    """Compress git status into porcelain-like branch and file state."""
 
     name = "git-status"
     priority = 31
@@ -234,21 +313,100 @@ class GitStatusProcessor:
         max_lines: int,
         keep_tail: int,
     ) -> str:
-        """Keep branch state plus bounded changed/untracked file lines."""
+        """Drop help prose while retaining branch, staging, and path identity."""
         del command, failed, keep_tail
-        candidate = keep_matching(
-            preprocess(text),
-            re.compile(
-                r"(^On branch|^Your branch|^Changes|^Untracked|^nothing to commit|"
-                r"^\s*[MADRCU?!]{1,2}\s+|^\s*(modified|deleted|new file|renamed):)",
-                re.I,
-            ),
-            limit=max(40, max_lines),
-            label="git status",
-        )
-        return candidate or filter_text(
-            preprocess(text), max_lines, 10, prepared=True
-        )
+        prepared = preprocess(text)
+        headers: list[str] = []
+        changes: list[str] = []
+        section = ""
+
+        long_codes = {
+            "modified": "M",
+            "new file": "A",
+            "deleted": "D",
+            "renamed": "R",
+            "copied": "C",
+            "typechange": "T",
+            "both modified": "UU",
+            "both added": "AA",
+            "both deleted": "DD",
+            "added by us": "AU",
+            "added by them": "UA",
+            "deleted by us": "DU",
+            "deleted by them": "UD",
+        }
+
+        for line in prepared.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith(("On branch", "Your branch", "HEAD detached")):
+                headers.append(stripped)
+                continue
+            if stripped.startswith("## "):
+                headers.append(stripped)
+                continue
+            if stripped.startswith(("nothing to commit", "no changes added")):
+                headers.append(stripped)
+                continue
+            if stripped.startswith("Changes to be committed:"):
+                section = "staged"
+                continue
+            if stripped.startswith("Changes not staged for commit:"):
+                section = "unstaged"
+                continue
+            if stripped.startswith("Untracked files:"):
+                section = "untracked"
+                continue
+            if stripped.startswith("Unmerged paths:"):
+                section = "unmerged"
+                continue
+            if stripped.startswith("("):
+                continue
+
+            leading_spaces = len(line) - len(line.lstrip(" "))
+            short = (
+                re.match(r"^([ MADRCUT?!]{1,2})\s+(.+)$", line)
+                if leading_spaces <= 2 and not line.startswith("\t")
+                else None
+            )
+            if short:
+                changes.append(f"{short.group(1)} {short.group(2).strip()}")
+                continue
+
+            matched_long = False
+            for prefix, code in long_codes.items():
+                marker = prefix + ":"
+                if not stripped.startswith(marker):
+                    continue
+                path = stripped.split(":", 1)[1].strip()
+                if len(code) == 2:
+                    changes.append(f"{code} {path}")
+                elif section == "staged":
+                    changes.append(f"S {prefix}: {path}")
+                elif section == "unstaged":
+                    changes.append(f"U {prefix}: {path}")
+                else:
+                    changes.append(f"{prefix}: {path}")
+                matched_long = True
+                break
+            if matched_long:
+                continue
+
+            if (
+                section == "untracked"
+                and line[:1].isspace()
+                and not stripped.startswith("(")
+            ):
+                changes.append(f"? {stripped}")
+
+        rows = [*headers, *changes[: max(40, max_lines)]]
+        if len(changes) > len(rows) - len(headers):
+            rows.append(f"... {len(changes) - (len(rows) - len(headers))} paths omitted")
+        if not rows:
+            return filter_text(prepared, max_lines, 10, prepared=True)
+        candidate = "\n".join(rows) + "\n"
+        return candidate if len(candidate.encode()) < len(text.encode()) else text
 
 
 class SearchProcessor:
@@ -395,7 +553,7 @@ class CompiledTestProcessor:
             preprocess(text),
             re.compile(
                 r"(--- FAIL:|\bFAIL\b|\bPASS\b|panicked at|\berror\b|"
-                r"test result:|^ok\s|^\?\s|^FAIL\s)",
+                r"test result:|^ok\s|^\?\s|^FAIL\s|Failed!|Passed!|Total tests:|Failed:|Passed:)",
                 re.I,
             ),
             limit=max(60, max_lines),
@@ -501,7 +659,7 @@ class GenericProcessor:
 
 
 def default_processors() -> list:
-    """Return fresh instances of the built-in processor set."""
+    """Return fresh instances of the complete built-in processor set."""
     return [
         PytestProcessor(),
         JsTestProcessor(),
@@ -515,4 +673,5 @@ def default_processors() -> list:
         PackageInstallProcessor(),
         ContainerLogProcessor(),
         GenericProcessor(),
+        *extended_processors(),
     ]

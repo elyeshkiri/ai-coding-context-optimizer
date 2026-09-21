@@ -1,0 +1,21 @@
+{
+  "protocol": {
+    "kind": "provenance-backed-cli-output-corpus-v2",
+    "frozen": true,
+    "frozen_at": "2026-09-21T09:10:00Z",
+    "untuned_before_capture": true,
+    "processor_lock_sha": "bb246458069527e5555bfb9c9625f2750fe53936",
+    "source_workflow_run_id": 35581545244,
+    "source_artifact_id": 10629774546,
+    "source_artifact_sha256": "6fc01f573b80a6f4768118d27fe38dedddab1543a2d499ee477e286e36051253",
+    "source_head_sha": "3542670f1f1db0bd08e2d3f64d1dc7aa2641d705",
+    "capture_definition_sha256": "ea2461863c384c4c0b56437882a961a817632e6d2af99e81c83b157d220b404b",
+    "claim_boundary": "Fresh real CLI executions captured after v1-guided tuning and before any v2 comparison; controlled CI evidence, not production-user logs or end-to-end API-cost evidence."
+  },
+  "summary": {
+    "attempted": 27,
+    "captured": 27,
+    "skipped": 0,
+    "raw_bytes": 9025
+  }
+}

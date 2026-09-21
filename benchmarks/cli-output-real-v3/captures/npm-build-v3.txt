@@ -1,0 +1,5 @@
+
+> cli-corpus-v3@1.0.0 build
+> node -e "console.error('v3 compile stop'); process.exit(3)"
+
+v3 compile stop

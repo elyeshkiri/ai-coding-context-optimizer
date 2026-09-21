@@ -1,0 +1,53 @@
+commit 5235dbdb3c10a80729cbac1514dd7c246e39e59f (HEAD -> feature/git-v3, trunk)
+Author: Corpus V3 <corpus-v3@example.com>
+Date:   Wed Sep 9 11:00:00 2026 +0000
+
+    add operations guide
+
+ docs/ops.md | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit 6ab6afcac887decfdedc2843f304d0b353e92581
+Author: Corpus V3 <corpus-v3@example.com>
+Date:   Tue Sep 8 11:00:00 2026 +0000
+
+    expand worker policy
+
+ src/worker.txt | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+commit 638915435a140b0ef51bdcc1b3ad002f8c1ecc24
+Author: Corpus V3 <corpus-v3@example.com>
+Date:   Mon Sep 7 11:00:00 2026 +0000
+
+    add scheduler
+
+ src/scheduler.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 8f590e8227e287c985926966daa5558052e70b1c
+Author: Corpus V3 <corpus-v3@example.com>
+Date:   Sun Sep 6 11:00:00 2026 +0000
+
+    revise api status
+
+ src/api.txt | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+commit c8ca21ff07a3300df08f95ab9a8fe260a5be514e
+Author: Corpus V3 <corpus-v3@example.com>
+Date:   Sat Sep 5 11:00:00 2026 +0000
+
+    add metrics
+
+ src/metrics.txt | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit e66eaa4f89e86919272318dcf79efd03dd876a4b
+Author: Corpus V3 <corpus-v3@example.com>
+Date:   Fri Sep 4 11:00:00 2026 +0000
+
+    document retries
+
+ docs/retries.md | 2 ++
+ 1 file changed, 2 insertions(+)

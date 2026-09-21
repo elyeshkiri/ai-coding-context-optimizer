@@ -1,0 +1,9 @@
+* 5235dbd (HEAD -> feature/git-v3, trunk) add operations guide
+* 6ab6afc expand worker policy
+* 6389154 add scheduler
+* 8f590e8 revise api status
+* c8ca21f add metrics
+* e66eaa4 document retries
+* af02c5d increase cache ttl
+* 0479f05 add worker queue
+* d207984 bootstrap service

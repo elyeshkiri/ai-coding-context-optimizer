@@ -1,0 +1,2 @@
+# example.com/corpus
+./main.go:2:22: undefined: missingSymbol

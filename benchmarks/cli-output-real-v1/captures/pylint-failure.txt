@@ -1,0 +1,4 @@
+************* Module lint_sample
+lint_sample.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+lint_sample.py:1:0: C0116: Missing function or method docstring (missing-function-docstring)
+lint_sample.py:2:11: E0602: Undefined variable 'missing_name' (undefined-variable)

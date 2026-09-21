@@ -1,0 +1,4 @@
+# example.com/corpus [example.com/corpus.test]
+./main.go:2:22: undefined: missingSymbol
+FAIL	example.com/corpus [build failed]
+FAIL

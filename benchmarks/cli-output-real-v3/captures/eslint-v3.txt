@@ -1,0 +1,7 @@
+
+/home/runner/work/token-saver/token-saver/.tmp-cli-corpus-v3/javascript-v3/lint.js
+  1:1   error  'console' is not defined    no-undef
+  1:13  error  'v3Missing' is not defined  no-undef
+
+✖ 2 problems (2 errors, 0 warnings)
+

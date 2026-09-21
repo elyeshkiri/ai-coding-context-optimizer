@@ -1,0 +1,8 @@
+commit 67b2c0508fc99b2acf977cb077ca9fcd0b008de9 (HEAD -> master)
+Author: Corpus <corpus@example.com>
+Date:   Mon Sep 21 08:42:22 2026 +0000
+
+    initial capture fixture
+
+ app.txt | 3 +++
+ 1 file changed, 3 insertions(+)

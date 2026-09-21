@@ -1,0 +1,17 @@
+On branch feature/git-v3
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   src/feature_flag.txt
+	renamed:    src/metrics.txt -> src/telemetry.txt
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	deleted:    docs/retries.md
+	modified:   src/api.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	notes/nested/todo.txt
+	notes/review.txt
+

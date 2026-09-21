@@ -24,9 +24,16 @@ jobs:
         run: interrogate src/token_saver
       - name: Enforce frozen command-output preservation floor
         run: |
+          set -o pipefail
           token-saver output-replay \
             benchmarks/output-quality-session-v17.frozen.json \
-            --require-frozen > /tmp/output-quality-session.json
+            --require-frozen | tee /tmp/output-quality-session.json
+      - name: Enforce 40-processor CLI compression ratchet
+        run: |
+          set -o pipefail
+          token-saver output-replay \
+            benchmarks/cli-output-compression-ratchet-v1.frozen.json \
+            --require-frozen | tee /tmp/cli-output-compression-ratchet.json
       # An invalid workflow expression is rejected by GitHub before any job
       # is created, so it shows up as a zero-second failure with no logs and
       # cannot be caught by any job running inside the workflow. release.yml
@@ -206,3 +213,241 @@ jobs:
       - run: python -m pip install -e '.[dev]' 'hnswlib>=0.8,<1'
       - name: Exercise semantic exact-source contracts through HNSW
         run: python -m pytest -q tests/test_semantic_retrieval.py
+
+
+  cli-corpus-capture:
+    # Capture untouched real command output before any further processor tuning.
+    # The artifact is evidence input, not a benchmark claim by itself.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]' mypy pylint
+      - run: npm install -g typescript eslint
+      - name: Capture provenance-backed CLI outputs
+        run: |
+          python scripts/capture_cli_output_corpus.py \
+            --out cli-corpus-capture \
+            --workspace .tmp-cli-corpus-workspace \
+            --min-captures 20
+      - name: Upload untouched CLI corpus
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-corpus-${{ github.event.pull_request.head.sha }}
+          path: cli-corpus-capture
+          if-no-files-found: error
+          retention-days: 30
+      - name: Check out pinned ppgranger comparator
+        run: |
+          git clone --quiet https://github.com/ppgranger/token-saver.git /tmp/ppgranger-token-saver
+          git -C /tmp/ppgranger-token-saver checkout --quiet 19d47b2cc19457c865f2414ad78f8efa80204b43
+      - name: Compare both engines on frozen real-output corpus
+        run: |
+          python scripts/evaluate_cli_output_real_corpus.py \
+            --corpus benchmarks/cli-output-real-v1 \
+            --ppgranger-path /tmp/ppgranger-token-saver \
+            --ppgranger-sha 19d47b2cc19457c865f2414ad78f8efa80204b43 \
+            --out cli-output-real-v1-comparison.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("cli-output-real-v1-comparison.json").read_text())
+          with Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).open("a") as out:
+              out.write("## Frozen real CLI output comparison\n\n")
+              out.write("| Engine | Weighted token reduction | Critical survival | Changed cases |\n")
+              out.write("| --- | ---: | ---: | ---: |\n")
+              for key in ("elyeshkiri", "ppgranger"):
+                  summary = report[key]["summary"]
+                  out.write(
+                      f"| {key} | {summary['weighted_token_reduction'] * 100:.2f}% "
+                      f"| {summary['critical_survival_rate'] * 100:.2f}% "
+                      f"| {summary['changed_cases']}/{summary['cases']} |\n"
+                  )
+          PY
+      - name: Upload frozen corpus comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-real-v1-comparison-${{ github.event.pull_request.head.sha }}
+          path: cli-output-real-v1-comparison.json
+          if-no-files-found: error
+          retention-days: 30
+
+
+  cli-corpus-v2-compare:
+    # Corpus v2 is already frozen in Git. This job only evaluates those exact
+    # bytes; it never recaptures or mutates the proof set.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Check out pinned ppgranger comparator
+        run: |
+          git clone --quiet https://github.com/ppgranger/token-saver.git /tmp/ppgranger-token-saver
+          git -C /tmp/ppgranger-token-saver checkout --quiet 19d47b2cc19457c865f2414ad78f8efa80204b43
+      - name: Compare both engines on untouched frozen corpus v2
+        run: |
+          python scripts/evaluate_cli_output_real_archive.py \
+            --archive benchmarks/cli-output-real-v2/corpus.zip \
+            --freeze benchmarks/cli-output-real-v2/freeze.json \
+            --ppgranger-path /tmp/ppgranger-token-saver \
+            --ppgranger-sha 19d47b2cc19457c865f2414ad78f8efa80204b43 \
+            --out cli-output-real-v2-comparison.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(
+              Path("cli-output-real-v2-comparison.json").read_text(encoding="utf-8")
+          )
+          target_prefixes = (
+              "git-status",
+              "git-diff",
+              "git-log",
+              "go-build",
+              "go-test",
+          )
+
+          def subset_summary(rows):
+              selected = [
+                  row for row in rows
+                  if row["id"].startswith(target_prefixes)
+              ]
+              original = sum(row["original_tokens"] for row in selected)
+              output = sum(row["output_tokens"] for row in selected)
+              critical = [row for row in selected if row["critical_lines"]]
+              return {
+                  "cases": len(selected),
+                  "reduction": 0.0 if not original else 1.0 - output / original,
+                  "critical": (
+                      1.0
+                      if not critical
+                      else sum(row["critical_survival"] for row in critical)
+                      / len(critical)
+                  ),
+              }
+
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary_path.open("a", encoding="utf-8") as out:
+              out.write("## Fresh frozen CLI corpus v2 comparison\n\n")
+              out.write(
+                  "| Engine | Overall token reduction | Critical survival | "
+                  "Git/Go target reduction | Git/Go critical survival |\n"
+              )
+              out.write("| --- | ---: | ---: | ---: | ---: |\n")
+              for key in ("elyeshkiri", "ppgranger"):
+                  overall = report[key]["summary"]
+                  target = subset_summary(report[key]["cases"])
+                  out.write(
+                      f"| {key} "
+                      f"| {overall['weighted_token_reduction'] * 100:.2f}% "
+                      f"| {overall['critical_survival_rate'] * 100:.2f}% "
+                      f"| {target['reduction'] * 100:.2f}% "
+                      f"| {target['critical'] * 100:.2f}% |\n"
+                  )
+          PY
+      - name: Upload frozen corpus v2 comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-real-v2-comparison-${{ github.event.pull_request.head.sha }}
+          path: cli-output-real-v2-comparison.json
+          if-no-files-found: error
+          retention-days: 30
+
+
+  cli-corpus-v3-compare:
+    # Corpus v3 is immutable in Git. Verify raw hashes, then evaluate only those bytes.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - name: Check out pinned ppgranger comparator
+        run: |
+          git clone --quiet https://github.com/ppgranger/token-saver.git /tmp/ppgranger-token-saver
+          git -C /tmp/ppgranger-token-saver checkout --quiet 19d47b2cc19457c865f2414ad78f8efa80204b43
+      - name: Compare both engines on untouched frozen corpus v3
+        run: |
+          python scripts/evaluate_cli_output_real_corpus.py \
+            --corpus benchmarks/cli-output-real-v3 \
+            --ppgranger-path /tmp/ppgranger-token-saver \
+            --ppgranger-sha 19d47b2cc19457c865f2414ad78f8efa80204b43 \
+            --out cli-output-real-v3-comparison.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(
+              Path("cli-output-real-v3-comparison.json").read_text(encoding="utf-8")
+          )
+
+          def subset(rows, prefixes):
+              selected = [
+                  row for row in rows
+                  if row["id"].startswith(prefixes)
+              ]
+              original = sum(row["original_tokens"] for row in selected)
+              output = sum(row["output_tokens"] for row in selected)
+              critical = [row for row in selected if row["critical_lines"]]
+              return {
+                  "cases": len(selected),
+                  "tokens": output,
+                  "reduction": 0.0 if not original else 1.0 - output / original,
+                  "critical": (
+                      1.0
+                      if not critical
+                      else sum(row["critical_survival"] for row in critical)
+                      / len(critical)
+                  ),
+              }
+
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary_path.open("a", encoding="utf-8") as out:
+              out.write("## Fresh frozen CLI corpus v3 comparison\n\n")
+              out.write(
+                  "| Engine | Overall reduction | Critical survival | "
+                  "Git log reduction | Git status reduction | "
+                  "Git log/status reduction |\n"
+              )
+              out.write("| --- | ---: | ---: | ---: | ---: | ---: |\n")
+              for key in ("elyeshkiri", "ppgranger"):
+                  overall = report[key]["summary"]
+                  log = subset(report[key]["cases"], ("git-log-",))
+                  status = subset(report[key]["cases"], ("git-status-",))
+                  target = subset(
+                      report[key]["cases"],
+                      ("git-log-", "git-status-"),
+                  )
+                  out.write(
+                      f"| {key} "
+                      f"| {overall['weighted_token_reduction'] * 100:.2f}% "
+                      f"| {overall['critical_survival_rate'] * 100:.2f}% "
+                      f"| {log['reduction'] * 100:.2f}% "
+                      f"| {status['reduction'] * 100:.2f}% "
+                      f"| {target['reduction'] * 100:.2f}% |\n"
+                  )
+          PY
+      - name: Upload frozen corpus v3 comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-output-real-v3-comparison-${{ github.event.pull_request.head.sha }}
+          path: cli-output-real-v3-comparison.json
+          if-no-files-found: error
+          retention-days: 30
