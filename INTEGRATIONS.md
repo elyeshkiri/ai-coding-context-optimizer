@@ -102,8 +102,8 @@ The Claude Code integration uses four distinct boundaries:
 - `PostToolUse` can reduce large Bash stdout through the failure-aware output
   processor registry, collapse exact repeated command output, and replace an
   eligible full-file Read with local/free-model-guided **exact source ranges**.
-  The selector's prose is advisory; delivered code is re-read from the source
-  file, and bounded Reads remain untouched for edit-grade bytes;
+  Selector-generated prose is not forwarded; delivered code is re-read from
+  the source file, and bounded Reads remain untouched for edit-grade bytes;
 - `SessionStart` resume/compact can inject a bounded structured continuity
   checkpoint containing working files, redacted recent commands, and validation
   status without copying conversation text;
