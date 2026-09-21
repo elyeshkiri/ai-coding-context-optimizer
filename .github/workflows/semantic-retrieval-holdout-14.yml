@@ -1,0 +1,158 @@
+name: Semantic Retrieval Holdout 14
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type RUN_SEMANTIC_HOLDOUT_14 to burn the frozen suite"
+        required: true
+        type: string
+  push:
+    branches:
+      - bench/run-semantic-holdout-14
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-holdout:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_14') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[run-semantic-14]'))
+    name: Frozen no-identifier-leakage semantic holdout 14
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TOKEN_SAVER_STATE_DIR: /tmp/token-saver-semantic-state-14
+      TOKEN_SAVER_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/token-saver-huggingface-14
+    steps:
+      - name: Require explicit burn confirmation
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_14" ]; then
+            echo "Refusing to burn semantic holdout 14 without exact confirmation." >&2
+            exit 2
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Token Saver with exact-scan embeddings
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+
+      - name: Require exact cosine evidence backend
+        run: |
+          python -m pip uninstall -y hnswlib || true
+          python - <<'PY'
+          from token_saver.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None, "semantic evidence must not use ANN"
+          PY
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-14.frozen.json \
+            --validate-only
+
+      - name: Clone pinned fresh repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          clone_at() {
+            local url="$1"
+            local revision="$2"
+            local path="$3"
+            git init -q "$path"
+            git -C "$path" remote add origin "$url"
+            git -C "$path" fetch -q --depth 1 origin "$revision"
+            git -C "$path" checkout -q --detach "$revision"
+          }
+
+          mkdir -p benchmarks/semantic-holdout-14
+          clone_at https://github.com/pallets/click.git \
+            6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1 \
+            benchmarks/semantic-holdout-14/click
+          clone_at https://github.com/labstack/echo.git \
+            3d084be9022432c5a5257924c7d74bfc3444b456 \
+            benchmarks/semantic-holdout-14/echo
+          clone_at https://github.com/BurntSushi/ripgrep.git \
+            3fce3b5bb0236da2df6d99672afb8a719642eca7 \
+            benchmarks/semantic-holdout-14/ripgrep
+          clone_at https://github.com/mockito/mockito.git \
+            9c5f36fb9f2ad89fbaab828d33d144cd398a4079 \
+            benchmarks/semantic-holdout-14/mockito
+          clone_at https://github.com/vitejs/vite.git \
+            e9078f865cdff6bed77cd729214a7e2868f126b5 \
+            benchmarks/semantic-holdout-14/vite
+          clone_at https://github.com/dotnet/aspnetcore.git \
+            9817792d3ba9aa6f6c9ac5804a672ce5954f3288 \
+            benchmarks/semantic-holdout-14/aspnetcore
+
+      - name: Download the pinned local embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+
+          model = SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["TOKEN_SAVER_SEMANTIC_MODEL_REVISION"],
+          )
+          print(model)
+          PY
+
+      - name: Run the first frozen three-arm evaluation
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-14.frozen.json \
+            --output benchmarks/semantic-holdout-14.result.json
+
+      - name: Publish literal benchmark summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("benchmarks/semantic-holdout-14.result.json").read_text()
+          )
+          summary = result["summary"]
+          print("# Semantic holdout 14")
+          print()
+          print(f"- eligible tasks: {summary['task_count']}")
+          print(f"- lexical file recall: {summary['lexical_file_recall']:.2%}")
+          print(f"- hybrid semantic file recall: {summary['semantic_file_recall']:.2%}")
+          print(
+              "- trivial lexical file recall: "
+              f"{summary['trivial_lexical_file_recall']:.2%}"
+          )
+          print(
+              "- semantic recall delta vs Token Saver lexical: "
+              f"{summary['semantic_file_recall_delta']:+.2%}"
+          )
+          print(
+              "- semantic recovered/regressed tasks: "
+              f"{summary['semantic_recovered_tasks']}/"
+              f"{summary['semantic_regressed_tasks']}"
+          )
+          print(f"- lexical mean reduction: {summary['lexical_mean_token_reduction']:.2%}")
+          print(f"- semantic mean reduction: {summary['semantic_mean_token_reduction']:.2%}")
+          print()
+          print(
+              "This first run burns holdout 14 for tuning. "
+              "No API-cost or task-success claim is implied."
+          )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-14-first-run
+          path: benchmarks/semantic-holdout-14.result.json
+          retention-days: 90
+          if-no-files-found: error

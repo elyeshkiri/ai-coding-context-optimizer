@@ -19,6 +19,8 @@ from token_saver.repo_index import build_index
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "benchmarks" / "semantic-holdout-13.frozen.json"
 QUERY_FREEZE = ROOT / "benchmarks" / "semantic-holdout-13.query-freeze.json"
+MANIFEST_14 = ROOT / "benchmarks" / "semantic-holdout-14.frozen.json"
+QUERY_FREEZE_14 = ROOT / "benchmarks" / "semantic-holdout-14.query-freeze.json"
 
 
 class _FakeEncoder:
@@ -58,6 +60,26 @@ def test_checked_in_semantic_holdout_is_hash_frozen_and_leakage_audited():
     assert result["task_count"] == 24
     assert result["eligible_tasks"] == 22
     assert result["excluded_tasks"] == 2
+
+
+def test_semantic_holdout_14_is_hash_frozen_before_first_evaluation():
+    """Holdout 14 must preserve its pre-ground-truth query freeze and cohort."""
+    payload = json.loads(MANIFEST_14.read_text(encoding="utf-8"))
+    freeze = json.loads(QUERY_FREEZE_14.read_text(encoding="utf-8"))
+
+    result = validate_semantic_holdout(payload, MANIFEST_14)
+
+    assert result["query_freeze_sha256"] == (
+        "2b96b273353c0dd76da0dd8bcdcd7a0cdbb93ca253b43409ff4fee2734d95f4a"
+    )
+    assert result["ground_truth_sha256"] == (
+        "c1d16ce0289305533055de2406143d692e82f7bca35e2fc47f054306d3f9ed92"
+    )
+    assert query_freeze_hash(freeze) == result["query_freeze_sha256"]
+    assert semantic_ground_truth_hash(payload) == result["ground_truth_sha256"]
+    assert result["task_count"] == 24
+    assert result["eligible_tasks"] == 20
+    assert result["excluded_tasks"] == 4
 
 
 def test_literal_answer_identity_leak_is_detected():
