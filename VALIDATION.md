@@ -11,8 +11,8 @@ Tests establish that:
 - changed or missing source digests quarantine stale memory before ordinary recall;
 - near-duplicate active memory on the same source evidence is superseded rather
   than silently competing;
-- progressive disclosure keeps full evidence out of `memory_index` and bounded
-  snippets out of `memory_get` until ids are explicitly selected;
+- progressive disclosure keeps full evidence out of `memory_index` and
+  `memory_search`; `memory_get` returns it only after ids are explicitly selected;
 - full memory access updates bounded reuse metadata without changing source truth;
 - the adaptive MCP profile starts from a smaller schema than `full`;
 - `discover_tools` selects deterministic task groups, expands the live surface,
