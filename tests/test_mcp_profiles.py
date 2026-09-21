@@ -87,3 +87,77 @@ def test_minimal_profile_materially_reduces_advertised_schema_tokens():
 
     assert minimal_tokens < full_tokens
     assert len(minimal) < len(full)
+
+
+
+def test_memory_profile_exposes_progressive_disclosure_tools_only():
+    """Memory profile should expose compact project memory without unrelated output tools."""
+    names = set(tool_registry_for_profile("memory").names())
+
+    assert {"memory_index", "memory_search", "memory_get", "remember_memory"} <= names
+    assert "compact_output" not in names
+    assert "review_diff" not in names
+
+
+def test_adaptive_profile_starts_with_bounded_core():
+    """Adaptive MCP mode should advertise a small discovery-first surface."""
+    names = set(tool_registry_for_profile("adaptive").names())
+
+    assert {
+        "discover_tools",
+        "build_context",
+        "find_symbol",
+        "browse_context",
+        "memory_index",
+        "route_task",
+    } == names
+    assert len(names) < len(tool_registry_for_profile("full").names())
+
+
+def test_adaptive_discovery_expands_surface_for_patch_review(tmp_path):
+    """Tool discovery should activate review specialists without exposing everything."""
+    protocol = McpProtocol(tmp_path, profile="adaptive")
+
+    result = protocol.call_tool(
+        "discover_tools",
+        {"query": "review this patch and find impacted tests", "max_tools": 12},
+    )
+    payload = json.loads(result["content"][0]["text"])
+    listed = protocol.handle_message(
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
+    )
+    names = {tool["name"] for tool in listed["result"]["tools"]}
+
+    assert payload["list_changed"] is True
+    assert {"build_diff_context", "review_diff", "analyze_change_impact"} <= names
+    assert "compact_output" not in names
+    assert len(names) <= 12
+
+
+def test_adaptive_protocol_advertises_list_changed_capability(tmp_path):
+    """Clients should be told that discovery may change the advertised tool list."""
+    protocol = McpProtocol(tmp_path, profile="adaptive")
+
+    initialized = protocol.handle_message(
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize"}
+    )
+
+    assert initialized["result"]["capabilities"]["tools"]["listChanged"] is True
+
+
+def test_project_config_can_select_adaptive_profile(tmp_path, monkeypatch):
+    """Project config should opt into adaptive disclosure without environment mutation."""
+    monkeypatch.delenv("TOKEN_SAVER_MCP_PROFILE", raising=False)
+    (tmp_path / ".token-saver.toml").write_text(
+        '[mcp]\nprofile = "adaptive"\nadaptive_max_tools = 10\n',
+        encoding="utf-8",
+    )
+
+    protocol = McpProtocol(tmp_path)
+    listed = protocol.handle_message(
+        {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+    )
+    names = {tool["name"] for tool in listed["result"]["tools"]}
+
+    assert "discover_tools" in names
+    assert "compact_output" not in names
