@@ -73,6 +73,10 @@ packet_tokens = 1600
 cache = true
 cache_max_entries = 64
 
+[mcp]
+profile = "full"
+adaptive_max_tools = 12
+
 [tool_proxy]
 enabled = false
 provider = "ollama"
