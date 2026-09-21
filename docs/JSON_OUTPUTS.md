@@ -585,6 +585,46 @@ Returns the full `session-effectiveness` object above. With
 
 
 
+
+## `model-route --json`
+
+```json
+{
+  "task": "debugging",
+  "complexity_tier": "standard",
+  "complexity_score": 1,
+  "risk_level": "normal",
+  "risk_signals": [],
+  "minimum_capability": "balanced",
+  "selected_model": "claude-sonnet-5",
+  "current_model": null,
+  "action": "recommend",
+  "allowed_models": [
+    "claude-haiku-4-5",
+    "claude-sonnet-5",
+    "claude-opus-5"
+  ],
+  "eligible_models": [
+    "claude-sonnet-5",
+    "claude-opus-5"
+  ],
+  "estimated_input_tokens": 1200,
+  "input_token_basis": "caller_supplied_complete_input",
+  "estimated_output_tokens": 900,
+  "projected_cost_usd": {},
+  "projected_current_cost_usd": null,
+  "projected_savings_fraction": null,
+  "pricing_basis": "fresh_input_plus_output_one_turn",
+  "reasons": []
+}
+```
+
+`action` is `recommend` when no current model is known, `keep` when the
+current model should remain, `route` when a switch satisfies policy/economic
+rules, or `manual` when the allowed model set cannot satisfy the capability
+gate. Projected economics are counterfactual one-turn estimates, not realized
+task-success-adjusted savings.
+
 ## `pricing --json`
 
 ```json
