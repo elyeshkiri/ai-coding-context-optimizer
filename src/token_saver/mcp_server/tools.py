@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ..output_saver import build_output_policy, compact_output
-from ..model_routing import DEFAULT_ALLOWED_MODELS, route_task
+from ..model_routing import (
+    DEFAULT_ALLOWED_MODELS,
+    DEFAULT_ROUTING_CALIBRATION_FILE,
+    load_routing_calibration,
+    route_task,
+)
 from ..patch_context import build_diff_context, review_patch
 from .contracts import McpToolContext, McpToolSpec
 
@@ -197,8 +202,14 @@ def _review_diff(context: McpToolContext, arguments: dict) -> dict:
 
 def _route_task(context: McpToolContext, arguments: dict) -> dict:
     """Return one model-routing decision for a model-selectable orchestrator."""
-    del context
     allowed = arguments.get("allowed_models")
+    calibration_name = str(
+        arguments.get("calibration_file") or DEFAULT_ROUTING_CALIBRATION_FILE
+    )
+    calibration_path = Path(calibration_name)
+    if not calibration_path.is_absolute():
+        calibration_path = context.root / calibration_path
+    calibration = load_routing_calibration(calibration_path)
     return route_task(
         str(arguments.get("prompt", "")),
         input_tokens=(
@@ -223,6 +234,7 @@ def _route_task(context: McpToolContext, arguments: dict) -> dict:
         ),
         min_savings=float(arguments.get("min_savings", 0.05)),
         conservative=bool(arguments.get("conservative", True)),
+        calibration=calibration,
     ).to_dict()
 
 
@@ -452,6 +464,7 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
                         "maximum": 1,
                     },
                     "conservative": {"type": "boolean"},
+                    "calibration_file": {"type": "string"},
                 },
             },
             _route_task,
