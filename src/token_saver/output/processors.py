@@ -501,7 +501,9 @@ class GenericProcessor:
 
 
 def default_processors() -> list:
-    """Return fresh instances of the built-in processor set."""
+    """Return fresh instances of the complete built-in processor set."""
+    from .specialized_processors import extended_processors
+
     return [
         PytestProcessor(),
         JsTestProcessor(),
@@ -515,4 +517,5 @@ def default_processors() -> list:
         PackageInstallProcessor(),
         ContainerLogProcessor(),
         GenericProcessor(),
+        *extended_processors(),
     ]
