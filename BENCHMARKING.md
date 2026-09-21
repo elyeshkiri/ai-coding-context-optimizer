@@ -208,13 +208,33 @@ arm and regressed none. Mean estimated context reduction was effectively flat
 The result is useful precisely because it is not inflated: the semantic
 mechanism shows a real but small improvement, while several repositories still
 have difficult behavior-only misses. Holdout #13 must not be used as the tuning
-loop for those misses. New semantic ranking/chunking changes are developed on
-separate fixtures/development corpora and require a **fresh holdout #14** for
-new generalization evidence.
+loop for those misses.
 
-This is a retrieval benchmark. File-recall improvement on these tasks does not
-by itself establish lower API cost, coding-task success, or cost per successful
-task.
+Fresh holdout #14 was subsequently frozen before evaluation with 24
+issue-derived natural-language tasks across six repositories; four were
+conservatively excluded after ground-truth review, leaving 20 eligible tasks.
+Its first complete exact-cosine run was GitHub Actions **35615316639**:
+
+| Arm | File recall |
+| --- | ---: |
+| Token Saver hybrid semantic | **82.50%** |
+| Token Saver lexical/structural | **80.00%** |
+| Trivial lexical baseline | **70.00%** |
+
+The semantic arm improved aggregate file recall by 2.5 percentage points with
+zero regressions. One two-file target was partially recovered, so the run
+reported zero complete `semantic_recovered_tasks`. Mean estimated context
+reduction remained essentially identical (98.9516% semantic vs 98.9515%
+lexical). That first run burned #14.
+
+Any rerun after tuning against #14 is development evidence only. In particular,
+the later 87.5% semantic development result must not be reported as fresh
+generalization evidence. The next independent cohort is #15: its queries and
+pinned repository revisions are frozen, but ground truth and the first
+evaluation are still pending.
+
+These are retrieval benchmarks. File-recall improvement does not by itself
+establish lower API cost, coding-task success, or cost per successful task.
 
 ## Automated end-to-end cost-per-success experiment
 
