@@ -180,7 +180,7 @@ min_tokens = 2500
 target_tokens = 1800
 ```
 
-The free/local model is a **range selector, not a source of truth**. Token Saver builds bounded structural/exact candidate evidence, asks the selector which ranges matter for the current task, validates those ranges, then rehydrates the delivered excerpts from the real file bytes. Selector prose is explicitly marked non-authoritative. If Ollama is unavailable, times out, or returns invalid JSON, Token Saver falls back to deterministic structural/lexical range selection.
+The free/local model is a **range selector, not a source of truth**. Token Saver builds bounded structural/exact candidate evidence, asks the selector which ranges matter for the current task, validates those ranges, then rehydrates the delivered excerpts from the real file bytes. No selector-generated prose is forwarded to Claude. If Ollama is unavailable, times out, or returns invalid JSON, Token Saver falls back to deterministic structural/lexical range selection.
 
 ```text
 Claude Read(large source)
