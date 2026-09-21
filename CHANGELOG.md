@@ -1,5 +1,22 @@
 # Unreleased
 
+- **Added automatic capability- and cost-aware model routing.** The new
+  `model-route` CLI and MCP `route_task` tool classify task type, complexity,
+  and explicit high-risk domains, establish a conservative minimum capability,
+  then choose the lowest projected one-turn cost only among models that satisfy
+  that policy. The default profiled set is Haiku 4.5 / Sonnet 5 / Opus 5.
+- **Added opt-in Claude prompt-hook routing intelligence and adoption telemetry.**
+  `[model_routing] mode = "observe"` records decisions silently; `advisory`
+  additionally injects a bounded recommendation for model-selectable
+  subagents/orchestrators. The hook explicitly does not claim to switch Claude's
+  active top-level model. Stop telemetry records route target versus actual model
+  so adoption can be measured before any savings claim.
+- **Kept model economics evidence bounded.** Routing cost compares fresh input
+  plus the selected output-budget target using the freshness-gated built-in
+  pricing registry. Local prompt-only token estimates are labeled as incomplete
+  input evidence, and routing profiles are documented as conservative product
+  policy rather than benchmark rankings of model quality.
+
 - **Added a centralized, packaged Claude pricing registry.** Current first-party
   standard/global rates are stored once with explicit source, verification date,
   freshness limit, canonical model ids, aliases, and cache-write/read columns.
