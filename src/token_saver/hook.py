@@ -24,6 +24,7 @@ from .estimate import estimate_tokens
 from .output import OutputPipeline
 from .output_telemetry import finish_output_turn, start_output_turn
 from .generation_policy import automatic_output_policy
+from .model_routing import automatic_model_route
 from .ingress import maybe_stage_prompt
 from .guard import _digest, run as guard_run
 from .hook_runtime import (
@@ -63,6 +64,12 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
         output_policy_max_tokens=settings.output_max_tokens,
         output_policy_calibration_file=settings.output_calibration_file,
         output_telemetry_enabled=settings.output_telemetry,
+        model_routing_enabled=settings.model_routing_enabled,
+        model_routing_mode=settings.model_routing_mode,
+        model_routing_current_model=settings.model_routing_current_model,
+        model_routing_allowed_models=settings.model_routing_allowed_models,
+        model_routing_min_savings=settings.model_routing_min_savings,
+        model_routing_conservative=settings.model_routing_conservative,
         efficiency_enabled=settings.efficiency_enabled,
         continuity_enabled=settings.continuity_enabled,
         cross_turn_dedup_enabled=settings.cross_turn_dedup,
@@ -112,6 +119,7 @@ def _services() -> HookServices:
         observe_tool=observe_tool,
         ingress_optimizer=maybe_stage_prompt,
         smart_read_proxy=proxy_read,
+        model_route=automatic_model_route,
     )
 
 
