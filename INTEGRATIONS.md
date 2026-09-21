@@ -173,6 +173,7 @@ current_model = ""
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
+calibration_file = ".token-saver.routing-calibration.json"
 
 [efficiency]
 enabled = true
@@ -213,6 +214,20 @@ record and inject the decision but cannot replace the active top-level model.
 Model-selectable orchestrators should call the MCP `route_task` tool and execute
 its `selected_model` / `action` decision directly. The default capability
 profiles are conservative product policy, not model-quality benchmark results.
+
+A quality-gated calibration artifact may admit a cheaper model outside the
+static capability profile for one exact bucket. Generate that artifact only
+from paired arms that differ by model choice alone, after independent
+verification and `blind-grade`:
+
+```bash
+token-saver experiment routing-suite.json --out routing-runs.json
+token-saver blind-grade routing-runs.json
+token-saver model-route-calibrate routing-runs.json
+```
+
+The runtime rechecks hard evidence floors before using any recommendation.
+Invalid calibration falls back to the static conservative router.
 
 ## Troubleshooting and repair
 
