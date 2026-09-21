@@ -125,15 +125,24 @@ def registry_rates(registry: dict) -> dict[str, dict[str, float]]:
     return rates
 
 
-def builtin_rates() -> dict[str, dict[str, float]]:
-    """Return rate lookup data from the packaged registry."""
-    return registry_rates(builtin_registry())
+def builtin_rates(*, require_fresh: bool = False) -> dict[str, dict[str, float]]:
+    """Return packaged rates, optionally refusing stale registry metadata."""
+    registry = builtin_registry()
+    if require_fresh:
+        status = registry_status(registry)
+        if not status["fresh"]:
+            raise ValueError(
+                "builtin pricing registry is stale: "
+                f"verified {status['verified_at']}, age {status['age_days']} days, "
+                f"limit {status['max_age_days']} days"
+            )
+    return registry_rates(registry)
 
 
 def load_rates(path: str | Path):
-    """Load a legacy flat rate file, a registry file, or the builtin registry."""
+    """Load a legacy flat rate file, a registry file, or fresh builtin rates."""
     if str(path) == "builtin":
-        return builtin_rates()
+        return builtin_rates(require_fresh=True)
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(data, dict) and data.get("schema") == REGISTRY_SCHEMA:
         return registry_rates(validate_registry(data))
