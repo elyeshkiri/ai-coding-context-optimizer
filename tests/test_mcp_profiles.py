@@ -224,3 +224,43 @@ def test_adaptive_initial_surface_materially_reduces_schema_tokens():
     full_tokens = estimate_tokens(json.dumps(full), ".json")
 
     assert adaptive_tokens < full_tokens * 0.55
+
+
+
+def test_adaptive_discovery_replaces_previous_specialists_and_enforces_project_cap(
+    tmp_path,
+):
+    """Each task should get a fresh bounded specialist surface, not cumulative growth."""
+    (tmp_path / ".token-saver.toml").write_text(
+        '[mcp]\nprofile = "adaptive"\nadaptive_max_tools = 8\n',
+        encoding="utf-8",
+    )
+    protocol = McpProtocol(tmp_path)
+
+    protocol.call_tool(
+        "discover_tools",
+        {"query": "review this patch and impacted tests", "max_tools": 24},
+    )
+    review_names = {
+        tool["name"]
+        for tool in protocol.handle_message(
+            {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+        )["result"]["tools"]
+    }
+    assert len(review_names) <= 8
+    assert "review_diff" in review_names
+
+    protocol.call_tool(
+        "discover_tools",
+        {"query": "remember the architecture decision for future sessions", "max_tools": 24},
+    )
+    memory_names = {
+        tool["name"]
+        for tool in protocol.handle_message(
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
+        )["result"]["tools"]
+    }
+
+    assert len(memory_names) <= 8
+    assert "memory_search" in memory_names
+    assert "review_diff" not in memory_names
