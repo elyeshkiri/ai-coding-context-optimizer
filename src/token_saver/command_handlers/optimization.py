@@ -18,6 +18,7 @@ from ..optimizer import (
 from ..prefix_cache import prefix_status
 from ..provider_proxy import ProviderProxyConfig, run_provider_proxy
 from ..recovery import RecoveryStore
+from ..runtime_config import settings_for
 
 
 def recover_main(argv: list[str]) -> int:
@@ -157,10 +158,13 @@ def provider_proxy_main(argv: list[str]) -> int:
     parser.add_argument("--no-schema-compression", action="store_true")
     parser.add_argument("--no-tool-result-compression", action="store_true")
     parser.add_argument("--allow-non-loopback", action="store_true")
+    parser.add_argument("--no-prefix-tracking", action="store_true")
     args = parser.parse_args(argv)
+    root = Path(args.path).resolve()
+    settings = settings_for(root)
     try:
         config = ProviderProxyConfig(
-            root=Path(args.path).resolve(),
+            root=root,
             upstream=args.upstream,
             provider=args.provider,
             bind=args.bind,
@@ -170,6 +174,9 @@ def provider_proxy_main(argv: list[str]) -> int:
             tool_result_min_tokens=args.tool_result_min_tokens,
             timeout_seconds=args.timeout_seconds,
             allow_non_loopback=args.allow_non_loopback,
+            prefix_tracking=(
+                settings.prefix_tracking and not args.no_prefix_tracking
+            ),
         ).validate()
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
