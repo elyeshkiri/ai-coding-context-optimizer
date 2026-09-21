@@ -31,7 +31,7 @@ jobs:
         run: |
           token-saver output-replay \
             benchmarks/cli-output-compression-ratchet-v1.frozen.json \
-            --require-frozen > /tmp/cli-output-compression-ratchet.json
+            --require-frozen | tee /tmp/cli-output-compression-ratchet.json
       # An invalid workflow expression is rejected by GitHub before any job
       # is created, so it shows up as a zero-second failure with no logs and
       # cannot be caught by any job running inside the workflow. release.yml
