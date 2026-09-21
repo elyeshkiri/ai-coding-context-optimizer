@@ -397,3 +397,32 @@ Saved original command output is local and can be paged with `token-saver
 output` or pruned with `token-saver outputs-prune`.
 
 See [Security & privacy](../SECURITY.md) for persistence boundaries.
+
+## Model routing
+
+Automatic model routing is opt-in:
+
+```toml
+[model_routing]
+enabled = true
+mode = "advisory" # advisory | observe
+current_model = "" # optional exact model id when the host does not supply one
+allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
+min_savings = 0.05
+conservative = true
+```
+
+Environment overrides:
+
+- `TOKEN_SAVER_MODEL_ROUTING`
+- `TOKEN_SAVER_MODEL_ROUTING_MODE`
+- `TOKEN_SAVER_MODEL_ROUTING_CURRENT_MODEL`
+- `TOKEN_SAVER_MODEL_ROUTING_ALLOWED` (colon-separated exact model ids)
+- `TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS`
+- `TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE`
+
+`observe` computes/stores decisions without prompt injection. `advisory`
+also injects a bounded host-neutral recommendation. The Claude prompt hook
+cannot change the active top-level model; use MCP `route_task` from an
+orchestrator that can actually select a model.
+
