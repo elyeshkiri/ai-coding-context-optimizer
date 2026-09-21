@@ -136,7 +136,7 @@ For a user-wide hook installation:
 token-saver install . --user
 ```
 
-The Claude Code integration uses four distinct boundaries:
+The Claude Code integration uses five distinct boundaries:
 
 - `UserPromptSubmit` automatically selects and injects a generation-time output
   policy when the task/mode changes, so completion tokens can be avoided before
