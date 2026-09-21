@@ -51,7 +51,10 @@ from .command_handlers.host import (
     uninstall_main,
 )
 from .command_handlers.ingress import ingress_read_main, ingress_show_main
-from .command_handlers.model_routing import model_route_main
+from .command_handlers.model_routing import (
+    model_route_calibrate_main,
+    model_route_main,
+)
 from .command_handlers.output import (
     output_benchmark_main,
     output_calibrate_main,
@@ -131,6 +134,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("cost-advisor", cost_advisor_main),
         CommandSpec("pricing", pricing_main),
         CommandSpec("model-route", model_route_main),
+        CommandSpec("model-route-calibrate", model_route_calibrate_main),
         CommandSpec("dashboard", dashboard_main),
         CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),
