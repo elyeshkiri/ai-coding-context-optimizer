@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import hashlib
 import json
-import math
 import re
 from pathlib import Path
 
@@ -350,12 +349,28 @@ def _recommendation_is_runtime_safe(item: object) -> bool:
         elif value < floor:
             return False
     baseline_success = item.get("baseline_success_rate")
+    candidate_success = item.get("candidate_success_rate")
     if (
         isinstance(baseline_success, bool)
         or not isinstance(baseline_success, (int, float))
         or float(baseline_success) < MIN_BASELINE_SUCCESS_RATE
+        or isinstance(candidate_success, bool)
+        or not isinstance(candidate_success, (int, float))
+        or float(candidate_success) < float(baseline_success)
     ):
         return False
+    for key in (
+        "mean_weighted_quality_delta",
+        "mean_correctness_delta",
+        "mean_safety_delta",
+    ):
+        value = item.get(key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or float(value) < -MAX_QUALITY_DROP
+        ):
+            return False
     return all(
         item.get(key) is True
         for key in (
@@ -436,6 +451,35 @@ def calibrate_model_routing(path: Path) -> dict:
             + ", ".join(missing_protocol)
         )
 
+    runner = payload.get("runner")
+    if not isinstance(runner, dict):
+        raise ValueError("routing calibration requires runner metadata")
+    profiles = runner.get("condition_profiles")
+    if (
+        not isinstance(profiles, dict)
+        or set(profiles) != {"baseline", "enabled"}
+        or not all(isinstance(profiles[name], dict) for name in profiles)
+    ):
+        raise ValueError(
+            "routing calibration requires explicit baseline/enabled condition profiles"
+        )
+    baseline_profile = profiles["baseline"]
+    candidate_profile = profiles["enabled"]
+    for key in ("install_token_saver", "env"):
+        if baseline_profile.get(key) != candidate_profile.get(key):
+            raise ValueError(
+                "routing calibration arms may differ only by model/label; "
+                f"condition profile {key} differs"
+            )
+    baseline_profile_model = _canonical_model(baseline_profile.get("model"))
+    candidate_profile_model = _canonical_model(candidate_profile.get("model"))
+    if baseline_profile_model is None or candidate_profile_model is None:
+        raise ValueError(
+            "routing calibration condition profiles require known exact models"
+        )
+    if baseline_profile_model == candidate_profile_model:
+        raise ValueError("routing calibration requires different arm models")
+
     quality_meta = payload.get("quality_evaluation")
     if not isinstance(quality_meta, dict) or quality_meta.get("blinded") is not True:
         raise ValueError("routing calibration requires blinded quality evidence")
@@ -510,6 +554,13 @@ def calibrate_model_routing(path: Path) -> dict:
         candidate = pair["token-saver"]
         baseline_model = _verified_run_model(baseline)
         candidate_model = _verified_run_model(candidate)
+        if (
+            baseline_model != baseline_profile_model
+            or candidate_model != candidate_profile_model
+        ):
+            raise ValueError(
+                "routing calibration run models do not match frozen condition profiles"
+            )
 
         prompt = prompts[task_id]
         task_class, budget, risk_level, _signals, minimum, _reasons = _route_features(
