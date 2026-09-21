@@ -107,6 +107,8 @@ def start_output_turn(
                 "selected_model",
                 "action",
                 "pricing_basis",
+                "projected_savings_fraction",
+                "projected_selected_cost_usd",
             )
             if key in route
         },
@@ -344,6 +346,12 @@ def finish_output_turn(
         "route_target_model": route_target,
         "route_action": model_route.get("action"),
         "route_pricing_basis": model_route.get("pricing_basis"),
+        "route_projected_savings_fraction": model_route.get(
+            "projected_savings_fraction"
+        ),
+        "route_projected_selected_cost_usd": model_route.get(
+            "projected_selected_cost_usd"
+        ),
         **usage,
         "route_matched_actual": (
             route_target in usage["models"]
