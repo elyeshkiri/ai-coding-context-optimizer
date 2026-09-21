@@ -106,6 +106,26 @@ def test_advisor_prices_only_explicit_measured_usage(tmp_path, monkeypatch):
     assert report["evidence"]["not_claimed"][0] == "task success"
 
 
+def test_cost_advisor_cli_can_use_fresh_builtin_registry(
+    tmp_path, monkeypatch, capsys
+):
+    """The explicit builtin source should price matching measured model usage."""
+    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr("time.time", lambda: 2_000_000_100)
+    root = tmp_path / "repo"
+    root.mkdir()
+    _write_turns(root, tmp_path / "state", [_turn() for _ in range(5)])
+
+    assert cost_advisor_main(
+        [str(root), "--project-only", "--rates", "builtin", "--json"]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["cost"]["complete"] is True
+    assert payload["cost"]["priced_turns"] == 5
+    assert payload["cost"]["usd"] == pytest.approx(0.00384)
+
+
 def test_advisor_does_not_allocate_mixed_model_turns(tmp_path, monkeypatch):
     """A mixed-model turn must stay unpriced instead of guessing token allocation."""
     monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
