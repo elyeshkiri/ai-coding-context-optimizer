@@ -176,6 +176,19 @@ class GitLogProcessor:
             index for index, line in enumerate(lines) if line.startswith("commit ")
         ]
         if not commit_starts:
+            oneline = [
+                line
+                for line in lines
+                if re.match(r"^[0-9a-f]{7,40}\s+\S", line, re.I)
+            ]
+            if len(lines) > 40 and len(oneline) >= len(lines) * 0.8:
+                kept = lines[:25]
+                candidate = (
+                    "\n".join(kept)
+                    + f"\n... {len(lines) - len(kept)} older commits omitted\n"
+                )
+                if len(candidate.encode()) < len(text.encode()):
+                    return candidate
             return filter_text(prepared, max_lines, 10, prepared=True)
 
         compact: list[str] = []
