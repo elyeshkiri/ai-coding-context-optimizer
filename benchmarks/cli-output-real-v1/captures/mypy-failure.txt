@@ -1,0 +1,2 @@
+type_sample.py:2: error: Incompatible return value type (got "str", expected "int")  [return-value]
+Found 1 error in 1 file (checked 1 source file)

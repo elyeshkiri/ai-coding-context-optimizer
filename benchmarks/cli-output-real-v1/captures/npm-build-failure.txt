@@ -1,0 +1,19 @@
+
+> cli-corpus-fixture@1.0.0 build
+> node -e "throw new Error('build fixture failure')"
+
+[eval]:1
+throw new Error('build fixture failure')
+^
+
+Error: build fixture failure
+    at [eval]:1:7
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:444:60)
+    at evalFunction (node:internal/process/execution:279:30)
+    at evalTypeScript (node:internal/process/execution:291:3)
+    at node:internal/main/eval_string:74:3
+
+Node.js v22.23.2

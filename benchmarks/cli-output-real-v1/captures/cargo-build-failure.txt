@@ -1,0 +1,17 @@
+   Compiling cli_corpus_fixture v0.1.0 (/home/runner/work/token-saver/token-saver/.tmp-cli-corpus-workspace/rust)
+error[E0382]: borrow of moved value: `s`
+ --> src/lib.rs:1:62
+  |
+1 | pub fn broken() -> i32 { let s = String::from("x"); drop(s); s.len() as i32 }
+  |                              -                           -   ^ value borrowed here after move
+  |                              |                           |
+  |                              |                           value moved here
+  |                              move occurs because `s` has type `String`, which does not implement the `Copy` trait
+  |
+help: consider cloning the value if the performance cost is acceptable
+  |
+1 | pub fn broken() -> i32 { let s = String::from("x"); drop(s.clone()); s.len() as i32 }
+  |                                                           ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `cli_corpus_fixture` (lib) due to 1 previous error

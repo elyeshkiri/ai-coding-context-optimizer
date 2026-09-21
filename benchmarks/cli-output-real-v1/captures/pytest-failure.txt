@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________________________________ test_refresh _________________________________
+
+    def test_refresh():
+>       assert 401 == 200, 'expected 200, got 401'
+E       AssertionError: expected 200, got 401
+E       assert 401 == 200
+
+test_sample.py:2: AssertionError
+=========================== short test summary info ============================
+FAILED test_sample.py::test_refresh - AssertionError: expected 200, got 401
+assert 401 == 200
+1 failed in 0.03s
