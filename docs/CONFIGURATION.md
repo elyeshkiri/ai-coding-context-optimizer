@@ -34,6 +34,15 @@ adaptive = true
 calibration_file = ".token-saver.output-calibration.json"
 telemetry = true
 
+[model_routing]
+enabled = false
+mode = "advisory"
+current_model = ""
+allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
+min_savings = 0.05
+conservative = true
+calibration_file = ".token-saver.routing-calibration.json"
+
 [efficiency]
 enabled = true
 continuity = true
@@ -266,6 +275,13 @@ Environment variables take precedence over TOML:
 | `TOKEN_SAVER_OUTPUT_MAX_TOKENS` | `output.max_tokens` |
 | `TOKEN_SAVER_OUTPUT_CALIBRATION_FILE` | `output.calibration_file` |
 | `TOKEN_SAVER_OUTPUT_TELEMETRY` | `output.telemetry` |
+| `TOKEN_SAVER_MODEL_ROUTING` | `model_routing.enabled` |
+| `TOKEN_SAVER_MODEL_ROUTING_MODE` | `model_routing.mode` |
+| `TOKEN_SAVER_MODEL_ROUTING_CURRENT_MODEL` | `model_routing.current_model` |
+| `TOKEN_SAVER_MODEL_ROUTING_ALLOWED` | `model_routing.allowed_models` (colon-separated) |
+| `TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS` | `model_routing.min_savings` |
+| `TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE` | `model_routing.conservative` |
+| `TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE` | `model_routing.calibration_file` |
 | `TOKEN_SAVER_EFFICIENCY` | `efficiency.enabled` |
 | `TOKEN_SAVER_CONTINUITY` | `efficiency.continuity` |
 | `TOKEN_SAVER_CROSS_TURN_DEDUP` | `efficiency.dedup` |
