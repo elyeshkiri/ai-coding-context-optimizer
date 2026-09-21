@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 from .generation_policy import OUTPUT_TASK_OPTIONS
+from .model_routing import DEFAULT_ALLOWED_MODELS, ROUTING_MODES
 from .output_saver import OUTPUT_MODES
 
 try:
@@ -39,6 +40,12 @@ class RuntimeSettings:
     output_max_tokens: int | None = None
     output_calibration_file: str = ".token-saver.output-calibration.json"
     output_telemetry: bool = True
+    model_routing_enabled: bool = False
+    model_routing_mode: str = "advisory"
+    model_routing_current_model: str = ""
+    model_routing_allowed_models: tuple[str, ...] = DEFAULT_ALLOWED_MODELS
+    model_routing_min_savings: float = 0.05
+    model_routing_conservative: bool = True
     efficiency_enabled: bool = True
     continuity_enabled: bool = True
     cross_turn_dedup: bool = True
@@ -161,6 +168,11 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     output = payload.get("output", {})
     if not isinstance(output, dict):
         raise ValueError(f"Expected [output] table in Token Saver config: {path}")
+    model_routing = payload.get("model_routing", {})
+    if not isinstance(model_routing, dict):
+        raise ValueError(
+            f"Expected [model_routing] table in Token Saver config: {path}"
+        )
     efficiency = payload.get("efficiency", {})
     if not isinstance(efficiency, dict):
         raise ValueError(
@@ -184,6 +196,20 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     keep_tail = hooks.get("keep_tail", 15)
     if not isinstance(keep_tail, int) or isinstance(keep_tail, bool):
         keep_tail = 15
+    route_allowed = model_routing.get(
+        "allowed_models", list(DEFAULT_ALLOWED_MODELS)
+    )
+    route_allowed_tuple = (
+        tuple(
+            item.strip()
+            for item in route_allowed
+            if isinstance(item, str) and item.strip()
+        )
+        if isinstance(route_allowed, list)
+        else DEFAULT_ALLOWED_MODELS
+    )
+    if not route_allowed_tuple:
+        route_allowed_tuple = DEFAULT_ALLOWED_MODELS
     return RuntimeSettings(
         disabled=_bool(hooks.get("disabled"), False),
         guard=_bool(hooks.get("guard"), True),
@@ -205,6 +231,20 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
             ".token-saver.output-calibration.json",
         ),
         output_telemetry=_bool(output.get("telemetry"), True),
+        model_routing_enabled=_bool(model_routing.get("enabled"), False),
+        model_routing_mode=_choice(
+            model_routing.get("mode"), "advisory", ROUTING_MODES
+        ),
+        model_routing_current_model=_string(
+            model_routing.get("current_model"), ""
+        ),
+        model_routing_allowed_models=route_allowed_tuple,
+        model_routing_min_savings=_fraction(
+            model_routing.get("min_savings"), 0.05
+        ),
+        model_routing_conservative=_bool(
+            model_routing.get("conservative"), True
+        ),
         efficiency_enabled=_bool(efficiency.get("enabled"), True),
         continuity_enabled=_bool(efficiency.get("continuity"), True),
         cross_turn_dedup=_bool(efficiency.get("dedup"), True),
@@ -392,6 +432,37 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         output_telemetry=_env_bool(
             "TOKEN_SAVER_OUTPUT_TELEMETRY", base.output_telemetry
+        ),
+        model_routing_enabled=_env_bool(
+            "TOKEN_SAVER_MODEL_ROUTING", base.model_routing_enabled
+        ),
+        model_routing_mode=_env_choice(
+            "TOKEN_SAVER_MODEL_ROUTING_MODE",
+            base.model_routing_mode,
+            ROUTING_MODES,
+        ),
+        model_routing_current_model=_env_string(
+            "TOKEN_SAVER_MODEL_ROUTING_CURRENT_MODEL",
+            base.model_routing_current_model,
+        ),
+        model_routing_allowed_models=(
+            tuple(
+                part.strip()
+                for part in os.environ["TOKEN_SAVER_MODEL_ROUTING_ALLOWED"].split(":")
+                if part.strip()
+            )
+            if os.environ.get("TOKEN_SAVER_MODEL_ROUTING_ALLOWED")
+            else base.model_routing_allowed_models
+        ),
+        model_routing_min_savings=_env_float(
+            "TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS",
+            base.model_routing_min_savings,
+            minimum=0.0,
+            maximum=1.0,
+        ),
+        model_routing_conservative=_env_bool(
+            "TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE",
+            base.model_routing_conservative,
         ),
         efficiency_enabled=_env_bool(
             "TOKEN_SAVER_EFFICIENCY", base.efficiency_enabled
