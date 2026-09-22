@@ -41,6 +41,7 @@ from .command_handlers.experiment import (
 )
 from .command_handlers.host import (
     claude_plugin_path_main,
+    client_capabilities_main,
     commands_main,
     fastpath_status_main,
     completion_main,
@@ -159,6 +160,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("commands", commands_main),
         CommandSpec("host-check", host_check_main),
         CommandSpec("claude-plugin-path", claude_plugin_path_main),
+        CommandSpec("client-capabilities", client_capabilities_main),
         CommandSpec("fastpath-status", fastpath_status_main),
         CommandSpec("ingress-show", ingress_show_main),
         CommandSpec("ingress-read", ingress_read_main),
