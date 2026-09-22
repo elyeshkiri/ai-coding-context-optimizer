@@ -6,10 +6,10 @@ import hashlib
 import json
 import math
 
-from token_saver.agent_eval import evaluate_agent_runs
-from token_saver.benchmark import task_definition_hash
-from token_saver.command_handlers.output import output_effectiveness_main
-from token_saver.output_effectiveness import (
+from acco.agent_eval import evaluate_agent_runs
+from acco.benchmark import task_definition_hash
+from acco.command_handlers.output import output_effectiveness_main
+from acco.output_effectiveness import (
     EffectivenessPricing,
     evaluate_output_effectiveness,
 )
@@ -155,7 +155,7 @@ def test_effectiveness_joins_enabled_usage_success_quality_and_budget(tmp_path):
     assert result["tasks"] == 3
     assert result["paired_trials"] == 3
     assert result["conditions"]["baseline"]["success_rate"] == 1.0
-    assert result["conditions"]["token-saver"]["success_rate"] == 1.0
+    assert result["conditions"]["acco"]["success_rate"] == 1.0
     assert result["delta"]["cost_per_success_reduction"] > 0
     assert result["quality"]["blinded"] is True
     assert result["quality"]["parity"] is True

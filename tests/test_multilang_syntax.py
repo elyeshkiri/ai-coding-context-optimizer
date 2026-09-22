@@ -1,6 +1,6 @@
-from token_saver.repo_index import record_for_text
-from token_saver.snippet import extract_symbol
-from token_saver.syntax import symbols
+from acco.repo_index import record_for_text
+from acco.snippet import extract_symbol
+from acco.syntax import symbols
 
 
 def _qualified(text: str, suffix: str) -> set[str]:

@@ -4,7 +4,7 @@ import json
 import sys
 import textwrap
 
-from token_saver.mcp import load_servers, probe, probe_all
+from acco.mcp import load_servers, probe, probe_all
 
 FAKE_SERVER = textwrap.dedent(
     """
@@ -39,7 +39,7 @@ def test_a_stdio_server_is_measured(tmp_path):
 
 
 def test_server_commands_run_from_the_project_root(tmp_path):
-    """Regression: found live — the server inherited token-saver's cwd, not the
+    """Regression: found live — the server inherited acco's cwd, not the
     project's, so a relative command in .mcp.json could not be found."""
     (tmp_path / "server.py").write_text(FAKE_SERVER)
     root = _project(tmp_path, {"local": {"command": sys.executable, "args": ["server.py"]}})

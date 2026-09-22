@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from token_saver.command_handlers.output import output_calibrate_main
-from token_saver.output_budget import (
+from acco.command_handlers.output import output_calibrate_main
+from acco.output_budget import (
     adaptive_output_budget,
     calibrate_output_budgets,
     load_output_calibration,
@@ -106,7 +106,7 @@ def test_calibration_uses_only_successful_quality_preserving_pairs(tmp_path):
                 {
                     "task": task_id,
                     "trial": 1,
-                    "condition": "token-saver",
+                    "condition": "acco",
                     "success": True,
                     "input_tokens": 700,
                     "output_tokens": output_tokens,
@@ -133,7 +133,7 @@ def test_calibration_uses_only_successful_quality_preserving_pairs(tmp_path):
             {
                 "task": "bad-shortcut",
                 "trial": 1,
-                "condition": "token-saver",
+                "condition": "acco",
                 "success": True,
                 "output_tokens": 50,
                 "output_task": "coding",
@@ -166,7 +166,7 @@ def test_calibration_uses_only_successful_quality_preserving_pairs(tmp_path):
 
 def test_runtime_can_use_calibrated_base(tmp_path):
     """A valid learned budget should replace the static base before complexity scaling."""
-    calibration_path = tmp_path / ".token-saver.output-calibration.json"
+    calibration_path = tmp_path / ".acco.output-calibration.json"
     calibration_path.write_text(
         json.dumps(
             {
@@ -229,7 +229,7 @@ def test_output_calibrate_cli_writes_artifact(tmp_path):
             {
                 "task": task_id,
                 "trial": 1,
-                "condition": "token-saver",
+                "condition": "acco",
                 "success": True,
                 "output_tokens": output_tokens,
                 "output_task": "review",
@@ -288,7 +288,7 @@ def test_calibration_rejects_duplicate_task_trial_condition(tmp_path):
                 {
                     "task": "a",
                     "trial": 1,
-                    "condition": "token-saver",
+                    "condition": "acco",
                     "success": True,
                     "output_tokens": 100,
                     "output_task": "coding",

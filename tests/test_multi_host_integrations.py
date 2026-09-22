@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from token_saver.host_configs import (
+from acco.host_configs import (
     HERMES_END,
     HERMES_START,
     antigravity_mcp_path,
@@ -18,7 +18,7 @@ from token_saver.host_configs import (
     openclaw_config_path,
     opencode_mcp_path,
 )
-from token_saver.integration_setup import (
+from acco.integration_setup import (
     detect_hosts,
     setup_integrations,
     uninstall_integrations,
@@ -43,10 +43,10 @@ def _openclaw_runner(home: Path, calls: list[list[str]]):
         )
         mcp = dict(payload.get("mcp", {}))
         servers = dict(mcp.get("servers", {}))
-        if argv[:4] == ["openclaw", "mcp", "set", "token-saver"]:
-            servers["token-saver"] = json.loads(argv[4])
-        elif argv[:4] == ["openclaw", "mcp", "unset", "token-saver"]:
-            servers.pop("token-saver", None)
+        if argv[:4] == ["openclaw", "mcp", "set", "acco"]:
+            servers["acco"] = json.loads(argv[4])
+        elif argv[:4] == ["openclaw", "mcp", "unset", "acco"]:
+            servers.pop("acco", None)
         else:
             raise AssertionError(argv)
         mcp["servers"] = servers
@@ -70,14 +70,14 @@ def _copilot_runner(home: Path, calls: list[list[str]]):
         )
         servers = dict(payload.get("mcpServers", {}))
         if argv[:3] == ["copilot", "mcp", "add"]:
-            servers["token-saver"] = {
+            servers["acco"] = {
                 "type": "local",
-                "command": "token-saver",
+                "command": "acco",
                 "args": ["serve", "."],
                 "tools": ["*"],
             }
-        elif argv == ["copilot", "mcp", "remove", "token-saver"]:
-            servers.pop("token-saver", None)
+        elif argv == ["copilot", "mcp", "remove", "acco"]:
+            servers.pop("acco", None)
         else:
             raise AssertionError(argv)
         payload["mcpServers"] = servers
@@ -88,7 +88,7 @@ def _copilot_runner(home: Path, calls: list[list[str]]):
 
 
 def test_extended_hosts_setup_detect_and_uninstall_preserve_unrelated_config(tmp_path):
-    """All new host adapters should own only their Token Saver MCP entry."""
+    """All new host adapters should own only their ACCO MCP entry."""
     root = tmp_path / "repo"
     home = tmp_path / "home"
     root.mkdir()
@@ -171,21 +171,21 @@ def test_extended_hosts_setup_detect_and_uninstall_preserve_unrelated_config(tmp
     assert second["configured_hosts"] == list(hosts)
 
     opencode_data = json.loads(opencode.read_text(encoding="utf-8"))
-    assert set(opencode_data["mcp"]["servers"]) == {"docs", "token-saver"}
-    assert opencode_data["mcp"]["servers"]["token-saver"] == {
+    assert set(opencode_data["mcp"]["servers"]) == {"docs", "acco"}
+    assert opencode_data["mcp"]["servers"]["acco"] == {
         "type": "local",
-        "command": ["token-saver", "serve", str(root.resolve())],
+        "command": ["acco", "serve", str(root.resolve())],
     }
 
     copilot_data = json.loads(copilot.read_text(encoding="utf-8"))
-    assert set(copilot_data["servers"]) == {"docs", "token-saver"}
-    assert copilot_data["servers"]["token-saver"]["args"] == [
+    assert set(copilot_data["servers"]) == {"docs", "acco"}
+    assert copilot_data["servers"]["acco"]["args"] == [
         "serve",
         str(root.resolve()),
     ]
 
     antigravity_data = json.loads(antigravity.read_text(encoding="utf-8"))
-    assert set(antigravity_data["mcpServers"]) == {"docs", "token-saver"}
+    assert set(antigravity_data["mcpServers"]) == {"docs", "acco"}
 
     hermes_text = hermes.read_text(encoding="utf-8")
     assert hermes_text.count(HERMES_START) == 1
@@ -194,15 +194,15 @@ def test_extended_hosts_setup_detect_and_uninstall_preserve_unrelated_config(tmp
     assert str(root.resolve()) in hermes_text
 
     openclaw_data = json.loads(openclaw.read_text(encoding="utf-8"))
-    assert set(openclaw_data["mcp"]["servers"]) == {"docs", "token-saver"}
+    assert set(openclaw_data["mcp"]["servers"]) == {"docs", "acco"}
     assert calls.count([
         "openclaw",
         "mcp",
         "set",
-        "token-saver",
+        "acco",
         json.dumps(
             {
-                "command": "token-saver",
+                "command": "acco",
                 "args": ["serve", str(root.resolve())],
             },
             separators=(",", ":"),
@@ -260,7 +260,7 @@ def test_opencode_refuses_ambiguous_sibling_jsonc_config(tmp_path):
     assert not opencode_mcp_path(root).exists()
 
 
-def test_hermes_refuses_unmanaged_token_saver_entry(tmp_path):
+def test_hermes_refuses_unmanaged_acco_entry(tmp_path):
     """Hermes setup must never overwrite a user-owned server definition."""
     root = tmp_path / "repo"
     home = tmp_path / "home"
@@ -269,7 +269,7 @@ def test_hermes_refuses_unmanaged_token_saver_entry(tmp_path):
     path.parent.mkdir(parents=True)
     path.write_text(
         "mcp_servers:\n"
-        "  token-saver:\n"
+        "  acco:\n"
         '    command: "custom"\n',
         encoding="utf-8",
     )
@@ -359,9 +359,9 @@ def test_copilot_cli_native_registry_is_idempotent_and_owned(tmp_path):
         "add",
         "--tools",
         "*",
-        "token-saver",
+        "acco",
         "--",
-        "token-saver",
+        "acco",
         "serve",
         ".",
     ]) == 1
@@ -369,7 +369,7 @@ def test_copilot_cli_native_registry_is_idempotent_and_owned(tmp_path):
     config = json.loads(
         copilot_cli_config_path(home).read_text(encoding="utf-8")
     )
-    assert config["mcpServers"]["token-saver"]["args"] == ["serve", "."]
+    assert config["mcpServers"]["acco"]["args"] == ["serve", "."]
 
     statuses = {
         item.name: item
@@ -390,11 +390,11 @@ def test_copilot_cli_native_registry_is_idempotent_and_owned(tmp_path):
         which=_which({"copilot"}),
         runner=runner,
     )
-    assert calls[-1] == ["copilot", "mcp", "remove", "token-saver"]
+    assert calls[-1] == ["copilot", "mcp", "remove", "acco"]
     config = json.loads(
         copilot_cli_config_path(home).read_text(encoding="utf-8")
     )
-    assert "token-saver" not in config["mcpServers"]
+    assert "acco" not in config["mcpServers"]
 
 
 def test_copilot_cli_refuses_unmanaged_same_name_entry(tmp_path):
@@ -407,7 +407,7 @@ def test_copilot_cli_refuses_unmanaged_same_name_entry(tmp_path):
     path.write_text(
         json.dumps({
             "mcpServers": {
-                "token-saver": {
+                "acco": {
                     "command": "custom",
                     "args": ["serve"],
                     "tools": ["*"],
@@ -428,7 +428,7 @@ def test_copilot_cli_refuses_unmanaged_same_name_entry(tmp_path):
 
     assert json.loads(path.read_text(encoding="utf-8"))[
         "mcpServers"
-    ]["token-saver"]["command"] == "custom"
+    ]["acco"]["command"] == "custom"
 
 
 def test_setup_all_targets_only_detected_extended_hosts(tmp_path):

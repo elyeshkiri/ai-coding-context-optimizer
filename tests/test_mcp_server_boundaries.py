@@ -5,8 +5,8 @@ import json
 
 import pytest
 
-from token_saver.mcp_server import McpProtocol, McpToolRegistry, McpToolSpec, serve_stdio
-from token_saver.serve import TOOLS, call_tool
+from acco.mcp_server import McpProtocol, McpToolRegistry, McpToolSpec, serve_stdio
+from acco.serve import TOOLS, call_tool
 
 
 class _IndexStub:
