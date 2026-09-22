@@ -45,9 +45,9 @@ jobs:
             url: https://github.com/dotnet/aspnetcore.git
             revision: 9817792d3ba9aa6f6c9ac5804a672ce5954f3288
     env:
-      TOKEN_SAVER_STATE_DIR: /tmp/token-saver-semantic-state-14-${{ matrix.alias }}
-      TOKEN_SAVER_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
-      HF_HOME: /tmp/token-saver-huggingface-14
+      ACCO_STATE_DIR: /tmp/acco-semantic-state-14-${{ matrix.alias }}
+      ACCO_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/acco-huggingface-14
 
     steps:
       - name: Require explicit burn confirmation
@@ -64,7 +64,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Token Saver with exact-scan embeddings
+      - name: Install ACCO with exact-scan embeddings
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e '.[dev,embeddings]'
@@ -73,7 +73,7 @@ jobs:
         run: |
           python -m pip uninstall -y hnswlib || true
           python - <<'PY'
-          from token_saver.semantic_retrieval import _hnswlib
+          from acco.semantic_retrieval import _hnswlib
           assert _hnswlib() is None, "semantic evidence must not use ANN"
           PY
 
@@ -102,7 +102,7 @@ jobs:
 
           model = SentenceTransformer(
               "all-MiniLM-L6-v2",
-              revision=os.environ["TOKEN_SAVER_SEMANTIC_MODEL_REVISION"],
+              revision=os.environ["ACCO_SEMANTIC_MODEL_REVISION"],
           )
           print(model)
           PY
@@ -136,7 +136,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Token Saver
+      - name: Install ACCO
         run: python -m pip install -e .
 
       - name: Validate immutable query and ground-truth seals
@@ -189,7 +189,7 @@ jobs:
               f"{summary['trivial_lexical_file_recall']:.2%}"
           )
           print(
-              "- semantic recall delta vs Token Saver lexical: "
+              "- semantic recall delta vs ACCO lexical: "
               f"{summary['semantic_file_recall_delta']:+.2%}"
           )
           print(
