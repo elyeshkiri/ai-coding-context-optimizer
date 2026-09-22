@@ -1,11 +1,11 @@
-# `token-saver budget`
+# `acco budget`
 
 Compare measured project context with recommended window slices.
 
 ## Synopsis
 
 ```bash
-token-saver budget [path] [--window N] [--no-user-scope] [--exact] [--model MODEL]
+acco budget [path] [--window N] [--no-user-scope] [--exact] [--model MODEL]
 ```
 
 ## Arguments and options
@@ -26,4 +26,4 @@ Human-readable budget table.
 
 ## Authoritative runtime help
 
-Run `token-saver budget --help` for argparse's exact usage text for the installed version.
+Run `acco budget --help` for argparse's exact usage text for the installed version.

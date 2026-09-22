@@ -1,11 +1,11 @@
-# `token-saver browse`
+# `acco browse`
 
 Inspect ranked repository candidates, symbols, previews, and details.
 
 ## Synopsis
 
 ```bash
-token-saver browse [path] --query TEXT [--max-files N] [--preview-tokens N] [--detail-tokens N] [--show N] [--interactive] [--json] [--no-changed-boost]
+acco browse [path] --query TEXT [--max-files N] [--preview-tokens N] [--detail-tokens N] [--show N] [--interactive] [--json] [--no-changed-boost]
 ```
 
 ## Arguments and options
@@ -30,4 +30,4 @@ Human browser or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#brows
 
 ## Authoritative runtime help
 
-Run `token-saver browse --help` for argparse's exact usage text for the installed version.
+Run `acco browse --help` for argparse's exact usage text for the installed version.

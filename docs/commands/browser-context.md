@@ -1,11 +1,11 @@
-# `token-saver browser-context`
+# `acco browser-context`
 
 Compress a captured HTML or accessibility-like payload around a task query.
 
 ## Synopsis
 
 ```bash
-token-saver browser-context INPUT [--path PROJECT] [--query TEXT] [--max-lines N] [--json]
+acco browser-context INPUT [--path PROJECT] [--query TEXT] [--max-lines N] [--json]
 ```
 
 ## Arguments and options
@@ -29,4 +29,4 @@ is not smaller, the original payload is returned unchanged.
 
 ## Authoritative runtime help
 
-Run `token-saver browser-context --help` for the installed version.
+Run `acco browser-context --help` for the installed version.
