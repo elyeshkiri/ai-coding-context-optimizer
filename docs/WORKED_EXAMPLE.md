@@ -1,7 +1,7 @@
 # Worked end-to-end example: fix a real bug with measured context
 
 This walkthrough connects installation, host verification, one concrete coding
-bug, Token Saver's hook behavior, independent verification, transcript
+bug, ACCO's hook behavior, independent verification, transcript
 measurement, and the limits of the resulting evidence. It uses the checked-in
 `examples/large_output_demo` so every source file and deterministic token
 figure is reproducible from this repository.
@@ -26,16 +26,16 @@ The independent verifier is the demo's hidden regression test. The agent's own
 From a clean environment:
 
 ```bash
-python -m pip install --upgrade claude-token-saver
-cd /path/to/token-saver
-token-saver setup . --host claude
-token-saver doctor . --require-ready
+python -m pip install --upgrade ai-coding-context-optimizer
+cd /path/to/acco
+acco setup . --host claude
+acco doctor . --require-ready
 ```
 
 For a deeper Claude transport check:
 
 ```bash
-token-saver host-check . --require-ready
+acco host-check . --require-ready
 ```
 
 `doctor` proves local CLI/config/index readiness. `host-check` additionally
@@ -52,7 +52,7 @@ Running the demo's `make check` produces 631 lines with one failure.
 
 The checked-in deterministic fixture measures:
 
-| Path | Without Token Saver | With Token Saver |
+| Path | Without ACCO | With ACCO |
 |---|---:|---:|
 | `make check` output | 14,214 estimated tokens | 264 estimated tokens |
 | whole `shop/catalog.py` read | 6,240 estimated tokens | 856-token outline + line ranges |
@@ -69,7 +69,7 @@ keeping all 631 lines.
 `cat shop/catalog.py`) is redirected to a structural outline with line ranges,
 so the agent can request the relevant body instead of paying for the full file.
 
-That distinction matters: Token Saver is not "summarize everything." It tries to
+That distinction matters: ACCO is not "summarize everything." It tries to
 preserve exact evidence and make follow-up retrieval explicit.
 
 ## 3. Run the paired agent demo
@@ -81,12 +81,12 @@ python examples/large_output_demo/run_demo.py --trials 3
 ```
 
 It creates a throwaway Git repository, runs the same frozen task in baseline and
-Token Saver arms, independently verifies each result with hidden tests, and
+ACCO arms, independently verifies each result with hidden tests, and
 prices the recorded Claude transcripts.
 
 The checked-in measurements are:
 
-| Model / prompt | Baseline (3 runs) | Token Saver (3 runs) | Relative cost |
+| Model / prompt | Baseline (3 runs) | ACCO (3 runs) | Relative cost |
 |---|---:|---:|---:|
 | Sonnet 5 — "fix the bulk-discount bug, run the tests" | $0.1718 | $0.1652 | +3.9% cheaper |
 | Sonnet 5 — `make check` prompt, before Bash `cat` guard | $0.1667 | $0.2427 | **45.6% more expensive** |
@@ -97,7 +97,7 @@ All recorded runs solved the task.
 
 The negative pre-guard row is deliberately retained. In two of three enabled
 runs the agent bypassed the Read guard with `cat`, paid for the whole source
-file, and made Token Saver more expensive. That failure led to the current Bash
+file, and made ACCO more expensive. That failure led to the current Bash
 `cat` guard.
 
 Three trials per arm are a demonstration, **not** a statistically publishable
@@ -109,7 +109,7 @@ should be presented as a universal savings rate.
 After using Claude Code in the project:
 
 ```bash
-token-saver sessions .
+acco sessions .
 ```
 
 The report separates recorded API token fields from estimated tool-result size
@@ -125,8 +125,8 @@ and shows:
 For machine-readable health/configuration evidence:
 
 ```bash
-token-saver doctor . --json
-token-saver host-check . --live-evidence /path/to/claude-debug.log --require-live
+acco doctor . --json
+acco host-check . --live-evidence /path/to/claude-debug.log --require-live
 ```
 
 A live-host proof is stronger than a synthetic hook round trip because it shows
@@ -139,7 +139,7 @@ A successful agent run is not accepted because the model says the task is done.
 The demo runner executes hidden tests after the agent exits.
 
 For broader publishable experiments, the same principle is enforced by
-`token-saver experiment`: success comes from independent verifier commands,
+`acco experiment`: success comes from independent verifier commands,
 and frozen SWE-bench tasks apply hidden regression tests only after the agent
 process ends.
 
@@ -149,14 +149,14 @@ This walkthrough demonstrates three different claims at three different
 strengths:
 
 1. **Deterministic mechanism:** the checked-in verbose output and whole-file read
-   are much smaller after Token Saver's transformations.
+   are much smaller after ACCO's transformations.
 2. **Task success in this demo:** every recorded paired run solved this specific
    bug under independent verification.
 3. **End-to-end cost effect:** the measured direction varies by model and agent
    behavior, from worse before the `cat` guard to cheaper afterward.
 
 Only the first two are strongly established by this example. The third remains
-small-sample evidence. Token Saver therefore does **not** turn this walkthrough
+small-sample evidence. ACCO therefore does **not** turn this walkthrough
 into a universal cost-saving claim.
 
 For the current evidence boundary, read [Validation](../VALIDATION.md). For the

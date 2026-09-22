@@ -1,15 +1,15 @@
 # CLI reference
 
-Token Saver now exposes one discoverable top-level command surface:
+ACCO now exposes one discoverable top-level command surface:
 
 ```bash
-token-saver --help
-token-saver commands
-token-saver <command> --help
+acco --help
+acco commands
+acco <command> --help
 ```
 
-`token-saver --help` lists both registry-backed commands and
-legacy-compatible commands. `token-saver commands` lists the registry-backed
+`acco --help` lists both registry-backed commands and
+legacy-compatible commands. `acco commands` lists the registry-backed
 surface used for new development. The pages below document **all shipped
 commands**, including accepted arguments/options, exit semantics, and structured
 output contracts.
@@ -20,7 +20,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 - [`setup`](commands/setup.md) — auto-detect/configure Claude Code, Cursor, and Codex.
 - [`doctor`](commands/doctor.md) — consolidated CLI/config/host/index health.
-- [`uninstall`](commands/uninstall.md) — remove only Token Saver-owned entries.
+- [`uninstall`](commands/uninstall.md) — remove only ACCO-owned entries.
 - [`completion`](commands/completion.md) — generate Bash/Zsh/Fish completion.
 - [`commands`](commands/commands.md) — list registry-backed commands.
 - [`host-check`](commands/host-check.md) — deeper Claude transport/live-host validation.
@@ -77,7 +77,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`cache-economics`](commands/cache-economics.md) — compare context rewrites after prompt-cache costs.
 - [`budget`](commands/budget.md) — compare measured context with budget guidance.
 - [`policy`](commands/policy.md) — generate lifecycle advice from transcripts.
-- [`status`](commands/status.md) — inspect Token Saver's session ledger.
+- [`status`](commands/status.md) — inspect ACCO's session ledger.
 - [`check`](commands/check.md) — CI context-budget/map-freshness check.
 - [`estimate`](commands/estimate.md) — estimate/count tokens.
 - [`mcp-prune`](commands/mcp-prune.md) — identify/disable unused MCP servers.
@@ -133,13 +133,13 @@ automation.
 ## Shell completion
 
 ```bash
-token-saver completion bash > ~/.local/share/token-saver-completion.bash
-token-saver completion zsh
-token-saver completion fish
+acco completion bash > ~/.local/share/acco-completion.bash
+acco completion zsh
+acco completion fish
 ```
 
 Completion intentionally covers top-level commands. Subcommand options remain
-discoverable with `token-saver <command> --help`.
+discoverable with `acco <command> --help`.
 
 
 ## Prompt ingress, acceleration, and Claude plugin packaging

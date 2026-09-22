@@ -23,7 +23,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "root": "absolute project path",
-  "config": "path to .token-saver.toml",
+  "config": "path to .acco.toml",
   "requested_hosts": ["claude", "cursor"],
   "configured_hosts": ["claude", "cursor"],
   "detected": [
@@ -45,9 +45,9 @@ Argparse usage errors also exit `2`.
 {
   "ready": true,
   "version": "<installed-version>",
-  "token_saver_executable": "/path/to/token-saver",
+  "acco_executable": "/path/to/acco",
   "root": "absolute project path",
-  "config_path": "/project/.token-saver.toml",
+  "config_path": "/project/.acco.toml",
   "config_error": null,
   "runtime": {},
   "detected_hosts": ["claude"],
@@ -154,7 +154,7 @@ state, not a degraded/error JSON contract.
 {
   "schema": 1,
   "version": "<installed-version>",
-  "path": "/absolute/private/token-saver/claude-plugin/token-saver-<installed-version>",
+  "path": "/absolute/private/acco/claude-plugin/acco-<installed-version>",
   "rendered": true
 }
 ```
@@ -176,12 +176,12 @@ the same status shape documented below; otherwise it is `null`.
   "model": "all-MiniLM-L6-v2",
   "model_revision": null,
   "backend": "hnsw",
-  "path": "/private/token-saver/semantic-index/.../....sqlite3"
+  "path": "/private/acco/semantic-index/.../....sqlite3"
 }
 ```
 
 `model_revision` is `null` for the ordinary floating local-model configuration
-and contains the pinned revision when `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` is
+and contains the pinned revision when `ACCO_SEMANTIC_MODEL_REVISION` is
 set. The revision participates in the vector-store and query-cache identity.
 
 `semantic-index` synchronizes changed repository evidence before returning the
@@ -343,7 +343,7 @@ The audit hashes do not store grader prompts or response text.
       "output_tokens_per_success": 910.0,
       "tokens_per_success": 12400.0
     },
-    "token-saver": {
+    "acco": {
       "runs": 30,
       "successes": 28,
       "output_tokens_per_success": 590.0,
@@ -357,7 +357,7 @@ The audit hashes do not store grader prompts or response text.
     "judge": "independent-response-grader",
     "rubric": {},
     "baseline": {},
-    "token-saver": {}
+    "acco": {}
   },
   "blind_quality_verified": true,
   "raw_output_token_reduction": 0.35,
@@ -490,16 +490,16 @@ Dry-run output validates the frozen design without paid agent calls:
     "condition_profiles": {
       "baseline": {
         "label": "v1.6-session-baseline",
-        "install_token_saver": true,
+        "install_acco": true,
         "env": {
-          "TOKEN_SAVER_EFFICIENCY": "0"
+          "ACCO_EFFICIENCY": "0"
         }
       },
       "enabled": {
         "label": "v1.7-session-efficiency",
-        "install_token_saver": true,
+        "install_acco": true,
         "env": {
-          "TOKEN_SAVER_EFFICIENCY": "1"
+          "ACCO_EFFICIENCY": "1"
         }
       }
     }
@@ -922,7 +922,7 @@ API invoice or an end-to-end cost-per-success claim.
   },
   "conditions": {
     "baseline": {"runs": 60, "success_rate": 0.95},
-    "token-saver": {"runs": 60, "success_rate": 0.95}
+    "acco": {"runs": 60, "success_rate": 0.95}
   },
   "delta": {
     "success_rate_change": 0.0,
@@ -1017,7 +1017,7 @@ as no learned override and falls back to built-in bases.
 ```json
 {
   "schema": 1,
-  "path": "~/.claude/token-saver/telemetry/<project>.jsonl",
+  "path": "~/.claude/acco/telemetry/<project>.jsonl",
   "summary": {
     "turns": 12,
     "measured_turns": 12,
@@ -1157,7 +1157,7 @@ Integrity is checked before bytes are returned.
 
 ```json
 {
-  "path": "/private/token-saver/recovery/project.sqlite3",
+  "path": "/private/acco/recovery/project.sqlite3",
   "records": 14,
   "used_bytes": 1048576,
   "capacity_bytes": 536870912,
@@ -1192,7 +1192,7 @@ is `null` until at least one comparable prior prefix observation exists.
 
 ```json
 {
-  "text": "focused browser context\n[token-saver recovery: tsr_...]",
+  "text": "focused browser context\n[acco recovery: tsr_...]",
   "changed": true,
   "original_tokens": 12000,
   "output_tokens": 430,
@@ -1207,7 +1207,7 @@ caller-supplied payload.
 
 ## `optimize --json`
 
-Planning mode returns currently applicable Token Saver-owned configuration
+Planning mode returns currently applicable ACCO-owned configuration
 hypotheses:
 
 ```json
@@ -1353,7 +1353,7 @@ stable warning `code` plus path/detail evidence.
 ## Legacy `benchmark` (always JSON)
 
 The legacy benchmark prints the paired benchmark report returned by
-`token_saver.benchmark.evaluate`. The report contains protocol validity,
+`acco.benchmark.evaluate`. The report contains protocol validity,
 quality/cost results, task-level comparisons, and confidence intervals. Use
 `--require-publishable` when consuming it as evidence for a public claim.
 

@@ -1,6 +1,6 @@
 # Upgrading and migration
 
-Token Saver treats setup as an idempotent repair/migration operation.
+ACCO treats setup as an idempotent repair/migration operation.
 
 ## 1.14 expanded coding-agent integration matrix
 
@@ -11,19 +11,19 @@ VS Code, and Google Antigravity.
 Existing Claude/Cursor/Codex users do not need to change configuration. Re-run:
 
 ```bash
-token-saver setup .
-token-saver doctor .
+acco setup .
+acco doctor .
 ```
 
-to refresh Token Saver-owned entries after upgrading.
+to refresh ACCO-owned entries after upgrading.
 
 New host-specific behavior:
 
-- OpenCode uses project `.opencode/opencode.json`; Token Saver refuses to
+- OpenCode uses project `.opencode/opencode.json`; ACCO refuses to
   create a competing sibling JSON file when only `.opencode/opencode.jsonc`
   exists.
 - OpenClaw is configured through its own `openclaw mcp set/unset` commands.
-- Hermes receives a marked Token Saver block under top-level `mcp_servers`
+- Hermes receives a marked ACCO block under top-level `mcp_servers`
   in `~/.hermes/config.yaml`; unmanaged same-name entries are preserved and
   cause setup to fail closed.
 - Copilot CLI is managed through `copilot mcp add/remove`. VS Code Copilot
@@ -31,8 +31,8 @@ New host-specific behavior:
 - Antigravity uses workspace `.agents/mcp_config.json`; the current CLI is
   detected through the `agy` executable.
 
-`token-saver setup . --host all` now means all detected supported hosts,
-rather than every host Token Saver knows about.
+`acco setup . --host all` now means all detected supported hosts,
+rather than every host ACCO knows about.
 
 ## 1.13 recoverable optimization platform
 
@@ -41,7 +41,7 @@ recoverable MCP schema compression, universal `tsr_...` recovery handles, the
 measured keep-or-revert optimizer, provider-prefix reuse telemetry, an opt-in
 local provider proxy, and focused browser-context compression.
 
-Existing projects remain compatible without editing `.token-saver.toml`:
+Existing projects remain compatible without editing `.acco.toml`:
 
 - `mcp.profile` still defaults to `"full"`;
 - `mcp.compress_schemas` defaults to `false`;
@@ -55,8 +55,8 @@ Setup does not overwrite an existing project-owned config, so add those keys
 manually only when you want to opt in.
 
 Lossy v1.13 surfaces can emit `tsr_...` handles. Recover them with
-`token-saver recover` or MCP `recover_context`. The older
-`token-saver output OUTPUT_ID` path remains supported for saved Bash output.
+`acco recover` or MCP `recover_context`. The older
+`acco output OUTPUT_ID` path remains supported for saved Bash output.
 
 The local provider proxy is a new trust boundary. It is loopback-only by
 default, requires HTTPS for non-local upstreams, and is never installed into a
@@ -82,7 +82,7 @@ disabled by default. Existing configs do not need migration unless you want to
 enable `[tool_proxy]`.
 
 If project-managed Claude hooks were created by an older version, rerun
-`token-saver setup .` so managed hook definitions match the installed package.
+`acco setup .` so managed hook definitions match the installed package.
 
 ## 1.10 persistent semantic index
 
@@ -90,7 +90,7 @@ Version 1.10 introduces persistent chunk-level semantic retrieval and optional
 HNSW acceleration. Semantic retrieval remains opt-in and uses local model
 weights only. Existing lexical/structural workflows require no migration.
 
-Changing `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` intentionally creates distinct
+Changing `ACCO_SEMANTIC_MODEL_REVISION` intentionally creates distinct
 semantic state instead of reusing vectors produced by different weights.
 
 ## 1.9 ingress, retrieval cache, knowledge, and marketplace packaging
@@ -111,9 +111,9 @@ change the default 1.7 runtime session-efficiency switches.
 
 New commands:
 
-- `token-saver session-holdout` — run/resume the two-phase frozen experiment,
+- `acco session-holdout` — run/resume the two-phase frozen experiment,
   blind grading, and effectiveness report;
-- `token-saver session-holdout-evaluate` — evaluate already merged evidence
+- `acco session-holdout-evaluate` — evaluate already merged evidence
   without rerunning agents.
 
 The new frozen manifest reuses the existing 24 SWE-bench Verified task cohort
@@ -129,14 +129,14 @@ not a historical package checkout.
 
 Version 1.7 widens Claude `PostToolUse` from `Bash|Read` to
 `Bash|Read|Edit|Write` so structured continuity can observe edits without
-rewriting their tool result. Rerun `token-saver setup` after upgrading so the
+rewriting their tool result. Rerun `acco setup` after upgrading so the
 managed project hook matcher is refreshed.
 
 A new `[efficiency]` config table defaults on for continuity, exact cross-turn
 dedup, and bounded waste detection. Existing configs without the table keep
 working and receive the safe defaults. Use the documented
-`TOKEN_SAVER_EFFICIENCY`, `TOKEN_SAVER_CONTINUITY`,
-`TOKEN_SAVER_CROSS_TURN_DEDUP`, or `TOKEN_SAVER_WASTE_DETECTION` overrides
+`ACCO_EFFICIENCY`, `ACCO_CONTINUITY`,
+`ACCO_CROSS_TURN_DEDUP`, or `ACCO_WASTE_DETECTION` overrides
 for temporary rollback.
 
 The new efficiency snapshot/event files live under the existing private Token
@@ -153,13 +153,13 @@ new publishable output-cost evidence should use the full frozen/graded pipeline.
 ## Standard upgrade
 
 ```bash
-python -m pip install --upgrade claude-token-saver
+python -m pip install --upgrade ai-coding-context-optimizer
 cd /path/to/project
-token-saver setup .
-token-saver doctor .
+acco setup .
+acco doctor .
 ```
 
-This refreshes Token Saver-owned host entries without duplicating them.
+This refreshes ACCO-owned host entries without duplicating them.
 
 ## Why rerun setup?
 
@@ -177,33 +177,33 @@ configuration.
 
 ## Project configuration upgrades
 
-`.token-saver.toml` is user/project-owned after creation. Setup does not replace
+`.acco.toml` is user/project-owned after creation. Setup does not replace
 an existing file.
 
 When a release adds new optional keys, existing projects continue to use code
 defaults until you add those keys. Output telemetry therefore defaults to
 enabled even for an older config that does not yet contain `telemetry = true`;
-set `output.telemetry = false` or `TOKEN_SAVER_OUTPUT_TELEMETRY=0` to opt out.
+set `output.telemetry = false` or `ACCO_OUTPUT_TELEMETRY=0` to opt out.
 
 Environment variables remain higher-priority overrides.
 
 ## From manual integrations to managed setup
 
-If Claude/Cursor already has a normal `mcpServers.token-saver` entry, setup can
+If Claude/Cursor already has a normal `mcpServers.acco` entry, setup can
 refresh that owned key. Other hosts use the host-specific ownership rules in
 [Integrations](../INTEGRATIONS.md).
 
-Codex is stricter: an unmanaged `[mcp_servers.token-saver]` section is not
+Codex is stricter: an unmanaged `[mcp_servers.acco]` section is not
 silently converted. Remove or rename it yourself before using managed setup.
 
-## Legacy `token-saver install`
+## Legacy `acco install`
 
 The lower-level Claude-only installer remains supported for compatibility.
 
 New projects should prefer:
 
 ```bash
-token-saver setup . --host claude
+acco setup . --host claude
 ```
 
 because setup configures both hooks and MCP and participates in the unified
@@ -219,7 +219,7 @@ doctor/uninstall lifecycle.
 Example:
 
 ```bash
-python -m pip install "claude-token-saver==1.4.0"
+python -m pip install "ai-coding-context-optimizer==1.4.0"
 ```
 
 If that version predates unified setup, follow its release documentation and
@@ -228,14 +228,14 @@ use the legacy installer where required.
 ## Remove managed integration before a clean reinstall
 
 ```bash
-token-saver uninstall . --host all
-python -m pip install --force-reinstall claude-token-saver
-token-saver setup .
-token-saver doctor .
+acco uninstall . --host all
+python -m pip install --force-reinstall ai-coding-context-optimizer
+acco setup .
+acco doctor .
 ```
 
 Add `--remove-config` only if you also want to delete
-`.token-saver.toml`.
+`.acco.toml`.
 
 ## Release provenance
 
