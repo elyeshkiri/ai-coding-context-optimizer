@@ -229,7 +229,7 @@ lexical). That first run burned #14.
 
 Any rerun after tuning against #14 is development evidence only. In particular,
 the later 87.5% semantic development result must not be reported as fresh
-generalization evidence. The next independent cohort is #15: its queries and
+generalization evidence. The next independent cohort is semantic holdout #15: its queries and
 pinned repository revisions are frozen, but ground truth and the first
 evaluation are still pending.
 
