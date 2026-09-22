@@ -429,3 +429,24 @@ def test_copilot_cli_refuses_unmanaged_same_name_entry(tmp_path):
     assert json.loads(path.read_text(encoding="utf-8"))[
         "mcpServers"
     ]["token-saver"]["command"] == "custom"
+
+
+def test_setup_all_targets_only_detected_extended_hosts(tmp_path):
+    """The expanded all selector should not require every supported product."""
+    root = tmp_path / "repo"
+    home = tmp_path / "home"
+    root.mkdir()
+    (root / ".opencode").mkdir()
+    (home / ".hermes").mkdir(parents=True)
+
+    result = setup_integrations(
+        root,
+        ("all",),
+        home=home,
+        which=_which({"opencode", "hermes"}),
+    )
+
+    assert result["requested_hosts"] == ["opencode", "hermes"]
+    assert result["configured_hosts"] == ["opencode", "hermes"]
+    assert opencode_mcp_path(root).is_file()
+    assert HERMES_START in hermes_config_path(home).read_text(encoding="utf-8")
