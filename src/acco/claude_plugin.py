@@ -112,7 +112,7 @@ _MCP = {
     }
 }
 
-_INGRESS_SKILL = """---
+_INGRESS_SKILL = r"""---
 name: ingress
 description: Resume an ACCO oversized prompt that was safely staged before model processing.
 argument-hint: stage-id
