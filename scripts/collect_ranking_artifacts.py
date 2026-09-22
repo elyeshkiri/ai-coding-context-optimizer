@@ -45,7 +45,7 @@ def _request(url: str, token: str) -> Request:
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
-            "User-Agent": "token-saver-ranking-calibration",
+            "User-Agent": "acco-ranking-calibration",
             "X-GitHub-Api-Version": API_VERSION,
         },
     )
