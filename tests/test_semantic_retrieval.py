@@ -7,19 +7,19 @@ import textwrap
 
 import pytest
 
-from token_saver.command_handlers.context import semantic_index_main, semantic_status_main
-from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.packing.contracts import RankedFile
-from token_saver.closure import ClosureItem
-from token_saver.packing.graph_rerank import (
+from acco.command_handlers.context import semantic_index_main, semantic_status_main
+from acco.command_registry import DEFAULT_COMMAND_REGISTRY
+from acco.pack import build_context_pack, rank_files
+from acco.packing.contracts import RankedFile
+from acco.closure import ClosureItem
+from acco.packing.graph_rerank import (
     _apply_embedding_rerank_index,
     _apply_semantic_artifact_authority,
     _apply_semantic_graph_expansion,
     _apply_semantic_peer_expansion,
 )
-from token_saver.repo_index import RepositoryIndex, build_index, record_for_text
-from token_saver.semantic_retrieval import (
+from acco.repo_index import RepositoryIndex, build_index, record_for_text
+from acco.semantic_retrieval import (
     SemanticHit,
     SemanticVectorIndex,
     _chunk_source,
@@ -122,7 +122,7 @@ def _repo(tmp_path):
 
 def test_semantic_index_persists_vectors_and_query_embeddings(tmp_path, monkeypatch):
     """An unchanged repository/query should reuse disk state without model calls."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     index = build_index(root, persist=False)
     first_encoder = FakeEncoder()
@@ -149,7 +149,7 @@ def test_semantic_index_persists_vectors_and_query_embeddings(tmp_path, monkeypa
 
 def test_semantic_index_reembeds_only_changed_repository_evidence(tmp_path, monkeypatch):
     """A changed file digest should invalidate only that file's persistent vectors."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     first_index = build_index(root, persist=False)
     SemanticVectorIndex(root, first_index, encoder=FakeEncoder()).query(
@@ -181,12 +181,12 @@ def test_semantic_index_reembeds_only_changed_repository_evidence(tmp_path, monk
 
 def test_hybrid_rerank_adds_chunk_and_rrf_evidence(tmp_path, monkeypatch):
     """Chunk semantics should become bounded ranking evidence, not replacement text."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     index = build_index(root, persist=False)
 
     monkeypatch.setattr(
-        "token_saver.semantic_retrieval._load_encoder",
+        "acco.semantic_retrieval._load_encoder",
         lambda _model: FakeEncoder(),
     )
     lexical = rank_files(
@@ -214,11 +214,11 @@ def test_hybrid_rerank_adds_chunk_and_rrf_evidence(tmp_path, monkeypatch):
 
 def test_hybrid_context_pack_still_renders_live_exact_source(tmp_path, monkeypatch):
     """Semantic discovery must finish by rendering repository bytes, not summaries."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     index = build_index(root, persist=False)
     monkeypatch.setattr(
-        "token_saver.semantic_retrieval._load_encoder",
+        "acco.semantic_retrieval._load_encoder",
         lambda _model: FakeEncoder(),
     )
 
@@ -241,7 +241,7 @@ def test_hybrid_context_pack_still_renders_live_exact_source(tmp_path, monkeypat
 
 def test_semantic_sync_refuses_source_index_digest_race(tmp_path, monkeypatch):
     """Vectors must never be persisted under a stale structural-index digest."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     index = build_index(root, persist=False)
     (root / "session_guard.py").write_text(
@@ -258,10 +258,10 @@ def test_semantic_sync_refuses_source_index_digest_race(tmp_path, monkeypatch):
 
 def test_semantic_cli_build_and_status_are_registered(tmp_path, monkeypatch, capsys):
     """Users should be able to prebuild and inspect vectors without hidden APIs."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     monkeypatch.setattr(
-        "token_saver.semantic_retrieval._load_encoder",
+        "acco.semantic_retrieval._load_encoder",
         lambda _model: FakeEncoder(),
     )
 
@@ -284,17 +284,17 @@ def test_semantic_cli_build_and_status_are_registered(tmp_path, monkeypatch, cap
 
 def test_semantic_model_revision_partitions_persistent_state(tmp_path, monkeypatch):
     """Different model weight revisions must never share stored vectors."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     index = build_index(root, persist=False)
 
-    monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-a")
+    monkeypatch.setenv("ACCO_SEMANTIC_MODEL_REVISION", "revision-a")
     first = SemanticVectorIndex(root, index, encoder=FakeEncoder())
     first.query("prevent expired credentials from being reused")
     first_path = first.path
     assert first.status().model_revision == "revision-a"
 
-    monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-b")
+    monkeypatch.setenv("ACCO_SEMANTIC_MODEL_REVISION", "revision-b")
     second_encoder = FakeEncoder()
     second = SemanticVectorIndex(root, index, encoder=second_encoder)
     second.query("prevent expired credentials from being reused")
@@ -379,7 +379,7 @@ def test_semantic_fusion_keeps_multiple_nonredundant_ranges(tmp_path, monkeypatc
             return hits
 
     monkeypatch.setattr(
-        "token_saver.packing.graph_rerank.SemanticVectorIndex",
+        "acco.packing.graph_rerank.SemanticVectorIndex",
         FakeSemanticIndex,
     )
 
@@ -409,7 +409,7 @@ def test_semantic_boost_is_independent_of_lexical_rank(tmp_path, monkeypatch):
             return [SemanticHit("target.py", 3, 8, 0.9, 1, "target")]
 
     monkeypatch.setattr(
-        "token_saver.packing.graph_rerank.SemanticVectorIndex",
+        "acco.packing.graph_rerank.SemanticVectorIndex",
         FakeSemanticIndex,
     )
 
@@ -443,7 +443,7 @@ def test_semantic_witness_can_promote_one_hop_provider(tmp_path, monkeypatch):
     ]
 
     monkeypatch.setattr(
-        "token_saver.packing.graph_rerank.authoritative_providers",
+        "acco.packing.graph_rerank.authoritative_providers",
         lambda repository_index, seeds: [
             ClosureItem(
                 path="provider.py",
@@ -455,7 +455,7 @@ def test_semantic_witness_can_promote_one_hop_provider(tmp_path, monkeypatch):
         ],
     )
     monkeypatch.setattr(
-        "token_saver.packing.graph_rerank.dependency_closure",
+        "acco.packing.graph_rerank.dependency_closure",
         lambda *args, **kwargs: [],
     )
 
@@ -542,7 +542,7 @@ def test_multiview_query_recovers_target_diluted_by_combined_prompt(
     monkeypatch,
 ):
     """Two exact intent clauses should rescue a target missed by the full vector."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     (root / "a_noise.py").write_text(
@@ -575,7 +575,7 @@ def test_multiview_query_vectors_are_persisted_for_warm_model_free_reuse(
     monkeypatch,
 ):
     """Every deterministic query view should reuse the persistent vector cache."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     (root / "target.py").write_text(
@@ -619,7 +619,7 @@ def test_process_encoder_cache_reuses_same_model_revision(monkeypatch):
     import sys
     from types import ModuleType
 
-    import token_saver.semantic_retrieval as semantic_module
+    import acco.semantic_retrieval as semantic_module
 
     calls = []
     fake_module = ModuleType("sentence_transformers")
@@ -634,11 +634,11 @@ def test_process_encoder_cache_reuses_same_model_revision(monkeypatch):
     monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
     semantic_module._load_encoder_cached.cache_clear()
     try:
-        monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-a")
+        monkeypatch.setenv("ACCO_SEMANTIC_MODEL_REVISION", "revision-a")
         first = semantic_module._load_encoder("fixture-model")
         second = semantic_module._load_encoder("fixture-model")
 
-        monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL_REVISION", "revision-b")
+        monkeypatch.setenv("ACCO_SEMANTIC_MODEL_REVISION", "revision-b")
         third = semantic_module._load_encoder("fixture-model")
 
         assert first is second

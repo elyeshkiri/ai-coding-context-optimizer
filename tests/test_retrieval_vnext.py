@@ -2,7 +2,7 @@
 
 import pytest
 
-from token_saver.retrieval_vnext import (
+from acco.retrieval_vnext import (
     configured_semantic_model,
     hybrid_file_boost,
 )
@@ -10,9 +10,9 @@ from token_saver.retrieval_vnext import (
 
 def test_semantic_model_override_is_explicit(monkeypatch):
     """Code-specialized embeddings must be operator-selected, never implicit."""
-    monkeypatch.delenv("TOKEN_SAVER_SEMANTIC_MODEL", raising=False)
+    monkeypatch.delenv("ACCO_SEMANTIC_MODEL", raising=False)
     assert configured_semantic_model("all-MiniLM-L6-v2") == "all-MiniLM-L6-v2"
-    monkeypatch.setenv("TOKEN_SAVER_SEMANTIC_MODEL", "local/code-model")
+    monkeypatch.setenv("ACCO_SEMANTIC_MODEL", "local/code-model")
     assert configured_semantic_model("all-MiniLM-L6-v2") == "local/code-model"
 
 

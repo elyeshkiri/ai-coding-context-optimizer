@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from token_saver.session_holdout_docker import (
+from acco.session_holdout_docker import (
     _base_docker,
     _continuity_checkpoint,
     _repository_status,
@@ -21,18 +21,18 @@ def test_session_runner_forwards_all_efficiency_switches(tmp_path, monkeypatch):
     home.mkdir()
     state = tmp_path / "state"
     for name, value in {
-        "TOKEN_SAVER_EFFICIENCY": "1",
-        "TOKEN_SAVER_CONTINUITY": "1",
-        "TOKEN_SAVER_CROSS_TURN_DEDUP": "1",
-        "TOKEN_SAVER_WASTE_DETECTION": "1",
+        "ACCO_EFFICIENCY": "1",
+        "ACCO_CONTINUITY": "1",
+        "ACCO_CROSS_TURN_DEDUP": "1",
+        "ACCO_WASTE_DETECTION": "1",
     }.items():
         monkeypatch.setenv(name, value)
     monkeypatch.setattr(
-        "token_saver.session_holdout_docker.os.getuid",
+        "acco.session_holdout_docker.os.getuid",
         lambda: 123,
     )
     monkeypatch.setattr(
-        "token_saver.session_holdout_docker.os.getgid",
+        "acco.session_holdout_docker.os.getgid",
         lambda: 456,
     )
 
@@ -47,13 +47,13 @@ def test_session_runner_forwards_all_efficiency_switches(tmp_path, monkeypatch):
         command.index("--user") : command.index("--user") + 2
     ]
     for name in (
-        "TOKEN_SAVER_EFFICIENCY",
-        "TOKEN_SAVER_CONTINUITY",
-        "TOKEN_SAVER_CROSS_TURN_DEDUP",
-        "TOKEN_SAVER_WASTE_DETECTION",
+        "ACCO_EFFICIENCY",
+        "ACCO_CONTINUITY",
+        "ACCO_CROSS_TURN_DEDUP",
+        "ACCO_WASTE_DETECTION",
     ):
         assert name in command
-    assert f"{state.resolve()}:/token-saver-state" in command
+    assert f"{state.resolve()}:/acco-state" in command
 
 
 def test_continuity_checkpoint_invokes_real_resume_hook(tmp_path, monkeypatch):
@@ -61,7 +61,7 @@ def test_continuity_checkpoint_invokes_real_resume_hook(tmp_path, monkeypatch):
     worktree = tmp_path / "repo"
     worktree.mkdir()
     state = tmp_path / "state"
-    monkeypatch.setenv("TOKEN_SAVER_EFFICIENCY", "1")
+    monkeypatch.setenv("ACCO_EFFICIENCY", "1")
     seen = {}
 
     def fake_run(command, **kwargs):
@@ -81,7 +81,7 @@ def test_continuity_checkpoint_invokes_real_resume_hook(tmp_path, monkeypatch):
         )
 
     monkeypatch.setattr(
-        "token_saver.session_holdout_docker.subprocess.run",
+        "acco.session_holdout_docker.subprocess.run",
         fake_run,
     )
 
@@ -93,7 +93,7 @@ def test_continuity_checkpoint_invokes_real_resume_hook(tmp_path, monkeypatch):
     )
 
     assert context == "structured checkpoint"
-    assert seen["command"][-2:] == ["token-saver", "hook"]
+    assert seen["command"][-2:] == ["acco", "hook"]
     assert seen["payload"]["hook_event_name"] == "SessionStart"
     assert seen["payload"]["source"] == "resume"
     assert seen["payload"]["cwd"] == "/workspace"

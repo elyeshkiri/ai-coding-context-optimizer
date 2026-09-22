@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 
-from token_saver.semantic_holdout import (
+from acco.semantic_holdout import (
     _trivial_lexical_files,
     _validate_leakage,
     evaluate_semantic_holdout,
@@ -15,7 +15,7 @@ from token_saver.semantic_holdout import (
     semantic_ground_truth_hash,
     validate_semantic_holdout,
 )
-from token_saver.repo_index import build_index
+from acco.repo_index import build_index
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "benchmarks" / "semantic-holdout-13.frozen.json"
@@ -94,7 +94,7 @@ def test_literal_answer_identity_leak_is_detected():
 
 
 def test_trivial_baseline_is_distinct_term_overlap_only(tmp_path):
-    """The comparison baseline must not inherit Token Saver structural boosts."""
+    """The comparison baseline must not inherit ACCO structural boosts."""
     (tmp_path / "a.py").write_text("def unrelated():\n    return 1\n")
     (tmp_path / "z.py").write_text(
         "# graceful shutdown keeps active sessions\ndef target():\n    return 2\n"
@@ -198,9 +198,9 @@ def test_three_arm_evaluator_can_recover_semantic_only_target(
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
-        "token_saver.semantic_retrieval._load_encoder",
+        "acco.semantic_retrieval._load_encoder",
         lambda _model: _FakeEncoder(),
     )
 
@@ -303,9 +303,9 @@ def test_repository_shards_merge_to_original_evaluation(tmp_path, monkeypatch):
     manifest_path = tmp_path / "semantic-holdout-99.frozen.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
-        "token_saver.semantic_retrieval._load_encoder",
+        "acco.semantic_retrieval._load_encoder",
         lambda _model: _FakeEncoder(),
     )
 
