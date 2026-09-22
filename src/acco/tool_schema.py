@@ -153,7 +153,7 @@ def compress_tool_catalog(
         try:
             handle = recovery.put(
                 original,
-                content_type="application/vnd.token-saver.tool-catalog+json",
+                content_type="application/vnd.acco.tool-catalog+json",
                 metadata={
                     "transform": "tool-schema-compression",
                     "compressed_bytes": len(compressed),

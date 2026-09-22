@@ -1,4 +1,4 @@
-"""One evidence-oriented audit across Token Saver optimization layers."""
+"""One evidence-oriented audit across ACCO optimization layers."""
 
 from __future__ import annotations
 
@@ -90,7 +90,7 @@ def _extra_recommendations(
             "priority": "medium",
             "id": "build-semantic-index",
             "evidence": "semantic index contains no chunks",
-            "action": "Run token-saver semantic-index before enabling semantic retrieval.",
+            "action": "Run acco semantic-index before enabling semantic retrieval.",
         })
     if not fastpath.get("available"):
         items.append({
@@ -215,7 +215,7 @@ def unified_audit_report(
                 "local fastpath availability",
             ],
             "estimated": [
-                "tool-context reduction telemetry from Token Saver transforms",
+                "tool-context reduction telemetry from ACCO transforms",
             ],
             "not_claimed": [
                 "task success from audit data alone",

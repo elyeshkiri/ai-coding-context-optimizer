@@ -12,8 +12,8 @@ from pathlib import Path
 
 def _path(root: Path, session: str) -> Path:
     """Handle path."""
-    configured = os.environ.get("TOKEN_SAVER_STATE_DIR")
-    base = Path(configured).expanduser() if configured else Path.home() / ".claude" / "token-saver"
+    configured = os.environ.get("ACCO_STATE_DIR")
+    base = Path(configured).expanduser() if configured else Path.home() / ".claude" / "acco"
     key = hashlib.sha256(f"{root.resolve()}\0{session}".encode()).hexdigest()[:20]
     return base / "working-sets" / f"{key}.json"
 
