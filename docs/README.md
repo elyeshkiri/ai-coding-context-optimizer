@@ -1,6 +1,6 @@
-# Token Saver documentation
+# ACCO — AI Coding Context Optimizer documentation
 
-Use this page as the documentation map for the current Token Saver release.
+Use this page as the documentation map for the current ACCO release.
 
 ## Start here
 
@@ -29,15 +29,15 @@ Use this page as the documentation map for the current Token Saver release.
 ## Recommended user journey
 
 ```text
-pip install claude-token-saver
+pip install ai-coding-context-optimizer
         ↓
-token-saver setup
+acco setup
         ↓
-token-saver doctor
+acco doctor
         ↓
-token-saver browse / pack / MCP
+acco browse / pack / MCP
         ↓
-token-saver sessions / audit
+acco sessions / audit
         ↓
 optional: optimize / provider-proxy / browser-context
         ↓

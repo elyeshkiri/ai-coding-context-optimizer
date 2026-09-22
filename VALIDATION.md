@@ -1,3 +1,5 @@
+> **Branding note:** ACCO was previously named Token Saver. Frozen historical validation artifacts keep their original identifiers so their hashes and provenance remain unchanged.
+
 # Validation for 1.14.0
 
 ## 1.14 multi-host integration mechanics
@@ -19,14 +21,14 @@ Tests require that:
 - Hermes refuses unmanaged same-name entries and ambiguous/unsupported
   `mcp_servers` structures;
 - Copilot CLI uses its native MCP registry, preserves unrelated entries, and
-  refuses to replace an unmanaged `token-saver` definition;
+  refuses to replace an unmanaged `acco` definition;
 - VS Code Copilot detection does not treat a generic VS Code installation alone
   as proof of Copilot use;
 - `--host all` selects detected supported products instead of requiring every
   supported host to be installed;
 - capability reporting marks MCP support explicitly while proprietary
   pre/post-tool, prompt, session, provider, and model-routing boundaries remain
-  conditional/unknown unless Token Saver can actually guarantee them.
+  conditional/unknown unless ACCO can actually guarantee them.
 
 These checks establish safe configuration ownership and lifecycle behavior.
 They do not establish live host acceptance of every MCP capability, native hook
@@ -106,7 +108,7 @@ the existing file-level semantic stage. Short prompts remain single-view and
 warm query vectors remain persistent. Holdout #13 was not used to tune or score
 that release, and holdout #14 was frozen independently before its first run.
 
-Token Saver separates **mechanical correctness**, **retrieval generalization**,
+ACCO separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
 
 Version 1.14.0 adds managed OpenCode, OpenClaw, Hermes, Copilot CLI / VS Code, and Antigravity integration lifecycle support on top of the existing Claude Code, Cursor, and Codex adapters. The new evidence is configuration/lifecycle evidence only; no new live-host savings or task-success claim is made from adapter tests alone.
@@ -159,11 +161,11 @@ The first real run was GitHub Actions **35537362040**, using pinned
 
 | Arm | File recall |
 | --- | ---: |
-| Token Saver hybrid semantic | **50.00% (11/22)** |
-| Token Saver lexical/structural | **45.45% (10/22)** |
+| ACCO hybrid semantic | **50.00% (11/22)** |
+| ACCO lexical/structural | **45.45% (10/22)** |
 | Trivial distinct-term lexical | **40.91% (9/22)** |
 
-The semantic arm recovered one task missed by Token Saver lexical/structural
+The semantic arm recovered one task missed by ACCO lexical/structural
 and introduced zero regressions. Mean estimated context reduction remained
 essentially unchanged (97.8374% semantic vs 97.8373% lexical).
 
@@ -187,8 +189,8 @@ pinned `all-MiniLM-L6-v2` revision and exact cosine:
 
 | Arm | File recall |
 | --- | ---: |
-| Token Saver hybrid semantic | **82.50%** |
-| Token Saver lexical/structural | **80.00%** |
+| ACCO hybrid semantic | **82.50%** |
+| ACCO lexical/structural | **80.00%** |
 | Trivial distinct-term lexical | **70.00%** |
 
 Semantic improved aggregate file recall by **2.5 percentage points**, introduced
@@ -229,7 +231,7 @@ boundaries are intentionally narrower than an agent-cost claim:
 - **prompt ingress staging** is covered by exact-original SHA-256 verification,
   bounded packet tests, explicit omitted-range recovery, hook ordering tests, and
   default-off configuration. Claude's prompt hook is used only to block before
-  model processing; Token Saver does not claim unsupported prompt replacement.
+  model processing; ACCO does not claim unsupported prompt replacement.
 - **persistent retrieval caching** is tested across independent service
   instances. Identical content/config reuses a completed pack; a source mutation
   or retrieval-budget change produces a different cache key and a fresh pack.
@@ -253,7 +255,7 @@ The 1.9 knowledge-efficiency layer has its own evidence boundary.
 The checked-in
 `benchmarks/knowledge-efficiency-swebench-24.frozen.json` reuses the same 24
 SWE-bench Verified tasks at three randomized paired trials per task. Both arms
-run the same current Token Saver binary, explicitly persist verified findings
+run the same current ACCO binary, explicitly persist verified findings
 during an identical no-edit investigation phase, and then enter a fresh
 implementation session. Continuity, exact cross-turn deduplication, repeated-read
 deduplication, and behavioral waste signals are disabled in both arms; only
@@ -273,7 +275,7 @@ confidence interval whose cost-per-success reduction lower bound is above zero.
 Version 1.8.0 adds a separate frozen session-efficiency
 holdout rather than treating operational dashboard estimates as evidence. The
 holdout reuses the existing 24 SWE-bench Verified task definitions, runs three
-randomized paired trials per task, and compares the same current Token Saver
+randomized paired trials per task, and compares the same current ACCO
 binary with only the four session-efficiency switches changed. Each arm uses a
 forced two-session protocol and independent hidden verification; transcript
 metrics, blind response grading, exact cache-TTL-aware pricing, and task-cluster
@@ -308,8 +310,8 @@ verification -> grading -> cost-per-success -> calibration pipeline.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
-- Package metadata for this release is **claude-token-saver 1.10.0**; the import
-  remains `token_saver` and the CLI remains `token-saver`.
+- Package metadata for this release is **ai-coding-context-optimizer 1.10.0**; the import
+  remains `acco` and the CLI remains `acco`.
 
 ## Ranking observability and regression validation
 
@@ -343,9 +345,9 @@ The setup lifecycle is tested for:
 - preservation of unrelated MCP servers, hooks, and TOML;
 - refusal to overwrite malformed JSON or unmanaged conflicting Codex sections;
 - preflight of all selected hosts before the first multi-host mutation;
-- safe uninstall of only Token Saver-owned entries;
+- safe uninstall of only ACCO-owned entries;
 - preservation of a user-modified generated Claude skill;
-- project `.token-saver.toml` discovery and environment-variable precedence;
+- project `.acco.toml` discovery and environment-variable precedence;
 - repository-relative guard allowlist globs;
 - Python 3.10 TOML support through the conditional `tomli` dependency;
 - top-level dispatcher, doctor, command-discovery, and shell-completion
@@ -408,15 +410,15 @@ executable was absent. Every raw capture is committed under
 code, byte/line counts, and SHA-256 in the frozen manifest. The original Actions
 artifact SHA-256 is also recorded.
 
-The first same-input comparison pins `ppgranger/token-saver` at
+The first same-input comparison pins `ppgranger/acco` at
 `19d47b2cc19457c865f2414ad78f8efa80204b43`. Both engines receive the exact
-same 30 raw outputs and are scored with the same Token Saver token estimator and
+same 30 raw outputs and are scored with the same ACCO token estimator and
 critical-line survival predicate:
 
 | Engine | weighted estimated token reduction | critical-line survival | changed cases |
 | --- | ---: | ---: | ---: |
-| elyeshkiri/token-saver | **23.72%** | **100.00%** | 8/30 |
-| ppgranger/token-saver @ 19d47b2c | **23.95%** | **81.25%** | 21/30 |
+| elyeshkiri/ai-coding-context-optimizer | **23.72%** | **100.00%** | 8/30 |
+| ppgranger/acco @ 19d47b2c | **23.95%** | **81.25%** | 21/30 |
 
 The reduction difference is **6 estimated output tokens across the full
 corpus** (2,016 versus 2,010). The largest peer reduction advantages occur on
@@ -460,8 +462,8 @@ On this untouched v2 proof set:
 
 | Engine | weighted estimated token reduction | critical-line survival | estimated output tokens |
 | --- | ---: | ---: | ---: |
-| elyeshkiri/token-saver | **30.80%** | **100.00%** | **1,777** |
-| ppgranger/token-saver @ 19d47b2c | **28.23%** | **76.92%** | 1,843 |
+| elyeshkiri/ai-coding-context-optimizer | **30.80%** | **100.00%** | **1,777** |
+| ppgranger/acco @ 19d47b2c | **28.23%** | **76.92%** | 1,843 |
 
 That is a **2.57 percentage-point overall reduction advantage** and 66 fewer
 estimated output tokens for the candidate on the same 27 raw outputs, while all
@@ -511,8 +513,8 @@ On this untouched v3 proof set:
 
 | Engine | weighted estimated token reduction | critical-line survival |
 | --- | ---: | ---: |
-| elyeshkiri/token-saver | 50.50% | **100.00%** |
-| ppgranger/token-saver @ 19d47b2c | **51.25%** | 80.00% |
+| elyeshkiri/ai-coding-context-optimizer | 50.50% | **100.00%** |
+| ppgranger/acco @ 19d47b2c | **51.25%** | 80.00% |
 
 The overall compression difference is only **0.75 percentage points** on the
 same 29 raw outputs, while the candidate preserves every mechanically detected
@@ -551,7 +553,7 @@ workflow actually completes and its strict publication gate passes.
 
 ## Frozen external holdout program
 
-Token Saver now maintains twelve frozen external holdout suites. Ground truth is
+ACCO now maintains twelve frozen external holdout suites. Ground truth is
 written before evaluation, normalized into a path-independent payload, sealed
 with SHA-256, and enforced with `--require-holdout`. Once a suite is evaluated,
 it is considered burned for tuning.
@@ -768,7 +770,7 @@ description and CHANGELOG.md's entries for full detail):
 - PR #1/#2: index-backed retrieval performance, stronger JS/TS module
   semantics, adaptive retrieval budgeting, provider-aware exact token
   counting, multi-repository/frozen-holdout evaluation infrastructure, a
-  TypeScript-compiler semantic overlay, and `token-saver host-check`.
+  TypeScript-compiler semantic overlay, and `acco host-check`.
 - PR #3: caller-graph-aware symbol ranking and exact incoming
   semantic-reference evidence in `_symbol_windows()`.
 - PR #4: a strong, deliberately non-transitive one-hop ranking weight for
@@ -799,18 +801,18 @@ description and CHANGELOG.md's entries for full detail):
   depending on the private repository.
 - Live host validation executed against a real, separate Claude Code host
   process (version 2.1.274), not a simulated payload: a headless
-  `claude -p` session with Token Saver's hooks installed produced a
+  `claude -p` session with ACCO's hooks installed produced a
   captured debug log showing the host receiving
   `hookSpecificOutput.updatedToolOutput` and logging `Hook PostToolUse
-  (token-saver hook) replaced tool output`. `token-saver host-check
+  (acco hook) replaced tool output`. `acco host-check
   --live-evidence <captured-log> --require-live` exits 0 with
   `live_verified: true`.
 - Paired coding-agent trials against real bug-fix tasks in
   [encode/httpx](https://github.com/encode/httpx), full-context baseline
-  vs. Token Saver's hooks, outcomes independently verified by running the
+  vs. ACCO's hooks, outcomes independently verified by running the
   target tests directly. Both conditions produced the byte-for-byte
   identical correct fix in both trials. No reliable cost effect was
-  demonstrated either way: Token Saver's filtering/guard mechanism never
+  demonstrated either way: ACCO's filtering/guard mechanism never
   actually activated in either trial (both file reads and command output
   stayed under its size thresholds). See CHANGELOG.md.
 - Regression coverage exercises bounded dependency closure,

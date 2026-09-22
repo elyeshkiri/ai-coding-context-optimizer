@@ -3,18 +3,18 @@
 Start with:
 
 ```bash
-token-saver doctor .
+acco doctor .
 ```
 
 Then use the symptom-specific checks below.
 
-## `token-saver` is not found
+## `acco` is not found
 
 Check the Python environment:
 
 ```bash
-python -m pip show claude-token-saver
-python -m pip install --upgrade claude-token-saver
+python -m pip show ai-coding-context-optimizer
+python -m pip install --upgrade ai-coding-context-optimizer
 python -m pip --version
 ```
 
@@ -26,19 +26,19 @@ environment's scripts/bin directory is on `PATH`.
 Repair managed entries:
 
 ```bash
-token-saver setup .
-token-saver doctor .
+acco setup .
+acco doctor .
 ```
 
 Or target one host:
 
 ```bash
-token-saver setup . --host claude
+acco setup . --host claude
 ```
 
 ## Setup refuses invalid JSON
 
-Token Saver intentionally does not overwrite malformed host configuration.
+ACCO intentionally does not overwrite malformed host configuration.
 
 Fix the JSON file named in the error, then rerun setup. For multi-host setup,
 preflight happens before writes, so earlier hosts should not have been partially
@@ -46,35 +46,35 @@ modified.
 
 ## Setup refuses Codex configuration
 
-If the error mentions an unmanaged Token Saver Codex section, inspect
+If the error mentions an unmanaged ACCO Codex section, inspect
 `~/.codex/config.toml`.
 
-Token Saver only owns sections surrounded by its managed markers. It refuses to
-replace a pre-existing unmanaged `[mcp_servers.token-saver]` block.
+ACCO only owns sections surrounded by its managed markers. It refuses to
+replace a pre-existing unmanaged `[mcp_servers.acco]` block.
 
 Either remove/rename that manual section yourself or keep managing Codex
 manually.
 
 ## Setup refuses OpenCode configuration
 
-Token Saver manages OpenCode through project `.opencode/opencode.json`.
+ACCO manages OpenCode through project `.opencode/opencode.json`.
 If only `.opencode/opencode.jsonc` already exists, setup fails closed instead
 of creating a second project config with ambiguous precedence.
 
-Either add the Token Saver MCP entry to the existing JSONC file manually or
+Either add the ACCO MCP entry to the existing JSONC file manually or
 choose one project config representation before rerunning setup.
 
 ## Setup refuses Hermes configuration
 
 Hermes uses the top-level `mcp_servers` mapping in
-`~/.hermes/config.yaml`. Token Saver owns only its marked block and refuses:
+`~/.hermes/config.yaml`. ACCO owns only its marked block and refuses:
 
-- an unmanaged same-name `token-saver` entry;
+- an unmanaged same-name `acco` entry;
 - duplicate top-level `mcp_servers` keys;
 - inline/complex `mcp_servers` shapes that cannot be safely edited.
 
 Preserve the existing configuration and normalize it manually before rerunning
-`token-saver setup . --host hermes`.
+`acco setup . --host hermes`.
 
 ## OpenClaw setup or uninstall fails
 
@@ -83,31 +83,31 @@ JSON5 file directly:
 
 ```bash
 openclaw mcp
-token-saver setup . --host openclaw
+acco setup . --host openclaw
 ```
 
 The `openclaw` executable must be available on `PATH` for managed setup or
-removal. Token Saver respects `OPENCLAW_CONFIG_PATH` when locating the active
+removal. ACCO respects `OPENCLAW_CONFIG_PATH` when locating the active
 registry for detection.
 
 ## Copilot setup is not detected
 
-Token Saver supports both Copilot CLI and the VS Code Copilot MCP surface.
+ACCO supports both Copilot CLI and the VS Code Copilot MCP surface.
 
 For Copilot CLI, verify:
 
 ```bash
 copilot --version
 copilot mcp
-token-saver setup . --host copilot
+acco setup . --host copilot
 ```
 
-For VS Code, Token Saver recognizes an installed GitHub Copilot extension or an
+For VS Code, ACCO recognizes an installed GitHub Copilot extension or an
 existing workspace `.vscode/mcp.json`. A generic VS Code installation alone is
 not treated as Copilot.
 
-If the Copilot CLI already has a user-owned MCP server named `token-saver`,
-Token Saver refuses to replace it. Rename/remove that manual entry before using
+If the Copilot CLI already has a user-owned MCP server named `acco`,
+ACCO refuses to replace it. Rename/remove that manual entry before using
 managed setup.
 
 ## Antigravity is not detected
@@ -120,8 +120,8 @@ Run:
 
 ```bash
 agy --help
-token-saver setup . --host antigravity
-token-saver doctor . --json
+acco setup . --host antigravity
+acco doctor . --json
 ```
 
 ## Claude hooks are configured but not behaving as expected
@@ -129,14 +129,14 @@ token-saver doctor . --json
 Run:
 
 ```bash
-token-saver host-check . --host claude
+acco host-check . --host claude
 ```
 
 For host-level proof of `updatedToolOutput` acceptance, supply live/debug
 evidence using the flags documented by:
 
 ```bash
-token-saver host-check --help
+acco host-check --help
 ```
 
 Remember that `doctor` verifies configuration health; `host-check` is the
@@ -147,13 +147,13 @@ deeper transport/live-evidence diagnostic.
 Test the server directly:
 
 ```bash
-token-saver serve /absolute/path/to/project
+acco serve /absolute/path/to/project
 ```
 
 Then verify the managed host config with:
 
 ```bash
-token-saver doctor . --json
+acco doctor . --json
 ```
 
 Project-scoped Claude/Cursor MCP entries use an absolute project path to avoid
@@ -174,8 +174,8 @@ persistence policy.
 For structural maps:
 
 ```bash
-token-saver map . --check-stale
-token-saver map . --refresh-if-stale
+acco map . --check-stale
+acco map . --refresh-if-stale
 ```
 
 ## A large source read is unexpectedly blocked
@@ -183,10 +183,10 @@ token-saver map . --refresh-if-stale
 Inspect the active config:
 
 ```bash
-token-saver doctor . --json
+acco doctor . --json
 ```
 
-Adjust `.token-saver.toml`:
+Adjust `.acco.toml`:
 
 ```toml
 [hooks]
@@ -197,7 +197,7 @@ allow = ["generated/*"]
 Or temporarily disable the guard:
 
 ```bash
-TOKEN_SAVER_GUARD=0 claude
+ACCO_GUARD=0 claude
 ```
 
 Prefer bounded line-range reads instead of globally disabling protection.
@@ -210,14 +210,14 @@ The replacement can include both the legacy paged-output id and a universal
 `tsr_...` recovery handle. Use either path:
 
 ```bash
-token-saver output <id> --stream stdout --offset 1 --limit 80
-token-saver recover tsr_... --path .
+acco output <id> --stream stdout --offset 1 --limit 80
+acco recover tsr_... --path .
 ```
 
 Delete old stored results:
 
 ```bash
-token-saver outputs-prune --days 7
+acco outputs-prune --days 7
 ```
 
 ## A `tsr_...` recovery handle cannot be resolved
@@ -226,22 +226,22 @@ Recovery handles are project-scoped. Use the same project root that produced the
 compressed representation:
 
 ```bash
-token-saver recover tsr_... --path .
-token-saver recovery-status . --json
+acco recover tsr_... --path .
+acco recovery-status . --json
 ```
 
-If the handle is unknown under that project, verify `TOKEN_SAVER_STATE_DIR`
+If the handle is unknown under that project, verify `ACCO_STATE_DIR`
 and the project path. Handles are identifiers, not remote object URLs; Token
 Saver does not fetch missing recovery payloads from a service.
 
 If a transform reports that recovery capacity is exhausted, inspect
-`recovery-status`. Token Saver intentionally refuses the new lossy transform
+`recovery-status`. ACCO intentionally refuses the new lossy transform
 rather than evicting an older source record and creating a dangling handle.
 
 For Bash output, the legacy paged-output id remains usable:
 
 ```bash
-token-saver output <id> --stream stdout --offset 1 --limit 80
+acco output <id> --stream stdout --offset 1 --limit 80
 ```
 
 ## Adaptive MCP is missing a tool I expected
@@ -250,7 +250,7 @@ Adaptive mode starts with a small core and expands after `discover_tools`.
 Inspect the configured profile first:
 
 ```bash
-token-saver doctor . --json
+acco doctor . --json
 ```
 
 Use `mcp.profile = "full"` as the compatibility fallback when a host does not
@@ -266,7 +266,7 @@ Exact `recover_context` stays in the adaptive core so a model-visible
 Validate the explicit trust boundary:
 
 ```bash
-token-saver provider-proxy . \
+acco provider-proxy . \
   --provider anthropic \
   --upstream https://api.anthropic.com
 ```
@@ -281,26 +281,26 @@ the client instead of silently forwarding authorization headers to another
 origin. A `502` means the configured upstream could not be reached; Token
 Saver does not silently switch providers.
 
-Use `token-saver prefix-status .` to inspect content-free stable-prefix reuse
+Use `acco prefix-status .` to inspect content-free stable-prefix reuse
 evidence. Disable only that telemetry with `--no-prefix-tracking` when testing
 request transformation behavior.
 
-## `token-saver optimize` will not keep or revert a change yet
+## `acco optimize` will not keep or revert a change yet
 
 The optimizer requires enough **provider-reported** measured turns in both the
 baseline and treatment windows. Inspect the journal:
 
 ```bash
-token-saver optimize . --status --json
-token-saver optimize . --evaluate opt_... --json
+acco optimize . --status --json
+acco optimize . --evaluate opt_... --json
 ```
 
 `insufficient-baseline` or `insufficient-treatment` means the evidence floor
 has not been met; it is not treated as zero savings. By default, a completed
 comparison that fails the configured improvement threshold restores the exact
-pre-change Token Saver config from recovery.
+pre-change ACCO config from recovery.
 
-The optimizer edits only Token Saver-owned project configuration. It does not
+The optimizer edits only ACCO-owned project configuration. It does not
 rewrite application source or arbitrary host/provider settings.
 
 ## Browser context was not compressed
@@ -310,7 +310,7 @@ URL. A transform is returned only when the focused representation plus recovery
 handle is actually smaller than the original.
 
 ```bash
-token-saver browser-context page.html --query "checkout total" --json
+acco browser-context page.html --query "checkout total" --json
 ```
 
 If `changed` is false, the original was kept because focusing did not reduce
@@ -321,7 +321,7 @@ estimated context or exact recovery could not be guaranteed.
 Delta is opt-in:
 
 ```bash
-TOKEN_SAVER_DELTA=1 claude
+ACCO_DELTA=1 claude
 ```
 
 or:
@@ -339,8 +339,8 @@ the rendered delta is smaller than the normal compressed output.
 Use the PR ranking-regression artifact or reproduce locally:
 
 ```bash
-token-saver ranking-snapshot benchmarks/context-quality.json --path . --out snapshot.json
-token-saver ranking-explain . --query "the task"
+acco ranking-snapshot benchmarks/context-quality.json --path . --out snapshot.json
+acco ranking-explain . --query "the task"
 ```
 
 `ranking-diff` reports expected-file movement and per-stage score changes.
@@ -360,7 +360,7 @@ Do not bypass the gate to create a headline number.
 
 ## Uninstall left a Claude skill file
 
-If `.claude/skills/token-budget/SKILL.md` was modified after setup, Token Saver
+If `.claude/skills/token-budget/SKILL.md` was modified after setup, ACCO
 intentionally preserves it. Remove it manually if the modifications are yours
 and the file is no longer wanted.
 
@@ -369,10 +369,10 @@ and the file is no longer wanted.
 Collect:
 
 ```bash
-token-saver doctor . --json
-token-saver commands
+acco doctor . --json
+acco commands
 python --version
-python -m pip show claude-token-saver
+python -m pip show ai-coding-context-optimizer
 ```
 
 When reporting a bug, include the failing command, exit code, traceback/error
