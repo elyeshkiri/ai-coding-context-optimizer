@@ -339,6 +339,24 @@ def _claude_hooks_configured(root: Path) -> bool:
     return configured_events == set(HOOK_MATCHERS)
 
 
+
+def _copilot_detected(root: Path, home: Path, executable: str | None) -> bool:
+    """Return whether GitHub Copilot appears installed or already configured."""
+    extensions = home / ".vscode" / "extensions"
+    installed = False
+    if extensions.is_dir():
+        installed = any(
+            extensions.glob("github.copilot-*")
+        ) or any(
+            extensions.glob("github.copilot-chat-*")
+        )
+    return bool(
+        installed
+        or copilot_configured(root)
+        or (executable and (root / ".vscode" / "mcp.json").exists())
+    )
+
+
 def detect_hosts(
     root: Path,
     *,
@@ -421,7 +439,7 @@ def detect_hosts(
         ),
         HostStatus(
             "copilot",
-            bool(executable["copilot"] or (root / ".vscode").exists()),
+            _copilot_detected(root, home, executable["copilot"]),
             copilot_configured(root),
             executable["copilot"],
             (str(copilot_path),),
