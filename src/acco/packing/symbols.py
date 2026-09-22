@@ -1,8 +1,8 @@
 """Compatibility facade for symbol scoring and source-window stages.
 
 New internal code should import scoring policy from
-:mod:`token_saver.packing.symbol_scoring` and rendering/window policy from
-:mod:`token_saver.packing.symbol_windows`.
+:mod:`acco.packing.symbol_scoring` and rendering/window policy from
+:mod:`acco.packing.symbol_windows`.
 """
 
 from .symbol_scoring import (

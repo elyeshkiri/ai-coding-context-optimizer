@@ -23,7 +23,7 @@ REMINDER_CHARS = 320
 
 def cache_ttl_min() -> int:
     """Handle cache ttl min."""
-    raw = os.environ.get("TOKEN_SAVER_CACHE_TTL_MIN")
+    raw = os.environ.get("ACCO_CACHE_TTL_MIN")
     if raw:
         try:
             return max(1, int(raw))
@@ -144,7 +144,7 @@ def reminder(report: Report, limit: int = REMINDER_CHARS) -> str:
     if not items:
         return ""
     top = items[0]
-    text = f"token-saver: {top.kind} — {top.detail} Type /clear if this is a new task."
+    text = f"acco: {top.kind} — {top.detail} Type /clear if this is a new task."
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
@@ -191,7 +191,7 @@ def user_nudge(root: Path, prompt: str = "") -> str:
     if churn <= 0 or not looks_like_new_task(prompt):
         return ""
     return (
-        f"token-saver: if unrelated, consider /clear to remove "
+        f"acco: if unrelated, consider /clear to remove "
         f"unneeded history (~{churn:,} tokens in suspected recreations last measure)."
     )
 

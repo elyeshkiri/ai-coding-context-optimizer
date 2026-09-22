@@ -108,7 +108,7 @@ def load_registry(path: str | Path) -> dict:
 
 def builtin_registry() -> dict:
     """Load the packaged, source-attributed Claude pricing registry."""
-    resource = files("token_saver").joinpath(_BUILTIN)
+    resource = files("acco").joinpath(_BUILTIN)
     payload = json.loads(resource.read_text(encoding="utf-8"))
     return validate_registry(payload)
 
