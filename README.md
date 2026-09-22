@@ -19,7 +19,7 @@ Code versions can use the pip + setup path below. The generated plugin calls
 `python -m token_saver.entry`, so it does not depend on the `token-saver`
 console script being on `PATH`.
 
-For Claude + Cursor + Codex, or explicit project-managed installation:
+For Claude, Codex, Cursor, OpenCode, OpenClaw, Hermes, Copilot, Antigravity, or explicit project-managed installation:
 
 ```bash
 pip install claude-token-saver
@@ -28,8 +28,8 @@ token-saver setup
 token-saver doctor
 ```
 
-`setup` auto-detects Claude Code, Cursor, and Codex, writes only Token
-Saver-owned integration entries, creates a project `.token-saver.toml`, and is
+`setup` auto-detects supported coding-agent hosts, writes only Token Saver-owned
+integration entries, creates a project `.token-saver.toml`, and is
 safe to rerun after upgrades as a repair/migration step. Configure hosts
 explicitly when needed:
 
@@ -78,7 +78,7 @@ Start with the task-oriented docs instead of searching this README:
 - [CLI reference](docs/CLI_REFERENCE.md)
 - [Machine-readable CLI contracts](docs/JSON_OUTPUTS.md)
 - [Configuration reference](docs/CONFIGURATION.md)
-- [Claude Code / Cursor / Codex integrations](INTEGRATIONS.md)
+- [Coding-agent integrations](INTEGRATIONS.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Upgrading and migration](docs/UPGRADING.md)
 - [Architecture](ARCHITECTURE.md)

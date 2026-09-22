@@ -40,3 +40,21 @@ def test_capability_report_contains_feature_prerequisites():
     assert report["client"]["client"] == "claude-code"
     assert "adaptive-mcp" in report["features"]
     assert "dynamic_mcp_refresh" in report["features"]["adaptive-mcp"]["requirements"]
+
+
+def test_extended_hosts_expose_mcp_without_inventing_hook_guarantees():
+    """New hosts should be usable through MCP while remaining conservative elsewhere."""
+    for name in ("opencode", "openclaw", "hermes", "copilot", "antigravity"):
+        caps = capabilities_for(name)
+        assert caps.guaranteed("mcp")
+        assert caps.level("pre_tool_intercept") == "unknown"
+        assert caps.level("model_route_execution") == "advisory"
+
+
+def test_extended_host_aliases_normalize_to_registry_entries():
+    """Common product names should resolve to stable capability identifiers."""
+    assert capabilities_for("OpenCode").client == "opencode"
+    assert capabilities_for("OpenClaw").client == "openclaw"
+    assert capabilities_for("Hermes-Agent").client == "hermes"
+    assert capabilities_for("GitHub-Copilot").client == "copilot"
+    assert capabilities_for("Google-Antigravity").client == "antigravity"

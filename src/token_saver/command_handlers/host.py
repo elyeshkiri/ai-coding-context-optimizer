@@ -61,7 +61,7 @@ def fastpath_status_main(argv: list[str]) -> int:
 def client_capabilities_main(argv: list[str]) -> int:
     """Report conservative host capability guarantees and feature prerequisites."""
     parser = argparse.ArgumentParser(prog="token-saver client-capabilities")
-    parser.add_argument("--client", help="claude-code, codex, cursor, gemini-cli, or generic-mcp")
+    parser.add_argument("--client", help="claude-code, codex, cursor, opencode, openclaw, hermes, copilot, antigravity, gemini-cli, or generic-mcp")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     report = capability_report(args.client)
@@ -179,7 +179,7 @@ def setup_main(argv: list[str]) -> int:
         print("configured: " + ", ".join(result["configured_hosts"]))
     else:
         print("configured: none (no supported host detected)")
-        print("hint: rerun with --host claude|cursor|codex|all")
+        print("hint: rerun with --host " + "|".join([*HOSTS, "all"]))
     print("next: token-saver doctor " + result["root"])
     return 0
 

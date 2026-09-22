@@ -32,23 +32,45 @@ as `python -m token_saver.entry`. It includes:
 - the local Token Saver MCP server;
 - `/token-saver:ingress <stage-id>` for resuming a safely staged oversized prompt.
 
-For Cursor, Codex, mixed-host projects, editable installs, or environments where
-you want explicit project config management, continue to use pip +
-`token-saver setup`.
+For mixed-host projects, editable installs, or environments where you want
+explicit project config management, continue to use pip + `token-saver setup`.
 
-Supported automatic setup currently covers:
+Supported automatic setup now covers:
 
-- **Claude Code** — project hooks plus project MCP configuration;
-- **Cursor** — project `.cursor/mcp.json`;
-- **Codex** — a clearly marked Token Saver block in the user Codex TOML config.
+| Host | Managed integration |
+|---|---|
+| **Claude Code** | project hooks + project `.mcp.json` |
+| **Cursor** | project `.cursor/mcp.json` |
+| **Codex** | marked Token Saver block in `~/.codex/config.toml` |
+| **OpenCode** | project `.opencode/opencode.json` using `mcp.servers` |
+| **OpenClaw** | native `openclaw mcp set/unset` registry |
+| **Hermes Agent** | marked entry under `mcp_servers` in `~/.hermes/config.yaml` |
+| **GitHub Copilot** | native Copilot CLI MCP registry (`~/.copilot/mcp-config.json`) and/or VS Code workspace `.vscode/mcp.json` |
+| **Google Antigravity** | workspace `.agents/mcp_config.json` using `mcpServers` |
 
 Only Token Saver-owned entries are changed. Setup is idempotent, so rerunning it
 after upgrades repairs/migrates managed entries without duplicating them.
 `token-saver uninstall` reverses those entries while preserving unrelated host
 configuration.
 
-Use `--host claude|cursor|codex|all` for explicit selection. The files under
-`integrations/` remain manual fallback/reference templates.
+Use repeatable `--host` flags for explicit selection, for example:
+
+```bash
+token-saver setup . --host codex --host cursor --host opencode
+token-saver setup . --host openclaw --host hermes
+token-saver setup . --host copilot --host antigravity
+token-saver setup . --host all
+```
+
+OpenClaw is mutated through its own validated MCP registry command rather than
+by parsing JSON5 directly. Copilot CLI is likewise managed through `copilot mcp`
+with a user-level `token-saver` entry that launches `token-saver serve .`; the
+VS Code Copilot surface remains workspace-scoped in `.vscode/mcp.json`. OpenCode uses a strict-JSON project layer and fails
+closed instead of creating a second sibling config when
+`.opencode/opencode.jsonc` already exists. Hermes uses a clearly marked YAML
+block and refuses to overwrite an unowned `token-saver` entry.
+
+The files under `integrations/` remain manual fallback/reference templates.
 
 The MCP process is local and uses newline-delimited JSON-RPC over stdio:
 
@@ -256,8 +278,9 @@ max_range_lines = 80
 ```
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.
-Cursor and Codex still receive the same policy through the `output_policy` MCP
-tool when an orchestrator chooses to call it.
+Other supported hosts receive the same host-neutral policy/retrieval/routing
+surfaces through Token Saver MCP. Their native lifecycle hooks are not assumed
+unless `token-saver client-capabilities --client HOST` reports them as guaranteed.
 
 Automatic model routing is opt-in. When enabled, Token Saver classifies the task,
 derives a complexity/risk capability floor, then chooses the cheapest eligible

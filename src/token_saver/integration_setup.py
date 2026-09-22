@@ -15,12 +15,64 @@ from .config import update_json
 from .install import HOOK_COMMAND, HOOK_MATCHERS, install as install_claude_hooks
 from .install import settings_path as claude_settings_path
 from .install import uninstall as uninstall_claude_hooks
+from .host_configs import (
+    RunCommand,
+    antigravity_configured,
+    antigravity_global_mcp_path,
+    antigravity_mcp_path,
+    copilot_cli_config_path,
+    copilot_cli_configured,
+    copilot_configured,
+    copilot_mcp_path,
+    copilot_vscode_configured,
+    hermes_config_path,
+    hermes_configured,
+    install_antigravity,
+    install_copilot_cli,
+    install_copilot_vscode,
+    install_hermes,
+    install_openclaw,
+    install_opencode,
+    openclaw_config_path,
+    openclaw_configured,
+    opencode_configured,
+    opencode_mcp_path,
+    run_command,
+    uninstall_antigravity,
+    uninstall_copilot_cli,
+    uninstall_copilot_vscode,
+    uninstall_hermes,
+    uninstall_openclaw,
+    uninstall_opencode,
+    validate_copilot_cli_manageable,
+    validate_hermes_manageable,
+    validate_opencode_manageable,
+)
 from .policy import SKILL_TEXT
 from .repository_service import RepositoryContextService
 from .runtime_config import CONFIG_NAME, find_project_config, settings_for
 from .sessions import transcript_paths
 
-HOSTS = ("claude", "cursor", "codex")
+HOSTS = (
+    "claude",
+    "cursor",
+    "codex",
+    "opencode",
+    "openclaw",
+    "hermes",
+    "copilot",
+    "antigravity",
+)
+HOST_EXECUTABLES = {
+    "claude": "claude",
+    "cursor": "cursor",
+    "codex": "codex",
+    "opencode": "opencode",
+    "openclaw": "openclaw",
+    "hermes": "hermes",
+    "copilot": "copilot",
+    "antigravity": "agy",
+}
 CODEX_START = "# >>> token-saver managed >>>"
 CODEX_END = "# <<< token-saver managed <<<"
 
@@ -294,6 +346,34 @@ def _claude_hooks_configured(root: Path) -> bool:
     return configured_events == set(HOOK_MATCHERS)
 
 
+
+def _copilot_vscode_installed(home: Path) -> bool:
+    """Return whether a VS Code GitHub Copilot extension is installed."""
+    extensions = home / ".vscode" / "extensions"
+    if not extensions.is_dir():
+        return False
+    return bool(
+        any(extensions.glob("github.copilot-*"))
+        or any(extensions.glob("github.copilot-chat-*"))
+    )
+
+
+def _copilot_surfaces(
+    root: Path,
+    home: Path,
+    *,
+    cli_executable: str | None,
+) -> tuple[bool, bool]:
+    """Return whether Copilot CLI and VS Code surfaces are present/configured."""
+    cli = bool(cli_executable or copilot_cli_configured(home))
+    vscode = bool(
+        _copilot_vscode_installed(home)
+        or copilot_mcp_path(root).exists()
+        or copilot_vscode_configured(root)
+    )
+    return cli, vscode
+
+
 def detect_hosts(
     root: Path,
     *,
@@ -303,11 +383,29 @@ def detect_hosts(
     """Detect supported hosts and whether Token Saver is already configured."""
     root = root.resolve()
     home = home or Path.home()
-    executable = {name: which(name) for name in HOSTS}
+    executable = {
+        name: which(HOST_EXECUTABLES[name])
+        for name in HOSTS
+    }
     claude_paths = (claude_settings_path(root), claude_mcp_path(root))
     cursor_path = cursor_mcp_path(root)
     codex_path = codex_config_path(home)
     codex_text = codex_path.read_text(encoding="utf-8") if codex_path.exists() else ""
+    opencode_path = opencode_mcp_path(root)
+    openclaw_path = openclaw_config_path(home)
+    hermes_path = hermes_config_path(home)
+    copilot_path = copilot_mcp_path(root)
+    copilot_cli_path = copilot_cli_config_path(home)
+    copilot_cli_surface, copilot_vscode_surface = _copilot_surfaces(
+        root,
+        home,
+        cli_executable=executable["copilot"],
+    )
+    copilot_executable = executable["copilot"] or (
+        which("code") if copilot_vscode_surface else None
+    )
+    antigravity_path = antigravity_mcp_path(root)
+    antigravity_global = antigravity_global_mcp_path(home)
     return [
         HostStatus(
             "claude",
@@ -319,7 +417,11 @@ def detect_hosts(
         ),
         HostStatus(
             "cursor",
-            bool(executable["cursor"] or (home / ".cursor").exists() or (root / ".cursor").exists()),
+            bool(
+                executable["cursor"]
+                or (home / ".cursor").exists()
+                or (root / ".cursor").exists()
+            ),
             _json_mcp_configured(cursor_path),
             executable["cursor"],
             (str(cursor_path),),
@@ -332,6 +434,63 @@ def detect_hosts(
             executable["codex"],
             (str(codex_path),),
             ("mcp",),
+        ),
+        HostStatus(
+            "opencode",
+            bool(
+                executable["opencode"]
+                or (root / ".opencode").exists()
+                or (home / ".config" / "opencode").exists()
+            ),
+            opencode_configured(root),
+            executable["opencode"],
+            (str(opencode_path),),
+            ("mcp", "project-local"),
+        ),
+        HostStatus(
+            "openclaw",
+            bool(executable["openclaw"] or (home / ".openclaw").exists()),
+            openclaw_configured(home),
+            executable["openclaw"],
+            (str(openclaw_path),),
+            ("mcp", "native-config-cli"),
+        ),
+        HostStatus(
+            "hermes",
+            bool(executable["hermes"] or (home / ".hermes").exists()),
+            hermes_configured(home),
+            executable["hermes"],
+            (str(hermes_path),),
+            ("mcp", "managed-yaml-block"),
+        ),
+        HostStatus(
+            "copilot",
+            bool(copilot_cli_surface or copilot_vscode_surface),
+            copilot_configured(
+                root,
+                home=home,
+                cli_required=copilot_cli_surface,
+                vscode_required=copilot_vscode_surface,
+            ),
+            copilot_executable,
+            (str(copilot_cli_path), str(copilot_path)),
+            tuple(
+                ["mcp"]
+                + (["copilot-cli"] if copilot_cli_surface else [])
+                + (["vscode-workspace"] if copilot_vscode_surface else [])
+            ),
+        ),
+        HostStatus(
+            "antigravity",
+            bool(
+                executable["antigravity"]
+                or (root / ".agents").exists()
+                or antigravity_global.exists()
+            ),
+            antigravity_configured(root),
+            executable["antigravity"],
+            (str(antigravity_path), str(antigravity_global)),
+            ("mcp", "workspace-local"),
         ),
     ]
 
@@ -350,13 +509,18 @@ def setup_integrations(
     *,
     home: Path | None = None,
     which: Callable[[str], str | None] = shutil.which,
+    runner: RunCommand = run_command,
 ) -> dict:
     """Configure detected or explicitly requested hosts idempotently."""
     root = root.resolve()
     home = home or Path.home()
     detected = detect_hosts(root, home=home, which=which)
     if hosts:
-        requested = HOSTS if "all" in hosts else tuple(dict.fromkeys(hosts))
+        requested = (
+            tuple(item.name for item in detected if item.detected)
+            if "all" in hosts
+            else tuple(dict.fromkeys(hosts))
+        )
     else:
         requested = tuple(item.name for item in detected if item.detected)
     unknown = sorted(set(requested) - set(HOSTS))
@@ -365,7 +529,7 @@ def setup_integrations(
     if not root.is_dir():
         raise ValueError(f"Project path is not a directory: {root}")
 
-    # Preflight all managed surfaces before the first mutation so a conflict in
+    # Preflight every managed surface before the first mutation so a conflict in
     # one host cannot leave earlier hosts partially configured.
     if "claude" in requested:
         _validate_json_object(claude_settings_path(root))
@@ -374,6 +538,33 @@ def setup_integrations(
         _validate_json_object(cursor_mcp_path(root))
     if "codex" in requested:
         _validate_codex_manageable(codex_config_path(home))
+    if "opencode" in requested:
+        validate_opencode_manageable(root)
+        _validate_json_object(opencode_mcp_path(root))
+    if "copilot" in requested:
+        copilot_cli_surface, copilot_vscode_surface = _copilot_surfaces(
+            root,
+            home,
+            cli_executable=which(HOST_EXECUTABLES["copilot"]),
+        )
+        if not copilot_cli_surface and not copilot_vscode_surface:
+            raise ValueError(
+                "Copilot setup requires either the copilot CLI or the "
+                "GitHub Copilot VS Code extension."
+            )
+        if copilot_cli_surface:
+            validate_copilot_cli_manageable(home)
+        if copilot_vscode_surface:
+            _validate_json_object(copilot_mcp_path(root))
+    if "antigravity" in requested:
+        _validate_json_object(antigravity_mcp_path(root))
+    if "hermes" in requested:
+        validate_hermes_manageable(hermes_config_path(home))
+    if "openclaw" in requested and not which(HOST_EXECUTABLES["openclaw"]):
+        raise ValueError(
+            "OpenClaw setup requires the openclaw executable so Token Saver can "
+            "use its validated native MCP registry."
+        )
 
     changed: list[str] = []
     config_path = write_default_config(root)
@@ -387,6 +578,30 @@ def setup_integrations(
     if "codex" in requested:
         _install_codex(codex_config_path(home))
         changed.append("codex")
+    if "opencode" in requested:
+        install_opencode(root)
+        changed.append("opencode")
+    if "openclaw" in requested:
+        install_openclaw(root, runner=runner)
+        changed.append("openclaw")
+    if "hermes" in requested:
+        install_hermes(root, home)
+        changed.append("hermes")
+    if "copilot" in requested:
+        cli_executable = which(HOST_EXECUTABLES["copilot"])
+        copilot_cli_surface, copilot_vscode_surface = _copilot_surfaces(
+            root,
+            home,
+            cli_executable=cli_executable,
+        )
+        if cli_executable:
+            install_copilot_cli(home=home, runner=runner)
+        if copilot_vscode_surface:
+            install_copilot_vscode(root)
+        changed.append("copilot")
+    if "antigravity" in requested:
+        install_antigravity(root)
+        changed.append("antigravity")
 
     return {
         "root": str(root),
@@ -403,6 +618,8 @@ def uninstall_integrations(
     *,
     home: Path | None = None,
     remove_config: bool = False,
+    which: Callable[[str], str | None] = shutil.which,
+    runner: RunCommand = run_command,
 ) -> dict:
     """Remove only Token Saver-owned integration entries."""
     root = root.resolve()
@@ -418,6 +635,31 @@ def uninstall_integrations(
         _validate_json_object(claude_mcp_path(root))
     if "cursor" in requested:
         _validate_json_object(cursor_mcp_path(root))
+    if "opencode" in requested:
+        _validate_json_object(opencode_mcp_path(root))
+    if "copilot" in requested:
+        if copilot_vscode_configured(root):
+            _validate_json_object(copilot_mcp_path(root))
+        if copilot_cli_configured(home):
+            validate_copilot_cli_manageable(home)
+            if not which(HOST_EXECUTABLES["copilot"]):
+                raise ValueError(
+                    "Copilot CLI uninstall requires the copilot executable "
+                    "because its user MCP registry is mutated natively."
+                )
+    if "antigravity" in requested:
+        _validate_json_object(antigravity_mcp_path(root))
+    if "hermes" in requested:
+        validate_hermes_manageable(hermes_config_path(home))
+    if (
+        "openclaw" in requested
+        and openclaw_configured(home)
+        and not which(HOST_EXECUTABLES["openclaw"])
+    ):
+        raise ValueError(
+            "OpenClaw uninstall requires the openclaw executable because its "
+            "JSON5 registry is mutated through the host-native command."
+        )
 
     removed: list[str] = []
     if "claude" in requested:
@@ -435,6 +677,23 @@ def uninstall_integrations(
     if "codex" in requested:
         _uninstall_codex(codex_config_path(home))
         removed.append("codex")
+    if "opencode" in requested:
+        uninstall_opencode(root)
+        removed.append("opencode")
+    if "openclaw" in requested:
+        uninstall_openclaw(home, runner=runner)
+        removed.append("openclaw")
+    if "hermes" in requested:
+        uninstall_hermes(home)
+        removed.append("hermes")
+    if "copilot" in requested:
+        if copilot_cli_configured(home):
+            uninstall_copilot_cli(home=home, runner=runner)
+        uninstall_copilot_vscode(root)
+        removed.append("copilot")
+    if "antigravity" in requested:
+        uninstall_antigravity(root)
+        removed.append("antigravity")
     config = root / CONFIG_NAME
     if remove_config and config.exists():
         config.unlink()
