@@ -12,7 +12,7 @@ permissions:
 # Serialize release attempts so two close main pushes cannot race to reserve
 # the same immutable version tag.
 concurrency:
-  group: token-saver-release
+  group: acco-release
   cancel-in-progress: false
 
 jobs:
@@ -112,8 +112,8 @@ jobs:
           TAG: ${{ steps.package.outputs.tag }}
           VERSION: ${{ steps.package.outputs.version }}
         run: |
-          gh release create "$TAG" dist/*             --title "Token Saver $VERSION"             --generate-notes
+          gh release create "$TAG" dist/*             --title "ACCO $VERSION"             --generate-notes
 
       # Prefer PyPI Trusted Publishing over the long-lived API token once the
-      # project exists. Configure claude-token-saver as a trusted publisher,
+      # project exists. Configure ai-coding-context-optimizer as a trusted publisher,
       # add `id-token: write`, and remove the explicit password above.
