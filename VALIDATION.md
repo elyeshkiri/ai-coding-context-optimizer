@@ -1,4 +1,37 @@
-# Validation for 1.13.0
+# Validation for 1.14.0
+
+## 1.14 multi-host integration mechanics
+
+Version 1.14 expands managed integration lifecycle coverage from Claude Code,
+Cursor, and Codex to OpenCode, OpenClaw, Hermes Agent, GitHub Copilot CLI /
+VS Code, and Google Antigravity.
+
+The release evidence here is **configuration/lifecycle correctness**, not a claim
+that every host exposes identical proprietary hooks or produces identical
+end-to-end token savings.
+
+Tests require that:
+
+- setup/detection/uninstall preserve unrelated host MCP entries;
+- repeated setup is idempotent on managed surfaces;
+- OpenCode refuses ambiguous sibling JSON/JSONC project ownership;
+- OpenClaw uses its native MCP registry command rather than rewriting JSON5;
+- Hermes refuses unmanaged same-name entries and ambiguous/unsupported
+  `mcp_servers` structures;
+- Copilot CLI uses its native MCP registry, preserves unrelated entries, and
+  refuses to replace an unmanaged `token-saver` definition;
+- VS Code Copilot detection does not treat a generic VS Code installation alone
+  as proof of Copilot use;
+- `--host all` selects detected supported products instead of requiring every
+  supported host to be installed;
+- capability reporting marks MCP support explicitly while proprietary
+  pre/post-tool, prompt, session, provider, and model-routing boundaries remain
+  conditional/unknown unless Token Saver can actually guarantee them.
+
+These checks establish safe configuration ownership and lifecycle behavior.
+They do not establish live host acceptance of every MCP capability, native hook
+interception parity, task-success equivalence, or an end-to-end savings figure
+for the newly added hosts.
 
 ## 1.13 recoverable optimization-platform mechanics
 
@@ -75,6 +108,8 @@ that release, and holdout #14 was frozen independently before its first run.
 
 Token Saver separates **mechanical correctness**, **retrieval generalization**,
 and **end-to-end agent economics**.
+
+Version 1.14.0 adds managed OpenCode, OpenClaw, Hermes, Copilot CLI / VS Code, and Antigravity integration lifecycle support on top of the existing Claude Code, Cursor, and Codex adapters. The new evidence is configuration/lifecycle evidence only; no new live-host savings or task-success claim is made from adapter tests alone.
 
 Version 1.13.0 adds progressive persistent project memory, adaptive MCP tool disclosure, recoverable MCP schema compression, universal exact-byte recovery handles, a measured keep-or-revert optimizer, content-free provider-prefix reuse evidence, an opt-in hardened local provider proxy, and focused recoverable browser-context compression. These additions are mechanically and safety validated; no new end-to-end savings percentage is claimed without fresh paired-agent evidence.
 

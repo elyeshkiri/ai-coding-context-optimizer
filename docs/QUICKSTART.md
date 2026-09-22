@@ -41,11 +41,15 @@ Explicit host selection is also available:
 ```bash
 token-saver setup . --host claude
 token-saver setup . --host cursor --host codex
+token-saver setup . --host opencode --host hermes
+token-saver setup . --host copilot --host antigravity
+token-saver setup . --host openclaw
 token-saver setup . --host all
 ```
 
-Setup is idempotent. Re-running it after an upgrade is the supported
-repair/migration path.
+Setup is idempotent. `--host all` means all detected supported hosts, not every
+product Token Saver knows about. Re-running setup after an upgrade is the
+supported repair/migration path.
 
 ## 3. Verify the installation
 

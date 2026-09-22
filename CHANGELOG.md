@@ -1,5 +1,31 @@
 # Unreleased
 
+# 1.14.0 - 2026-09-22
+
+- **Expanded managed setup/doctor/uninstall support from three to eight coding-agent hosts.**
+  Token Saver now manages Claude Code, Cursor, Codex, OpenCode, OpenClaw,
+  Hermes Agent, GitHub Copilot CLI / VS Code, and Google Antigravity through
+  host-specific adapters instead of assuming one universal MCP config shape.
+- **Added host-native configuration paths where available.** OpenClaw uses
+  `openclaw mcp set/unset` instead of rewriting JSON5 directly. Copilot CLI
+  uses `copilot mcp add/remove`, while VS Code Copilot remains workspace-local
+  through `.vscode/mcp.json`.
+- **Preserved unrelated host configuration and added fail-closed ownership checks.**
+  OpenCode refuses ambiguous sibling JSON/JSONC project configs, Hermes refuses
+  unowned or structurally ambiguous `mcp_servers` entries, and Copilot CLI
+  refuses to replace a user-owned `token-saver` server definition.
+- **Made multi-host setup safer on mixed developer machines.** `--host all`
+  now means all detected supported hosts rather than every product Token Saver
+  knows about. Copilot detection distinguishes its CLI/extension/MCP surfaces
+  from a generic VS Code installation.
+- **Extended capability reporting and documentation for the larger host matrix.**
+  MCP support is declared explicitly per host while proprietary lifecycle hooks
+  remain conditional/unknown unless Token Saver can actually guarantee them.
+- **Kept regression evidence unchanged.** The complete Python 3.10/3.12/3.13
+  matrix, Rust/Python parity, semantic HNSW parity, ranking regression, frozen
+  holdout, real CLI corpus capture, and both frozen CLI comparator suites pass
+  on the release branch.
+
 # 1.13.0 - 2026-09-22
 
 - **Added a recoverable optimization platform across context surfaces.**
