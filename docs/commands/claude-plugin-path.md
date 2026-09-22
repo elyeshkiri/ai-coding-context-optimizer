@@ -1,12 +1,12 @@
-# `token-saver claude-plugin-path`
+# `acco claude-plugin-path`
 
-Render the complete Token Saver Claude Code plugin directory and print its absolute path.
+Render the complete ACCO Claude Code plugin directory and print its absolute path.
 
 ## Synopsis
 
 ```bash
-token-saver claude-plugin-path
-token-saver claude-plugin-path --json
+acco claude-plugin-path
+acco claude-plugin-path --json
 ```
 
 This command is also the stable bridge used by the Claude marketplace command-source entry.
@@ -15,7 +15,7 @@ This command is also the stable bridge used by the Claude marketplace command-so
 
 - `--json` — emit version, path, schema, and rendered status.
 
-The generated plugin contains Token Saver-owned hooks, MCP configuration, and the staged-prompt resume skill. Hook/MCP commands invoke `python -m token_saver.entry`, so the generated plugin does not require the `token-saver` console script to be on `PATH`.
+The generated plugin contains ACCO-owned hooks, MCP configuration, and the staged-prompt resume skill. Hook/MCP commands invoke `python -m acco.entry`, so the generated plugin does not require the `acco` console script to be on `PATH`.
 
 ## Exit codes
 
@@ -29,5 +29,5 @@ Text mode prints one absolute plugin directory path and nothing else, which is s
 ## Authoritative runtime help
 
 ```bash
-token-saver claude-plugin-path --help
+acco claude-plugin-path --help
 ```

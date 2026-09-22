@@ -1,11 +1,11 @@
-# `token-saver client-capabilities`
+# `acco client-capabilities`
 
-Inspect Token Saver's conservative capability contract for supported agent hosts.
+Inspect ACCO's conservative capability contract for supported agent hosts.
 
 ## Synopsis
 
 ```bash
-token-saver client-capabilities [--client CLIENT] [--json]
+acco client-capabilities [--client CLIENT] [--json]
 ```
 
 ## Arguments and options
@@ -13,7 +13,7 @@ token-saver client-capabilities [--client CLIENT] [--json]
 - `--client CLIENT` — show one host in detail. Accepted canonical names include `claude-code`, `codex`, `cursor`, `opencode`, `openclaw`, `hermes`, `copilot`, `antigravity`, `gemini-cli`, and `generic-mcp`; common aliases are normalized.
 - `--json` — emit the machine-readable registry or selected-client report.
 
-Capabilities are intentionally conservative. `yes` means Token Saver may rely on the
+Capabilities are intentionally conservative. `yes` means ACCO may rely on the
 boundary without fallback; `conditional` and `advisory` remain non-guaranteed;
 `unknown` is never treated as support.
 
@@ -32,4 +32,4 @@ See [Machine-readable contracts](../JSON_OUTPUTS.md#client-capabilities---json).
 
 ## Authoritative runtime help
 
-Run `token-saver client-capabilities --help` for the installed version.
+Run `acco client-capabilities --help` for the installed version.

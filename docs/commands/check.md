@@ -1,11 +1,11 @@
-# `token-saver check`
+# `acco check`
 
 CI-friendly context-budget and map-freshness check.
 
 ## Synopsis
 
 ```bash
-token-saver check [path] [--window N] [--no-user-scope] [--fail-stale-map] [--exact] [--model MODEL]
+acco check [path] [--window N] [--no-user-scope] [--fail-stale-map] [--exact] [--model MODEL]
 ```
 
 ## Arguments and options
@@ -26,4 +26,4 @@ Human-readable `OK`/`WARN`/`FAIL` status.
 
 ## Authoritative runtime help
 
-Run `token-saver check --help` for argparse's exact usage text for the installed version.
+Run `acco check --help` for argparse's exact usage text for the installed version.

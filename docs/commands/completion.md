@@ -1,11 +1,11 @@
-# `token-saver completion`
+# `acco completion`
 
 Generate top-level shell completion.
 
 ## Synopsis
 
 ```bash
-token-saver completion <bash|zsh|fish>
+acco completion <bash|zsh|fish>
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ Shell source on stdout.
 
 ## Authoritative runtime help
 
-Run `token-saver completion --help` for argparse's exact usage text for the installed version.
+Run `acco completion --help` for argparse's exact usage text for the installed version.

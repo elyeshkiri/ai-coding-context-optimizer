@@ -1,11 +1,11 @@
-# `token-saver continuity`
+# `acco continuity`
 
 Inspect the latest structured local working-state checkpoint.
 
 ## Synopsis
 
 ```bash
-token-saver continuity [path] [--json]
+acco continuity [path] [--json]
 ```
 
 ## Arguments and options
@@ -30,4 +30,4 @@ See [Machine-readable contracts](../JSON_OUTPUTS.md#continuity---json).
 
 ## Authoritative runtime help
 
-Run `token-saver continuity --help` for the installed version.
+Run `acco continuity --help` for the installed version.
