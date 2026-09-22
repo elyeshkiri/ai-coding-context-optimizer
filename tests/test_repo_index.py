@@ -1,9 +1,9 @@
 from pathlib import Path
 import textwrap
 
-import token_saver.pack as pack_module
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.repo_index import build_index, similarity
+import acco.pack as pack_module
+from acco.pack import build_context_pack, rank_files
+from acco.repo_index import build_index, similarity
 
 
 def _repo(root):
@@ -140,7 +140,7 @@ def test_similarity_ignores_formatting(tmp_path):
 
 
 def test_working_set_boosts_continuation(tmp_path, monkeypatch):
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path / "repo")
     first = build_context_pack(
         root, "refresh session", session="issue-42", max_tokens=800,
@@ -169,6 +169,6 @@ def test_embedding_mode_has_actionable_missing_dependency_error(tmp_path, monkey
     try:
         rank_files(root, "refresh", embeddings=True, changed_boost=False)
     except RuntimeError as exc:
-        assert "token-saver[embeddings]" in str(exc)
+        assert "acco[embeddings]" in str(exc)
     else:
         raise AssertionError("expected missing optional dependency error")
