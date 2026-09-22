@@ -17,6 +17,7 @@ from .command_handlers.context import (
     semantic_status_main,
 )
 from .command_handlers.efficiency import (
+    audit_main,
     cache_economics_main,
     continuity_main,
     cost_advisor_main,
@@ -145,6 +146,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("pricing", pricing_main),
         CommandSpec("model-route", model_route_main),
         CommandSpec("model-route-calibrate", model_route_calibrate_main),
+        CommandSpec("audit", audit_main),
         CommandSpec("dashboard", dashboard_main),
         CommandSpec("optimize", optimize_main),
         CommandSpec("recover", recover_main),
