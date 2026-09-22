@@ -1,11 +1,11 @@
-# `token-saver map`
+# `acco map`
 
 Build a compact structural repository map.
 
 ## Synopsis
 
 ```bash
-token-saver map [path] [-o FILE] [--max-tokens N] [--docstrings] [--no-gitignore] [--check-stale] [--refresh-if-stale]
+acco map [path] [-o FILE] [--max-tokens N] [--docstrings] [--no-gitignore] [--check-stale] [--refresh-if-stale]
 ```
 
 ## Arguments and options
@@ -28,4 +28,4 @@ Map text or write-status output.
 
 ## Authoritative runtime help
 
-Run `token-saver map --help` for argparse's exact usage text for the installed version.
+Run `acco map --help` for argparse's exact usage text for the installed version.

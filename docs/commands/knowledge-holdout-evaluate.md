@@ -1,11 +1,11 @@
-# `token-saver knowledge-holdout-evaluate`
+# `acco knowledge-holdout-evaluate`
 
 Evaluate an already-run, independently verified, blind-graded knowledge-efficiency manifest without rerunning agents.
 
 ## Synopsis
 
 ```bash
-token-saver knowledge-holdout-evaluate knowledge-holdout-runs.json \
+acco knowledge-holdout-evaluate knowledge-holdout-runs.json \
   --rates benchmarks/claude-sonnet-5-rates-2026-09-19.json \
   --json --require-publishable
 ```
@@ -31,5 +31,5 @@ The report includes condition summaries, reductions in tool calls/input tokens/d
 ## Authoritative runtime help
 
 ```bash
-token-saver knowledge-holdout-evaluate --help
+acco knowledge-holdout-evaluate --help
 ```
