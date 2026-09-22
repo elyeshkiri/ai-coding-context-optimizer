@@ -1,11 +1,11 @@
-# `token-saver sessions`
+# `acco sessions`
 
 Analyze real Claude transcripts for token/tool-result evidence.
 
 ## Synopsis
 
 ```bash
-token-saver sessions [path] [--all-projects] [--top N] [--rates FILE]
+acco sessions [path] [--all-projects] [--top N] [--rates FILE]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ Human-readable evidence report.
 
 ## Authoritative runtime help
 
-Run `token-saver sessions --help` for argparse's exact usage text for the installed version.
+Run `acco sessions --help` for argparse's exact usage text for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver serve`
+# `acco serve`
 
 Run the local MCP server over stdio.
 
 ## Synopsis
 
 ```bash
-token-saver serve [path]
+acco serve [path]
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ JSON-RPC over stdio; not a human report.
 
 ## Authoritative runtime help
 
-Run `token-saver serve --help` for argparse's exact usage text for the installed version.
+Run `acco serve --help` for argparse's exact usage text for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver snippet`
+# `acco snippet`
 
 Extract one exact symbol body from a source file.
 
 ## Synopsis
 
 ```bash
-token-saver snippet <file> <symbol> [-q|--quiet]
+acco snippet <file> <symbol> [-q|--quiet]
 ```
 
 ## Arguments and options
@@ -23,4 +23,4 @@ Exact source snippet.
 
 ## Authoritative runtime help
 
-Run `token-saver snippet --help` for argparse's exact usage text for the installed version.
+Run `acco snippet --help` for argparse's exact usage text for the installed version.

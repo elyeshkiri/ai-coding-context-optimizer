@@ -1,4 +1,4 @@
-# `token-saver session-holdout-evaluate`
+# `acco session-holdout-evaluate`
 
 Evaluate an already executed and blind-graded session-efficiency manifest
 without rerunning paid agents or cloning benchmark repositories.
@@ -6,7 +6,7 @@ without rerunning paid agents or cloning benchmark repositories.
 ## Synopsis
 
 ```bash
-token-saver session-holdout-evaluate <manifest>
+acco session-holdout-evaluate <manifest>
   --rates FILE [--model MODEL] [--json] [--require-publishable]
 ```
 
@@ -22,7 +22,7 @@ transcripts, applies independent task/blind-quality evidence, calculates
 tool-call/input-token/retry/cost-per-success reductions, and task-cluster
 bootstrap confidence intervals.
 
-Token Saver intervention counts are surfaced only under `feature_activation`.
+ACCO intervention counts are surfaced only under `feature_activation`.
 They prove treatment exposure but do not replace transcript-derived outcome
 metrics.
 
@@ -42,4 +42,4 @@ verdict.
 
 ## Authoritative runtime help
 
-Run `token-saver session-holdout-evaluate --help` for the installed version.
+Run `acco session-holdout-evaluate --help` for the installed version.

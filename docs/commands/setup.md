@@ -1,11 +1,11 @@
-# `token-saver setup`
+# `acco setup`
 
 Auto-detect/configure supported coding-agent integrations.
 
 ## Synopsis
 
 ```bash
-token-saver setup [path] [--host HOST|all ...] [--json]
+acco setup [path] [--host HOST|all ...] [--json]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Human setup summary or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md
 
 ## Authoritative runtime help
 
-Run `token-saver setup --help` for argparse's exact usage text for the installed version.
+Run `acco setup --help` for argparse's exact usage text for the installed version.
