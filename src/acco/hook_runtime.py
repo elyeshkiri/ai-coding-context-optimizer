@@ -122,7 +122,7 @@ class HookConfig:
     output_policy_adaptive: bool = True
     output_policy_min_tokens: int | None = None
     output_policy_max_tokens: int | None = None
-    output_policy_calibration_file: str = ".token-saver.output-calibration.json"
+    output_policy_calibration_file: str = ".acco.output-calibration.json"
     output_telemetry_enabled: bool = True
     model_routing_enabled: bool = False
     model_routing_mode: str = "advisory"
@@ -130,7 +130,7 @@ class HookConfig:
     model_routing_allowed_models: tuple[str, ...] = ()
     model_routing_min_savings: float = 0.05
     model_routing_conservative: bool = True
-    model_routing_calibration_file: str = ".token-saver.routing-calibration.json"
+    model_routing_calibration_file: str = ".acco.routing-calibration.json"
     efficiency_enabled: bool = True
     continuity_enabled: bool = True
     cross_turn_dedup_enabled: bool = True
@@ -311,12 +311,12 @@ class HookRuntime:
             return 0, None
 
         legacy_note = (
-            "\n[token-saver: filtered output; original saved. "
-            "Retrieve: token-saver output {id} --stream stdout --offset 1 --limit 80]"
+            "\n[acco: filtered output; original saved. "
+            "Retrieve: acco output {id} --stream stdout --offset 1 --limit 80]"
         )
         recovery_note = (
-            "\n[token-saver recovery: {handle}; "
-            "use recover_context or token-saver recover]"
+            "\n[acco recovery: {handle}; "
+            "use recover_context or acco recover]"
         )
         candidate = (
             replacement["stdout"]
@@ -438,13 +438,13 @@ class HookRuntime:
             return 0, {
                 "decision": "block",
                 "reason": (
-                    "Token Saver blocked this oversized prompt before model "
+                    "ACCO blocked this oversized prompt before model "
                     f"processing and staged it losslessly as {stage_id} "
                     f"(~{original_tokens} -> ~{packet_tokens} packet tokens). "
                     "Submit a small follow-up such as: "
-                    f"'Use staged prompt {stage_id}; run token-saver ingress-show "
+                    f"'Use staged prompt {stage_id}; run acco ingress-show "
                     f"{stage_id} --path . and continue.' The exact original remains "
-                    "recoverable with token-saver ingress-read."
+                    "recoverable with acco ingress-read."
                 ),
                 "suppressOriginalPrompt": True,
             }

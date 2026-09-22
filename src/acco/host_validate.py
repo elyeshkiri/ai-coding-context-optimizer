@@ -1,4 +1,4 @@
-"""Validate that Token Saver's host integration is installed and functional.
+"""Validate that ACCO's host integration is installed and functional.
 
 This command deliberately separates three facts that are often conflated:
 configuration is present, the hook transport works locally, and a real host has
@@ -19,7 +19,7 @@ from .hook import run_post
 from .install import HOOK_COMMAND, settings_path, user_settings_path
 from .output_store import retrieve
 
-_OUTPUT_ID = re.compile(r"token-saver output ([0-9a-f]{32})")
+_OUTPUT_ID = re.compile(r"acco output ([0-9a-f]{32})")
 _REQUIRED_EVENTS = {"PreToolUse", "PostToolUse", "SessionStart", "UserPromptSubmit"}
 
 
@@ -141,7 +141,7 @@ def _host_evidence(path: Path | None) -> dict[str, Any]:
     # recovery note even though the replacement was genuinely accepted and
     # applied (confirmed by the host's own "replaced tool output" log line
     # alongside it). The recovery command's generated hex id is a stronger
-    # signal than exact prose: nothing but Token Saver produces it, and it
+    # signal than exact prose: nothing but ACCO produces it, and it
     # doesn't look like a credential, so generic secret-redaction leaves it
     # alone even when it rewrites the surrounding sentence.
     accepted = "updatedToolOutput" in text and bool(_OUTPUT_ID.search(text))

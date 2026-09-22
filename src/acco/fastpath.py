@@ -21,7 +21,7 @@ _CRITICAL = re.compile(
 
 def _extension():
     """Return the optional Rust extension unless explicitly disabled."""
-    if os.environ.get("TOKEN_SAVER_RUST_FASTPATH", "1").strip().lower() in {
+    if os.environ.get("ACCO_RUST_FASTPATH", "1").strip().lower() in {
         "0",
         "false",
         "no",
@@ -29,10 +29,10 @@ def _extension():
     }:
         return None
     try:
-        import _token_saver_fast
+        import _acco_fast
     except ImportError:
         return None
-    return _token_saver_fast
+    return _acco_fast
 
 
 def available() -> bool:
@@ -171,7 +171,7 @@ def collapse_repeated_lines(text: str, minimum: int = 3) -> str:
         if line.strip() and count >= minimum:
             out.append(line)
             out.append(
-                f"[token-saver: previous line repeated {count - 1} more times]"
+                f"[acco: previous line repeated {count - 1} more times]"
             )
         else:
             out.extend(lines[i:j])
@@ -206,5 +206,5 @@ def status() -> dict:
         "available": available(),
         "backend": "rust" if available() else "python",
         "capabilities": list(capabilities()),
-        "env_override": os.environ.get("TOKEN_SAVER_RUST_FASTPATH"),
+        "env_override": os.environ.get("ACCO_RUST_FASTPATH"),
     }

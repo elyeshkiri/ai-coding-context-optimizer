@@ -1,7 +1,7 @@
 """Claude Code JSON hook adapter.
 
 This module translates Claude's stdin/stdout protocol and environment settings
-into the host-neutral :mod:`token_saver.hook_runtime` application boundary.
+into the host-neutral :mod:`acco.hook_runtime` application boundary.
 Concrete services are composed here so the runtime itself stays independent of
 Claude, environment variables, persistence, and repository implementations.
 """
@@ -93,7 +93,7 @@ def _config_from_env(root: Path | None = None) -> HookConfig:
 
 
 def _services() -> HookServices:
-    """Compose concrete Token Saver services for the Claude adapter.
+    """Compose concrete ACCO services for the Claude adapter.
 
     Construction happens per top-level call so tests and embedders can replace
     module-level callables without hidden singleton state.
@@ -190,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         code, response = run(payload)
     except Exception as exc:
-        print(f"token-saver hook error: {exc}", file=sys.stderr)
+        print(f"acco hook error: {exc}", file=sys.stderr)
         return _passthrough()
     if response is not None:
         json.dump(response, sys.stdout)

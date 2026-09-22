@@ -10,7 +10,7 @@ A whole-file ``cat`` through Bash is the same dump by another route, so a plain
 ``cat <large source file>`` is denied the same way. Only a lone ``cat`` command
 is inspected; pipes, redirects, chains and globs are left alone.
 
-Disable with TOKEN_SAVER_GUARD=0.
+Disable with ACCO_GUARD=0.
 """
 
 from __future__ import annotations
@@ -121,7 +121,7 @@ def _knowledge_reason(root: Path, path: Path, findings: list[dict]) -> str:
     """Render current verified findings as a bounded read-avoidance replacement."""
     lines = [
         (
-            "token-saver avoided a full Read because verified project knowledge "
+            "acco avoided a full Read because verified project knowledge "
             f"is still anchored to unchanged source: {path}."
         )
     ]
@@ -272,7 +272,7 @@ def decide_read(tool_input: dict, cwd: Path | None = None, session_id: str | Non
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
                 "permissionDecisionReason": (
-                    f"token-saver: {path} is unchanged from an earlier Read this session "
+                    f"acco: {path} is unchanged from an earlier Read this session "
                     f"(digest {digest}). Use the earlier content or a line range."
                 ),
             }
@@ -305,7 +305,7 @@ def _outline_reason(path: Path, text: str, n_lines: int, action: str) -> str:
         used += cost
     preview_text = "\n".join(preview)
     return (
-        f"token-saver blocked {action} of {path} ({n_lines} lines, "
+        f"acco blocked {action} of {path} ({n_lines} lines, "
         f"~{estimate_tokens(text, path.suffix)} tokens). "
         f"Edit needs exact bytes, so use Read with offset+limit on the gutter "
         f"ranges below instead of ingesting the whole file.\n\n"

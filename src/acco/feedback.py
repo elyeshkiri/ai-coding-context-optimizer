@@ -11,8 +11,8 @@ from pathlib import Path
 
 def _path(root: Path) -> Path:
     """Handle path."""
-    state = os.environ.get("TOKEN_SAVER_STATE_DIR")
-    base = Path(state).expanduser() if state else Path.home() / ".claude" / "token-saver"
+    state = os.environ.get("ACCO_STATE_DIR")
+    base = Path(state).expanduser() if state else Path.home() / ".claude" / "acco"
     key = hashlib.sha256(str(root.resolve()).encode()).hexdigest()[:16]
     return base / "feedback" / f"{key}.json"
 

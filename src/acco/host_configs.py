@@ -1,7 +1,7 @@
 """Host-specific MCP configuration adapters.
 
 These adapters keep host formats out of the integration lifecycle service. Each
-mutation owns only the token-saver server entry and either preserves unrelated
+mutation owns only the acco server entry and either preserves unrelated
 configuration or fails closed when the host format cannot be mutated safely.
 """
 
@@ -18,9 +18,9 @@ from typing import Any
 
 from .config import update_json
 
-TOKEN_SAVER_SERVER = "token-saver"
-HERMES_START = "  # >>> token-saver managed >>>"
-HERMES_END = "  # <<< token-saver managed <<<"
+ACCO_SERVER = "acco"
+HERMES_START = "  # >>> acco managed >>>"
+HERMES_END = "  # <<< acco managed <<<"
 
 
 
@@ -46,7 +46,7 @@ def _atomic_write(path: Path, text: str) -> None:
 def stdio_entry(root: Path) -> dict[str, Any]:
     """Return the common stdio server definition used by JSON MCP hosts."""
     return {
-        "command": "token-saver",
+        "command": "acco",
         "args": ["serve", str(root.resolve())],
     }
 
@@ -56,7 +56,7 @@ def _nested_json_mutator(
     path_keys: tuple[str, ...],
     entry: dict[str, Any],
 ) -> Callable[[dict], dict]:
-    """Build a mutator that owns one nested Token Saver server entry."""
+    """Build a mutator that owns one nested ACCO server entry."""
     def mutate(current: dict) -> dict:
         updated = dict(current)
         cursor = updated
@@ -76,7 +76,7 @@ def _nested_json_mutator(
         if not isinstance(servers, dict):
             raise ValueError(f"Expected JSON object at {'.'.join(path_keys)}")
         servers = dict(servers)
-        servers[TOKEN_SAVER_SERVER] = entry
+        servers[ACCO_SERVER] = entry
         cursor[leaf] = servers
         return updated
 
@@ -84,7 +84,7 @@ def _nested_json_mutator(
 
 
 def _nested_json_remove(path_keys: tuple[str, ...]) -> Callable[[dict], dict]:
-    """Build a mutator that removes only Token Saver from a nested server map."""
+    """Build a mutator that removes only ACCO from a nested server map."""
     def mutate(current: dict) -> dict:
         updated = dict(current)
         cursor = updated
@@ -102,7 +102,7 @@ def _nested_json_remove(path_keys: tuple[str, ...]) -> Callable[[dict], dict]:
         if not isinstance(servers, dict):
             return updated
         servers = dict(servers)
-        servers.pop(TOKEN_SAVER_SERVER, None)
+        servers.pop(ACCO_SERVER, None)
         if servers:
             cursor[leaf] = servers
         else:
@@ -117,7 +117,7 @@ def _nested_json_remove(path_keys: tuple[str, ...]) -> Callable[[dict], dict]:
 
 
 def _nested_json_configured(path: Path, path_keys: tuple[str, ...]) -> bool:
-    """Return whether one strict-JSON host config contains Token Saver MCP."""
+    """Return whether one strict-JSON host config contains ACCO MCP."""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -127,11 +127,11 @@ def _nested_json_configured(path: Path, path_keys: tuple[str, ...]) -> bool:
         if not isinstance(cursor, dict):
             return False
         cursor = cursor.get(key)
-    return isinstance(cursor, dict) and TOKEN_SAVER_SERVER in cursor
+    return isinstance(cursor, dict) and ACCO_SERVER in cursor
 
 
 def opencode_mcp_path(root: Path) -> Path:
-    """Return Token Saver's project-local OpenCode configuration path."""
+    """Return ACCO's project-local OpenCode configuration path."""
     return root.resolve() / ".opencode" / "opencode.json"
 
 
@@ -141,7 +141,7 @@ def opencode_jsonc_path(root: Path) -> Path:
 
 
 def opencode_configured(root: Path) -> bool:
-    """Return whether Token Saver is configured in the managed OpenCode JSON layer."""
+    """Return whether ACCO is configured in the managed OpenCode JSON layer."""
     return _nested_json_configured(opencode_mcp_path(root), ("mcp", "servers"))
 
 
@@ -152,7 +152,7 @@ def validate_opencode_manageable(root: Path) -> None:
     if sibling.exists() and not path.exists():
         raise ValueError(
             "Refusing to create .opencode/opencode.json beside existing "
-            ".opencode/opencode.jsonc; configure Token Saver in one OpenCode "
+            ".opencode/opencode.jsonc; configure ACCO in one OpenCode "
             "project config to avoid ambiguous precedence."
         )
 
@@ -163,7 +163,7 @@ def install_opencode(root: Path) -> None:
     validate_opencode_manageable(root)
     entry = {
         "type": "local",
-        "command": ["token-saver", "serve", str(root.resolve())],
+        "command": ["acco", "serve", str(root.resolve())],
     }
     update_json(
         path,
@@ -172,7 +172,7 @@ def install_opencode(root: Path) -> None:
 
 
 def uninstall_opencode(root: Path) -> None:
-    """Remove only the Token Saver OpenCode MCP entry."""
+    """Remove only the ACCO OpenCode MCP entry."""
     path = opencode_mcp_path(root)
     if path.exists():
         update_json(path, _nested_json_remove(("mcp", "servers")))
@@ -191,24 +191,24 @@ def copilot_cli_config_path(home: Path | None = None) -> Path:
 
 
 def _copilot_cli_entry(home: Path | None = None) -> dict[str, Any] | None:
-    """Return the configured Copilot CLI Token Saver entry when readable."""
+    """Return the configured Copilot CLI ACCO entry when readable."""
     path = copilot_cli_config_path(home)
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     servers = payload.get("mcpServers") if isinstance(payload, dict) else None
-    entry = servers.get(TOKEN_SAVER_SERVER) if isinstance(servers, dict) else None
+    entry = servers.get(ACCO_SERVER) if isinstance(servers, dict) else None
     return entry if isinstance(entry, dict) else None
 
 
 def copilot_cli_configured(home: Path | None = None) -> bool:
-    """Return whether Copilot CLI contains Token Saver's managed dynamic entry."""
+    """Return whether Copilot CLI contains ACCO's managed dynamic entry."""
     entry = _copilot_cli_entry(home)
     if not entry:
         return False
     return (
-        entry.get("command") == "token-saver"
+        entry.get("command") == "acco"
         and entry.get("args") == ["serve", "."]
     )
 
@@ -225,16 +225,16 @@ def validate_copilot_cli_manageable(home: Path | None = None) -> None:
     if not isinstance(payload, dict):
         raise ValueError(f"Expected JSON object: {path}")
     servers = payload.get("mcpServers")
-    if not isinstance(servers, dict) or TOKEN_SAVER_SERVER not in servers:
+    if not isinstance(servers, dict) or ACCO_SERVER not in servers:
         return
     if not copilot_cli_configured(home):
         raise ValueError(
-            f"Refusing to replace unmanaged Copilot CLI Token Saver config: {path}"
+            f"Refusing to replace unmanaged Copilot CLI ACCO config: {path}"
         )
 
 
 def copilot_vscode_configured(root: Path) -> bool:
-    """Return whether VS Code/Copilot workspace MCP contains Token Saver."""
+    """Return whether VS Code/Copilot workspace MCP contains ACCO."""
     return _nested_json_configured(copilot_mcp_path(root), ("servers",))
 
 
@@ -257,7 +257,7 @@ def copilot_configured(
 
 
 def install_copilot_vscode(root: Path) -> None:
-    """Install Token Saver into VS Code's workspace MCP server map."""
+    """Install ACCO into VS Code's workspace MCP server map."""
     update_json(
         copilot_mcp_path(root),
         _nested_json_mutator(
@@ -268,7 +268,7 @@ def install_copilot_vscode(root: Path) -> None:
 
 
 def uninstall_copilot_vscode(root: Path) -> None:
-    """Remove only the Token Saver VS Code/Copilot MCP entry."""
+    """Remove only the ACCO VS Code/Copilot MCP entry."""
     path = copilot_mcp_path(root)
     if path.exists():
         update_json(path, _nested_json_remove(("servers",)))
@@ -279,7 +279,7 @@ def install_copilot_cli(
     home: Path | None = None,
     runner: RunCommand,
 ) -> None:
-    """Install the dynamic Token Saver server through Copilot CLI's native registry."""
+    """Install the dynamic ACCO server through Copilot CLI's native registry."""
     validate_copilot_cli_manageable(home)
     if copilot_cli_configured(home):
         return
@@ -289,9 +289,9 @@ def install_copilot_cli(
         "add",
         "--tools",
         "*",
-        TOKEN_SAVER_SERVER,
+        ACCO_SERVER,
         "--",
-        "token-saver",
+        "acco",
         "serve",
         ".",
     ])
@@ -302,10 +302,10 @@ def uninstall_copilot_cli(
     home: Path | None = None,
     runner: RunCommand,
 ) -> None:
-    """Remove only Token Saver's owned Copilot CLI user-level MCP entry."""
+    """Remove only ACCO's owned Copilot CLI user-level MCP entry."""
     validate_copilot_cli_manageable(home)
     if copilot_cli_configured(home):
-        runner(["copilot", "mcp", "remove", TOKEN_SAVER_SERVER])
+        runner(["copilot", "mcp", "remove", ACCO_SERVER])
 
 
 def antigravity_mcp_path(root: Path) -> Path:
@@ -319,12 +319,12 @@ def antigravity_global_mcp_path(home: Path | None = None) -> Path:
 
 
 def antigravity_configured(root: Path) -> bool:
-    """Return whether the workspace-local Antigravity profile contains Token Saver."""
+    """Return whether the workspace-local Antigravity profile contains ACCO."""
     return _nested_json_configured(antigravity_mcp_path(root), ("mcpServers",))
 
 
 def install_antigravity(root: Path) -> None:
-    """Install Token Saver into Antigravity's workspace-local MCP profile."""
+    """Install ACCO into Antigravity's workspace-local MCP profile."""
     update_json(
         antigravity_mcp_path(root),
         _nested_json_mutator(
@@ -335,7 +335,7 @@ def install_antigravity(root: Path) -> None:
 
 
 def uninstall_antigravity(root: Path) -> None:
-    """Remove only the Token Saver Antigravity MCP entry."""
+    """Remove only the ACCO Antigravity MCP entry."""
     path = antigravity_mcp_path(root)
     if path.exists():
         update_json(path, _nested_json_remove(("mcpServers",)))
@@ -347,13 +347,13 @@ def hermes_config_path(home: Path | None = None) -> Path:
 
 
 def _strip_hermes_block(text: str) -> str:
-    """Remove Token Saver's marked Hermes YAML block."""
+    """Remove ACCO's marked Hermes YAML block."""
     start = text.find(HERMES_START)
     if start < 0:
         return text
     end = text.find(HERMES_END, start)
     if end < 0:
-        raise ValueError("Hermes Token Saver managed block is incomplete")
+        raise ValueError("Hermes ACCO managed block is incomplete")
     end += len(HERMES_END)
     while end < len(text) and text[end] in "\r\n":
         end += 1
@@ -361,7 +361,7 @@ def _strip_hermes_block(text: str) -> str:
 
 
 def _hermes_unmanaged_entry(text: str) -> bool:
-    """Detect an existing unowned token-saver entry under top-level mcp_servers."""
+    """Detect an existing unowned acco entry under top-level mcp_servers."""
     if HERMES_START in text:
         return False
     lines = text.splitlines()
@@ -372,21 +372,21 @@ def _hermes_unmanaged_entry(text: str) -> bool:
             continue
         if in_mcp and line and not line.startswith((" ", "\t", "#")):
             in_mcp = False
-        if in_mcp and re.match(r"^\s{2}token-saver:\s*(?:#.*)?$", line):
+        if in_mcp and re.match(r"^\s{2}acco:\s*(?:#.*)?$", line):
             return True
     return False
 
 
 def validate_hermes_manageable(path: Path) -> None:
-    """Fail closed for malformed or user-owned Hermes Token Saver entries."""
+    """Fail closed for malformed or user-owned Hermes ACCO entries."""
     if not path.exists():
         return
     text = path.read_text(encoding="utf-8")
     if (HERMES_START in text) != (HERMES_END in text):
-        raise ValueError("Hermes Token Saver managed block is incomplete")
+        raise ValueError("Hermes ACCO managed block is incomplete")
     if _hermes_unmanaged_entry(text):
         raise ValueError(
-            f"Refusing to replace unmanaged Hermes Token Saver config: {path}"
+            f"Refusing to replace unmanaged Hermes ACCO config: {path}"
         )
     all_roots = [
         line for line in text.splitlines()
@@ -409,8 +409,8 @@ def _hermes_entry(root: Path) -> str:
     target = json.dumps(str(root.resolve()))
     return (
         f"{HERMES_START}\n"
-        "  token-saver:\n"
-        '    command: "token-saver"\n'
+        "  acco:\n"
+        '    command: "acco"\n'
         "    args:\n"
         '      - "serve"\n'
         f"      - {target}\n"
@@ -444,7 +444,7 @@ def install_hermes(root: Path, home: Path | None = None) -> None:
 
 
 def uninstall_hermes(home: Path | None = None) -> None:
-    """Remove only Token Saver's managed Hermes YAML block."""
+    """Remove only ACCO's managed Hermes YAML block."""
     path = hermes_config_path(home)
     if not path.exists():
         return
@@ -456,7 +456,7 @@ def uninstall_hermes(home: Path | None = None) -> None:
 
 
 def hermes_configured(home: Path | None = None) -> bool:
-    """Return whether Hermes contains Token Saver's complete managed block."""
+    """Return whether Hermes contains ACCO's complete managed block."""
     path = hermes_config_path(home)
     if not path.exists():
         return False
@@ -476,7 +476,7 @@ def openclaw_config_path(home: Path | None = None) -> Path:
 
 
 def openclaw_configured(home: Path | None = None) -> bool:
-    """Detect a Token Saver MCP entry in JSON or ordinary JSON5-shaped config."""
+    """Detect a ACCO MCP entry in JSON or ordinary JSON5-shaped config."""
     path = openclaw_config_path(home)
     try:
         text = path.read_text(encoding="utf-8")
@@ -489,14 +489,14 @@ def openclaw_configured(home: Path | None = None) -> bool:
     if isinstance(payload, dict):
         mcp = payload.get("mcp")
         servers = mcp.get("servers") if isinstance(mcp, dict) else None
-        if isinstance(servers, dict) and TOKEN_SAVER_SERVER in servers:
+        if isinstance(servers, dict) and ACCO_SERVER in servers:
             return True
     return bool(
         re.search(
             r"(?s)['\"]?mcp['\"]?\s*:\s*\{.*?"
             r"['\"]?servers['\"]?\s*:\s*\{.*?"
-            r"['\"]?token-saver['\"]?\s*:\s*\{.*?"
-            r"['\"]?command['\"]?\s*:\s*['\"]token-saver['\"]",
+            r"['\"]?acco['\"]?\s*:\s*\{.*?"
+            r"['\"]?command['\"]?\s*:\s*['\"]acco['\"]",
             text,
         )
     )
@@ -526,9 +526,9 @@ def install_openclaw(
     *,
     runner: RunCommand = run_command,
 ) -> None:
-    """Install Token Saver with OpenClaw's native validated MCP registry command."""
+    """Install ACCO with OpenClaw's native validated MCP registry command."""
     payload = json.dumps(stdio_entry(root), separators=(",", ":"))
-    runner(["openclaw", "mcp", "set", TOKEN_SAVER_SERVER, payload])
+    runner(["openclaw", "mcp", "set", ACCO_SERVER, payload])
 
 
 def uninstall_openclaw(
@@ -536,7 +536,7 @@ def uninstall_openclaw(
     *,
     runner: RunCommand = run_command,
 ) -> None:
-    """Remove Token Saver from OpenClaw through the native registry command."""
+    """Remove ACCO from OpenClaw through the native registry command."""
     if not openclaw_configured(home):
         return
-    runner(["openclaw", "mcp", "unset", TOKEN_SAVER_SERVER])
+    runner(["openclaw", "mcp", "unset", ACCO_SERVER])

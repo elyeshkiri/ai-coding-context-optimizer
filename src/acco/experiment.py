@@ -1,4 +1,4 @@
-"""Execute reproducible paired baseline/Token Saver coding experiments."""
+"""Execute reproducible paired baseline/ACCO coding experiments."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def _contains_hook(value: Any) -> bool:
     return isinstance(value, str) and value.strip() == HOOK_COMMAND
 
 
-def user_token_saver_hook_configured() -> bool:
+def user_acco_hook_configured() -> bool:
     """Handle user token saver hook configured."""
     path = user_settings_path()
     if not path.is_file():
@@ -122,12 +122,12 @@ def validate_suite(
                 raise ValueError(
                     f"runner.condition_profiles.{condition} must be an object"
                 )
-            install_token_saver = profile.get("install_token_saver")
-            if not isinstance(install_token_saver, bool):
+            install_acco = profile.get("install_acco")
+            if not isinstance(install_acco, bool):
                 raise ValueError(
                     "runner.condition_profiles."
                     + condition
-                    + ".install_token_saver must be boolean"
+                    + ".install_acco must be boolean"
                 )
             label = profile.get("label")
             if label is not None and (
@@ -339,8 +339,8 @@ def _export_history_isolated_snapshot(
         )
 
     subprocess.run(["git", "init", "-q", str(destination)], check=True)
-    _git(destination, "config", "user.email", "token-saver-benchmark@example.invalid")
-    _git(destination, "config", "user.name", "Token Saver Benchmark")
+    _git(destination, "config", "user.email", "acco-benchmark@example.invalid")
+    _git(destination, "config", "user.name", "ACCO Benchmark")
     _git(destination, "add", "-A")
     proc = subprocess.run(
         [
@@ -364,7 +364,7 @@ def _condition_profile(runner: dict, condition: str) -> dict:
         raw = profiles[condition]
         return {
             "label": str(raw.get("label") or condition),
-            "install_token_saver": bool(raw["install_token_saver"]),
+            "install_acco": bool(raw["install_acco"]),
             "env": dict(raw.get("env", {})),
             "model": (
                 str(raw["model"]).strip()
@@ -374,7 +374,7 @@ def _condition_profile(runner: dict, condition: str) -> dict:
         }
     return {
         "label": condition,
-        "install_token_saver": condition == "enabled",
+        "install_acco": condition == "enabled",
         "env": {},
         "model": str(runner["model"]),
     }
@@ -707,9 +707,9 @@ def run_experiment(
             "task_definition_sha256": task_definition_hash(suite),
         }
 
-    if user_token_saver_hook_configured() and not allow_user_hook:
+    if user_acco_hook_configured() and not allow_user_hook:
         raise ValueError(
-            "user-level 'token-saver hook' is configured. Remove/disable it for "
+            "user-level 'acco hook' is configured. Remove/disable it for "
             "the experiment so benchmark condition profiles are not instrumented twice."
         )
 
@@ -764,7 +764,7 @@ def run_experiment(
         stdout_path = run_dir / "agent.stdout"
         stderr_path = run_dir / "agent.stderr"
 
-        with tempfile.TemporaryDirectory(prefix="token-saver-e2e-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="acco-e2e-") as tmp:
             worktree = Path(tmp) / "repo"
             _export_history_isolated_snapshot(source, revision, worktree)
             try:
@@ -789,20 +789,20 @@ def run_experiment(
 
                 env = os.environ.copy()
                 env.update(extra_env)
-                env["TOKEN_SAVER_BENCHMARK_CONDITION"] = item["condition"]
-                env["TOKEN_SAVER_BENCHMARK_TASK"] = task["id"]
-                env["TOKEN_SAVER_BENCHMARK_TRIAL"] = str(item["trial"])
-                run_state_dir = run_dir / "token-saver-state"
-                env["TOKEN_SAVER_STATE_DIR"] = str(run_state_dir)
+                env["ACCO_BENCHMARK_CONDITION"] = item["condition"]
+                env["ACCO_BENCHMARK_TASK"] = task["id"]
+                env["ACCO_BENCHMARK_TRIAL"] = str(item["trial"])
+                run_state_dir = run_dir / "acco-state"
+                env["ACCO_STATE_DIR"] = str(run_state_dir)
                 profile = _condition_profile(runner, item["condition"])
                 env.update(profile["env"])
-                instrumented = profile["install_token_saver"]
+                instrumented = profile["install_acco"]
                 run_model = profile["model"]
                 if instrumented:
-                    env.pop("TOKEN_SAVER_DISABLED", None)
+                    env.pop("ACCO_DISABLED", None)
                     install(worktree)
                 else:
-                    env["TOKEN_SAVER_DISABLED"] = "1"
+                    env["ACCO_DISABLED"] = "1"
 
                 before = set(transcript_paths(worktree))
                 command = _expand_command(
@@ -976,7 +976,7 @@ def run_experiment(
                         verify_out = run_dir / f"verify-{index}.stdout"
                         verify_err = run_dir / f"verify-{index}.stderr"
                         verify_env = env.copy()
-                        verify_env["TOKEN_SAVER_DISABLED"] = "1"
+                        verify_env["ACCO_DISABLED"] = "1"
                         rc, elapsed = _run_command(
                             verifier,
                             cwd=worktree,
