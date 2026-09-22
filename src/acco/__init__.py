@@ -1,3 +1,3 @@
-"""ACCO — reduce AI coding-agent context without hiding structure."""
+"""ACCO — AI Coding Context Optimizer for efficient, evidence-complete coding context."""
 
 __version__ = "1.14.0"
