@@ -9,9 +9,8 @@ from pathlib import Path
 import re
 from typing import Any
 
-from .browser_context import compress_browser_payload
+from .context_router import route_context
 from .estimate import estimate_tokens
-from .output.pipeline import process_output
 from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
 from .recovery import RecoveryCapacityError, RecoveryStore
 from .tool_schema import compress_tool_catalog
@@ -87,36 +86,21 @@ def _compress_tool_text(
     recovery: RecoveryStore,
     min_tokens: int,
 ) -> tuple[str, str | None]:
-    """Compress one large tool-result string and append an exact recovery handle."""
+    """Route one large tool-result string through recoverable context transforms."""
     if estimate_tokens(text) < min_tokens:
         return text, None
-    if _looks_browser_payload(text):
-        browser = compress_browser_payload(
-            text,
-            query=query,
-            recovery=recovery,
-        )
-        return browser.text, browser.recovery_handle if browser.changed else None
-
-    result = process_output(
+    result = route_context(
         text,
-        "provider-tool-result",
+        query=query,
+        recovery=recovery,
+        command="provider-tool-result",
         max_lines=100,
-        keep_tail=24,
         min_reduction=0.08,
     )
-    if not result.compressed:
-        return text, None
-    handle = recovery.put(
-        text,
-        content_type="text/plain",
-        metadata={"transform": "provider-tool-result"},
+    return (
+        result.text,
+        result.recovery_handle if result.changed else None,
     )
-    candidate = result.text.rstrip() + f"\n[token-saver recovery: {handle}]\n"
-    if estimate_tokens(candidate) >= estimate_tokens(text):
-        return text, None
-    return candidate, handle
-
 
 def _transform_content_blocks(
     blocks: list,
