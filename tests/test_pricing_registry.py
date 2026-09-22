@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.command_handlers.pricing import pricing_main
-from token_saver.pricing import (
+from acco.command_handlers.pricing import pricing_main
+from acco.pricing import (
     builtin_rates,
     builtin_registry,
     load_rates,

@@ -6,16 +6,16 @@ import json
 
 import pytest
 
-from token_saver.command_handlers.output import output_telemetry_main
-from token_saver.output_telemetry import (
+from acco.command_handlers.output import output_telemetry_main
+from acco.output_telemetry import (
     finish_output_turn,
     load_output_telemetry,
     output_telemetry_report,
     start_output_turn,
     telemetry_path,
 )
-from token_saver.state import reset_session
-from token_saver.state import update as update_state
+from acco.state import reset_session
+from acco.state import update as update_state
 
 
 def _assistant(message_id: str, output_tokens: int, *, model: str = "claude-test") -> dict:
@@ -58,7 +58,7 @@ def _set_policy(root, session_id: str, **overrides) -> None:
 
 def test_turn_telemetry_measures_only_transcript_bytes_after_prompt(tmp_path, monkeypatch):
     """Prompt checkpoints should exclude earlier turns and dedupe repeated message blocks."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     transcript = tmp_path / "session.jsonl"
@@ -98,7 +98,7 @@ def test_turn_telemetry_measures_only_transcript_bytes_after_prompt(tmp_path, mo
 
 def test_turn_telemetry_records_model_route_match(tmp_path, monkeypatch):
     """Routing telemetry should record target-versus-actual model without prompt text."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     transcript = tmp_path / "session.jsonl"
@@ -152,7 +152,7 @@ def test_turn_telemetry_records_model_route_match(tmp_path, monkeypatch):
 
 def test_telemetry_never_persists_prompt_or_response_content(tmp_path, monkeypatch):
     """Telemetry should retain policy/usage metadata but no user or assistant text."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     transcript = tmp_path / "session.jsonl"
@@ -186,7 +186,7 @@ def test_telemetry_never_persists_prompt_or_response_content(tmp_path, monkeypat
 
 def test_stop_failure_is_recorded_as_api_failure_not_task_failure(tmp_path, monkeypatch):
     """Host API failure is distinct from independently verified task success."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     transcript = tmp_path / "session.jsonl"
@@ -210,7 +210,7 @@ def test_stop_failure_is_recorded_as_api_failure_not_task_failure(tmp_path, monk
 
 def test_finish_without_pending_checkpoint_is_a_noop(tmp_path, monkeypatch):
     """Duplicate or unrelated Stop hooks must not create duplicate records."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -224,7 +224,7 @@ def test_finish_without_pending_checkpoint_is_a_noop(tmp_path, monkeypatch):
 
 def test_report_flags_budget_patterns_as_observational_only(tmp_path, monkeypatch):
     """Effectiveness signals should summarize usage without claiming quality."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     path = telemetry_path(root)
@@ -262,7 +262,7 @@ def test_report_flags_budget_patterns_as_observational_only(tmp_path, monkeypatc
 
 def test_output_telemetry_cli_emits_json_and_recent_records(tmp_path, monkeypatch, capsys):
     """The CLI should expose aggregate telemetry and bounded raw metadata records."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     path = telemetry_path(root)
@@ -297,7 +297,7 @@ def test_session_reset_discards_pending_turn_instead_of_emitting_empty_record(
     tmp_path, monkeypatch
 ):
     """Resume/clear boundaries must not let stale checkpoints leak into later Stops."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     transcript = tmp_path / "session.jsonl"
@@ -319,7 +319,7 @@ def test_report_skips_malformed_numeric_fields_in_valid_schema_records(
     tmp_path, monkeypatch
 ):
     """A hand-edited numeric field should not make the whole report unusable."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     path = telemetry_path(root)
@@ -352,7 +352,7 @@ def test_report_skips_malformed_numeric_fields_in_valid_schema_records(
 
 def test_turn_telemetry_preserves_cache_creation_ttl_breakdown(tmp_path, monkeypatch):
     """Claude cache-write TTL buckets should survive transcript telemetry parsing."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     transcript = tmp_path / "session.jsonl"
@@ -383,7 +383,7 @@ def test_turn_telemetry_preserves_cache_creation_ttl_breakdown(tmp_path, monkeyp
 
 def test_output_telemetry_report_can_filter_by_recorded_time(tmp_path, monkeypatch):
     """Dashboard windows should not mix recent savings with all-time billed usage."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     path = telemetry_path(root)

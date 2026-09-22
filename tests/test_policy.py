@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from token_saver.policy import Advice, advise, idle_gaps, reminder
-from token_saver.sessions import Report, Turn
+from acco.policy import Advice, advise, idle_gaps, reminder
+from acco.sessions import Report, Turn
 
 
 def _ts(minutes: int) -> str:
@@ -52,10 +52,10 @@ def test_reminder_only_when_tokens_at_stake():
     report.turns.append(Turn(session="s", created=80_000, read=1_000, timestamp=_ts(40)))
     report.usage["cache_creation_input_tokens"] = 80_000
     text = reminder(report)
-    assert text.startswith("token-saver: clear")
+    assert text.startswith("acco: clear")
     assert "/clear" in text
 
 
 def test_nudge_silent_when_no_churn(tmp_path):
-    from token_saver.policy import user_nudge
+    from acco.policy import user_nudge
     assert user_nudge(tmp_path, "start over from scratch") == ""
