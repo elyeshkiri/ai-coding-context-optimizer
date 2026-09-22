@@ -127,7 +127,7 @@ fn collapse_repeated_lines(text: &str, minimum: usize) -> PyResult<String> {
         if !line.trim().is_empty() && count >= minimum {
             out.push(line.to_string());
             out.push(format!(
-                "[token-saver: previous line repeated {} more times]",
+                "[acco: previous line repeated {} more times]",
                 count - 1
             ));
         } else {
@@ -176,7 +176,7 @@ fn critical_lines(text: &str, max_lines: usize) -> PyResult<Vec<String>> {
 }
 
 #[pymodule]
-fn _token_saver_fast(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _acco_fast(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(estimate_tokens, m)?)?;
     m.add_function(wrap_pyfunction!(identifier_tokens, m)?)?;
     m.add_function(wrap_pyfunction!(jaccard_similarity, m)?)?;
@@ -229,7 +229,7 @@ mod tests {
                 3,
             )
             .unwrap(),
-            "this is a repeated diagnostic line\n[token-saver: previous line repeated 2 more times]\ny\n"
+            "this is a repeated diagnostic line\n[acco: previous line repeated 2 more times]\ny\n"
         );
     }
 
