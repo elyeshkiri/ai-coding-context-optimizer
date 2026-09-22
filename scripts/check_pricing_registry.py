@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from token_saver.pricing import FIELDS, builtin_registry, registry_status  # noqa: E402
+from acco.pricing import FIELDS, builtin_registry, registry_status  # noqa: E402
 
 
 def _money_pattern(value: float) -> str:
@@ -44,7 +44,7 @@ def _fetch(url: str) -> str:
     """Fetch the official Markdown pricing source with a bounded timeout."""
     request = Request(
         url,
-        headers={"User-Agent": "token-saver-pricing-drift/1.0"},
+        headers={"User-Agent": "acco-pricing-drift/1.0"},
     )
     with urlopen(request, timeout=25) as response:
         return response.read().decode("utf-8", "replace")
