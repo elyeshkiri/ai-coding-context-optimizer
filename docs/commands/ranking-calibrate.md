@@ -1,11 +1,11 @@
-# `token-saver ranking-calibrate`
+# `acco ranking-calibrate`
 
 Aggregate saved PR ranking diffs into empirical gate evidence.
 
 ## Synopsis
 
 ```bash
-token-saver ranking-calibrate <history> [--ground-truth-sha HASH] [--min-reports N] [--json | --markdown]
+acco ranking-calibrate <history> [--ground-truth-sha HASH] [--min-reports N] [--json | --markdown]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ JSON or Markdown; see [Machine-readable contracts](../JSON_OUTPUTS.md#ranking-ca
 
 ## Authoritative runtime help
 
-Run `token-saver ranking-calibrate --help` for argparse's exact usage text for the installed version.
+Run `acco ranking-calibrate --help` for argparse's exact usage text for the installed version.

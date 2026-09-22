@@ -1,11 +1,11 @@
-# `token-saver ranking-snapshot`
+# `acco ranking-snapshot`
 
 Capture trace-enabled ranking evidence for a frozen/evaluation manifest.
 
 ## Synopsis
 
 ```bash
-token-saver ranking-snapshot <manifest> [--path PATH] [--max-files N] [--graph-hops N] [--closure-items N] [--embeddings] [--out FILE]
+acco ranking-snapshot <manifest> [--path PATH] [--max-files N] [--graph-hops N] [--closure-items N] [--embeddings] [--out FILE]
 ```
 
 ## Arguments and options
@@ -28,4 +28,4 @@ Always JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#ranking-snapsho
 
 ## Authoritative runtime help
 
-Run `token-saver ranking-snapshot --help` for argparse's exact usage text for the installed version.
+Run `acco ranking-snapshot --help` for argparse's exact usage text for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver ranking-diff`
+# `acco ranking-diff`
 
 Compare baseline/candidate ranking snapshots with stage attribution.
 
 ## Synopsis
 
 ```bash
-token-saver ranking-diff <baseline> <candidate> [--json | --markdown] [--fail-on-regression] [--allowed-rank-drop N]
+acco ranking-diff <baseline> <candidate> [--json | --markdown] [--fail-on-regression] [--allowed-rank-drop N]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ Human/JSON/Markdown; see [Machine-readable contracts](../JSON_OUTPUTS.md#ranking
 
 ## Authoritative runtime help
 
-Run `token-saver ranking-diff --help` for argparse's exact usage text for the installed version.
+Run `acco ranking-diff --help` for argparse's exact usage text for the installed version.

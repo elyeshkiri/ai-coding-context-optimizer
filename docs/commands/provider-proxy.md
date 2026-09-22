@@ -1,11 +1,11 @@
-# `token-saver provider-proxy`
+# `acco provider-proxy`
 
 Run the opt-in local provider optimization reverse proxy.
 
 ## Synopsis
 
 ```bash
-token-saver provider-proxy [path] --upstream URL [--provider NAME]
+acco provider-proxy [path] --upstream URL [--provider NAME]
   [--bind IP] [--port N] [--tool-result-min-tokens N]
   [--timeout-seconds SECONDS]
   [--no-schema-compression] [--no-tool-result-compression]
@@ -40,4 +40,4 @@ different redirect origin; redirects are returned to the client.
 
 ## Authoritative runtime help
 
-Run `token-saver provider-proxy --help` for the installed version.
+Run `acco provider-proxy --help` for the installed version.
