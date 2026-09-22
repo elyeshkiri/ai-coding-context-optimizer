@@ -183,12 +183,80 @@ def copilot_mcp_path(root: Path) -> Path:
     return root.resolve() / ".vscode" / "mcp.json"
 
 
-def copilot_configured(root: Path) -> bool:
-    """Return whether Copilot/VS Code workspace MCP contains Token Saver."""
+def copilot_cli_config_path(home: Path | None = None) -> Path:
+    """Return GitHub Copilot CLI's user MCP registry path."""
+    override = os.environ.get("COPILOT_HOME", "").strip()
+    base = Path(override).expanduser() if override else (home or Path.home()) / ".copilot"
+    return base / "mcp-config.json"
+
+
+def _copilot_cli_entry(home: Path | None = None) -> dict[str, Any] | None:
+    """Return the configured Copilot CLI Token Saver entry when readable."""
+    path = copilot_cli_config_path(home)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    servers = payload.get("mcpServers") if isinstance(payload, dict) else None
+    entry = servers.get(TOKEN_SAVER_SERVER) if isinstance(servers, dict) else None
+    return entry if isinstance(entry, dict) else None
+
+
+def copilot_cli_configured(home: Path | None = None) -> bool:
+    """Return whether Copilot CLI contains Token Saver's managed dynamic entry."""
+    entry = _copilot_cli_entry(home)
+    if not entry:
+        return False
+    return (
+        entry.get("command") == "token-saver"
+        and entry.get("args") == ["serve", "."]
+    )
+
+
+def validate_copilot_cli_manageable(home: Path | None = None) -> None:
+    """Refuse to replace a user-owned Copilot CLI server with the same name."""
+    path = copilot_cli_config_path(home)
+    if not path.exists():
+        return
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(f"Refusing invalid Copilot CLI MCP JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected JSON object: {path}")
+    servers = payload.get("mcpServers")
+    if not isinstance(servers, dict) or TOKEN_SAVER_SERVER not in servers:
+        return
+    if not copilot_cli_configured(home):
+        raise ValueError(
+            f"Refusing to replace unmanaged Copilot CLI Token Saver config: {path}"
+        )
+
+
+def copilot_vscode_configured(root: Path) -> bool:
+    """Return whether VS Code/Copilot workspace MCP contains Token Saver."""
     return _nested_json_configured(copilot_mcp_path(root), ("servers",))
 
 
-def install_copilot(root: Path) -> None:
+def copilot_configured(
+    root: Path,
+    *,
+    home: Path | None = None,
+    cli_required: bool = False,
+    vscode_required: bool = False,
+) -> bool:
+    """Return whether all installed Copilot surfaces requested by detection are ready."""
+    checks = []
+    if cli_required:
+        checks.append(copilot_cli_configured(home))
+    if vscode_required:
+        checks.append(copilot_vscode_configured(root))
+    if checks:
+        return all(checks)
+    return copilot_cli_configured(home) or copilot_vscode_configured(root)
+
+
+def install_copilot_vscode(root: Path) -> None:
     """Install Token Saver into VS Code's workspace MCP server map."""
     update_json(
         copilot_mcp_path(root),
@@ -199,11 +267,45 @@ def install_copilot(root: Path) -> None:
     )
 
 
-def uninstall_copilot(root: Path) -> None:
+def uninstall_copilot_vscode(root: Path) -> None:
     """Remove only the Token Saver VS Code/Copilot MCP entry."""
     path = copilot_mcp_path(root)
     if path.exists():
         update_json(path, _nested_json_remove(("servers",)))
+
+
+def install_copilot_cli(
+    *,
+    home: Path | None = None,
+    runner: RunCommand,
+) -> None:
+    """Install the dynamic Token Saver server through Copilot CLI's native registry."""
+    validate_copilot_cli_manageable(home)
+    if copilot_cli_configured(home):
+        return
+    runner([
+        "copilot",
+        "mcp",
+        "add",
+        "--tools",
+        "*",
+        TOKEN_SAVER_SERVER,
+        "--",
+        "token-saver",
+        "serve",
+        ".",
+    ])
+
+
+def uninstall_copilot_cli(
+    *,
+    home: Path | None = None,
+    runner: RunCommand,
+) -> None:
+    """Remove only Token Saver's owned Copilot CLI user-level MCP entry."""
+    validate_copilot_cli_manageable(home)
+    if copilot_cli_configured(home):
+        runner(["copilot", "mcp", "remove", TOKEN_SAVER_SERVER])
 
 
 def antigravity_mcp_path(root: Path) -> Path:
