@@ -411,9 +411,13 @@ def _expand_command(
     # One pass over each argument: substituted text (e.g. a prompt that itself
     # contains "{model}") is never re-scanned, and unknown braces stay literal.
     placeholder = re.compile(r"\{(" + "|".join(map(re.escape, values)) + r")\}")
-    return [
+    expanded = [
         placeholder.sub(lambda match: values[match.group(1)], item)
         for item in command
+    ]
+    return [
+        item.replace("token_saver.", "acco.") if item.startswith("token_saver.") else item
+        for item in expanded
     ]
 
 
