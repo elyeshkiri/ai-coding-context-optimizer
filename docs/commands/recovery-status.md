@@ -1,11 +1,11 @@
-# `token-saver recovery-status`
+# `acco recovery-status`
 
 Inspect exact-recovery capacity without returning stored source content.
 
 ## Synopsis
 
 ```bash
-token-saver recovery-status [path] [--json]
+acco recovery-status [path] [--json]
 ```
 
 ## Arguments and options
@@ -26,4 +26,4 @@ new lossy transform.
 
 ## Authoritative runtime help
 
-Run `token-saver recovery-status --help` for the installed version.
+Run `acco recovery-status --help` for the installed version.

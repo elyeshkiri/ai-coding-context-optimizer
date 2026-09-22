@@ -1,11 +1,11 @@
-# `token-saver remember`
+# `acco remember`
 
-Persist one explicit evidence-backed project finding for later sessions. Findings are local, bounded, and anchored to current repository files; Token Saver records anchor digests so later source changes make the finding stale.
+Persist one explicit evidence-backed project finding for later sessions. Findings are local, bounded, and anchored to current repository files; ACCO records anchor digests so later source changes make the finding stale.
 
 ## Synopsis
 
 ```bash
-token-saver remember [path] \
+acco remember [path] \
   --claim "Refresh tokens are rotated in auth" \
   --anchor src/auth.py::refresh_session \
   --evidence "refresh_session delegates to rotate_token" \
@@ -24,7 +24,7 @@ token-saver remember [path] \
 - `--supersedes ID` — older finding ID replaced by this finding; repeatable.
 - `--json` — emit the complete stored finding.
 
-Anchors must resolve to real files inside the repository. Token Saver does not persist arbitrary unanchored model prose through this command.
+Anchors must resolve to real files inside the repository. ACCO does not persist arbitrary unanchored model prose through this command.
 
 ## Exit codes
 
@@ -40,5 +40,5 @@ Re-recording the same normalized claim and anchor identity updates one record an
 ## Authoritative runtime help
 
 ```bash
-token-saver remember --help
+acco remember --help
 ```
