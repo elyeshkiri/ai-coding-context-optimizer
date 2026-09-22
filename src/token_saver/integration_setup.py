@@ -64,7 +64,7 @@ HOST_EXECUTABLES = {
     "openclaw": "openclaw",
     "hermes": "hermes",
     "copilot": "code",
-    "antigravity": "antigravity",
+    "antigravity": "agy",
 }
 CODEX_START = "# >>> token-saver managed >>>"
 CODEX_END = "# <<< token-saver managed <<<"
