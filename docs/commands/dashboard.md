@@ -1,11 +1,11 @@
-# `token-saver dashboard`
+# `acco dashboard`
 
 Show local operational token-efficiency telemetry.
 
 ## Synopsis
 
 ```bash
-token-saver dashboard [path] [--days N] [--json] [--html FILE]
+acco dashboard [path] [--days N] [--json] [--html FILE]
 ```
 
 ## Arguments and options
@@ -31,4 +31,4 @@ See [Machine-readable contracts](../JSON_OUTPUTS.md#dashboard---json).
 
 ## Authoritative runtime help
 
-Run `token-saver dashboard --help` for the installed version.
+Run `acco dashboard --help` for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver corpus-analyze`
+# `acco corpus-analyze`
 
 Mine real Claude Code transcripts for high-token Bash command families still using the generic output processor.
 
 ## Synopsis
 
 ```bash
-token-saver corpus-analyze [path] [--all-projects] [--min-tokens N] [--top N] [--json]
+acco corpus-analyze [path] [--all-projects] [--min-tokens N] [--top N] [--json]
 ```
 
 ## Arguments and options
@@ -35,4 +35,4 @@ See [Machine-readable contracts](../JSON_OUTPUTS.md#corpus-analyze---json).
 
 ## Authoritative runtime help
 
-Run `token-saver corpus-analyze --help` for the installed version.
+Run `acco corpus-analyze --help` for the installed version.
