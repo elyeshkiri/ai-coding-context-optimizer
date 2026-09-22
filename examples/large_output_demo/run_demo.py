@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paired Claude Code run on the large-output demo: baseline vs Token Saver.
+"""Paired Claude Code run on the large-output demo: baseline vs ACCO.
 
 Generates the demo project in a throwaway Git repo, then uses the experiment
 harness to run the same task in both arms (hooks only in the enabled arm),
@@ -25,8 +25,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from make_project import HIDDEN_TEST, PROMPT, make_project  # noqa: E402
 
-from token_saver.benchmark import evaluate  # noqa: E402
-from token_saver.experiment import prompt_sha256, run_experiment  # noqa: E402
+from acco.benchmark import evaluate  # noqa: E402
+from acco.experiment import prompt_sha256, run_experiment  # noqa: E402
 
 DEFAULT_RATES = Path(__file__).parent / "rates.json"
 TOOLS = (
@@ -104,7 +104,7 @@ def main() -> int:
     for name in [k for k in os.environ if k.startswith("CLAUDE") or k == "AI_AGENT"]:
         os.environ.pop(name)
 
-    work = args.out or Path(tempfile.mkdtemp(prefix="token-saver-demo-"))
+    work = args.out or Path(tempfile.mkdtemp(prefix="acco-demo-"))
     work.mkdir(parents=True, exist_ok=True)
     suite = build_suite(work, model=args.model, trials=args.trials)
     runs = work / "runs.json"
@@ -113,12 +113,12 @@ def main() -> int:
 
     report = evaluate(runs, args.rates)
     print(f"\n{'':10}{'runs':>5}{'solved':>8}{'cost USD':>11}{'output tok':>12}{'model calls':>13}")
-    for arm, label in (("baseline", "baseline"), ("enabled", "token-saver")):
+    for arm, label in (("baseline", "baseline"), ("enabled", "acco")):
         r = report["results"][arm]
         print(f"{label:10}{r['runs']:>5}{r['successes']:>8}{r['usd']:>11.4f}"
               f"{r['output_tokens']:>12}{r['model_calls']:>13}")
     print(f"\ncost-per-success reduction: {report['cost_per_success_reduction_percent']:+.1f}%"
-          "  (positive = Token Saver cheaper)")
+          "  (positive = ACCO cheaper)")
     print(f"full report: {runs} (priced with {args.rates.name})")
     return 0
 
