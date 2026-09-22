@@ -609,7 +609,7 @@ class SemanticVectorIndex:
         self._encoder = encoder
         self.path = semantic_index_path(
             self.root,
-            model,
+            self.model,
             self.model_revision,
         )
 
