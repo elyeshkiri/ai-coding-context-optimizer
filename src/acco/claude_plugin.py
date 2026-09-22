@@ -16,7 +16,7 @@ PLUGIN_SCHEMA = 1
 
 _MANIFEST = {
     "name": PLUGIN_NAME,
-    "displayName": "ACCO",
+    "displayName": "ACCO — AI Coding Context Optimizer",
     "description": (
         "Local context, output, session, retrieval, and prompt-ingress optimization "
         "for AI coding work."
@@ -114,14 +114,14 @@ _MCP = {
 
 _INGRESS_SKILL = """---
 name: ingress
-description: Resume a ACCO oversized prompt that was safely staged before model processing.
+description: Resume an ACCO oversized prompt that was safely staged before model processing.
 argument-hint: stage-id
 allowed-tools: Bash
 ---
 
 # Resume a staged ACCO prompt
 
-The argument is a ACCO ingress stage id:
+The argument is an ACCO ingress stage id:
 
 \`$ARGUMENTS\`
 
