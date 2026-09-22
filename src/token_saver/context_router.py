@@ -130,7 +130,7 @@ def _compress_json(text: str, query: str) -> tuple[str, dict[str, Any]]:
     except (ValueError, TypeError):
         return text, {}
     compact = _compact_json_value(value, _terms(query))
-    candidate = json.dumps(compact, ensure_ascii=False, separators=(",", ":")) + "\\n"
+    candidate = json.dumps(compact, ensure_ascii=False, separators=(",", ":")) + "\n"
     return candidate, {"json_root": type(value).__name__}
 
 
@@ -159,7 +159,7 @@ def _compress_log(text: str, query: str, max_lines: int) -> tuple[str, dict[str,
         f"[token-saver log: {len(lines)} lines -> {len(ordered)} retained]",
         *(lines[index] for index in ordered),
     ]
-    return "\\n".join(body) + "\\n", {
+    return "\n".join(body) + "\n", {
         "critical_lines": critical,
         "focused_lines": focused,
     }
@@ -202,10 +202,10 @@ def _compress_table(text: str, query: str, max_lines: int) -> tuple[str, dict[st
         seen.add(key)
         unique.append(row)
     output = StringIO()
-    writer = csv.writer(output, delimiter=delimiter, lineterminator="\\n")
+    writer = csv.writer(output, delimiter=delimiter, lineterminator="\n")
     writer.writerow(header)
     writer.writerows(unique)
-    output.write(f"[token-saver table: {len(rows) - 1} rows -> {len(unique)} shown]\\n")
+    output.write(f"[token-saver table: {len(rows) - 1} rows -> {len(unique)} shown]\n")
     return output.getvalue(), {"rows": len(rows) - 1, "shown": len(unique)}
 
 
@@ -226,7 +226,7 @@ def _compress_search_results(text: str, query: str, max_lines: int) -> tuple[str
         f"[token-saver search results: {len(lines)} lines -> {len(kept)} retained]",
         *kept,
     ]
-    return "\\n".join(body) + "\\n", {
+    return "\n".join(body) + "\n", {
         "results": len(lines),
         "unique": len(unique),
         "shown": len(kept),
@@ -321,7 +321,7 @@ def route_context(
         return ContextRouteResult(
             text, kind, False, original_tokens, original_tokens, None, metadata
         )
-    rendered = candidate.rstrip() + f"\\n[token-saver recovery: {handle}]\\n"
+    rendered = candidate.rstrip() + f"\n[token-saver recovery: {handle}]\n"
     output_tokens = estimate_tokens(rendered)
     if output_tokens >= original_tokens or len(rendered.encode()) >= len(text.encode()):
         return ContextRouteResult(
