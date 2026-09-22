@@ -20,6 +20,11 @@ def _reference(monkeypatch):
             ["token", "session", "refresh"],
         ),
         "ngrams": fastpath.char_ngrams("token", 3),
+        "ansi": fastpath.strip_ansi("\\x1b[31mERROR boom\\x1b[0m"),
+        "repeated": fastpath.collapse_repeated_lines("x\\nx\\nx\\ny\\n"),
+        "critical": fastpath.critical_lines(
+            "INFO ok\\nERROR boom\\nERROR boom\\nsrc/main.rs:12 failed\\n"
+        ),
         "bm25": fastpath.bm25_score(
             {"auth": 3, "token": 2},
             ["auth", "token", "missing"],
@@ -41,6 +46,9 @@ def test_fastpath_python_reference_contract(monkeypatch):
     assert "abc$def" in result["identifiers"]
     assert result["jaccard"] == 0.5
     assert result["ngrams"] == ["^to", "tok", "oke", "ken", "en$"]
+    assert result["ansi"] == "ERROR boom"
+    assert "previous line repeated 2 more times" in result["repeated"]
+    assert result["critical"] == ["ERROR boom", "src/main.rs:12 failed"]
     assert result["bm25"][0] > 0
     assert result["bm25"][1] == 5
     assert fastpath.status()["backend"] == "python"
@@ -61,6 +69,11 @@ def test_compiled_fastpath_matches_python_reference_when_available(monkeypatch):
             ["token", "session", "refresh"],
         ),
         "ngrams": fastpath.char_ngrams("token", 3),
+        "ansi": fastpath.strip_ansi("\\x1b[31mERROR boom\\x1b[0m"),
+        "repeated": fastpath.collapse_repeated_lines("x\\nx\\nx\\ny\\n"),
+        "critical": fastpath.critical_lines(
+            "INFO ok\\nERROR boom\\nERROR boom\\nsrc/main.rs:12 failed\\n"
+        ),
         "bm25": fastpath.bm25_score(
             {"auth": 3, "token": 2},
             ["auth", "token", "missing"],
@@ -75,5 +88,8 @@ def test_compiled_fastpath_matches_python_reference_when_available(monkeypatch):
     assert actual["identifiers"] == expected["identifiers"]
     assert math.isclose(actual["jaccard"], expected["jaccard"], rel_tol=1e-12)
     assert actual["ngrams"] == expected["ngrams"]
+    assert actual["ansi"] == expected["ansi"]
+    assert actual["repeated"] == expected["repeated"]
+    assert actual["critical"] == expected["critical"]
     assert math.isclose(actual["bm25"][0], expected["bm25"][0], rel_tol=1e-12)
     assert actual["bm25"][1] == expected["bm25"][1]
