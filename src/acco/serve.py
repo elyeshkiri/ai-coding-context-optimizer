@@ -1,7 +1,7 @@
-"""Compatibility facade and composition root for the Token Saver MCP server.
+"""Compatibility facade and composition root for the ACCO MCP server.
 
 Application tool handlers, JSON-RPC protocol routing, and stdio transport live
-under :mod:`token_saver.mcp_server`. Existing imports from this module remain
+under :mod:`acco.mcp_server`. Existing imports from this module remain
 supported.
 """
 
@@ -48,6 +48,6 @@ def handle_message(
 
 
 def serve(root: Path) -> int:
-    """Serve the Token Saver MCP protocol over stdio."""
+    """Serve the ACCO MCP protocol over stdio."""
     protocol = McpProtocol(root, index_service=IndexService(root))
     return serve_stdio(protocol)

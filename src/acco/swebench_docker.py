@@ -35,17 +35,17 @@ def verify_swebench(
     shell = (
         "set -euo pipefail; "
         "cd /testbed; "
-        "if [ -s /tmp/token-saver-agent.patch ]; then "
-        "  git apply --whitespace=nowarn /tmp/token-saver-agent.patch; "
+        "if [ -s /tmp/acco-agent.patch ]; then "
+        "  git apply --whitespace=nowarn /tmp/acco-agent.patch; "
         "fi; "
-        "git apply --whitespace=nowarn /tmp/token-saver-test.patch; "
+        "git apply --whitespace=nowarn /tmp/acco-test.patch; "
         f"{env_activate}; "
         f"{test_command}"
     )
     command = [
         "docker", "run", "--rm",
-        "-v", f"{agent_patch.resolve()}:/tmp/token-saver-agent.patch:ro",
-        "-v", f"{test_patch.resolve()}:/tmp/token-saver-test.patch:ro",
+        "-v", f"{agent_patch.resolve()}:/tmp/acco-agent.patch:ro",
+        "-v", f"{test_patch.resolve()}:/tmp/acco-test.patch:ro",
         image,
         "bash", "-lc", shell,
     ]

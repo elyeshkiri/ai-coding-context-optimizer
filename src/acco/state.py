@@ -12,7 +12,7 @@ SCHEMA = 3
 
 def state_dir() -> Path:
     """Handle state dir."""
-    return Path(os.environ.get("TOKEN_SAVER_STATE_DIR", str(Path.home() / ".claude" / "token-saver")))
+    return Path(os.environ.get("ACCO_STATE_DIR", str(Path.home() / ".claude" / "acco")))
 
 def state_path(root: Path | None = None, session_id: str | None = None) -> Path:
     """Handle state path."""

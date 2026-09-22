@@ -64,28 +64,28 @@ def _base_docker(
         command.extend(
             [
                 "-v",
-                f"{state_dir.resolve()}:/token-saver-state",
+                f"{state_dir.resolve()}:/acco-state",
                 "-e",
-                "TOKEN_SAVER_STATE_DIR=/token-saver-state",
+                "ACCO_STATE_DIR=/acco-state",
             ]
         )
     for name in (
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_WORKSPACE_ID",
-        "TOKEN_SAVER_DISABLED",
-        "TOKEN_SAVER_BENCHMARK_CONDITION",
-        "TOKEN_SAVER_BENCHMARK_TASK",
-        "TOKEN_SAVER_BENCHMARK_TRIAL",
-        "TOKEN_SAVER_EFFICIENCY",
-        "TOKEN_SAVER_CONTINUITY",
-        "TOKEN_SAVER_CROSS_TURN_DEDUP",
-        "TOKEN_SAVER_WASTE_DETECTION",
-        "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE",
-        "TOKEN_SAVER_CACHE_ECONOMICS",
-        "TOKEN_SAVER_CACHE_EXPECTED_REUSES",
-        "TOKEN_SAVER_CACHE_WRITE_FACTOR",
-        "TOKEN_SAVER_CACHE_READ_FACTOR",
-        "TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS",
+        "ACCO_DISABLED",
+        "ACCO_BENCHMARK_CONDITION",
+        "ACCO_BENCHMARK_TASK",
+        "ACCO_BENCHMARK_TRIAL",
+        "ACCO_EFFICIENCY",
+        "ACCO_CONTINUITY",
+        "ACCO_CROSS_TURN_DEDUP",
+        "ACCO_WASTE_DETECTION",
+        "ACCO_KNOWLEDGE_READ_AVOIDANCE",
+        "ACCO_CACHE_ECONOMICS",
+        "ACCO_CACHE_EXPECTED_REUSES",
+        "ACCO_CACHE_WRITE_FACTOR",
+        "ACCO_CACHE_READ_FACTOR",
+        "ACCO_CACHE_MIN_RELATIVE_SAVINGS",
     ):
         _docker_env(command, name)
     command.extend(["-e", "ANTHROPIC_CUSTOM_HEADERS"])
@@ -202,7 +202,7 @@ def _continuity_checkpoint(
         state_dir=state_dir,
         image=image,
     )
-    command.extend([image, "token-saver", "hook"])
+    command.extend([image, "acco", "hook"])
     payload = {
         "hook_event_name": "SessionStart",
         "cwd": "/workspace",
@@ -277,7 +277,7 @@ def run(
         raise ValueError("benchmark worktree and prompt file must exist")
 
     original_prompt = prompt_file.read_text(encoding="utf-8")
-    state_raw = os.environ.get("TOKEN_SAVER_STATE_DIR")
+    state_raw = os.environ.get("ACCO_STATE_DIR")
     state_dir = Path(state_raw).resolve() if state_raw else None
     phase_root = transcript.parent / "session-phases"
     phase1_home = phase_root / "phase1-home"

@@ -24,16 +24,16 @@ from .paired_conditions import (
 _BOOTSTRAP_SEED = 271828
 _BOOTSTRAP_SAMPLES = 2000
 _REQUIRED_CONTROL_ENV = {
-    "TOKEN_SAVER_EFFICIENCY": "0",
-    "TOKEN_SAVER_CONTINUITY": "0",
-    "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-    "TOKEN_SAVER_WASTE_DETECTION": "0",
+    "ACCO_EFFICIENCY": "0",
+    "ACCO_CONTINUITY": "0",
+    "ACCO_CROSS_TURN_DEDUP": "0",
+    "ACCO_WASTE_DETECTION": "0",
 }
 _REQUIRED_TREATMENT_ENV = {
-    "TOKEN_SAVER_EFFICIENCY": "1",
-    "TOKEN_SAVER_CONTINUITY": "1",
-    "TOKEN_SAVER_CROSS_TURN_DEDUP": "1",
-    "TOKEN_SAVER_WASTE_DETECTION": "1",
+    "ACCO_EFFICIENCY": "1",
+    "ACCO_CONTINUITY": "1",
+    "ACCO_CROSS_TURN_DEDUP": "1",
+    "ACCO_WASTE_DETECTION": "1",
 }
 
 
@@ -127,10 +127,10 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     enabled = profiles["enabled"]
     if not isinstance(baseline, dict) or not isinstance(enabled, dict):
         return False, ["invalid_session_efficiency_condition_profiles"]
-    if baseline.get("install_token_saver") is not True:
-        issues.append("control_does_not_install_token_saver")
-    if enabled.get("install_token_saver") is not True:
-        issues.append("treatment_does_not_install_token_saver")
+    if baseline.get("install_acco") is not True:
+        issues.append("control_does_not_install_acco")
+    if enabled.get("install_acco") is not True:
+        issues.append("treatment_does_not_install_acco")
     if str(baseline.get("label") or "") != "v1.6-session-baseline":
         issues.append("control_label_mismatch")
     if str(enabled.get("label") or "") != "v1.7-session-efficiency":
@@ -159,7 +159,7 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     command = runner.get("command")
     if (
         not isinstance(command, list)
-        or "token_saver.session_holdout_docker" not in command
+        or "acco.session_holdout_docker" not in command
     ):
         issues.append("session_holdout_runner_missing")
     if runner.get("session_holdout_protocol_version") != 1:

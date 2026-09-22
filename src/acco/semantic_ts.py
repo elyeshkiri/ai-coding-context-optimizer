@@ -1,7 +1,7 @@
 """JS/TS semantic relationship helpers.
 
 The lightweight parser resolves statically-decidable relative imports and
-re-exports without external tooling. Optionally, Token Saver can ask a
+re-exports without external tooling. Optionally, ACCO can ask a
 repository's already-installed TypeScript compiler to resolve call/type/import
 relationships to concrete files. Nothing is downloaded and the lightweight
 resolver remains the deterministic fallback.
@@ -171,22 +171,22 @@ try {
   const resolved = require.resolve("typescript", { paths: [root] });
   ts = require(resolved);
 } catch (err) {
-  process.stderr.write("TOKEN_SAVER_TYPESCRIPT_NOT_INSTALLED\n");
+  process.stderr.write("ACCO_TYPESCRIPT_NOT_INSTALLED\n");
   process.exit(3);
 }
 const configPath = ts.findConfigFile(root, ts.sys.fileExists, "tsconfig.json");
 if (!configPath) {
-  process.stderr.write("TOKEN_SAVER_TSCONFIG_NOT_FOUND\n");
+  process.stderr.write("ACCO_TSCONFIG_NOT_FOUND\n");
   process.exit(4);
 }
 const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
 if (configFile.error) {
-  process.stderr.write("TOKEN_SAVER_TSCONFIG_INVALID\n");
+  process.stderr.write("ACCO_TSCONFIG_INVALID\n");
   process.exit(5);
 }
 const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configPath));
 if (parsed.errors && parsed.errors.length) {
-  process.stderr.write("TOKEN_SAVER_TSCONFIG_INVALID\n");
+  process.stderr.write("ACCO_TSCONFIG_INVALID\n");
   process.exit(5);
 }
 const program = ts.createProgram({ rootNames: parsed.fileNames, options: parsed.options });
@@ -244,7 +244,7 @@ def semantic_requested(value: bool | None = None) -> bool:
     """Return whether compiler-backed semantic resolution is requested."""
     if value is not None:
         return value
-    return os.environ.get("TOKEN_SAVER_TS_SEMANTIC", "").strip().lower() in {
+    return os.environ.get("ACCO_TS_SEMANTIC", "").strip().lower() in {
         "1", "true", "yes", "on",
     }
 

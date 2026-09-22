@@ -67,7 +67,7 @@ def _tool_result_id(record: dict) -> str | None:
 
 
 def transcript_session_metrics(path: Path) -> dict:
-    """Measure tool/retry/read behavior independently from Token Saver events."""
+    """Measure tool/retry/read behavior independently from ACCO events."""
     report = analyze([path], keep_content=False)
     duplicate_reads = sum(max(0, count - 1) for _path, count, _tokens in report.duplicate_reads())
 
