@@ -3,16 +3,16 @@ name: Pricing Registry Drift
 on:
   pull_request:
     paths:
-      - "src/token_saver/pricing.py"
-      - "src/token_saver/pricing_registry.json"
+      - "src/acco/pricing.py"
+      - "src/acco/pricing_registry.json"
       - "scripts/check_pricing_registry.py"
       - ".github/workflows/pricing-drift.yml"
       - "tests/test_pricing_registry.py"
   push:
     branches: [main]
     paths:
-      - "src/token_saver/pricing.py"
-      - "src/token_saver/pricing_registry.json"
+      - "src/acco/pricing.py"
+      - "src/acco/pricing_registry.json"
       - "scripts/check_pricing_registry.py"
       - ".github/workflows/pricing-drift.yml"
   schedule:
