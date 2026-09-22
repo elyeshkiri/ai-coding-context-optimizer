@@ -45,7 +45,7 @@ jobs:
         run: docker version
       - name: Validate frozen suite, grader, pricing, and schedule
         run: |
-          token-saver evidence-run benchmarks/e2e-swebench-24.frozen.json \
+          acco evidence-run benchmarks/e2e-swebench-24.frozen.json \
             --out /tmp/dry-runs.json \
             --dry-run > /tmp/schedule.json
           python - <<'PY'
@@ -83,14 +83,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Token Saver harness
+      - name: Install ACCO harness
         run: python -m pip install -e '.[dev]'
 
       - name: Build isolated Claude Code 2.1.276 image
         run: |
           docker build \
             -f benchmarks/e2e-agent.Dockerfile \
-            -t token-saver-e2e-agent:2.1.276 \
+            -t acco-e2e-agent:2.1.276 \
             .
 
       - name: Prepare smoke task repository
@@ -120,22 +120,22 @@ jobs:
           )
           PY
 
-      - name: Execute one baseline and one Token Saver call
+      - name: Execute one baseline and one ACCO call
         run: |
           mkdir -p results
-          token-saver experiment \
+          acco experiment \
             benchmarks/e2e-swebench-smoke.runtime.json \
             --allow-development \
             --out results/smoke-runs.json
 
       - name: Blind-grade the paid smoke pair
         run: |
-          token-saver blind-grade results/smoke-runs.json \
+          acco blind-grade results/smoke-runs.json \
             > results/smoke-blind-grade.json
 
       - name: Require transcript, telemetry, grading, and pricing evidence
         run: |
-          token-saver output-effectiveness \
+          acco output-effectiveness \
             results/smoke-runs.json \
             --fresh-input-per-million 2 \
             --cache-creation-5m-per-million 2.5 \
@@ -154,7 +154,7 @@ jobs:
           assert report["quality"]["blinded"] is True
           assert report["telemetry"]["runs_with_policy_telemetry"] == 1
           assert report["conditions"]["baseline"]["cost_complete"] is True
-          assert report["conditions"]["token-saver"]["cost_complete"] is True
+          assert report["conditions"]["acco"]["cost_complete"] is True
           print("paid smoke passed: agent, telemetry, blind judge, and pricing are usable")
           PY
 
@@ -188,14 +188,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Token Saver harness
+      - name: Install ACCO harness
         run: python -m pip install -e '.[dev]'
 
       - name: Build isolated Claude Code 2.1.276 image
         run: |
           docker build \
             -f benchmarks/e2e-agent.Dockerfile \
-            -t token-saver-e2e-agent:2.1.276 \
+            -t acco-e2e-agent:2.1.276 \
             .
 
       - name: Prepare only this historical repository revision
@@ -207,7 +207,7 @@ jobs:
       - name: Execute three paired trials
         run: |
           mkdir -p results
-          token-saver experiment \
+          acco experiment \
             benchmarks/e2e-swebench-24.frozen.json \
             --task "$TASK_ID" \
             --out "results/${TASK_ID}-runs.json"
@@ -242,7 +242,7 @@ jobs:
         run: |
           docker build \
             -f benchmarks/e2e-agent.Dockerfile \
-            -t token-saver-e2e-agent:2.1.276 \
+            -t acco-e2e-agent:2.1.276 \
             .
 
       - name: Download all task evidence
@@ -261,12 +261,12 @@ jobs:
 
       - name: Blind-grade all paired final responses
         run: |
-          token-saver blind-grade collected/benchmark-runs.json \
+          acco blind-grade collected/benchmark-runs.json \
             > collected/blind-grade-result.json
 
       - name: Compute publishable output cost-per-success evidence
         run: |
-          token-saver output-effectiveness \
+          acco output-effectiveness \
             collected/benchmark-runs.json \
             --fresh-input-per-million 2 \
             --cache-creation-5m-per-million 2.5 \
@@ -279,7 +279,7 @@ jobs:
 
       - name: Produce quality-gated adaptive budget calibration
         run: |
-          token-saver output-calibrate \
+          acco output-calibrate \
             collected/benchmark-runs.json \
             --out collected/output-calibration.json
 
@@ -289,7 +289,7 @@ jobs:
           import json
           p = json.load(open("collected/output-effectiveness.json"))
           b = p["conditions"]["baseline"]
-          e = p["conditions"]["token-saver"]
+          e = p["conditions"]["acco"]
           ev = p["publication_gate"]
           print("# Frozen SWE-bench cost evidence")
           print()
