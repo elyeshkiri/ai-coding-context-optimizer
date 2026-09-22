@@ -1,11 +1,11 @@
-# `token-saver status`
+# `acco status`
 
-Read Token Saver's on-disk session ledger.
+Read ACCO's on-disk session ledger.
 
 ## Synopsis
 
 ```bash
-token-saver status [path]
+acco status [path]
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ Human state summary.
 
 ## Authoritative runtime help
 
-Run `token-saver status --help` for argparse's exact usage text for the installed version.
+Run `acco status --help` for argparse's exact usage text for the installed version.
