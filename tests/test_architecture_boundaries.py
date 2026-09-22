@@ -3,18 +3,18 @@
 import ast
 import inspect
 
-import token_saver.command_handlers.context as context_commands
-import token_saver.commands as commands_facade
-import token_saver.mcp_server.tools as mcp_tools
-import token_saver.pack_cli as pack_cli
-from token_saver.command_handlers.context import browse_main as vertical_browse_main
-from token_saver.command_registry import (
+import acco.command_handlers.context as context_commands
+import acco.commands as commands_facade
+import acco.mcp_server.tools as mcp_tools
+import acco.pack_cli as pack_cli
+from acco.command_handlers.context import browse_main as vertical_browse_main
+from acco.command_registry import (
     DEFAULT_COMMAND_REGISTRY,
     CommandRegistry,
     CommandSpec,
 )
-from token_saver.output import OutputPipeline, ProcessorRegistry
-from token_saver.output_processors import OutputPipeline as CompatibilityPipeline
+from acco.output import OutputPipeline, ProcessorRegistry
+from acco.output_processors import OutputPipeline as CompatibilityPipeline
 
 
 def test_command_registry_extends_dispatch_without_entry_changes():
@@ -111,7 +111,7 @@ def test_default_registry_bypasses_the_commands_compatibility_facade():
         if name != "pack"
     }
     assert modules
-    assert all(module.startswith("token_saver.command_handlers.") for module in modules)
+    assert all(module.startswith("acco.command_handlers.") for module in modules)
 
 
 def test_repository_integrations_use_application_service_boundary():

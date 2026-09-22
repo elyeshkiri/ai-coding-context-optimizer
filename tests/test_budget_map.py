@@ -4,8 +4,8 @@ import textwrap
 
 import pytest
 
-from token_saver.estimate import estimate_tokens
-from token_saver.skeleton import build_map, file_priority
+from acco.estimate import estimate_tokens
+from acco.skeleton import build_map, file_priority
 
 
 @pytest.fixture

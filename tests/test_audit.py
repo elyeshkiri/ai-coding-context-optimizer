@@ -5,8 +5,8 @@ import textwrap
 
 import pytest
 
-from token_saver.audit import audit, find_imports, parse_frontmatter, strip_noncounting
-from token_saver.estimate import Counter
+from acco.audit import audit, find_imports, parse_frontmatter, strip_noncounting
+from acco.estimate import Counter
 
 
 @pytest.fixture

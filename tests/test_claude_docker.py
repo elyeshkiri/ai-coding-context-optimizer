@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from token_saver.claude_docker import run
+from acco.claude_docker import run
 
 
 def test_isolated_runner_uses_host_uid_and_extracts_transcript(
@@ -14,9 +14,9 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "ws_test")
-    monkeypatch.setattr("token_saver.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
-    monkeypatch.setattr("token_saver.claude_docker.os.getuid", lambda: 1234)
-    monkeypatch.setattr("token_saver.claude_docker.os.getgid", lambda: 5678)
+    monkeypatch.setattr("acco.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
+    monkeypatch.setattr("acco.claude_docker.os.getuid", lambda: 1234)
+    monkeypatch.setattr("acco.claude_docker.os.getgid", lambda: 5678)
 
     seen = {}
 
@@ -33,7 +33,7 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
             stderr="",
         )
 
-    monkeypatch.setattr("token_saver.claude_docker.subprocess.run", fake_run)
+    monkeypatch.setattr("acco.claude_docker.subprocess.run", fake_run)
 
     assert run(
         worktree=worktree,
@@ -41,7 +41,7 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
         prompt_file=prompt,
         model="claude-sonnet-5",
         condition="enabled",
-        image="token-saver-e2e-agent:2.1.276",
+        image="acco-e2e-agent:2.1.276",
     ) == 0
 
     command = seen["command"]
@@ -69,7 +69,7 @@ def test_isolated_runner_cleans_home_when_transcript_is_missing(
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "ws_test")
-    monkeypatch.setattr("token_saver.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
+    monkeypatch.setattr("acco.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
 
     def fake_run(command, **_kwargs):
         claude_home = transcript.parent / "claude-home"
@@ -80,7 +80,7 @@ def test_isolated_runner_cleans_home_when_transcript_is_missing(
             stderr="",
         )
 
-    monkeypatch.setattr("token_saver.claude_docker.subprocess.run", fake_run)
+    monkeypatch.setattr("acco.claude_docker.subprocess.run", fake_run)
 
     try:
         run(
@@ -89,7 +89,7 @@ def test_isolated_runner_cleans_home_when_transcript_is_missing(
             prompt_file=prompt,
             model="claude-sonnet-5",
             condition="baseline",
-            image="token-saver-e2e-agent:2.1.276",
+            image="acco-e2e-agent:2.1.276",
         )
     except ValueError as exc:
         assert "produced no transcript" in str(exc)
@@ -111,7 +111,7 @@ def test_isolated_runner_rejects_api_error_with_zero_exit(
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "ws_test")
     monkeypatch.setattr(
-        "token_saver.claude_docker.shutil.which",
+        "acco.claude_docker.shutil.which",
         lambda _name: "/usr/bin/docker",
     )
 
@@ -134,7 +134,7 @@ def test_isolated_runner_rejects_api_error_with_zero_exit(
         )
 
     monkeypatch.setattr(
-        "token_saver.claude_docker.subprocess.run",
+        "acco.claude_docker.subprocess.run",
         fake_run,
     )
 
@@ -145,7 +145,7 @@ def test_isolated_runner_rejects_api_error_with_zero_exit(
             prompt_file=prompt,
             model="claude-sonnet-5",
             condition="baseline",
-            image="token-saver-e2e-agent:2.1.276",
+            image="acco-e2e-agent:2.1.276",
         )
     except ValueError as exc:
         assert "Claude Code API failure" in str(exc)
@@ -162,7 +162,7 @@ def test_isolated_runner_requires_workspace_id(tmp_path, monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.delenv("ANTHROPIC_WORKSPACE_ID", raising=False)
     monkeypatch.setattr(
-        "token_saver.claude_docker.shutil.which",
+        "acco.claude_docker.shutil.which",
         lambda _name: "/usr/bin/docker",
     )
 
@@ -173,7 +173,7 @@ def test_isolated_runner_requires_workspace_id(tmp_path, monkeypatch):
             prompt_file=prompt,
             model="claude-sonnet-5",
             condition="baseline",
-            image="token-saver-e2e-agent:2.1.276",
+            image="acco-e2e-agent:2.1.276",
         )
     except ValueError as exc:
         assert "ANTHROPIC_WORKSPACE_ID" in str(exc)
@@ -190,13 +190,13 @@ def test_isolated_runner_mounts_external_state_for_telemetry(
     transcript = tmp_path / "artifacts" / "transcript.jsonl"
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Fix the bug.", encoding="utf-8")
-    state_dir = tmp_path / "token-saver-state"
+    state_dir = tmp_path / "acco-state"
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "ws_test")
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(state_dir))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(state_dir))
     monkeypatch.setattr(
-        "token_saver.claude_docker.shutil.which",
+        "acco.claude_docker.shutil.which",
         lambda _name: "/usr/bin/docker",
     )
     seen = {}
@@ -216,7 +216,7 @@ def test_isolated_runner_mounts_external_state_for_telemetry(
             stderr="",
         )
 
-    monkeypatch.setattr("token_saver.claude_docker.subprocess.run", fake_run)
+    monkeypatch.setattr("acco.claude_docker.subprocess.run", fake_run)
 
     assert run(
         worktree=worktree,
@@ -224,10 +224,10 @@ def test_isolated_runner_mounts_external_state_for_telemetry(
         prompt_file=prompt,
         model="claude-sonnet-5",
         condition="enabled",
-        image="token-saver-e2e-agent:2.1.276",
+        image="acco-e2e-agent:2.1.276",
     ) == 0
 
     command = seen["command"]
-    assert f"{state_dir.resolve()}:/token-saver-state" in command
-    assert "TOKEN_SAVER_STATE_DIR=/token-saver-state" in command
+    assert f"{state_dir.resolve()}:/acco-state" in command
+    assert "ACCO_STATE_DIR=/acco-state" in command
     assert state_dir.is_dir()

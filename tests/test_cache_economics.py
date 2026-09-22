@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from token_saver.cache_economics import assess_context_rewrite
+from acco.cache_economics import assess_context_rewrite
 
 
 def test_frontier_only_smaller_rewrite_is_economic():
