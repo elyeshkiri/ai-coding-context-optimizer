@@ -14,6 +14,8 @@ from ..output_effectiveness import (
     evaluate_output_effectiveness,
 )
 from ..output_processors import explain_processor
+from ..processor_mining import mine_transcripts
+from ..sessions import transcript_paths
 from ..output_telemetry import load_output_telemetry, output_telemetry_report
 from ..output_quality import evaluate_quality_manifest, quality_definition_hash
 from ..output_saver import (
@@ -23,6 +25,53 @@ from ..output_saver import (
 )
 
 
+
+
+
+def corpus_analyze_main(argv: list[str]) -> int:
+    """Mine real Claude transcripts for the highest-cost generic processor gaps."""
+    parser = argparse.ArgumentParser(prog="token-saver corpus-analyze")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--all-projects", action="store_true")
+    parser.add_argument("--min-tokens", type=int, default=100)
+    parser.add_argument("--top", type=int, default=20)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        paths = transcript_paths(
+            Path(args.path).resolve(),
+            all_projects=args.all_projects,
+        )
+        report = mine_transcripts(
+            paths,
+            min_tokens=args.min_tokens,
+            top=args.top,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    print("TOKEN SAVER PROCESSOR CORPUS ANALYSIS")
+    print(f"sessions: {report['sessions']}")
+    print(f"bash calls: {report['bash_calls']}")
+    print(f"output tokens: {report['total_output_tokens']:,}")
+    coverage = report["specialized_coverage"]
+    if coverage is None:
+        print("specialized coverage: no eligible Bash output")
+    else:
+        print(f"specialized coverage: {coverage:.1%}")
+    print("highest-cost generic families:")
+    if not report["unsupported"]:
+        print("  none in the selected corpus")
+    for item in report["unsupported"]:
+        print(
+            f"  {item['output_tokens']:>9,} tok  "
+            f"{item['calls']:>4} calls  {item['signature']}"
+        )
+    return 0
 
 
 def output_effectiveness_main(argv: list[str]) -> int:

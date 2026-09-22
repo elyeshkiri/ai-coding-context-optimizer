@@ -17,6 +17,7 @@ from .command_handlers.context import (
     semantic_status_main,
 )
 from .command_handlers.efficiency import (
+    audit_main,
     cache_economics_main,
     continuity_main,
     cost_advisor_main,
@@ -41,6 +42,7 @@ from .command_handlers.experiment import (
 )
 from .command_handlers.host import (
     claude_plugin_path_main,
+    client_capabilities_main,
     commands_main,
     fastpath_status_main,
     completion_main,
@@ -64,6 +66,7 @@ from .command_handlers.optimization import (
     recovery_status_main,
 )
 from .command_handlers.output import (
+    corpus_analyze_main,
     output_benchmark_main,
     output_calibrate_main,
     output_effectiveness_main,
@@ -143,6 +146,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("pricing", pricing_main),
         CommandSpec("model-route", model_route_main),
         CommandSpec("model-route-calibrate", model_route_calibrate_main),
+        CommandSpec("audit", audit_main),
         CommandSpec("dashboard", dashboard_main),
         CommandSpec("optimize", optimize_main),
         CommandSpec("recover", recover_main),
@@ -159,9 +163,11 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("commands", commands_main),
         CommandSpec("host-check", host_check_main),
         CommandSpec("claude-plugin-path", claude_plugin_path_main),
+        CommandSpec("client-capabilities", client_capabilities_main),
         CommandSpec("fastpath-status", fastpath_status_main),
         CommandSpec("ingress-show", ingress_show_main),
         CommandSpec("ingress-read", ingress_read_main),
+        CommandSpec("corpus-analyze", corpus_analyze_main),
         CommandSpec("output-policy", output_policy_main),
         CommandSpec("output-benchmark", output_benchmark_main),
         CommandSpec("output-calibrate", output_calibrate_main),

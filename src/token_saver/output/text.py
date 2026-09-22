@@ -5,6 +5,12 @@ from __future__ import annotations
 import json
 import re
 
+from ..fastpath import (
+    collapse_repeated_lines as _fast_collapse_repeated_lines,
+    critical_lines as _fast_critical_lines,
+    strip_ansi as _fast_strip_ansi,
+)
+
 ERROR_HINTS = re.compile(
     r"(error|exception|fail|failed|fatal|panic|traceback|assert|expected|received)",
     re.I,
@@ -29,30 +35,12 @@ def ensure_newline(text: str) -> str:
 
 def strip_ansi(text: str) -> str:
     """Remove ANSI terminal escape sequences from ``text``."""
-    return ANSI_RE.sub("", text)
+    return _fast_strip_ansi(text)
 
 
 def collapse_repeated_lines(text: str, minimum: int = 3) -> str:
     """Collapse consecutive identical non-empty lines when doing so saves bytes."""
-    lines = text.splitlines()
-    if len(lines) < minimum:
-        return text
-    out: list[str] = []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        j = i + 1
-        while j < len(lines) and lines[j] == line:
-            j += 1
-        count = j - i
-        if line.strip() and count >= minimum:
-            out.append(line)
-            out.append(f"[token-saver: previous line repeated {count - 1} more times]")
-        else:
-            out.extend(lines[i:j])
-        i = j
-    candidate = "\n".join(out) + ("\n" if text.endswith("\n") else "")
-    return candidate if len(candidate) < len(text) else text
+    return _fast_collapse_repeated_lines(text, minimum)
 
 
 def preprocess(text: str) -> str:
@@ -136,17 +124,7 @@ def filter_text(
 
 def critical_lines(text: str) -> list[str]:
     """Return bounded, unique diagnostic lines that must survive compression."""
-    out: list[str] = []
-    seen: set[str] = set()
-    for line in strip_ansi(text).splitlines():
-        key = line.strip()
-        if not key or key in seen or not _CRITICAL.search(line):
-            continue
-        seen.add(key)
-        out.append(line)
-        if len(out) >= MAX_RECOVERED_LINES:
-            break
-    return out
+    return _fast_critical_lines(text, MAX_RECOVERED_LINES)
 
 
 def recover_critical_lines(original: str, candidate: str) -> tuple[str, tuple[str, ...]]:

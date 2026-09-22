@@ -7,6 +7,7 @@ from pathlib import Path
 from ..closure import authoritative_providers, dependency_closure
 from ..lexical import terms
 from ..repo_index import RepositoryIndex
+from ..retrieval_vnext import hybrid_file_boost
 from ..semantic_retrieval import SemanticVectorIndex
 from .contracts import RankedFile, RankingScoreEvent
 from .file_scoring import _FileRankingScope
@@ -451,13 +452,14 @@ def _apply_embedding_rerank_index(
         for rank, rel in enumerate(semantic_order, start=1)
     }
 
-    # The maximum semantic contribution stays bounded to a few dozen points:
-    # enough to rescue a semantically strong low-lexical file, but far below
-    # explicit structural member/container authority (up to hundreds).
-    fusion_k = 40.0
-    rank_weight = 700.0
-    best_similarity_weight = 8.0
-    corroboration_weight = 4.0
+    # Retrieval vNext keeps semantic rescue independent of lexical ordering.
+    # Existing lexical/structural scores already live on each RankedFile; the
+    # semantic stage therefore uses semantic rank as its primary signal and only
+    # small rank-independent corroboration from exact query/path/term evidence.
+    lexical_order = {
+        item.rel: rank
+        for rank, item in enumerate(ranked, start=1)
+    }
 
     for item in ranked:
         selected = evidence_by_file.get(item.rel)
@@ -465,15 +467,17 @@ def _apply_embedding_rerank_index(
             continue
 
         file_rank = semantic_rank[item.rel]
-        best = selected[0]
-        secondary = selected[1:]
-        rank_boost = rank_weight / (fusion_k + file_rank)
-        similarity_boost = best_similarity_weight * max(0.0, best.score)
-        corroboration_boost = corroboration_weight * sum(
-            max(0.0, hit.score)
-            for hit in secondary
+        aggregate = _semantic_file_score(selected)
+        hybrid = hybrid_file_boost(
+            query=query,
+            rel=item.rel,
+            semantic_rank=file_rank,
+            lexical_rank=lexical_order.get(item.rel, len(ranked) + 1),
+            semantic_score=aggregate,
+            term_hits=item.term_hits,
+            query_views=max((hit.query_views for hit in selected), default=1),
         )
-        boost = rank_boost + similarity_boost + corroboration_boost
+        boost = hybrid.boost
 
         before = item.score
         item.score += boost
@@ -485,9 +489,10 @@ def _apply_embedding_rerank_index(
             *(hit.evidence() for hit in selected),
             (
                 f"semantic-file-rank:{file_rank}:"
-                f"aggregate={_semantic_file_score(selected):.3f}:"
+                f"aggregate={aggregate:.3f}:"
                 f"boost={boost:.3f}"
             ),
+            hybrid.reason(),
         )
         item.reasons.extend(evidence)
         item.score_trace.append(

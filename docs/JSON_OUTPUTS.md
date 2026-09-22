@@ -697,6 +697,112 @@ reported in `status.scope`; it does not silently apply batch, fast-mode,
 data-residency, or partner-cloud modifiers. With `--model`, `models` contains
 only the resolved canonical registry entry.
 
+## `audit --json`
+
+```json
+{
+  "schema": 1,
+  "root": "/project",
+  "window_days": 7,
+  "context": {
+    "always_on_tokens": 1800,
+    "on_demand_tokens": 900,
+    "counter": "≈est",
+    "window": 200000,
+    "window_share": 0.009,
+    "mcp_servers_configured": [],
+    "mcp_probe": [],
+    "largest_always_on": []
+  },
+  "efficiency": {
+    "score": {},
+    "usage": {},
+    "cost": {},
+    "savings": {},
+    "behavior": {},
+    "continuity": {},
+    "model_routing": {}
+  },
+  "retrieval": {"semantic": {"files": 0, "chunks": 0, "backend": "sqlite-cosine"}},
+  "fastpath": {"available": false, "backend": "python", "capabilities": []},
+  "processor_coverage": {
+    "sessions": 0,
+    "bash_calls": 0,
+    "total_output_tokens": 0,
+    "specialized_output_tokens": 0,
+    "generic_output_tokens": 0,
+    "specialized_coverage": null,
+    "processor_tokens": {},
+    "unsupported": []
+  },
+  "client_capabilities": null,
+  "recovery": {"records": 0, "used_bytes": 0, "initialized": false},
+  "recommendations": [],
+  "evidence": {}
+}
+```
+
+`client_capabilities` is `null` unless `--client` is supplied. `mcp_probe` remains
+empty unless `--probe-mcp` is requested. The audit deliberately separates measured
+state from transform estimates and does not infer task success or end-to-end
+cost-per-success.
+
+## `client-capabilities --json`
+
+```json
+{
+  "client": {
+    "client": "claude-code",
+    "capabilities": {
+      "mcp": "yes",
+      "model_route_execution": "advisory",
+      "post_tool_replace": "yes"
+    },
+    "note": "..."
+  },
+  "features": {
+    "adaptive-mcp": {
+      "client": "claude-code",
+      "feature": "adaptive-mcp",
+      "requirements": {"mcp": "yes", "dynamic_mcp_refresh": "conditional"},
+      "guaranteed": false,
+      "available_with_fallback": true
+    }
+  }
+}
+```
+
+Without `--client`, the object instead contains the complete `clients` registry and
+the shared feature requirement map. `conditional`, `advisory`, and `unknown` are
+never promoted to guaranteed support.
+
+## `corpus-analyze --json`
+
+```json
+{
+  "sessions": 3,
+  "bash_calls": 42,
+  "total_output_tokens": 180000,
+  "specialized_output_tokens": 140000,
+  "generic_output_tokens": 40000,
+  "specialized_coverage": 0.7777777778,
+  "processor_tokens": {"git-status": 12000, "generic": 40000},
+  "unsupported": [
+    {
+      "signature": "frobnicate",
+      "processor": "generic",
+      "calls": 4,
+      "failed_calls": 0,
+      "output_tokens": 21000
+    }
+  ]
+}
+```
+
+`signature` is a privacy-reduced command family, not the raw shell command. The
+coverage ratio is an observed transcript-output ratio; it is not an API bill share
+or a guaranteed savings percentage.
+
 ## `cost-advisor --json`
 
 ```json

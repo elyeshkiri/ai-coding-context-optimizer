@@ -24,6 +24,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`completion`](commands/completion.md) — generate Bash/Zsh/Fish completion.
 - [`commands`](commands/commands.md) — list registry-backed commands.
 - [`host-check`](commands/host-check.md) — deeper Claude transport/live-host validation.
+- [`client-capabilities`](commands/client-capabilities.md) — inspect conservative per-host interception/integration guarantees.
 - [`serve`](commands/serve.md) — run the local MCP server.
 - [`install`](commands/install.md) — legacy/low-level Claude hook installer.
 
@@ -59,6 +60,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`output-policy`](commands/output-policy.md) — generate model-response policy instructions.
 - [`output-save`](commands/output-save.md) — compact an already-generated response.
 - [`output-telemetry`](commands/output-telemetry.md) — inspect real turn usage against selected output budgets.
+- [`corpus-analyze`](commands/corpus-analyze.md) — mine real transcripts for highest-token generic processor gaps.
 - [`output`](commands/output.md) — page a saved original command result.
 - [`outputs-prune`](commands/outputs-prune.md) — prune old saved outputs.
 - [`hook`](commands/hook.md) — Claude hook stdin/stdout adapter.
@@ -68,7 +70,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 ## Measurement and context hygiene
 
-- [`audit`](commands/audit.md) — measure always-on project/user context.
+- [`audit`](commands/audit.md) — consolidated context, retrieval, processor, recovery, host, and efficiency audit.
 - [`sessions`](commands/sessions.md) — analyze Claude transcript token/tool evidence.
 - [`dashboard`](commands/dashboard.md) — local savings, usage, continuity, and waste telemetry.
 - [`continuity`](commands/continuity.md) — inspect the structured resume/compaction checkpoint.

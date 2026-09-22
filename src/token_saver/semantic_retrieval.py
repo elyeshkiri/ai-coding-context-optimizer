@@ -21,6 +21,7 @@ from typing import Protocol
 
 from .lexical import terms
 from .repo_index import RepositoryIndex
+from .retrieval_vnext import configured_semantic_model
 from .state import state_dir
 
 SEMANTIC_SCHEMA = 2
@@ -593,7 +594,7 @@ class SemanticVectorIndex:
         root: Path,
         index: RepositoryIndex,
         *,
-        model: str = DEFAULT_MODEL,
+        model: str | None = None,
         chunk_lines: int = DEFAULT_CHUNK_LINES,
         overlap: int = DEFAULT_CHUNK_OVERLAP,
         encoder: Encoder | None = None,
@@ -601,14 +602,14 @@ class SemanticVectorIndex:
         """Bind semantic persistence to one repository/index/model contract."""
         self.root = root.resolve()
         self.index = index
-        self.model = model
+        self.model = configured_semantic_model(DEFAULT_MODEL) if model is None else model
         self.model_revision = _model_revision()
         self.chunk_lines = chunk_lines
         self.overlap = overlap
         self._encoder = encoder
         self.path = semantic_index_path(
             self.root,
-            model,
+            self.model,
             self.model_revision,
         )
 
@@ -1040,9 +1041,10 @@ class SemanticVectorIndex:
                 connection.close()
 
 
-def semantic_status(root: Path, model: str = DEFAULT_MODEL) -> dict:
+def semantic_status(root: Path, model: str | None = None) -> dict:
     """Return semantic index status without requiring the embedding dependency."""
     revision = _model_revision()
+    model = configured_semantic_model(DEFAULT_MODEL) if model is None else model
     path = semantic_index_path(root.resolve(), model, revision)
     if not path.is_file():
         return SemanticIndexStats(
