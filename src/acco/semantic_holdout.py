@@ -3,7 +3,7 @@
 This evaluator compares three retrieval arms on the same immutable natural-
 language tasks:
 
-* Token Saver's validated lexical/structural pipeline;
+* ACCO's validated lexical/structural pipeline;
 * the same pipeline with persistent chunk-level semantic retrieval enabled;
 * a deliberately weak distinct-term-overlap baseline.
 

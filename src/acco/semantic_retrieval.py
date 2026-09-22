@@ -252,7 +252,7 @@ def _project_id(root: Path) -> str:
 
 def _model_revision() -> str | None:
     """Return the optional immutable local embedding-model revision."""
-    return os.environ.get("TOKEN_SAVER_SEMANTIC_MODEL_REVISION") or None
+    return os.environ.get("ACCO_SEMANTIC_MODEL_REVISION") or None
 
 
 def _model_id(model: str, revision: str | None = None) -> str:
@@ -309,7 +309,7 @@ def _load_encoder_cached(model: str, revision: str | None) -> Encoder:
     except ImportError as exc:
         raise RuntimeError(
             "hybrid semantic retrieval requires: "
-            "pip install 'claude-token-saver[embeddings]'"
+            "pip install 'ai-coding-context-optimizer[embeddings]'"
         ) from exc
     try:
         return SentenceTransformer(

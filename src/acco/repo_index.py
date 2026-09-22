@@ -497,8 +497,8 @@ def _outline(text: str, suffix: str) -> str:
 
 def _default_cache(root: Path) -> Path:
     """Handle default cache."""
-    state = os.environ.get("TOKEN_SAVER_STATE_DIR")
-    base = Path(state).expanduser() if state else Path.home() / ".claude" / "token-saver"
+    state = os.environ.get("ACCO_STATE_DIR")
+    base = Path(state).expanduser() if state else Path.home() / ".claude" / "acco"
     key = hashlib.sha256(str(root.resolve()).encode()).hexdigest()[:16]
     return base / "indexes" / f"{key}.json"
 

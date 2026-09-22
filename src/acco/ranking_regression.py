@@ -436,7 +436,7 @@ def render_ranking_diff_markdown(report: dict, *, max_items: int = 20) -> str:
         raise ValueError("ranking diff report is missing summary")
 
     lines = [
-        "## Token Saver ranking regression report",
+        "## ACCO ranking regression report",
         "",
         (
             f"Compared **{summary.get('task_count', 0)} tasks** / "

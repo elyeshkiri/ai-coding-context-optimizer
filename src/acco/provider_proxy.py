@@ -169,7 +169,7 @@ def _handler_factory(
         def log_message(self, format: str, *args) -> None:
             """Keep access logs terse and free of headers/request content."""
             print(
-                f"token-saver proxy: {self.address_string()} "
+                f"acco proxy: {self.address_string()} "
                 + format % args,
                 file=sys.stderr,
             )
@@ -235,7 +235,7 @@ def _handler_factory(
             meta = transformed.metadata
             if meta.get("changed"):
                 print(
-                    "token-saver proxy transform: "
+                    "acco proxy transform: "
                     f"{meta.get('original_tokens', 0)} -> "
                     f"{meta.get('output_tokens', 0)} estimated tokens; "
                     f"recoveries={len(meta.get('recovery_handles', []))}",

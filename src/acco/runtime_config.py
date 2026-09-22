@@ -20,13 +20,13 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - Python 3.10
     import tomli as tomllib
 
-CONFIG_NAME = ".token-saver.toml"
+CONFIG_NAME = ".acco.toml"
 MCP_PROFILES = ("minimal", "context", "memory", "adaptive", "full")
 
 
 @dataclass(frozen=True)
 class RuntimeSettings:
-    """Resolved Token Saver runtime settings for one project."""
+    """Resolved ACCO runtime settings for one project."""
 
     disabled: bool = False
     guard: bool = True
@@ -43,7 +43,7 @@ class RuntimeSettings:
     output_adaptive: bool = True
     output_min_tokens: int | None = None
     output_max_tokens: int | None = None
-    output_calibration_file: str = ".token-saver.output-calibration.json"
+    output_calibration_file: str = ".acco.output-calibration.json"
     output_telemetry: bool = True
     model_routing_enabled: bool = False
     model_routing_mode: str = "advisory"
@@ -171,38 +171,38 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
     try:
         payload = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise ValueError(f"Invalid Token Saver config: {path}") from exc
+        raise ValueError(f"Invalid ACCO config: {path}") from exc
     hooks = payload.get("hooks", {})
     if not isinstance(hooks, dict):
-        raise ValueError(f"Expected [hooks] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [hooks] table in ACCO config: {path}")
     output = payload.get("output", {})
     if not isinstance(output, dict):
-        raise ValueError(f"Expected [output] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [output] table in ACCO config: {path}")
     model_routing = payload.get("model_routing", {})
     if not isinstance(model_routing, dict):
         raise ValueError(
-            f"Expected [model_routing] table in Token Saver config: {path}"
+            f"Expected [model_routing] table in ACCO config: {path}"
         )
     efficiency = payload.get("efficiency", {})
     if not isinstance(efficiency, dict):
         raise ValueError(
-            f"Expected [efficiency] table in Token Saver config: {path}"
+            f"Expected [efficiency] table in ACCO config: {path}"
         )
     ingress = payload.get("ingress", {})
     if not isinstance(ingress, dict):
-        raise ValueError(f"Expected [ingress] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [ingress] table in ACCO config: {path}")
     retrieval = payload.get("retrieval", {})
     if not isinstance(retrieval, dict):
-        raise ValueError(f"Expected [retrieval] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [retrieval] table in ACCO config: {path}")
     tool_proxy = payload.get("tool_proxy", {})
     if not isinstance(tool_proxy, dict):
-        raise ValueError(f"Expected [tool_proxy] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [tool_proxy] table in ACCO config: {path}")
     mcp = payload.get("mcp", {})
     if not isinstance(mcp, dict):
-        raise ValueError(f"Expected [mcp] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [mcp] table in ACCO config: {path}")
     provider = payload.get("provider", {})
     if not isinstance(provider, dict):
-        raise ValueError(f"Expected [provider] table in Token Saver config: {path}")
+        raise ValueError(f"Expected [provider] table in ACCO config: {path}")
     allow = hooks.get("allow", [])
     allow_tuple = (
         tuple(item for item in allow if isinstance(item, str))
@@ -244,7 +244,7 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         output_max_tokens=_optional_positive_int(output.get("max_tokens"), None),
         output_calibration_file=_string(
             output.get("calibration_file"),
-            ".token-saver.output-calibration.json",
+            ".acco.output-calibration.json",
         ),
         output_telemetry=_bool(output.get("telemetry"), True),
         model_routing_enabled=_bool(model_routing.get("enabled"), False),
@@ -429,139 +429,139 @@ def _env_int(
 def settings_for(start: Path | None = None) -> RuntimeSettings:
     """Resolve project config with environment variables taking precedence."""
     base = _load_file(start)
-    allow_raw = os.environ.get("TOKEN_SAVER_ALLOW")
+    allow_raw = os.environ.get("ACCO_ALLOW")
     allow = (
         tuple(part for part in allow_raw.split(":") if part)
         if allow_raw is not None
         else base.allow
     )
-    max_lines = _env_int("TOKEN_SAVER_MAX_LINES", base.max_lines)
+    max_lines = _env_int("ACCO_MAX_LINES", base.max_lines)
     read_max_lines = _env_int(
-        "TOKEN_SAVER_READ_MAX_LINES", base.read_max_lines
+        "ACCO_READ_MAX_LINES", base.read_max_lines
     )
-    min_lines = _env_int("TOKEN_SAVER_MIN_LINES", base.min_lines)
+    min_lines = _env_int("ACCO_MIN_LINES", base.min_lines)
     keep_tail = _env_int(
-        "TOKEN_SAVER_KEEP_TAIL", base.keep_tail, minimum=0
+        "ACCO_KEEP_TAIL", base.keep_tail, minimum=0
     )
     return RuntimeSettings(
-        disabled=_env_bool("TOKEN_SAVER_DISABLED", base.disabled),
-        guard=_env_bool("TOKEN_SAVER_GUARD", base.guard),
+        disabled=_env_bool("ACCO_DISABLED", base.disabled),
+        guard=_env_bool("ACCO_GUARD", base.guard),
         read_max_lines=int(read_max_lines or base.read_max_lines),
-        reread=_env_bool("TOKEN_SAVER_REREAD", base.reread),
+        reread=_env_bool("ACCO_REREAD", base.reread),
         allow=allow,
-        delta=_env_bool("TOKEN_SAVER_DELTA", base.delta),
+        delta=_env_bool("ACCO_DELTA", base.delta),
         min_lines=int(min_lines or base.min_lines),
         max_lines=max_lines,
         keep_tail=int(keep_tail if keep_tail is not None else base.keep_tail),
-        output_policy=_env_bool("TOKEN_SAVER_OUTPUT_POLICY", base.output_policy),
+        output_policy=_env_bool("ACCO_OUTPUT_POLICY", base.output_policy),
         output_mode=_env_choice(
-            "TOKEN_SAVER_OUTPUT_MODE", base.output_mode, OUTPUT_MODES
+            "ACCO_OUTPUT_MODE", base.output_mode, OUTPUT_MODES
         ),
         output_task=_env_choice(
-            "TOKEN_SAVER_OUTPUT_TASK", base.output_task, OUTPUT_TASK_OPTIONS
+            "ACCO_OUTPUT_TASK", base.output_task, OUTPUT_TASK_OPTIONS
         ),
         output_adaptive=_env_bool(
-            "TOKEN_SAVER_OUTPUT_ADAPTIVE", base.output_adaptive
+            "ACCO_OUTPUT_ADAPTIVE", base.output_adaptive
         ),
         output_min_tokens=_env_int(
-            "TOKEN_SAVER_OUTPUT_MIN_TOKENS", base.output_min_tokens
+            "ACCO_OUTPUT_MIN_TOKENS", base.output_min_tokens
         ),
         output_max_tokens=_env_int(
-            "TOKEN_SAVER_OUTPUT_MAX_TOKENS", base.output_max_tokens
+            "ACCO_OUTPUT_MAX_TOKENS", base.output_max_tokens
         ),
         output_calibration_file=_env_string(
-            "TOKEN_SAVER_OUTPUT_CALIBRATION_FILE",
+            "ACCO_OUTPUT_CALIBRATION_FILE",
             base.output_calibration_file,
         ),
         output_telemetry=_env_bool(
-            "TOKEN_SAVER_OUTPUT_TELEMETRY", base.output_telemetry
+            "ACCO_OUTPUT_TELEMETRY", base.output_telemetry
         ),
         model_routing_enabled=_env_bool(
-            "TOKEN_SAVER_MODEL_ROUTING", base.model_routing_enabled
+            "ACCO_MODEL_ROUTING", base.model_routing_enabled
         ),
         model_routing_mode=_env_choice(
-            "TOKEN_SAVER_MODEL_ROUTING_MODE",
+            "ACCO_MODEL_ROUTING_MODE",
             base.model_routing_mode,
             ROUTING_MODES,
         ),
         model_routing_current_model=_env_string(
-            "TOKEN_SAVER_MODEL_ROUTING_CURRENT_MODEL",
+            "ACCO_MODEL_ROUTING_CURRENT_MODEL",
             base.model_routing_current_model,
         ),
         model_routing_allowed_models=(
             tuple(
                 part.strip()
-                for part in os.environ["TOKEN_SAVER_MODEL_ROUTING_ALLOWED"].split(":")
+                for part in os.environ["ACCO_MODEL_ROUTING_ALLOWED"].split(":")
                 if part.strip()
             )
-            if os.environ.get("TOKEN_SAVER_MODEL_ROUTING_ALLOWED")
+            if os.environ.get("ACCO_MODEL_ROUTING_ALLOWED")
             else base.model_routing_allowed_models
         ),
         model_routing_min_savings=_env_float(
-            "TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS",
+            "ACCO_MODEL_ROUTING_MIN_SAVINGS",
             base.model_routing_min_savings,
             minimum=0.0,
             maximum=1.0,
         ),
         model_routing_conservative=_env_bool(
-            "TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE",
+            "ACCO_MODEL_ROUTING_CONSERVATIVE",
             base.model_routing_conservative,
         ),
         model_routing_calibration_file=_env_string(
-            "TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE",
+            "ACCO_MODEL_ROUTING_CALIBRATION_FILE",
             base.model_routing_calibration_file,
         ),
         efficiency_enabled=_env_bool(
-            "TOKEN_SAVER_EFFICIENCY", base.efficiency_enabled
+            "ACCO_EFFICIENCY", base.efficiency_enabled
         ),
         continuity_enabled=_env_bool(
-            "TOKEN_SAVER_CONTINUITY", base.continuity_enabled
+            "ACCO_CONTINUITY", base.continuity_enabled
         ),
         cross_turn_dedup=_env_bool(
-            "TOKEN_SAVER_CROSS_TURN_DEDUP", base.cross_turn_dedup
+            "ACCO_CROSS_TURN_DEDUP", base.cross_turn_dedup
         ),
         waste_detection=_env_bool(
-            "TOKEN_SAVER_WASTE_DETECTION", base.waste_detection
+            "ACCO_WASTE_DETECTION", base.waste_detection
         ),
         knowledge_read_avoidance=_env_bool(
-            "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE",
+            "ACCO_KNOWLEDGE_READ_AVOIDANCE",
             base.knowledge_read_avoidance,
         ),
         cache_economics=_env_bool(
-            "TOKEN_SAVER_CACHE_ECONOMICS",
+            "ACCO_CACHE_ECONOMICS",
             base.cache_economics,
         ),
         cache_expected_reuses=int(
             _env_int(
-                "TOKEN_SAVER_CACHE_EXPECTED_REUSES",
+                "ACCO_CACHE_EXPECTED_REUSES",
                 base.cache_expected_reuses,
                 minimum=0,
             )
             or 0
         ),
         cache_write_factor=_env_float(
-            "TOKEN_SAVER_CACHE_WRITE_FACTOR",
+            "ACCO_CACHE_WRITE_FACTOR",
             base.cache_write_factor,
             minimum=0.000001,
         ),
         cache_read_factor=_env_float(
-            "TOKEN_SAVER_CACHE_READ_FACTOR",
+            "ACCO_CACHE_READ_FACTOR",
             base.cache_read_factor,
             minimum=0.000001,
         ),
         cache_min_relative_savings=_env_float(
-            "TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS",
+            "ACCO_CACHE_MIN_RELATIVE_SAVINGS",
             base.cache_min_relative_savings,
             minimum=0.0,
             maximum=1.0,
         ),
         ingress_enabled=_env_bool(
-            "TOKEN_SAVER_INGRESS_OPTIMIZER",
+            "ACCO_INGRESS_OPTIMIZER",
             base.ingress_enabled,
         ),
         ingress_threshold_tokens=int(
             _env_int(
-                "TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS",
+                "ACCO_INGRESS_THRESHOLD_TOKENS",
                 base.ingress_threshold_tokens,
                 minimum=200,
             )
@@ -569,44 +569,44 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         ingress_packet_tokens=int(
             _env_int(
-                "TOKEN_SAVER_INGRESS_PACKET_TOKENS",
+                "ACCO_INGRESS_PACKET_TOKENS",
                 base.ingress_packet_tokens,
                 minimum=200,
             )
             or base.ingress_packet_tokens
         ),
         retrieval_cache=_env_bool(
-            "TOKEN_SAVER_RETRIEVAL_CACHE",
+            "ACCO_RETRIEVAL_CACHE",
             base.retrieval_cache,
         ),
         retrieval_cache_max_entries=int(
             _env_int(
-                "TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES",
+                "ACCO_RETRIEVAL_CACHE_MAX_ENTRIES",
                 base.retrieval_cache_max_entries,
                 minimum=1,
             )
             or base.retrieval_cache_max_entries
         ),
         tool_proxy_enabled=_env_bool(
-            "TOKEN_SAVER_TOOL_PROXY",
+            "ACCO_TOOL_PROXY",
             base.tool_proxy_enabled,
         ),
         tool_proxy_provider=_env_choice(
-            "TOKEN_SAVER_TOOL_PROXY_PROVIDER",
+            "ACCO_TOOL_PROXY_PROVIDER",
             base.tool_proxy_provider,
             ("ollama", "deterministic"),
         ),
         tool_proxy_model=_env_string(
-            "TOKEN_SAVER_TOOL_PROXY_MODEL",
+            "ACCO_TOOL_PROXY_MODEL",
             base.tool_proxy_model,
         ),
         tool_proxy_endpoint=_env_string(
-            "TOKEN_SAVER_TOOL_PROXY_ENDPOINT",
+            "ACCO_TOOL_PROXY_ENDPOINT",
             base.tool_proxy_endpoint,
         ),
         tool_proxy_min_tokens=int(
             _env_int(
-                "TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS",
+                "ACCO_TOOL_PROXY_MIN_TOKENS",
                 base.tool_proxy_min_tokens,
                 minimum=200,
             )
@@ -614,7 +614,7 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         tool_proxy_target_tokens=int(
             _env_int(
-                "TOKEN_SAVER_TOOL_PROXY_TARGET_TOKENS",
+                "ACCO_TOOL_PROXY_TARGET_TOKENS",
                 base.tool_proxy_target_tokens,
                 minimum=200,
             )
@@ -622,20 +622,20 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         tool_proxy_model_input_tokens=int(
             _env_int(
-                "TOKEN_SAVER_TOOL_PROXY_MODEL_INPUT_TOKENS",
+                "ACCO_TOOL_PROXY_MODEL_INPUT_TOKENS",
                 base.tool_proxy_model_input_tokens,
                 minimum=400,
             )
             or base.tool_proxy_model_input_tokens
         ),
         tool_proxy_timeout_seconds=_env_float(
-            "TOKEN_SAVER_TOOL_PROXY_TIMEOUT_SECONDS",
+            "ACCO_TOOL_PROXY_TIMEOUT_SECONDS",
             base.tool_proxy_timeout_seconds,
             minimum=0.2,
         ),
         tool_proxy_max_ranges=int(
             _env_int(
-                "TOKEN_SAVER_TOOL_PROXY_MAX_RANGES",
+                "ACCO_TOOL_PROXY_MAX_RANGES",
                 base.tool_proxy_max_ranges,
                 minimum=1,
             )
@@ -643,14 +643,14 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         ),
         tool_proxy_max_range_lines=int(
             _env_int(
-                "TOKEN_SAVER_TOOL_PROXY_MAX_RANGE_LINES",
+                "ACCO_TOOL_PROXY_MAX_RANGE_LINES",
                 base.tool_proxy_max_range_lines,
                 minimum=1,
             )
             or base.tool_proxy_max_range_lines
         ),
         mcp_profile=_env_choice(
-            "TOKEN_SAVER_MCP_PROFILE",
+            "ACCO_MCP_PROFILE",
             base.mcp_profile,
             MCP_PROFILES,
         ),
@@ -658,7 +658,7 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
             24,
             int(
                 _env_int(
-                    "TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS",
+                    "ACCO_MCP_ADAPTIVE_MAX_TOOLS",
                     base.mcp_adaptive_max_tools,
                     minimum=7,
                 )
@@ -666,11 +666,11 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
             ),
         ),
         mcp_compress_schemas=_env_bool(
-            "TOKEN_SAVER_MCP_COMPRESS_SCHEMAS",
+            "ACCO_MCP_COMPRESS_SCHEMAS",
             base.mcp_compress_schemas,
         ),
         prefix_tracking=_env_bool(
-            "TOKEN_SAVER_PREFIX_TRACKING",
+            "ACCO_PREFIX_TRACKING",
             base.prefix_tracking,
         ),
     )

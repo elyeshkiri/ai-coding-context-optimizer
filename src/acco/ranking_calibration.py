@@ -248,7 +248,7 @@ def render_ranking_calibration_markdown(report: dict) -> str:
         cohorts = report.get("cohorts")
         if not isinstance(cohorts, list) or not cohorts:
             return (
-                "## Token Saver ranking gate calibration\n\n"
+                "## ACCO ranking gate calibration\n\n"
                 "No ranking-regression history is available yet.\n"
             )
         calibration = cohorts[0]
@@ -257,7 +257,7 @@ def render_ranking_calibration_markdown(report: dict) -> str:
     support = calibration["historical_support"]
     percentiles = calibration["rank_drop_percentiles"]
     lines = [
-        "## Token Saver ranking gate calibration",
+        "## ACCO ranking gate calibration",
         "",
         (
             f"Current frozen cohort: "

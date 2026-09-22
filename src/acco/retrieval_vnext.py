@@ -1,4 +1,4 @@
-"""Hybrid retrieval fusion primitives for Token Saver retrieval vNext.
+"""Hybrid retrieval fusion primitives for ACCO retrieval vNext.
 
 The semantic index discovers candidate source ranges but never becomes source
 authority. These helpers combine semantic rank with already-measured lexical
@@ -51,9 +51,9 @@ def configured_semantic_model(default: str) -> str:
 
     This intentionally does not download or select a larger model on its own.
     Operators may point sentence-transformers at a code-specialized model with
-    TOKEN_SAVER_SEMANTIC_MODEL and evaluate it on a fresh holdout.
+    ACCO_SEMANTIC_MODEL and evaluate it on a fresh holdout.
     """
-    value = os.environ.get("TOKEN_SAVER_SEMANTIC_MODEL", "").strip()
+    value = os.environ.get("ACCO_SEMANTIC_MODEL", "").strip()
     return value or default
 
 

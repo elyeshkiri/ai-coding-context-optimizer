@@ -1,4 +1,4 @@
-"""Content-addressed exact-byte recovery for lossy Token Saver transforms."""
+"""Content-addressed exact-byte recovery for lossy ACCO transforms."""
 
 from __future__ import annotations
 
