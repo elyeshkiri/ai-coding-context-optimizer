@@ -1,10 +1,10 @@
 [package]
-name = "token-saver-fast"
+name = "acco-fast"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "_token_saver_fast"
+name = "_acco_fast"
 crate-type = ["cdylib"]
 
 [features]
