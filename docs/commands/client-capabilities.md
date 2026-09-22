@@ -10,7 +10,7 @@ token-saver client-capabilities [--client CLIENT] [--json]
 
 ## Arguments and options
 
-- `--client CLIENT` — show one host in detail. Accepted canonical names include `claude-code`, `codex`, `cursor`, `gemini-cli`, and `generic-mcp`; common aliases are normalized.
+- `--client CLIENT` — show one host in detail. Accepted canonical names include `claude-code`, `codex`, `cursor`, `opencode`, `openclaw`, `hermes`, `copilot`, `antigravity`, `gemini-cli`, and `generic-mcp`; common aliases are normalized.
 - `--json` — emit the machine-readable registry or selected-client report.
 
 Capabilities are intentionally conservative. `yes` means Token Saver may rely on the
