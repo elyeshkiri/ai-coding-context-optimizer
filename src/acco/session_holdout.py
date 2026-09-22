@@ -37,6 +37,24 @@ _REQUIRED_TREATMENT_ENV = {
 }
 
 
+def _compat_env_value(env: dict, key: str):
+    """Read ACCO benchmark env keys with frozen Token Saver compatibility."""
+    if key in env:
+        return env[key]
+    if key.startswith("ACCO_"):
+        return env.get("TOKEN_SAVER_" + key[len("ACCO_"):])
+    return env.get(key)
+
+
+def _profile_installed(profile: dict) -> bool:
+    """Read the current or historical install flag from a frozen profile."""
+    value = profile.get("install_acco")
+    if not isinstance(value, bool):
+        value = profile.get("install_token_saver")
+    return value is True
+
+
+
 def _number(value: object, name: str) -> float:
     """Validate one finite nonnegative numeric field."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -127,9 +145,9 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     enabled = profiles["enabled"]
     if not isinstance(baseline, dict) or not isinstance(enabled, dict):
         return False, ["invalid_session_efficiency_condition_profiles"]
-    if baseline.get("install_acco") is not True:
+    if not _profile_installed(baseline):
         issues.append("control_does_not_install_acco")
-    if enabled.get("install_acco") is not True:
+    if not _profile_installed(enabled):
         issues.append("treatment_does_not_install_acco")
     if str(baseline.get("label") or "") != "v1.6-session-baseline":
         issues.append("control_label_mismatch")
@@ -142,12 +160,12 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
         issues.append("condition_env_missing")
     else:
         for key, expected in _REQUIRED_CONTROL_ENV.items():
-            if baseline_env.get(key) != expected:
+            if _compat_env_value(baseline_env, key) != expected:
                 issues.append(f"control_env_mismatch:{key}")
         for key, expected in _REQUIRED_TREATMENT_ENV.items():
-            if enabled_env.get(key) != expected:
+            if _compat_env_value(enabled_env, key) != expected:
                 issues.append(f"treatment_env_mismatch:{key}")
-        ignored = set(_REQUIRED_CONTROL_ENV)
+        ignored = set(_REQUIRED_CONTROL_ENV) | {key.replace("ACCO_", "TOKEN_SAVER_", 1) for key in _REQUIRED_CONTROL_ENV}
         control_other = {
             key: value for key, value in baseline_env.items() if key not in ignored
         }
@@ -159,7 +177,7 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     command = runner.get("command")
     if (
         not isinstance(command, list)
-        or "acco.session_holdout_docker" not in command
+        or not any(name in command for name in ("acco.session_holdout_docker", "token_saver.session_holdout_docker"))
     ):
         issues.append("session_holdout_runner_missing")
     if runner.get("session_holdout_protocol_version") != 1:
