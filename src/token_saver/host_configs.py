@@ -145,8 +145,8 @@ def opencode_configured(root: Path) -> bool:
     return _nested_json_configured(opencode_mcp_path(root), ("mcp", "servers"))
 
 
-def install_opencode(root: Path) -> None:
-    """Install the project-local OpenCode MCP entry without touching root config."""
+def validate_opencode_manageable(root: Path) -> None:
+    """Refuse ambiguous sibling OpenCode project config ownership."""
     path = opencode_mcp_path(root)
     sibling = opencode_jsonc_path(root)
     if sibling.exists() and not path.exists():
@@ -155,6 +155,12 @@ def install_opencode(root: Path) -> None:
             ".opencode/opencode.jsonc; configure Token Saver in one OpenCode "
             "project config to avoid ambiguous precedence."
         )
+
+
+def install_opencode(root: Path) -> None:
+    """Install the project-local OpenCode MCP entry without touching root config."""
+    path = opencode_mcp_path(root)
+    validate_opencode_manageable(root)
     entry = {
         "type": "local",
         "command": ["token-saver", "serve", str(root.resolve())],
@@ -325,6 +331,8 @@ def install_hermes(root: Path, home: Path | None = None) -> None:
     ]
     if root_indexes:
         index = root_indexes[0] + 1
+        if not lines[index - 1].endswith(("\n", "\r")):
+            lines[index - 1] += "\n"
         lines.insert(index, entry)
         rendered = "".join(lines)
     else:
@@ -359,10 +367,9 @@ def hermes_configured(home: Path | None = None) -> bool:
 
 def openclaw_config_path(home: Path | None = None) -> Path:
     """Return OpenClaw's active/default JSON5 configuration path."""
-    if home is None:
-        override = os.environ.get("OPENCLAW_CONFIG_PATH", "").strip()
-        if override:
-            return Path(override).expanduser()
+    override = os.environ.get("OPENCLAW_CONFIG_PATH", "").strip()
+    if override:
+        return Path(override).expanduser()
     return (home or Path.home()) / ".openclaw" / "openclaw.json"
 
 
