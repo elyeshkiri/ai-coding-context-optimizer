@@ -34,7 +34,13 @@ def _recovery_status(root: Path) -> dict[str, Any]:
     return result
 
 
-def _context_summary(report, *, mcp_timeout: int, probe_mcp: bool) -> dict:
+def _context_summary(
+    root: Path,
+    report,
+    *,
+    mcp_timeout: int,
+    probe_mcp: bool,
+) -> dict:
     """Convert the context audit into a stable JSON-safe summary."""
     mcp = []
     if probe_mcp:
@@ -45,7 +51,7 @@ def _context_summary(report, *, mcp_timeout: int, probe_mcp: bool) -> dict:
                 "tokens": item.tokens,
                 "status": item.status,
             }
-            for item in probe_all(report.root, timeout=mcp_timeout)
+            for item in probe_all(root, timeout=mcp_timeout)
         ]
     return {
         "always_on_tokens": report.always_on,
@@ -165,6 +171,7 @@ def unified_audit_report(
     )
     selected_client = capability_report(client) if client else None
     context = _context_summary(
+        root,
         audited,
         mcp_timeout=mcp_timeout,
         probe_mcp=probe_mcp,
