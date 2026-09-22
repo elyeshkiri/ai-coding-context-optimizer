@@ -23,9 +23,11 @@ def test_ranking_regression_job_is_pr_only_and_uses_base_sha():
 def test_ranking_regression_uses_base_manifest_for_both_snapshots():
     """A PR must not be able to redefine the ground truth used for its own diff."""
     workflow = _workflow_text()
-    command = "acco ranking-snapshot baseline/benchmarks/context-quality.json"
+    manifest = "ranking-snapshot baseline/benchmarks/context-quality.json"
 
-    assert workflow.count(command) == 2
+    assert workflow.count(manifest) == 2
+    assert "token-saver ranking-snapshot baseline/benchmarks/context-quality.json" in workflow
+    assert "acco ranking-snapshot baseline/benchmarks/context-quality.json" in workflow
     assert "--path baseline" in workflow
     assert "--path candidate" in workflow
 
