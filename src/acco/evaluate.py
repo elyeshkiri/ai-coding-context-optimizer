@@ -98,7 +98,7 @@ def _ground_truth_payload(payload: dict[str, Any]) -> dict[str, Any]:
             }
             # Opt-in stricter identity: path + qualified symbol. Do not inject
             # an empty field into legacy manifests, otherwise historical frozen
-            # ground-truth hashes would change merely by upgrading Token Saver.
+            # ground-truth hashes would change merely by upgrading ACCO.
             if "qualified_symbols" in raw:
                 normalized["qualified_symbols"] = sorted(
                     str(value)

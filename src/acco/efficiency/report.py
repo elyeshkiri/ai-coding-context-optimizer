@@ -47,7 +47,7 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
             "events": len(savings),
             "trust": (
                 "Estimated from observed before/after local tool text using the "
-                "Token Saver estimator; not an API invoice."
+                "ACCO estimator; not an API invoice."
             ),
         },
         "continuity": {

@@ -1,6 +1,6 @@
 """Stable top-level command dispatcher.
 
-Command registration lives in :mod:`token_saver.command_registry`; this module
+Command registration lives in :mod:`acco.command_registry`; this module
 owns only argv acquisition and fallback to the mature legacy CLI.
 """
 
@@ -16,14 +16,14 @@ def _print_help() -> None:
     """Print one merged command index across registry and compatibility surfaces."""
     modern = set(DEFAULT_COMMAND_REGISTRY.names())
     legacy = set(LEGACY_COMMANDS)
-    print("usage: token-saver <command> [options]")
+    print("usage: acco <command> [options]")
     print()
-    print("Token Saver commands:")
+    print("ACCO commands:")
     for name in sorted(modern | legacy):
         suffix = " (legacy-compatible)" if name in legacy and name not in modern else ""
         print(f"  {name}{suffix}")
     print()
-    print("Run 'token-saver <command> --help' for flags.")
+    print("Run 'acco <command> --help' for flags.")
     print("See docs/CLI_REFERENCE.md for exit codes and JSON contracts.")
 
 

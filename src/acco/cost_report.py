@@ -1,4 +1,4 @@
-"""Cost-per-success accounting for baseline vs Token Saver agent runs."""
+"""Cost-per-success accounting for baseline vs ACCO agent runs."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -375,7 +375,7 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
         if not task_id or condition not in by_condition:
             raise ValueError(
                 f"{path}: each paired run requires task and condition "
-                "baseline|token-saver|enabled"
+                "baseline|acco|enabled"
             )
         trial = _trial(item.get("trial"), f"{path}: run {task_id!r}/{condition}")
         key = (task_id, trial, condition)
@@ -435,7 +435,7 @@ def load_paired_agent_runs(path: Path, pricing: Pricing | None = None) -> tuple[
         missing_optimized = sorted(_label(*k) for k in baseline_tasks - optimized_tasks)
         missing_baseline = sorted(_label(*k) for k in optimized_tasks - baseline_tasks)
         raise ValueError(
-            f"{path}: unpaired tasks; missing token-saver={missing_optimized}, "
+            f"{path}: unpaired tasks; missing acco={missing_optimized}, "
             f"missing baseline={missing_baseline}"
         )
     return by_condition[BASELINE_CONDITION], by_condition[OPTIMIZED_CONDITION]

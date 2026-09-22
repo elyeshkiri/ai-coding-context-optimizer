@@ -271,24 +271,24 @@ def _recommendations(audit_report, dashboard: dict, signals: dict, score: dict, 
     items: list[dict] = []
     always_on = int(audit_report.always_on)
     if always_on > 5000:
-        items.append(("high", "trim-always-on-context", f"{always_on:,} always-on tokens", "Move verbose/path-specific instructions out of always-on context; inspect with token-saver audit."))
+        items.append(("high", "trim-always-on-context", f"{always_on:,} always-on tokens", "Move verbose/path-specific instructions out of always-on context; inspect with acco audit."))
     elif always_on > 2500:
-        items.append(("medium", "review-always-on-context", f"{always_on:,} always-on tokens", "Review always-on imports and rules with token-saver audit."))
+        items.append(("medium", "review-always-on-context", f"{always_on:,} always-on tokens", "Review always-on imports and rules with acco audit."))
 
     if len(audit_report.mcp_servers) >= 4:
-        items.append(("medium", "measure-mcp-overhead", f"{len(audit_report.mcp_servers)} MCP servers configured", "Measure/prune unused MCP schemas with token-saver mcp-prune; schema cost is not guessed."))
+        items.append(("medium", "measure-mcp-overhead", f"{len(audit_report.mcp_servers)} MCP servers configured", "Measure/prune unused MCP schemas with acco mcp-prune; schema cost is not guessed."))
 
     underused = signals.get("underused_budget_groups", [])
     overruns = signals.get("frequent_target_overrun_groups", [])
     if underused:
-        items.append(("medium", "lower-output-budgets", "Underused output budgets: " + ", ".join(underused[:5]), "Recalibrate with token-saver output-calibrate."))
+        items.append(("medium", "lower-output-budgets", "Underused output budgets: " + ", ".join(underused[:5]), "Recalibrate with acco output-calibrate."))
     if overruns:
         items.append(("high", "fix-output-overruns", "Frequent target overruns: " + ", ".join(overruns[:5]), "Recalibrate output policy before lowering budgets."))
 
     cache = next((item for item in score["categories"] if item["id"] == "cache_reuse" and item["available"]), None)
     if cache and float(cache["evidence"]["cache_read_share"]) < .20:
         share = float(cache["evidence"]["cache_read_share"])
-        items.append(("medium", "inspect-cache-stability", f"Cache-read share is {share:.1%}", "Inspect prompt/context churn; use token-saver cache-economics before rewriting stable prefixes."))
+        items.append(("medium", "inspect-cache-stability", f"Cache-read share is {share:.1%}", "Inspect prompt/context churn; use acco cache-economics before rewriting stable prefixes."))
 
     waste = dashboard.get("behavior", {}).get("signals", {})
     actions = {
@@ -339,7 +339,7 @@ def _recommendations(audit_report, dashboard: dict, signals: dict, score: dict, 
         )
 
     if not rates_supplied:
-        items.append(("info", "supply-pricing", "No exact-model pricing file supplied", "Pass --rates FILE to price measured usage; Token Saver will not guess model prices."))
+        items.append(("info", "supply-pricing", "No exact-model pricing file supplied", "Pass --rates FILE to price measured usage; ACCO will not guess model prices."))
     elif not cost.get("complete") and cost.get("measured_turns"):
         items.append(("info", "complete-pricing-coverage", "; ".join(cost.get("incomplete_reasons", [])[:3]), "Add missing exact model/TTL rates instead of extrapolating."))
 

@@ -48,7 +48,7 @@ def render_dashboard_html(report: dict) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Token Saver Dashboard</title>
+<title>ACCO Dashboard</title>
 <style>
 body {{ font-family: system-ui, sans-serif; max-width: 1100px; margin: 0 auto;
        padding: 32px 20px; line-height: 1.45; }}
@@ -69,7 +69,7 @@ td:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
 </style>
 </head>
 <body>
-<h1>Token Saver Dashboard</h1>
+<h1>ACCO Dashboard</h1>
 <div class="muted">Local operational telemetry · last {escape(str(days))} days</div>
 <div class="cards">
   <div class="card"><div>Estimated tool-context saved</div>

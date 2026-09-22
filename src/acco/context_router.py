@@ -94,7 +94,7 @@ def _compact_json_value(value: Any, query_terms: set[str], depth: int = 0) -> An
     """Compact large JSON containers while retaining schema and focused samples."""
     if depth >= 4:
         if isinstance(value, (list, dict)):
-            return {"_token_saver": {"type": type(value).__name__, "items": len(value)}}
+            return {"_acco": {"type": type(value).__name__, "items": len(value)}}
         return value
     if isinstance(value, dict):
         return {
@@ -109,7 +109,7 @@ def _compact_json_value(value: Any, query_terms: set[str], depth: int = 0) -> An
         if not focused and len(value) > 3:
             samples = [*samples, value[-1]]
         return {
-            "_token_saver": {
+            "_acco": {
                 "type": "list",
                 "items": len(value),
                 "shown": len(samples),
@@ -156,7 +156,7 @@ def _compress_log(text: str, query: str, max_lines: int) -> tuple[str, dict[str,
             break
     ordered = sorted(selected)[:max_lines]
     body = [
-        f"[token-saver log: {len(lines)} lines -> {len(ordered)} retained]",
+        f"[acco log: {len(lines)} lines -> {len(ordered)} retained]",
         *(lines[index] for index in ordered),
     ]
     return "\n".join(body) + "\n", {
@@ -205,7 +205,7 @@ def _compress_table(text: str, query: str, max_lines: int) -> tuple[str, dict[st
     writer = csv.writer(output, delimiter=delimiter, lineterminator="\n")
     writer.writerow(header)
     writer.writerows(unique)
-    output.write(f"[token-saver table: {len(rows) - 1} rows -> {len(unique)} shown]\n")
+    output.write(f"[acco table: {len(rows) - 1} rows -> {len(unique)} shown]\n")
     return output.getvalue(), {"rows": len(rows) - 1, "shown": len(unique)}
 
 
@@ -223,7 +223,7 @@ def _compress_search_results(text: str, query: str, max_lines: int) -> tuple[str
     if len(kept) >= len(lines):
         return text, {}
     body = [
-        f"[token-saver search results: {len(lines)} lines -> {len(kept)} retained]",
+        f"[acco search results: {len(lines)} lines -> {len(kept)} retained]",
         *kept,
     ]
     return "\n".join(body) + "\n", {
@@ -321,7 +321,7 @@ def route_context(
         return ContextRouteResult(
             text, kind, False, original_tokens, original_tokens, None, metadata
         )
-    rendered = candidate.rstrip() + f"\n[token-saver recovery: {handle}]\n"
+    rendered = candidate.rstrip() + f"\n[acco recovery: {handle}]\n"
     output_tokens = estimate_tokens(rendered)
     if output_tokens >= original_tokens or len(rendered.encode()) >= len(text.encode()):
         return ContextRouteResult(

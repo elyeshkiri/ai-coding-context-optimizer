@@ -96,7 +96,7 @@ def _count_anthropic(text: str, model: str) -> int:
         import anthropic
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(
-            "exact Anthropic counting needs: pip install 'token-saver[exact]'"
+            "exact Anthropic counting needs: pip install 'acco[exact]'"
         ) from exc
     client = anthropic.Anthropic()
     resp = client.messages.count_tokens(
@@ -112,7 +112,7 @@ def _count_openai(text: str, model: str) -> int:
         import tiktoken
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(
-            "exact OpenAI counting needs: pip install 'token-saver[exact]'"
+            "exact OpenAI counting needs: pip install 'acco[exact]'"
         ) from exc
     try:
         encoding = tiktoken.encoding_for_model(model)
@@ -130,7 +130,7 @@ def _count_google(text: str, model: str) -> int:
         from google import genai
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(
-            "exact Google/Gemini counting needs: pip install 'token-saver[google]'"
+            "exact Google/Gemini counting needs: pip install 'acco[google]'"
         ) from exc
     client = genai.Client()
     response = client.models.count_tokens(model=model, contents=text)

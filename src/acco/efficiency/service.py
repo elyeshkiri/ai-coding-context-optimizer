@@ -224,7 +224,7 @@ def deduplicate_output(
         return None
     label = _safe_command_label(command)
     stub = (
-        "[token-saver cross-turn dedup: exact output unchanged from the prior "
+        "[acco cross-turn dedup: exact output unchanged from the prior "
         f"run of '{label}'; {tokens} estimated tokens omitted]\n"
     )
     return stub
@@ -398,7 +398,7 @@ def observe_tool(
                         feature="repeated_command",
                         session_key=key,
                         note=(
-                            "token-saver behavioral signal: the same command has "
+                            "acco behavioral signal: the same command has "
                             "been run repeatedly this turn. Reuse prior evidence "
                             "or reassess what changed before running it again."
                         ),
@@ -419,7 +419,7 @@ def observe_tool(
                         feature="retry_loop",
                         session_key=key,
                         note=(
-                            "token-saver behavioral signal: the same failing "
+                            "acco behavioral signal: the same failing "
                             "command returned the same output three times. Stop "
                             "blind retries and revisit the hypothesis."
                         ),
@@ -436,7 +436,7 @@ def observe_tool(
                 feature="tool_cascade",
                 session_key=key,
                 note=(
-                    "token-saver behavioral signal: many tool calls occurred "
+                    "acco behavioral signal: many tool calls occurred "
                     "this turn without an edit. Consolidate findings and choose "
                     "the next concrete action before expanding the search."
                 ),
@@ -447,7 +447,7 @@ def observe_tool(
     if original_tokens > delivered_tokens:
         feature = (
             "cross_turn_dedup"
-            if delivered_text.startswith("[token-saver cross-turn dedup:")
+            if delivered_text.startswith("[acco cross-turn dedup:")
             else "output_compression"
         )
         append_event(

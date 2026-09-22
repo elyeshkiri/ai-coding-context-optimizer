@@ -269,7 +269,7 @@ def apply_delta(
             statuses.append(("RESOLVED", diagnostic))
 
     index: RepositoryIndex | None = None
-    lines = [f"[token-saver delta: {family}]"]
+    lines = [f"[acco delta: {family}]"]
     for status, diagnostic in statuses:
         hint = None
         if status in {"NEW", "CHANGED"}:
