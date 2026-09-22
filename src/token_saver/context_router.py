@@ -16,11 +16,11 @@ from .recovery import RecoveryCapacityError, RecoveryStore
 
 _WORD = re.compile(r"[A-Za-z0-9_./:@-]{2,}")
 _LOG_HINT = re.compile(
-    r"(?im)(?:^|\\s)(?:DEBUG|INFO|WARN|WARNING|ERROR|FATAL|TRACE)[:\\s]|"
-    r"Traceback \\(most recent call last\\)|\\bat \\S+[:(]\\d+"
+    r"(?im)(?:^|\s)(?:DEBUG|INFO|WARN|WARNING|ERROR|FATAL|TRACE)[:\s]|"
+    r"Traceback \(most recent call last\)|\bat \S+[:(]\d+"
 )
-_HTML_HINT = re.compile(r"<(?:html|body|div|table|form|button|a|input)\\b", re.I)
-_SEARCH_HINT = re.compile(r"(?m)^(?:[^\\n:]+:\\d+(?::\\d+)?:|https?://\\S+)")
+_HTML_HINT = re.compile(r"<(?:html|body|div|table|form|button|a|input)\b", re.I)
+_SEARCH_HINT = re.compile(r"(?m)^(?:[^\n:]+:\d+(?::\d+)?:|https?://\S+)")
 _CRITICAL = re.compile(r"(?i)(error|exception|fail|fatal|panic|traceback|assert|caused by)")
 
 
@@ -70,7 +70,7 @@ def detect_context_kind(text: str) -> str:
     lines = [line for line in text.splitlines() if line.strip()]
     if len(lines) >= 4:
         first = lines[0]
-        for delimiter in (",", "\\t", "|"):
+        for delimiter in (",", "\t", "|"):
             if delimiter in first:
                 widths = [len(line.split(delimiter)) for line in lines[:8]]
                 if min(widths, default=0) >= 2 and max(widths) == min(widths):
@@ -168,7 +168,7 @@ def _compress_log(text: str, query: str, max_lines: int) -> tuple[str, dict[str,
 def _table_delimiter(text: str) -> str | None:
     """Return a stable delimiter for a simple rectangular text table."""
     first = next((line for line in text.splitlines() if line.strip()), "")
-    for delimiter in ("\\t", ",", "|"):
+    for delimiter in ("\t", ",", "|"):
         if delimiter in first:
             return delimiter
     return None
