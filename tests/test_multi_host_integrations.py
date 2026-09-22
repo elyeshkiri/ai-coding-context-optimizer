@@ -119,7 +119,7 @@ def test_extended_hosts_setup_detect_and_uninstall_preserve_unrelated_config(tmp
     calls: list[list[str]] = []
     runner = _openclaw_runner(home, calls)
     hosts = ("opencode", "openclaw", "hermes", "copilot", "antigravity")
-    executables = {"opencode", "openclaw", "hermes", "code", "antigravity"}
+    executables = {"opencode", "openclaw", "hermes", "code", "agy"}
 
     first = setup_integrations(
         root,
