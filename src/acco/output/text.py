@@ -137,7 +137,7 @@ def recover_critical_lines(original: str, candidate: str) -> tuple[str, tuple[st
         return candidate, ()
     recovered = (
         candidate.rstrip("\n")
-        + "\n\n[token-saver: recovered critical diagnostics]\n"
+        + "\n\n[acco: recovered critical diagnostics]\n"
         + "\n".join(missing)
         + "\n"
     )

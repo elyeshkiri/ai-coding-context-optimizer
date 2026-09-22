@@ -21,7 +21,7 @@ _SECTION_RE = re.compile(r"^\s*\[([^]]+)]\s*$")
 
 @dataclass(frozen=True)
 class OptimizationProposal:
-    """One reversible Token Saver-owned configuration optimization."""
+    """One reversible ACCO-owned configuration optimization."""
 
     id: str
     title: str
@@ -207,10 +207,10 @@ def apply_optimization(
     *,
     days: int = 7,
 ) -> dict:
-    """Apply one reversible Token Saver config proposal and journal its baseline."""
+    """Apply one reversible ACCO config proposal and journal its baseline."""
     root = root.resolve()
     proposal = _proposal_by_id(root, proposal_id, days)
-    config_path = find_project_config(root) or (root / ".token-saver.toml")
+    config_path = find_project_config(root) or (root / ".acco.toml")
     original = config_path.read_bytes() if config_path.exists() else b""
     recovery = RecoveryStore(root)
     recovery_handle = recovery.put(

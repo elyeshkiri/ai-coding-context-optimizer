@@ -1,7 +1,7 @@
 """Adaptive output budgets and quality-gated calibration.
 
 Runtime adaptation is deterministic and bounded. Calibration never learns from
-failed, blocked, unblinded, or materially lower-quality Token Saver responses.
+failed, blocked, unblinded, or materially lower-quality ACCO responses.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from .output_saver import OUTPUT_MODES, OUTPUT_TASKS, build_output_policy
 from .paired_conditions import normalize_condition
 
 CALIBRATION_SCHEMA = 1
-DEFAULT_CALIBRATION_FILE = ".token-saver.output-calibration.json"
+DEFAULT_CALIBRATION_FILE = ".acco.output-calibration.json"
 
 _MODE_BOUNDS = {
     "terse": (150, 900),
@@ -293,7 +293,7 @@ def calibrate_output_budgets(path: Path, *, margin: float = 1.15) -> dict:
         task_id = str(run.get("task") or "").strip()
         condition = normalize_condition(run.get("condition"))
         trial = run.get("trial", 1)
-        if not task_id or condition not in {"baseline", "token-saver"}:
+        if not task_id or condition not in {"baseline", "acco"}:
             continue
         if isinstance(trial, bool) or not isinstance(trial, int) or trial <= 0:
             continue
@@ -307,10 +307,10 @@ def calibrate_output_budgets(path: Path, *, margin: float = 1.15) -> dict:
 
     samples: dict[tuple[str, str], list[tuple[str, int]]] = {}
     for pair in pairs.values():
-        if set(pair) != {"baseline", "token-saver"}:
+        if set(pair) != {"baseline", "acco"}:
             continue
         baseline = pair["baseline"]
-        optimized = pair["token-saver"]
+        optimized = pair["acco"]
         if not _pair_is_safe_for_calibration(baseline, optimized):
             continue
         task = str(optimized.get("output_task") or "").strip().lower()

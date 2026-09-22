@@ -33,7 +33,7 @@ DEFAULT_ALLOWED_MODELS = (
     "claude-opus-5",
 )
 ROUTING_CALIBRATION_SCHEMA = 1
-DEFAULT_ROUTING_CALIBRATION_FILE = ".token-saver.routing-calibration.json"
+DEFAULT_ROUTING_CALIBRATION_FILE = ".acco.routing-calibration.json"
 MIN_CALIBRATION_PAIRS = 10
 MIN_CALIBRATION_TASKS = 5
 MIN_BASELINE_SUCCESS_RATE = 0.80
@@ -465,7 +465,7 @@ def calibrate_model_routing(path: Path) -> dict:
         )
     baseline_profile = profiles["baseline"]
     candidate_profile = profiles["enabled"]
-    for key in ("install_token_saver", "env"):
+    for key in ("install_acco", "env"):
         if baseline_profile.get(key) != candidate_profile.get(key):
             raise ValueError(
                 "routing calibration arms may differ only by model/label; "
@@ -520,7 +520,7 @@ def calibrate_model_routing(path: Path) -> dict:
         if (
             not task_id
             or task_id not in prompts
-            or condition not in {"baseline", "token-saver"}
+            or condition not in {"baseline", "acco"}
             or isinstance(trial, bool)
             or not isinstance(trial, int)
             or trial <= 0
@@ -538,7 +538,7 @@ def calibrate_model_routing(path: Path) -> dict:
     incomplete = [
         f"{task_id}/{trial}"
         for (task_id, trial), pair in sorted(pairs.items())
-        if set(pair) != {"baseline", "token-saver"}
+        if set(pair) != {"baseline", "acco"}
     ]
     if incomplete:
         raise ValueError("unpaired routing calibration runs: " + ", ".join(incomplete))
@@ -551,7 +551,7 @@ def calibrate_model_routing(path: Path) -> dict:
     grouped: dict[tuple[str, str, str, str, str], list[dict]] = {}
     for (task_id, trial), pair in sorted(pairs.items()):
         baseline = pair["baseline"]
-        candidate = pair["token-saver"]
+        candidate = pair["acco"]
         baseline_model = _verified_run_model(baseline)
         candidate_model = _verified_run_model(candidate)
         if (

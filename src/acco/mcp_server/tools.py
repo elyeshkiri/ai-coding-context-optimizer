@@ -248,7 +248,7 @@ def _memory_get(context: McpToolContext, arguments: dict) -> list[dict]:
 
 
 def _recover_context(context: McpToolContext, arguments: dict) -> dict:
-    """Recover exact bytes stored before a lossy Token Saver transform."""
+    """Recover exact bytes stored before a lossy ACCO transform."""
     handle = str(arguments.get("handle", ""))
     record = RecoveryStore(context.root).get(handle)
     try:
@@ -635,7 +635,7 @@ DEFAULT_TOOL_REGISTRY = McpToolRegistry(
         ),
         McpToolSpec(
             "recover_context",
-            "Recover exact bytes by a tsr_ recovery handle emitted by a lossy Token Saver transform.",
+            "Recover exact bytes by a tsr_ recovery handle emitted by a lossy ACCO transform.",
             {
                 "type": "object",
                 "required": ["handle"],
