@@ -1,11 +1,11 @@
-# `token-saver feedback`
+# `acco feedback`
 
 Record useful/irrelevant ranking feedback for one file.
 
 ## Synopsis
 
 ```bash
-token-saver feedback <file> [--path PATH] (--useful | --irrelevant)
+acco feedback <file> [--path PATH] (--useful | --irrelevant)
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Always JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#feedback-always
 
 ## Authoritative runtime help
 
-Run `token-saver feedback --help` for argparse's exact usage text for the installed version.
+Run `acco feedback --help` for argparse's exact usage text for the installed version.

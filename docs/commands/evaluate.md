@@ -1,11 +1,11 @@
-# `token-saver evaluate`
+# `acco evaluate`
 
 Evaluate retrieval against a manifest or compute its freeze hash.
 
 ## Synopsis
 
 ```bash
-token-saver evaluate <manifest> [--path PATH] [--max-tokens N] [--require-holdout] [--print-ground-truth-hash]
+acco evaluate <manifest> [--path PATH] [--max-tokens N] [--require-holdout] [--print-ground-truth-hash]
 ```
 
 ## Arguments and options
@@ -26,4 +26,4 @@ Evaluation is always JSON except hash-only mode; see [Machine-readable contracts
 
 ## Authoritative runtime help
 
-Run `token-saver evaluate --help` for argparse's exact usage text for the installed version.
+Run `acco evaluate --help` for argparse's exact usage text for the installed version.

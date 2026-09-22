@@ -1,11 +1,11 @@
-# `token-saver filter`
+# `acco filter`
 
 Compress stdin using command-aware safe output filtering.
 
 ## Synopsis
 
 ```bash
-token-saver filter [--max-lines N] [--keep-tail N] [--command TEXT]
+acco filter [--max-lines N] [--keep-tail N] [--command TEXT]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Filtered text on stdout.
 
 ## Authoritative runtime help
 
-Run `token-saver filter --help` for argparse's exact usage text for the installed version.
+Run `acco filter --help` for argparse's exact usage text for the installed version.

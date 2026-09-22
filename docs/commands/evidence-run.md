@@ -1,11 +1,11 @@
-# `token-saver evidence-run`
+# `acco evidence-run`
 
 Run or resume the complete output evidence pipeline.
 
 ## Synopsis
 
 ```bash
-token-saver evidence-run <suite> [--out FILE] [--rates FILE]
+acco evidence-run <suite> [--out FILE] [--rates FILE]
   [--report FILE] [--calibration FILE] [--task ID ...]
   [--allow-development] [--allow-user-hook] [--force-grades]
   [--dry-run] [--require-publishable]
@@ -21,7 +21,7 @@ token-saver evidence-run <suite> [--out FILE] [--rates FILE]
 - `--calibration` — quality-gated adaptive budget artifact destination.
 - `--task` — repeatable task filter for development/debugging runs.
 - `--allow-development` — permit a narrow or unfrozen suite.
-- `--allow-user-hook` — permit existing user-level Token Saver hooks.
+- `--allow-user-hook` — permit existing user-level ACCO hooks.
 - `--force-grades` — replace completed blind grades.
 - `--dry-run` — validate frozen experiment schedule, grader availability, and pricing.
 - `--require-publishable` — exit `1` unless the final effectiveness publication
@@ -46,5 +46,5 @@ effectiveness report, and calibration artifact. See
 
 ## Authoritative runtime help
 
-Run `token-saver evidence-run --help` for argparse's exact usage text for the
+Run `acco evidence-run --help` for argparse's exact usage text for the
 installed version.
