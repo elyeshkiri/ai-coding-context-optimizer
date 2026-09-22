@@ -65,6 +65,7 @@ from .command_handlers.optimization import (
     recovery_status_main,
 )
 from .command_handlers.output import (
+    corpus_analyze_main,
     output_benchmark_main,
     output_calibrate_main,
     output_effectiveness_main,
@@ -164,6 +165,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("fastpath-status", fastpath_status_main),
         CommandSpec("ingress-show", ingress_show_main),
         CommandSpec("ingress-read", ingress_read_main),
+        CommandSpec("corpus-analyze", corpus_analyze_main),
         CommandSpec("output-policy", output_policy_main),
         CommandSpec("output-benchmark", output_benchmark_main),
         CommandSpec("output-calibrate", output_calibrate_main),
