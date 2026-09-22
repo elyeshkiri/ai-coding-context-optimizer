@@ -4,11 +4,11 @@ import textwrap
 
 import pytest
 
-from token_saver.agent_eval import evaluate_agent_runs
-from token_saver.closure import dependency_closure
-from token_saver.patch_context import build_diff_context, collect_patch, review_patch
-from token_saver.repo_index import build_index
-from token_saver.serve import IndexService, call_tool
+from acco.agent_eval import evaluate_agent_runs
+from acco.closure import dependency_closure
+from acco.patch_context import build_diff_context, collect_patch, review_patch
+from acco.repo_index import build_index
+from acco.serve import IndexService, call_tool
 
 
 def _graph_repo(root):
@@ -250,7 +250,7 @@ def test_agent_evaluator_requires_pairs_and_suppresses_claim_without_quality(tmp
     manifest.write_text(json.dumps({"runs": [
         {"task": "a", "condition": "baseline", "success": True,
          "input_tokens": 1000, "output_tokens": 100},
-        {"task": "a", "condition": "token-saver", "success": False,
+        {"task": "a", "condition": "acco", "success": False,
          "input_tokens": 300, "output_tokens": 100, "context_failure": True},
     ]}))
     result = evaluate_agent_runs(manifest)
@@ -264,7 +264,7 @@ def test_agent_evaluator_reports_measurements_but_no_claim_without_blind_quality
     manifest.write_text(json.dumps({"runs": [
         {"task": "a", "condition": "baseline", "success": True,
          "input_tokens": 1000, "output_tokens": 100},
-        {"task": "a", "condition": "token-saver", "success": True,
+        {"task": "a", "condition": "acco", "success": True,
          "input_tokens": 400, "output_tokens": 100},
     ]}))
     result = evaluate_agent_runs(manifest)
@@ -297,7 +297,7 @@ def test_agent_evaluator_can_gate_savings_on_blind_response_quality(tmp_path):
                 "quality": quality, "blocker": False,
             },
             {
-                "task": "a", "condition": "token-saver", "success": True,
+                "task": "a", "condition": "acco", "success": True,
                 "input_tokens": 700, "output_tokens": 200,
                 "quality": {**quality, "concision": 5}, "blocker": False,
             },
@@ -330,7 +330,7 @@ def test_agent_evaluator_suppresses_claim_when_quality_regresses(tmp_path):
                 "blocker": False,
             },
             {
-                "task": "a", "condition": "token-saver", "success": True,
+                "task": "a", "condition": "acco", "success": True,
                 "input_tokens": 600, "output_tokens": 100,
                 "quality": {
                     "correctness": 4, "completeness": 4, "actionability": 4,
@@ -373,7 +373,7 @@ def test_agent_evaluator_supports_multiple_trials_per_task(tmp_path):
                 "blocker": False,
             },
             {
-                "task": "auth", "trial": trial, "condition": "token-saver",
+                "task": "auth", "trial": trial, "condition": "acco",
                 "success": True, "input_tokens": 700,
                 "output_tokens": optimized_output,
                 "quality": {**quality, "concision": 5}, "blocker": False,
@@ -390,7 +390,7 @@ def test_agent_evaluator_supports_multiple_trials_per_task(tmp_path):
     assert result["tasks"] == 1
     assert result["paired_trials"] == 3
     assert result["conditions"]["baseline"]["runs"] == 3
-    assert result["conditions"]["token-saver"]["runs"] == 3
+    assert result["conditions"]["acco"]["runs"] == 3
     assert result["output_tokens_per_success_reduction"] == pytest.approx(0.5)
     assert result["paired"]["paired_trial_count"] == 3
     assert result["paired"]["unique_task_count"] == 1
@@ -405,7 +405,7 @@ def test_agent_evaluator_pairs_by_task_trial_and_rejects_duplicate_condition(tmp
     manifest.write_text(json.dumps({"runs": [
         {"task": "a", "trial": 1, "condition": "baseline", "success": True},
         {"task": "a", "trial": 1, "condition": "baseline", "success": True},
-        {"task": "a", "trial": 1, "condition": "token-saver", "success": True},
+        {"task": "a", "trial": 1, "condition": "acco", "success": True},
     ]}))
 
     with pytest.raises(ValueError, match="duplicate baseline run for task/trial: a/1"):
@@ -430,7 +430,7 @@ def test_agent_evaluator_rejects_unblinded_quality_claim(tmp_path):
                 "quality": quality, "blocker": False,
             },
             {
-                "task": "a", "condition": "token-saver", "success": True,
+                "task": "a", "condition": "acco", "success": True,
                 "input_tokens": 700, "output_tokens": 200,
                 "quality": quality, "blocker": False,
             },
@@ -463,7 +463,7 @@ def test_agent_evaluator_rejects_claim_without_positive_per_success_savings(tmp_
                 "quality": quality, "blocker": False,
             },
             {
-                "task": "a", "condition": "token-saver", "success": True,
+                "task": "a", "condition": "acco", "success": True,
                 "input_tokens": 600, "output_tokens": 100,
                 "quality": quality, "blocker": False,
             },

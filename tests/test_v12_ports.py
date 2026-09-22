@@ -1,12 +1,12 @@
 import json
 
-from token_saver.entry import main as entry_main
-from token_saver.evaluate import ground_truth_hash
-from token_saver.host_validate import _host_evidence, _transport_roundtrip
+from acco.entry import main as entry_main
+from acco.evaluate import ground_truth_hash
+from acco.host_validate import _host_evidence, _transport_roundtrip
 
 
 def test_hook_transport_roundtrip_recovers_omitted_middle(tmp_path, monkeypatch):
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     result = _transport_roundtrip()
     assert result["ok"] is True
     assert result["recovery_verified"] is True
@@ -48,7 +48,7 @@ def test_host_evidence_survives_host_redaction_of_marker_prose(tmp_path):
     # Saver's recovery note, even though the replacement was genuinely
     # accepted and applied (the host's own log confirmed "replaced tool
     # output" alongside it). The old exact-string check
-    # ("token-saver: filtered output") would report no acceptance here
+    # ("acco: filtered output") would report no acceptance here
     # despite that; the recovery command's generated hex id is not prose
     # and survives.
     log = tmp_path / "host-debug.log"
@@ -56,10 +56,10 @@ def test_host_evidence_survives_host_redaction_of_marker_prose(tmp_path):
         '2026-09-17T13:04:51.085Z [DEBUG] "Hook PostToolUse:Bash (PostToolUse) success:\\n'
         '{\\"hookSpecificOutput\\": {\\"hookEventName\\": \\"PostToolUse\\", '
         '\\"updatedToolOutput\\": {\\"stdout\\": \\"...\\\\n\\\\n'
-        '[token-saver: [REDACTED] output; original saved. '
-        'Retrieve: token-saver output 91acb963a86740d48a648a77fb5c367c '
+        '[acco: [REDACTED] output; original saved. '
+        'Retrieve: acco output 91acb963a86740d48a648a77fb5c367c '
         '--stream stdout --offset 1 --limit 80]\\\\n\\"}}}"\n'
-        '2026-09-17T13:04:51.085Z [DEBUG] Hook PostToolUse (token-saver hook) replaced tool output\n',
+        '2026-09-17T13:04:51.085Z [DEBUG] Hook PostToolUse (acco hook) replaced tool output\n',
         encoding="utf-8",
     )
     result = _host_evidence(log)
@@ -88,7 +88,7 @@ def test_host_check_command_is_routed(monkeypatch, capsys, tmp_path):
         "live_verified": False,
     }
     monkeypatch.setattr(
-        "token_saver.command_handlers.host.validate_host",
+        "acco.command_handlers.host.validate_host",
         lambda *args, **kwargs: result,
     )
     assert entry_main(["host-check", str(tmp_path)]) == 0

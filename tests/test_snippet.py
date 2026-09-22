@@ -1,6 +1,6 @@
 import textwrap
 
-from token_saver.snippet import extract_symbol
+from acco.snippet import extract_symbol
 
 
 def test_python_function():

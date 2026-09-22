@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from token_saver.guard import decide_read
-from token_saver.runtime_config import settings_for
-from token_saver.tool_proxy import latest_user_task, proxy_read
+from acco.guard import decide_read
+from acco.runtime_config import settings_for
+from acco.tool_proxy import latest_user_task, proxy_read
 
 
 def _large_source(path: Path, *, lines: int = 260) -> str:
@@ -147,7 +147,7 @@ def test_ollama_range_selection_is_rehydrated_from_exact_source(tmp_path, monkey
             return json.dumps({"response": json.dumps(selected)}).encode()
 
     monkeypatch.setattr(
-        "token_saver.tool_proxy.request.urlopen",
+        "acco.tool_proxy.request.urlopen",
         lambda *args, **kwargs: _Response(),
     )
 
@@ -175,15 +175,15 @@ def test_guard_delegates_eligible_large_read_to_posttool_proxy(tmp_path, monkeyp
     """Enabled proxying should let eligible full Reads reach PostToolUse."""
     source = tmp_path / "service.py"
     _large_source(source)
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY", "1")
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS", "1")
+    monkeypatch.setenv("ACCO_TOOL_PROXY", "1")
+    monkeypatch.setenv("ACCO_TOOL_PROXY_MIN_TOKENS", "1")
 
     assert decide_read({"file_path": str(source)}, cwd=tmp_path) is None
 
 
 def test_tool_proxy_config_resolves_toml_and_environment(tmp_path, monkeypatch):
     """Project policy should be explicit and environment overrides should win."""
-    (tmp_path / ".token-saver.toml").write_text(
+    (tmp_path / ".acco.toml").write_text(
         """[tool_proxy]
 enabled = true
 provider = "deterministic"
@@ -206,11 +206,11 @@ max_range_lines = 60
     assert configured.tool_proxy_min_tokens == 3000
     assert configured.tool_proxy_timeout_seconds == 4.5
 
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY", "0")
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_PROVIDER", "ollama")
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MODEL", "local-model")
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS", "4200")
-    monkeypatch.setenv("TOKEN_SAVER_TOOL_PROXY_MAX_RANGE_LINES", "44")
+    monkeypatch.setenv("ACCO_TOOL_PROXY", "0")
+    monkeypatch.setenv("ACCO_TOOL_PROXY_PROVIDER", "ollama")
+    monkeypatch.setenv("ACCO_TOOL_PROXY_MODEL", "local-model")
+    monkeypatch.setenv("ACCO_TOOL_PROXY_MIN_TOKENS", "4200")
+    monkeypatch.setenv("ACCO_TOOL_PROXY_MAX_RANGE_LINES", "44")
     overridden = settings_for(tmp_path)
 
     assert overridden.tool_proxy_enabled is False

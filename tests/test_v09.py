@@ -7,13 +7,13 @@ import textwrap
 
 import pytest
 
-from token_saver.evaluate import evaluate_manifest
-from token_saver.feedback import load_feedback, record_feedback
-from token_saver.impact import analyze_impact
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.repo_index import build_index
-from token_saver.security import inspect_path, redact_secrets
-from token_saver.serve import call_tool, handle_message
+from acco.evaluate import evaluate_manifest
+from acco.feedback import load_feedback, record_feedback
+from acco.impact import analyze_impact
+from acco.pack import build_context_pack, rank_files
+from acco.repo_index import build_index
+from acco.security import inspect_path, redact_secrets
+from acco.serve import call_tool, handle_message
 
 
 def _project(root):
@@ -119,7 +119,7 @@ def test_impact_excludes_symbol_calling_itself(tmp_path):
 
 
 def test_feedback_is_bounded_and_changes_ranking(tmp_path, monkeypatch):
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _project(tmp_path / "repo")
     for _ in range(20):
         record_feedback(root, "src/repository.py", useful=True)
@@ -150,8 +150,8 @@ def test_evaluator_ignores_worktree_and_learned_ranking_state(tmp_path, monkeypa
         "query": "refresh session", "files": ["src/service.py"],
         "symbols": ["refresh_session"],
     }]}))
-    monkeypatch.setattr("token_saver.pack._changed_files", lambda _root: {"src/repository.py"})
-    monkeypatch.setattr("token_saver.pack.load_feedback", lambda _root: {"src/repository.py": 10})
+    monkeypatch.setattr("acco.pack._changed_files", lambda _root: {"src/repository.py"})
+    monkeypatch.setattr("acco.pack.load_feedback", lambda _root: {"src/repository.py": 10})
     result = evaluate_manifest(root, manifest, max_tokens=500)
     assert result["summary"]["mean_file_recall"] == 1.0
 
@@ -215,7 +215,7 @@ def test_stdio_mcp_handshake_and_symbol_call(tmp_path):
     ]
     env = {**os.environ, "PYTHONPATH": str(Path(__file__).parents[1] / "src")}
     proc = subprocess.run(
-        [sys.executable, "-m", "token_saver.entry", "serve", str(root)],
+        [sys.executable, "-m", "acco.entry", "serve", str(root)],
         input="".join(json.dumps(message) + "\n" for message in messages),
         capture_output=True, text=True, env=env, timeout=10, check=True,
     )

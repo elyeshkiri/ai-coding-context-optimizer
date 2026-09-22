@@ -5,12 +5,12 @@ from __future__ import annotations
 import inspect
 import textwrap
 
-import token_saver.pack as pack_facade
-import token_saver.packing.symbol_scoring as symbol_scoring
-import token_saver.packing.symbol_windows as symbol_windows
-import token_saver.packing.symbols as symbols_facade
-from token_saver.packing.contracts import RankedFile
-from token_saver.repo_index import build_index
+import acco.pack as pack_facade
+import acco.packing.symbol_scoring as symbol_scoring
+import acco.packing.symbol_windows as symbol_windows
+import acco.packing.symbols as symbols_facade
+from acco.packing.contracts import RankedFile
+from acco.repo_index import build_index
 
 
 def _symbol_fixture(tmp_path):

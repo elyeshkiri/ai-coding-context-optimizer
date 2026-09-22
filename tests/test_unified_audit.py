@@ -1,13 +1,13 @@
-"""Tests for the consolidated Token Saver audit surface."""
+"""Tests for the consolidated ACCO audit surface."""
 
-from token_saver.unified_audit import unified_audit_report
+from acco.unified_audit import unified_audit_report
 
 
 def test_unified_audit_collects_cross_layer_state(tmp_path, monkeypatch):
     """One report should expose context, retrieval, processor, and recovery state."""
     (tmp_path / "CLAUDE.md").write_text("# Project\n- use focused reads\n", encoding="utf-8")
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setattr("token_saver.unified_audit.transcript_paths", lambda root: [])
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr("acco.unified_audit.transcript_paths", lambda root: [])
 
     report = unified_audit_report(
         tmp_path,
