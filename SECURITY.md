@@ -1,6 +1,6 @@
 # Security and privacy
 
-Token Saver is designed as a local context-optimization layer. This document
+ACCO is designed as a local context-optimization layer. This document
 describes what it reads, writes, and deliberately refuses to overwrite.
 
 ## Local processing
@@ -13,7 +13,7 @@ their documentation and credentials deliberately.
 
 ## Repository contents
 
-Token Saver may read source files to build structural/retrieval indexes and
+ACCO may read source files to build structural/retrieval indexes and
 bounded context.
 
 Context rendering applies the project's existing secret-redaction path where
@@ -23,14 +23,14 @@ AI-agent context layer as a secret-management system.
 ## Exact recovery store
 
 Lossy optimization surfaces can store exact original bytes in a private
-project-scoped SQLite recovery database under `TOKEN_SAVER_STATE_DIR`.
+project-scoped SQLite recovery database under `ACCO_STATE_DIR`.
 Recovery handles begin with `tsr_` and are derived from SHA-256 content
 identity. Retrieval verifies the full stored digest before returning bytes.
 
 Recovery handles are identifiers, **not authorization tokens**. Anyone who can
-access the local Token Saver state directory may be able to recover project
+access the local ACCO state directory may be able to recover project
 content. The database is not encrypted at rest; protect the state directory with
-the same care as agent transcripts. Token Saver uses private file permissions
+the same care as agent transcripts. ACCO uses private file permissions
 where the platform supports them.
 
 The store has a 512 MiB per-project default hard capacity and does not evict
@@ -45,9 +45,9 @@ active session or saved evidence depends on those handles.
 
 ## Provider reverse-proxy boundary
 
-`token-saver provider-proxy` is explicit and opt-in. It can observe provider
+`acco provider-proxy` is explicit and opt-in. It can observe provider
 request bodies and authorization headers because it sits between the selected
-agent/client and the configured provider origin. Token Saver does not enable or
+agent/client and the configured provider origin. ACCO does not enable or
 install this proxy automatically.
 
 The proxy:
@@ -73,27 +73,27 @@ does not fetch arbitrary web URLs itself.
 
 Prompt ingress optimization is **disabled by default** because its safety model
 requires storing the exact blocked prompt locally so omitted ranges remain
-recoverable. When enabled and the threshold fires, Token Saver writes:
+recoverable. When enabled and the threshold fires, ACCO writes:
 
 - the exact original prompt;
 - a SHA-256 integrity digest;
 - a bounded exact-excerpt packet and line-range metadata.
 
-State is project-scoped under the private Token Saver state directory, written
+State is project-scoped under the private ACCO state directory, written
 with private permissions, and bounded to the newest 40 staged prompts. It is not
-uploaded to Token Saver infrastructure. Unlike output-policy telemetry and
+uploaded to ACCO infrastructure. Unlike output-policy telemetry and
 session continuity, this store intentionally contains user prompt content.
-Treat it as sensitive, relocate `TOKEN_SAVER_STATE_DIR` when appropriate, and
+Treat it as sensitive, relocate `ACCO_STATE_DIR` when appropriate, and
 do not enable ingress staging for material that must not be persisted locally.
 
-The hook blocks the oversized prompt before Claude processes it. Token Saver
+The hook blocks the oversized prompt before Claude processes it. ACCO
 does not send a lossy substitute automatically and never silently truncates a
 failed compression attempt.
 
 ## Smart Tool Proxy model boundary
 
 Smart Tool Proxy is disabled by default. When enabled with the default
-`provider = "ollama"`, Token Saver sends a bounded task hint, structural
+`provider = "ollama"`, ACCO sends a bounded task hint, structural
 outline, and bounded exact candidate source windows to the configured Ollama
 HTTP endpoint. The default endpoint is loopback
 `http://127.0.0.1:11434`.
@@ -104,13 +104,13 @@ endpoints only when that provider is approved to receive the repository
 material.
 
 The selector is not trusted as source truth. Returned JSON can only nominate
-line ranges; Token Saver validates/clamps those ranges and re-reads the delivered
+line ranges; ACCO validates/clamps those ranges and re-reads the delivered
 code from the original file. Model-generated orientation is labeled
 non-authoritative. If the selector fails, deterministic local range selection is
 used. Bounded Reads are never proxied.
 
 The latest user task may be read transiently from the local Claude transcript
-tail to orient selection. Token Saver does not persist that prompt text in Smart
+tail to orient selection. ACCO does not persist that prompt text in Smart
 Tool Proxy state. Operational savings telemetry stores only token counts and the
 selector label, not the source excerpts or task text.
 
@@ -128,19 +128,19 @@ database stores:
 
 It deliberately does **not** persist source text inside the vector database.
 The optional HNSW sidecar contains derived vector-index data only. Both live
-under `TOKEN_SAVER_STATE_DIR`; treat that directory as private because vectors
+under `ACCO_STATE_DIR`; treat that directory as private because vectors
 and filenames are still derived from project contents.
 
-Token Saver loads the configured SentenceTransformer with
+ACCO loads the configured SentenceTransformer with
 `local_files_only=True`. Model downloading is an explicit user action outside
 normal retrieval. The current feature does not send source chunks or query text
-to Token Saver infrastructure.
+to ACCO infrastructure.
 
 A changed file is re-hashed before embedding and must still match the structural
 repository-index digest. A mismatch fails the semantic refresh rather than
 storing vectors under stale evidence identity.
 
-When `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` is set, that immutable revision is
+When `ACCO_SEMANTIC_MODEL_REVISION` is set, that immutable revision is
 part of the local vector-store and query-vector cache identity. This prevents a
 pinned evaluation or deployment from silently reusing embeddings produced by
 different weights under the same model name.
@@ -152,15 +152,15 @@ ranking metadata, so they may include source excerpts that were selected for an
 agent. Cache identity incorporates indexed source digests and index version;
 changed repository evidence gets a new key rather than reusing stale context.
 The cache is local/private and bounded by `retrieval.cache_max_entries`.
-Disable it with `TOKEN_SAVER_RETRIEVAL_CACHE=0` when local persistence is not
+Disable it with `ACCO_RETRIEVAL_CACHE=0` when local persistence is not
 appropriate.
 
 ## Claude transcripts
 
-`token-saver sessions` reads Claude Code transcript files under the local
+`acco sessions` reads Claude Code transcript files under the local
 Claude projects directory.
 
-It does not need to upload those transcripts to Token Saver infrastructure.
+It does not need to upload those transcripts to ACCO infrastructure.
 The analysis is local.
 
 ## Saved command output
@@ -173,8 +173,8 @@ storage succeeds.
 Retrieve through either compatible path:
 
 ```bash
-token-saver output <id>
-token-saver recover tsr_... --path .
+acco output <id>
+acco recover tsr_... --path .
 ```
 
 MCP clients can resolve the universal handle with `recover_context`.
@@ -182,7 +182,7 @@ MCP clients can resolve the universal handle with `recover_context`.
 Prune old outputs with:
 
 ```bash
-token-saver outputs-prune --days 7
+acco outputs-prune --days 7
 ```
 
 Treat the state/output directory as potentially sensitive because command output
@@ -216,7 +216,7 @@ into the frozen suite.
 
 The benchmark blind grader receives the frozen task prompt plus anonymized final
 A/B response text under the existing blind-grading boundary. Session-efficiency
-outcome metrics are derived from raw transcripts locally; Token Saver's event
+outcome metrics are derived from raw transcripts locally; ACCO's event
 ledger is used only as feature-activation evidence.
 
 Do not reuse the public frozen workflow for private task prompts or repositories
@@ -226,7 +226,7 @@ acceptable for that material.
 ## Session-efficiency state
 
 The 1.7 continuity layer uses a separate private project-scoped snapshot and
-bounded event ledger under the Token Saver state directory.
+bounded event ledger under the ACCO state directory.
 
 The continuity snapshot may contain:
 
@@ -264,14 +264,14 @@ machine into a finding.
 
 Automatic knowledge-assisted read avoidance never harvests conversation text.
 It reads only explicit stored findings, requires current verified anchors, and
-does not send knowledge to Token Saver infrastructure. The frozen paid
+does not send knowledge to ACCO infrastructure. The frozen paid
 knowledge-efficiency workflow has the same external model/grader and artifact
 retention considerations as the session holdout below; do not reuse the public
 workflow for private prompts/repositories unless those boundaries are acceptable.
 
 ## Session state
 
-Token Saver keeps bounded local state for features such as remembered reads,
+ACCO keeps bounded local state for features such as remembered reads,
 diagnostic Delta, the active automatic output-policy signature, and bounded
 output-budget telemetry. The output policy stores only resolved
 task/mode/budget metadata; it does not persist user prompt text. Telemetry stores
@@ -280,19 +280,19 @@ usage counters. It does **not** store prompt text, assistant text, tool payloads
 or copied transcript content. The telemetry JSONL file is project-scoped,
 created with private permissions, and compacted after it grows beyond 4 MiB,
 keeping the newest 2,000 records. The default state area is under the user's Claude directory;
-`TOKEN_SAVER_STATE_DIR` can relocate it.
+`ACCO_STATE_DIR` can relocate it.
 
 Do not point the state directory at a shared/public location.
 
 ## Managed configuration safety
 
-`token-saver setup` preflights selected host files before mutation.
+`acco setup` preflights selected host files before mutation.
 
 Ownership boundaries:
 
-- Claude: only Token Saver hook commands and `mcpServers.token-saver`;
-- Cursor: only `mcpServers.token-saver`;
-- Codex: only the marked Token Saver managed block;
+- Claude: only ACCO hook commands and `mcpServers.acco`;
+- Cursor: only `mcpServers.acco`;
+- Codex: only the marked ACCO managed block;
 - generated Claude skill: removed only if it still matches the generated
   template exactly.
 
@@ -301,11 +301,11 @@ overwritten.
 
 ## Credentials
 
-Token Saver should not require storing provider API keys in repository config.
+ACCO should not require storing provider API keys in repository config.
 
 Optional exact token counters, embeddings, model runners, or CI publication can
 use provider-specific credentials. Keep those in normal secret stores or CI
-secrets rather than `.token-saver.toml`.
+secrets rather than `.acco.toml`.
 
 ## Benchmark privacy
 
@@ -327,7 +327,7 @@ issue.
 
 Include:
 
-- affected Token Saver version/commit;
+- affected ACCO version/commit;
 - affected command/integration;
 - impact;
 - reproduction steps using non-sensitive fixtures where possible;

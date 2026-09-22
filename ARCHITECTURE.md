@@ -1,6 +1,6 @@
 # Architecture
 
-Token Saver is organized around **small host-independent cores** and thin
+ACCO is organized around **small host-independent cores** and thin
 integration adapters. The main rule is that adding a command, processor, or host
 adapter should not require editing unrelated orchestration logic.
 
@@ -61,20 +61,20 @@ automatically follow upstream redirects.
 
 Stable-prefix accounting stores hashes/sizes/counters through
 `prefix_cache.py`; it never becomes repository truth. The closed-loop
-`optimizer.py` may propose and mutate only Token Saver project configuration.
+`optimizer.py` may propose and mutate only ACCO project configuration.
 Every mutation is journaled with an exact recovery backup and is evaluated
 against later provider-reported token evidence before it can be retained as a
 measured local improvement.
 
 ## Command boundary
 
-`token_saver.entry` no longer owns a branch for every top-level command. New
-commands are composed in `token_saver.command_registry` as `CommandSpec` values.
+`acco.entry` no longer owns a branch for every top-level command. New
+commands are composed in `acco.command_registry` as `CommandSpec` values.
 `CommandRegistry` is independently testable and preserves fallback to the legacy
 CLI for existing commands.
 
 Command implementations are grouped vertically under
-`token_saver.command_handlers`:
+`acco.command_handlers`:
 
 - `context.py` — repository browsing, ranking explanations, impact, and feedback;
 - `efficiency.py` — local session continuity and operational dashboard surfaces;
@@ -85,7 +85,7 @@ Command implementations are grouped vertically under
 - `optimization.py` — recovery, provider proxy, browser focusing, prefix evidence, and closed-loop optimization;
 - `patch.py` — diff-context packing and patch review.
 
-The registry imports these handlers directly. `token_saver.commands` is retained
+The registry imports these handlers directly. `acco.commands` is retained
 only as a compatibility facade for older imports and contains no command
 implementation. This keeps command growth local to one user-facing capability
 instead of rebuilding a central CLI monolith.
@@ -93,14 +93,14 @@ instead of rebuilding a central CLI monolith.
 ## Integration lifecycle boundary
 
 `integration_setup.py` owns host discovery and safe configuration mutation for
-Claude Code, Cursor, and Codex. It only creates/replaces Token Saver-owned
+Claude Code, Cursor, and Codex. It only creates/replaces ACCO-owned
 entries: JSON MCP configuration is merged by key, Claude hook removal preserves
 unrelated commands, and Codex uses an explicit managed TOML block. Multi-host
 setup preflights all target files before the first write so one conflict cannot
 leave an earlier host partially configured.
 
-`runtime_config.py` resolves the nearest project `.token-saver.toml` and then
-applies `TOKEN_SAVER_*` environment overrides. Claude's adapter and read guard
+`runtime_config.py` resolves the nearest project `.acco.toml` and then
+applies `ACCO_*` environment overrides. Claude's adapter and read guard
 consume that shared resolver rather than maintaining independent configuration
 parsers. Setup is idempotent and therefore doubles as the upgrade/repair path;
 uninstall removes only managed integration state.
@@ -130,7 +130,7 @@ independently testable.
 
 ## Durable project-knowledge boundary
 
-`token_saver.knowledge.FindingStore` is a separate persistence/application
+`acco.knowledge.FindingStore` is a separate persistence/application
 component for conclusions that were already established in prior work. It is not
 part of repository ranking and does not mutate `RepositoryIndex`.
 
@@ -154,7 +154,7 @@ retrieval baselines.
 
 ### Smart tool-proxy boundary
 
-`token_saver.tool_proxy` is a host-independent application service for
+`acco.tool_proxy` is a host-independent application service for
 large source Read results. The Claude adapter reaches it only through the
 `HookServices.smart_read_proxy` contract. The ordinary source guard remains the
 PreToolUse authority and delegates only eligible large, unbounded source Reads
@@ -180,12 +180,12 @@ Model prose is never treated as source. A malformed response, timeout, or
 unavailable local model falls back to deterministic range selection. Bounded
 Reads bypass the proxy entirely so edits and verification can request exact
 bytes. The prompt hint is read transiently from the Claude transcript tail and
-is not copied into Token Saver state.
+is not copied into ACCO state.
 
 ### Safe prompt-ingress boundary
 
 Claude's `UserPromptSubmit` hook can block a prompt or add context but cannot
-replace the submitted prompt. Token Saver therefore does not implement ingress
+replace the submitted prompt. ACCO therefore does not implement ingress
 optimization by appending a summary (which would keep the large original in
 context) or by returning an unsupported transformed-prompt field.
 
@@ -196,7 +196,7 @@ oversized prompt
   -> UserPromptSubmit threshold
   -> exact local stage + SHA-256
   -> decision=block, suppressOriginalPrompt=true
-  -> small follow-up /token-saver:ingress <id>
+  -> small follow-up /acco:ingress <id>
   -> bounded exact head/tail packet
   -> exact ingress-read ranges only when needed
 ```
@@ -236,11 +236,11 @@ The SQLite store has separate `files`, `chunks`, `query_vectors`, metadata,
 and ANN-label tables. A warm repository with a repeated exact query can serve
 semantic ranking without loading the embedding model: file vectors and the query
 vector are both persistent. Semantic state identity includes both model name and
-the optional `TOKEN_SAVER_SEMANTIC_MODEL_REVISION`; the latter is also written
+the optional `ACCO_SEMANTIC_MODEL_REVISION`; the latter is also written
 to metadata and included in exact-query vector keys.
 
 Every file vector set is keyed by the content digest already present in
-`RepositoryIndex`. Before embedding a changed file, Token Saver hashes the live
+`RepositoryIndex`. Before embedding a changed file, ACCO hashes the live
 bytes again; if they no longer match the structural index digest, semantic sync
 fails and requires an index refresh rather than persisting cross-version
 evidence.
@@ -283,8 +283,8 @@ their external/model/plugin identities can be safely fingerprinted.
 ### Optional Rust acceleration boundary
 
 `fastpath.py` is the only Python-to-native boundary. It first checks the
-`TOKEN_SAVER_RUST_FASTPATH` kill switch, imports the optional
-`_token_saver_fast` extension when available, and otherwise runs the exact
+`ACCO_RUST_FASTPATH` kill switch, imports the optional
+`_acco_fast` extension when available, and otherwise runs the exact
 Python reference logic.
 
 The first native primitives are deliberately pure:
@@ -345,13 +345,13 @@ The MCP registry supports bounded advertisement profiles without changing tool
 implementations. `minimal` exposes the common context/knowledge loop,
 `context` adds repository-analysis and index operations, and `full` preserves
 the complete historical tool surface. The protocol resolves
-`TOKEN_SAVER_MCP_PROFILE` only when the default registry is composed; injected
+`ACCO_MCP_PROFILE` only when the default registry is composed; injected
 custom registries remain untouched for tests and embedders.
 
 ## Context-packing pipeline boundary
 
-`token_saver.pack` is now the compatibility facade and final bounded-assembly
-stage. Retrieval algorithms are split under `token_saver.packing`:
+`acco.pack` is now the compatibility facade and final bounded-assembly
+stage. Retrieval algorithms are split under `acco.packing`:
 
 - `contracts.py` — `RankedFile` and `ContextPack` data contracts;
 - `query_analysis.py` — query normalization, structural request hints,
@@ -473,8 +473,8 @@ rather than inferred from a single final score.
 
 PR CI operationalizes the same contract without hidden baseline recomputation.
 The workflow checks out the immutable pull-request base SHA and the candidate
-tree separately. The base Token Saver captures the baseline snapshot; candidate
-Token Saver captures the candidate snapshot. Both use the base checkout's task
+tree separately. The base ACCO captures the baseline snapshot; candidate
+ACCO captures the candidate snapshot. Both use the base checkout's task
 manifest so a PR cannot redefine its own comparison ground truth. The candidate
 then performs the pure artifact diff and publishes Markdown plus raw JSON
 artifacts.
@@ -514,8 +514,8 @@ windowing, source formatting, or redaction.
 
 ## Output boundary
 
-The pre-1.4 `token_saver.output_processors` module remains as a compatibility
-facade. New code should use the `token_saver.output` package:
+The pre-1.4 `acco.output_processors` module remains as a compatibility
+facade. New code should use the `acco.output` package:
 
 - `contracts.py` — processor/result/policy contracts;
 - `registry.py` — ordering and failure-aware processor selection;
@@ -540,7 +540,7 @@ identity, feature activation, and task-cluster bootstrap intervals.
 `session_holdout_pipeline.py` is orchestration only, while
 `session_holdout_docker.py` owns the pinned two-phase fresh-session protocol.
 
-The benchmark control and treatment both install the same Token Saver build.
+The benchmark control and treatment both install the same ACCO build.
 Only the four session-efficiency environment switches may differ. Those
 condition profiles are included in the frozen task-definition hash and are
 validated before paid execution.
@@ -552,7 +552,7 @@ This prevents the optimization from grading its own behavior.
 ## Session-efficiency boundary
 
 Session continuity and behavioral optimization live under
-`token_saver.efficiency` rather than in the Claude adapter or repository
+`acco.efficiency` rather than in the Claude adapter or repository
 retrieval engine:
 
 - `store.py` — private project-scoped snapshot/event persistence, locking,
@@ -586,7 +586,7 @@ changes the frozen retrieval/effectiveness publication gates.
 
 ## Hook boundary
 
-`token_saver.hook` is now the Claude-specific composition root only. It parses
+`acco.hook` is now the Claude-specific composition root only. It parses
 JSON/stdin, resolves project configuration plus environment overrides into
 `HookConfig`, and wires concrete services. Event routing and replacement policy live in the host-neutral
 `HookRuntime`.
@@ -600,8 +600,8 @@ different adapter.
 
 ## MCP server boundary
 
-`token_saver.serve` is now a compatibility facade and composition root. The
-server implementation is split under `token_saver.mcp_server`:
+`acco.serve` is now a compatibility facade and composition root. The
+server implementation is split under `acco.mcp_server`:
 
 - `contracts.py` — tool/context contracts with no JSON-RPC or stdio knowledge;
 - `services.py` — repository-index lifecycle service;
@@ -706,7 +706,7 @@ prompt
 ```
 
 The price stage runs only after the capability gate. The built-in profiles are
-conservative Token Saver product policy and are not empirical rankings of model
+conservative ACCO product policy and are not empirical rankings of model
 quality.
 
 Before those edges consume the decision, an optional quality-gated calibration

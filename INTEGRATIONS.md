@@ -1,39 +1,39 @@
 # Agent integrations
 
-Install Token Saver in the environment that launches the coding agent, then let
+Install ACCO in the environment that launches the coding agent, then let
 the setup command detect and configure supported hosts:
 
 ```bash
-pip install claude-token-saver
+pip install ai-coding-context-optimizer
 cd /absolute/path/to/project
-token-saver setup
-token-saver doctor
+acco setup
+acco doctor
 ```
 
 ## Claude Code marketplace install
 
 Claude-only users on Claude Code **2.1.229+** can install through the repository
-marketplace without first placing the `token-saver` console script on `PATH`:
+marketplace without first placing the `acco` console script on `PATH`:
 
 ```text
-/plugin marketplace add elyeshkiri/token-saver
-/plugin install token-saver@token-saver-tools
+/plugin marketplace add elyeshkiri/ai-coding-context-optimizer
+/plugin install acco@acco-tools
 ```
 
 The marketplace uses Claude Code's command-source installation flow. Claude
 shows the bootstrap command for user approval before it runs. The command
 installs the current GitHub package quietly, then prints the one absolute plugin
-directory produced by `token-saver claude-plugin-path`.
+directory produced by `acco claude-plugin-path`.
 
-The generated plugin owns only its own plugin directory and invokes Token Saver
-as `python -m token_saver.entry`. It includes:
+The generated plugin owns only its own plugin directory and invokes ACCO
+as `python -m acco.entry`. It includes:
 
 - the normal PreToolUse/PostToolUse/SessionStart/UserPromptSubmit/Stop hooks;
-- the local Token Saver MCP server;
-- `/token-saver:ingress <stage-id>` for resuming a safely staged oversized prompt.
+- the local ACCO MCP server;
+- `/acco:ingress <stage-id>` for resuming a safely staged oversized prompt.
 
 For mixed-host projects, editable installs, or environments where you want
-explicit project config management, continue to use pip + `token-saver setup`.
+explicit project config management, continue to use pip + `acco setup`.
 
 Supported automatic setup now covers:
 
@@ -41,41 +41,41 @@ Supported automatic setup now covers:
 |---|---|
 | **Claude Code** | project hooks + project `.mcp.json` |
 | **Cursor** | project `.cursor/mcp.json` |
-| **Codex** | marked Token Saver block in `~/.codex/config.toml` |
+| **Codex** | marked ACCO block in `~/.codex/config.toml` |
 | **OpenCode** | project `.opencode/opencode.json` using `mcp.servers` |
 | **OpenClaw** | native `openclaw mcp set/unset` registry |
 | **Hermes Agent** | marked entry under `mcp_servers` in `~/.hermes/config.yaml` |
 | **GitHub Copilot** | native Copilot CLI MCP registry (`~/.copilot/mcp-config.json`) and/or VS Code workspace `.vscode/mcp.json` |
 | **Google Antigravity** | workspace `.agents/mcp_config.json` using `mcpServers` |
 
-Only Token Saver-owned entries are changed. Setup is idempotent, so rerunning it
+Only ACCO-owned entries are changed. Setup is idempotent, so rerunning it
 after upgrades repairs/migrates managed entries without duplicating them.
-`token-saver uninstall` reverses those entries while preserving unrelated host
+`acco uninstall` reverses those entries while preserving unrelated host
 configuration.
 
 Use repeatable `--host` flags for explicit selection, for example:
 
 ```bash
-token-saver setup . --host codex --host cursor --host opencode
-token-saver setup . --host openclaw --host hermes
-token-saver setup . --host copilot --host antigravity
-token-saver setup . --host all
+acco setup . --host codex --host cursor --host opencode
+acco setup . --host openclaw --host hermes
+acco setup . --host copilot --host antigravity
+acco setup . --host all
 ```
 
 OpenClaw is mutated through its own validated MCP registry command rather than
 by parsing JSON5 directly. Copilot CLI is likewise managed through `copilot mcp`
-with a user-level `token-saver` entry that launches `token-saver serve .`; the
+with a user-level `acco` entry that launches `acco serve .`; the
 VS Code Copilot surface remains workspace-scoped in `.vscode/mcp.json`. OpenCode uses a strict-JSON project layer and fails
 closed instead of creating a second sibling config when
 `.opencode/opencode.jsonc` already exists. Hermes uses a clearly marked YAML
-block and refuses to overwrite an unowned `token-saver` entry.
+block and refuses to overwrite an unowned `acco` entry.
 
 The files under `integrations/` remain manual fallback/reference templates.
 
 The MCP process is local and uses newline-delimited JSON-RPC over stdio:
 
 ```bash
-token-saver serve /absolute/path/to/project
+acco serve /absolute/path/to/project
 ```
 
 The default `full` profile exposes repository context, ranking/impact,
@@ -91,7 +91,7 @@ Existing `remember_finding`, `recall_findings`, and `knowledge_status`
 remain supported.
 
 For lower recurring tool-schema cost, set `[mcp] profile = "adaptive"` in
-`.token-saver.toml` or export `TOKEN_SAVER_MCP_PROFILE=adaptive`. The initial
+`.acco.toml` or export `ACCO_MCP_PROFILE=adaptive`. The initial
 surface stays small and includes `discover_tools` plus exact
 `recover_context`; a discovery call selects bounded specialist groups for the
 current task, returns their exact schemas, and replaces the specialist portion
@@ -118,13 +118,13 @@ is an explicit local reverse proxy for clients that can choose their API base
 URL:
 
 ```bash
-token-saver provider-proxy . \
+acco provider-proxy . \
   --provider anthropic \
   --upstream https://api.anthropic.com
 ```
 
 Point the client at the printed loopback URL using that client's supported
-base-URL setting. Token Saver does not rewrite host configuration to enable the
+base-URL setting. ACCO does not rewrite host configuration to enable the
 proxy automatically.
 
 The proxy can combine recoverable tool-schema compression, large historical
@@ -137,8 +137,8 @@ following are refused by design.
 Use:
 
 ```bash
-token-saver prefix-status .
-token-saver recovery-status .
+acco prefix-status .
+acco recovery-status .
 ```
 
 to inspect content-free prefix evidence and recovery capacity. See
@@ -146,16 +146,16 @@ to inspect content-free prefix evidence and recovery capacity. See
 
 ## Claude Code output optimization
 
-Install the hooks after installing or upgrading Token Saver:
+Install the hooks after installing or upgrading ACCO:
 
 ```bash
-token-saver install /absolute/path/to/project --templates
+acco install /absolute/path/to/project --templates
 ```
 
 For a user-wide hook installation:
 
 ```bash
-token-saver install . --user
+acco install . --user
 ```
 
 The Claude Code integration uses five distinct boundaries:
@@ -185,19 +185,19 @@ the token target only when a task/mode/new-task signal warrants recalculation;
 vague follow-ups keep the current budget exactly. If a quality-gated calibration
 artifact is present, its task/mode recommendation becomes the learned base.
 Claude's documented per-turn `Stop` event supplies the transcript path used for
-measurement; Token Saver never persists the hook's `last_assistant_message`.
+measurement; ACCO never persists the hook's `last_assistant_message`.
 
 Inspect which processor would handle a command:
 
 ```bash
-token-saver output-explain "pytest -q"
-token-saver output-explain "npm install" --exit-code 1
+acco output-explain "pytest -q"
+acco output-explain "npm install" --exit-code 1
 ```
 
 Graph-aware diagnostic Delta is opt-in:
 
 ```bash
-export TOKEN_SAVER_DELTA=1
+export ACCO_DELTA=1
 ```
 
 It currently applies to supported repeated pytest and Ruff diagnostics within a
@@ -208,7 +208,7 @@ mapping details.
 
 ## Project configuration
 
-Setup creates `.token-saver.toml`. The nearest file is discovered by walking
+Setup creates `.acco.toml`. The nearest file is discovered by walking
 from the active project directory toward the filesystem root. Environment
 variables override the TOML values for temporary/CI changes.
 
@@ -229,7 +229,7 @@ enabled = true
 mode = "normal"
 task = "auto"
 adaptive = true
-calibration_file = ".token-saver.output-calibration.json"
+calibration_file = ".acco.output-calibration.json"
 telemetry = true
 
 [model_routing]
@@ -239,7 +239,7 @@ current_model = ""
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
-calibration_file = ".token-saver.routing-calibration.json"
+calibration_file = ".acco.routing-calibration.json"
 
 [efficiency]
 enabled = true
@@ -279,10 +279,10 @@ max_range_lines = 80
 
 Automatic generation-policy injection currently uses Claude Code's prompt hook.
 Other supported hosts receive the same host-neutral policy/retrieval/routing
-surfaces through Token Saver MCP. Their native lifecycle hooks are not assumed
-unless `token-saver client-capabilities --client HOST` reports them as guaranteed.
+surfaces through ACCO MCP. Their native lifecycle hooks are not assumed
+unless `acco client-capabilities --client HOST` reports them as guaranteed.
 
-Automatic model routing is opt-in. When enabled, Token Saver classifies the task,
+Automatic model routing is opt-in. When enabled, ACCO classifies the task,
 derives a complexity/risk capability floor, then chooses the cheapest eligible
 model from the freshness-gated pricing registry. Claude Code's prompt hook can
 record and inject the decision but cannot replace the active top-level model.
@@ -296,9 +296,9 @@ from paired arms that differ by model choice alone, after independent
 verification and `blind-grade`:
 
 ```bash
-token-saver experiment routing-suite.json --out routing-runs.json
-token-saver blind-grade routing-runs.json
-token-saver model-route-calibrate routing-runs.json
+acco experiment routing-suite.json --out routing-runs.json
+acco blind-grade routing-runs.json
+acco model-route-calibrate routing-runs.json
 ```
 
 The runtime rechecks hard evidence floors before using any recommendation.
@@ -307,12 +307,12 @@ Invalid calibration falls back to the static conservative router.
 ## Troubleshooting and repair
 
 ```bash
-token-saver doctor .
-token-saver doctor . --json
-token-saver setup .        # idempotent repair / upgrade migration
-token-saver commands
+acco doctor .
+acco doctor . --json
+acco setup .        # idempotent repair / upgrade migration
+acco commands
 ```
 
-For Claude Code, the existing lower-level `token-saver host-check` remains
+For Claude Code, the existing lower-level `acco host-check` remains
 available when you need transport/live-host evidence beyond the consolidated
 configuration health report.

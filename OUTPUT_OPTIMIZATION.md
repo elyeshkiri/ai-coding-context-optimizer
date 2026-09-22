@@ -1,6 +1,6 @@
 # Output optimization, quality contracts, and diagnostic Delta
 
-Token Saver's output layer reduces command noise without treating all terminal
+ACCO's output layer reduces command noise without treating all terminal
 text as disposable. Version 1.5.0 introduces three related capabilities:
 
 1. a pluggable, failure-aware output processor registry;
@@ -21,7 +21,7 @@ output; post-generation compaction cannot refund tokens already emitted.
 
 The same prompt hook checkpoints the current Claude transcript byte offset after
 the policy is resolved. Claude's per-turn `Stop`/`StopFailure` hook supplies
-the transcript path after generation. Token Saver then parses only newly
+the transcript path after generation. ACCO then parses only newly
 appended assistant usage records, deduplicating repeated content-block rows by
 message id, and stores the real usage counters alongside the selected policy.
 
@@ -54,7 +54,7 @@ Unknown failed commands still fall back to the conservative generic path.
 The public compatibility API remains:
 
 ```python
-from token_saver.filter_output import filter_command_output
+from acco.filter_output import filter_command_output
 
 compressed = filter_command_output(
     output,
@@ -79,8 +79,8 @@ through an optimistic success compressor.
 Inspect the routing decision without running the command:
 
 ```bash
-token-saver output-explain "pytest -q"
-token-saver output-explain "npm install" --exit-code 1
+acco output-explain "pytest -q"
+acco output-explain "npm install" --exit-code 1
 ```
 
 The second command reports that the package-install processor was skipped for
@@ -89,7 +89,7 @@ the failed command and that the generic conservative fallback was selected.
 ### Compression ratio gate
 
 Every processor is subject to a final size gate. If the transformed output is
-not materially smaller, Token Saver keeps the original output instead.
+not materially smaller, ACCO keeps the original output instead.
 
 This avoids spending context on explanatory wrappers that save little or
 nothing.
@@ -97,7 +97,7 @@ nothing.
 ## 2. Critical-line recovery
 
 Format-specific processors are not the final authority on diagnostic safety.
-After a processor returns, Token Saver scans the original output for
+After a processor returns, ACCO scans the original output for
 high-signal lines such as:
 
 - `ERROR`, `FAILED`, `FATAL`, and `PANIC`;
@@ -109,7 +109,7 @@ If one of those lines disappeared from the candidate output, the shared recovery
 pass can append it under:
 
 ```text
-[token-saver: recovered critical diagnostics]
+[acco: recovered critical diagnostics]
 ```
 
 This is defense in depth. A bug in a single processor should not automatically
@@ -148,7 +148,7 @@ Example:
 Run it with:
 
 ```bash
-token-saver output-replay quality.json
+acco output-replay quality.json
 ```
 
 Each case can define:
@@ -172,7 +172,7 @@ The command exits non-zero when any contract fails, making it suitable for CI.
 A small checked-in example is available at
 `benchmarks/output-quality.example.json`.
 
-These contracts complement Token Saver's other validation layers:
+These contracts complement ACCO's other validation layers:
 
 ```text
 retrieval holdouts
@@ -194,7 +194,7 @@ previous run of the same supported command in the same session.
 Enable it explicitly:
 
 ```bash
-export TOKEN_SAVER_DELTA=1
+export ACCO_DELTA=1
 ```
 
 Delta currently recognizes eligible pytest and Ruff output.
@@ -209,7 +209,7 @@ Diagnostics are classified as:
 Example:
 
 ```text
-[token-saver delta: pytest]
+[acco delta: pytest]
 CHANGED tests/test_auth.py::test_refresh — AssertionError: expected 200, got 401
 source tests/test_auth.py:37::test_refresh
 related src/auth/session.py [imports], src/auth/token.py [calls]
@@ -221,7 +221,7 @@ RESOLVED tests/test_login.py::test_expired_session — AssertionError
 
 ### Repository-graph enrichment
 
-For new or changed diagnostics, Token Saver uses its existing repository index
+For new or changed diagnostics, ACCO uses its existing repository index
 to map a diagnostic back to the containing source symbol when possible. It can
 then attach nearby import/call/dependency relationships.
 
@@ -234,11 +234,11 @@ diagnostic classification without inventing a source relationship.
 
 ### Session state and privacy
 
-Delta stores only a bounded structured diagnostic inventory in Token Saver's
+Delta stores only a bounded structured diagnostic inventory in ACCO's
 existing local session state. It does not persist raw command output as part of
 the Delta feature.
 
-When Token Saver replaces a large Bash result, it preserves two compatible
+When ACCO replaces a large Bash result, it preserves two compatible
 recovery paths. The legacy paged-output store remains available for explicit
 range retrieval, and v1.13 also stores the exact stdout in the universal
 content-addressed recovery store when capacity permits, emitting a `tsr_...`
@@ -262,7 +262,7 @@ can become `RESOLVED`.
 
 ## 5. Claude Code hook behavior
 
-With Token Saver installed, the relevant flow is:
+With ACCO installed, the relevant flow is:
 
 ```text
 Bash command
@@ -299,19 +299,19 @@ need exact source bytes, while terminal output can often be reduced safely.
 
 ## 6. Configuration
 
-Project defaults now live in the nearest `.token-saver.toml`; environment
+Project defaults now live in the nearest `.acco.toml`; environment
 variables remain higher-priority overrides. See the canonical
 [configuration reference](docs/CONFIGURATION.md) for discovery, precedence,
 host-managed files, and all hook settings.
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| `TOKEN_SAVER_DELTA` | `0` | Enable graph-aware repeated-diagnostic Delta |
-| `TOKEN_SAVER_MIN_LINES` | `40` | Minimum Bash stdout lines considered for filtering |
-| `TOKEN_SAVER_MAX_LINES` | adaptive | Target size for generic output filtering |
-| `TOKEN_SAVER_KEEP_TAIL` | `15` | Tail lines preserved by generic filtering |
-| `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | Local state, indexes, legacy paged output, and universal recovery storage |
-| `TOKEN_SAVER_DISABLED` | unset | Set to a truthy value to disable hook behavior |
+| `ACCO_DELTA` | `0` | Enable graph-aware repeated-diagnostic Delta |
+| `ACCO_MIN_LINES` | `40` | Minimum Bash stdout lines considered for filtering |
+| `ACCO_MAX_LINES` | adaptive | Target size for generic output filtering |
+| `ACCO_KEEP_TAIL` | `15` | Tail lines preserved by generic filtering |
+| `ACCO_STATE_DIR` | `~/.claude/acco` | Local state, indexes, legacy paged output, and universal recovery storage |
+| `ACCO_DISABLED` | unset | Set to a truthy value to disable hook behavior |
 
 ## 7. Extension boundary
 
@@ -351,7 +351,7 @@ retrieval holdouts validate a different property: source selection and exact
 symbol identity.
 
 Neither a high compression percentage nor a passing output contract by itself
-proves lower end-to-end agent cost. Token Saver's broader benchmark policy
+proves lower end-to-end agent cost. ACCO's broader benchmark policy
 continues to treat cost per successful independently-verified task as the
 stronger product metric.
 
