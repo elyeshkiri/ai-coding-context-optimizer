@@ -368,6 +368,7 @@ def _copilot_surfaces(
     cli = bool(cli_executable or copilot_cli_configured(home))
     vscode = bool(
         _copilot_vscode_installed(home)
+        or copilot_mcp_path(root).exists()
         or copilot_vscode_configured(root)
     )
     return cli, vscode
