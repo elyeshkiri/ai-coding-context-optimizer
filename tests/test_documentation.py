@@ -62,6 +62,19 @@ def _markdown_targets(text: str) -> list[str]:
     return re.findall(r"\[[^\]]+\]\(([^)]+)\)", text)
 
 
+def _headings_outside_fences(text: str) -> list[str]:
+    """Return Markdown headings while ignoring fenced code examples."""
+    headings: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if line.strip().startswith("```"):
+            fenced = not fenced
+            continue
+        if not fenced and re.match(r"^#{1,6}\s+", line):
+            headings.append(line.strip())
+    return headings
+
+
 def test_public_document_versions_match_package_metadata():
     """Landing, validation, and changelog must describe the released package."""
     version = _project_version()
@@ -220,3 +233,69 @@ def test_benchmarking_documents_query_leakage_controls():
         assert phrase in benchmarking
     assert "must not be read as evidence that semantic" in validation
     assert "identifier-bearing queries" in validation
+
+
+
+def test_public_docs_do_not_repeat_section_headings():
+    """Narrative docs should not contain accidental duplicated sections."""
+    duplicates: list[str] = []
+    for document in PUBLIC_DOCS:
+        headings = _headings_outside_fences(
+            document.read_text(encoding="utf-8")
+        )
+        seen: set[str] = set()
+        for heading in headings:
+            if heading in seen:
+                duplicates.append(
+                    f"{document.relative_to(ROOT)} -> {heading}"
+                )
+            seen.add(heading)
+    assert duplicates == [], "Duplicate documentation headings:\n" + "\n".join(
+        duplicates
+    )
+
+
+def test_current_docs_cover_v113_operational_surfaces():
+    """Current docs must expose v1.13 recovery/proxy/optimizer workflows."""
+    hub = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    upgrading = (ROOT / "docs" / "UPGRADING.md").read_text(encoding="utf-8")
+    troubleshooting = (
+        ROOT / "docs" / "TROUBLESHOOTING.md"
+    ).read_text(encoding="utf-8")
+    integrations = (ROOT / "INTEGRATIONS.md").read_text(encoding="utf-8")
+    contracts = (ROOT / "docs" / "JSON_OUTPUTS.md").read_text(encoding="utf-8")
+
+    assert "documentation map for Token Saver 1." not in hub
+    assert "## 1.13 recoverable optimization platform" in upgrading
+    assert "## A `tsr_...` recovery handle cannot be resolved" in troubleshooting
+    assert "## Provider proxy refuses to start or returns an upstream error" in troubleshooting
+    assert "## Provider base-URL integration" in integrations
+    for heading in (
+        "## `recover --json`",
+        "## `recovery-status --json`",
+        "## `prefix-status --json`",
+        "## `browser-context --json`",
+        "## `optimize --json`",
+    ):
+        assert heading in contracts
+
+
+def test_configuration_reference_has_unique_environment_rows():
+    """Environment override tables should not silently duplicate config keys."""
+    config = (ROOT / "docs" / "CONFIGURATION.md").read_text(encoding="utf-8")
+    variables = re.findall(r"(?m)^\| `(TOKEN_SAVER_[A-Z0-9_]+)` \|", config)
+    assert len(variables) == len(set(variables))
+
+
+def test_semantic_evidence_docs_track_holdout_14_and_15_state():
+    """Semantic docs must distinguish fresh #14 evidence from burned reruns."""
+    validation = (ROOT / "VALIDATION.md").read_text(encoding="utf-8")
+    benchmarking = (ROOT / "BENCHMARKING.md").read_text(encoding="utf-8")
+
+    for text in (validation, benchmarking):
+        assert "82.50%" in text
+        assert "87.5%" in text
+        assert "holdout #15" in text.lower()
+        assert "fresh holdout #14 is required" not in text.lower()
+    assert "first complete fresh run" in validation
+    assert "development result must not be reported as fresh" in benchmarking

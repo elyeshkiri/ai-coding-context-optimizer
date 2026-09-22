@@ -46,6 +46,10 @@ Important invariants include:
 - final file ordering remains centralized;
 - ranking tracing is opt-in and must not alter ranking behavior;
 - output processors must preserve critical diagnostics;
+- every new lossy representation must either retain an exact recovery path or
+  fail closed to the original representation;
+- provider/network adapters stay opt-in at the edge and must not silently widen
+  the trust boundary;
 - integration setup must mutate only Token Saver-owned host entries.
 
 Compatibility facades should stay thin. New features should normally grow
@@ -89,7 +93,8 @@ Follow [OUTPUT_OPTIMIZATION.md](OUTPUT_OPTIMIZATION.md):
 
 - explicitly declare failed-command handling;
 - preserve critical diagnostics;
-- keep original output recoverable;
+- keep original output recoverable through the legacy paged-output path and,
+  where the universal recovery contract is used, a valid `tsr_...` handle;
 - reject compaction that does not produce a meaningful net saving;
 - add replayable quality fixtures.
 
@@ -125,7 +130,14 @@ Use concrete commands and distinguish:
 
 - defaults from recommendations;
 - deterministic facts from estimates;
-- measured evidence from hypotheses.
+- measured evidence from hypotheses;
+- first-run fresh holdout evidence from burned/development reruns.
+
+The documentation test suite also rejects broken internal links, missing command
+pages, duplicated section headings, duplicated environment-variable rows, and
+known semantic-evidence state drift. When a public command gains a new flag or
+JSON mode, update its dedicated command page and `docs/JSON_OUTPUTS.md` in the
+same PR.
 
 ## Pull-request checklist
 

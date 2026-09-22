@@ -208,13 +208,33 @@ arm and regressed none. Mean estimated context reduction was effectively flat
 The result is useful precisely because it is not inflated: the semantic
 mechanism shows a real but small improvement, while several repositories still
 have difficult behavior-only misses. Holdout #13 must not be used as the tuning
-loop for those misses. New semantic ranking/chunking changes are developed on
-separate fixtures/development corpora and require a **fresh holdout #14** for
-new generalization evidence.
+loop for those misses.
 
-This is a retrieval benchmark. File-recall improvement on these tasks does not
-by itself establish lower API cost, coding-task success, or cost per successful
-task.
+Fresh holdout #14 was subsequently frozen before evaluation with 24
+issue-derived natural-language tasks across six repositories; four were
+conservatively excluded after ground-truth review, leaving 20 eligible tasks.
+Its first complete exact-cosine run was GitHub Actions **35615316639**:
+
+| Arm | File recall |
+| --- | ---: |
+| Token Saver hybrid semantic | **82.50%** |
+| Token Saver lexical/structural | **80.00%** |
+| Trivial lexical baseline | **70.00%** |
+
+The semantic arm improved aggregate file recall by 2.5 percentage points with
+zero regressions. One two-file target was partially recovered, so the run
+reported zero complete `semantic_recovered_tasks`. Mean estimated context
+reduction remained essentially identical (98.9516% semantic vs 98.9515%
+lexical). That first run burned #14.
+
+Any rerun after tuning against #14 is development evidence only. In particular,
+the later 87.5% semantic development result must not be reported as fresh
+generalization evidence. The next independent cohort is semantic holdout #15: its queries and
+pinned repository revisions are frozen, but ground truth and the first
+evaluation are still pending.
+
+These are retrieval benchmarks. File-recall improvement does not by itself
+establish lower API cost, coding-task success, or cost per successful task.
 
 ## Automated end-to-end cost-per-success experiment
 
@@ -326,6 +346,45 @@ Raw transcripts and verifier outputs can contain source code or secrets. Keep
 them private when needed; the checked-in suite definition, revision pins, prompt
 hashes, verifier definitions, rates, and aggregate result are sufficient to make
 the experimental design auditable.
+
+### v1.13 optimization-platform treatment exposure
+
+The v1.13 recovery/schema/prefix/proxy/browser/optimizer additions are not
+assigned a new savings percentage merely because their mechanism tests pass.
+A publishable bundle experiment must keep the task, repository revision, model,
+turn/tool limits, verifier, and pricing source identical between paired arms.
+
+For the broad platform bundle, the control should use the same installed Token
+Saver binary with the new treatment surfaces disabled or left at their
+backward-compatible defaults. The treatment may enable adaptive MCP disclosure,
+recoverable schema compression, provider request transformation, and other
+declared v1.13 surfaces. **Do not change the model between arms** when the goal
+is to measure this bundle; model-routing savings require their own calibrated
+experiment or a design that explicitly isolates model choice.
+
+The experiment artifact must prove treatment exposure rather than assuming that
+configuration implies use. At minimum, report:
+
+- MCP profile/tool-list exposure and whether schema compression actually changed
+  an advertised catalog;
+- provider transform activation and before/after request-token estimates;
+- stable-prefix hit/miss counters when prefix tracking is part of the treatment;
+- recovery handles emitted and successful exact-recovery spot checks;
+- memory/tool-result/browser optimizations only on tasks where those surfaces
+  were actually exercised;
+- total tool calls, repeated Reads/commands, provider input/cache/output usage,
+  latency, verifier success, and blind response quality.
+
+A feature that never activates is not evidence for that feature. Bundle-level
+cost-per-success may still be measured when the randomized treatment is the
+whole declared platform, but the report must preserve per-feature activation so
+readers can distinguish “enabled” from “used.”
+
+The existing publication gate remains authoritative: enough distinct tasks and
+paired trials, independent verification, blind quality parity, complete
+model/cache-aware pricing evidence, and a strictly positive task-cluster 95%
+confidence-interval lower bound for cost-per-success reduction. There is
+currently **no completed publishable v1.13 bundle experiment** in the repository.
 
 ## Paired agent outcomes
 

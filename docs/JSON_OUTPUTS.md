@@ -44,7 +44,7 @@ Argparse usage errors also exit `2`.
 ```json
 {
   "ready": true,
-  "version": "1.10.0",
+  "version": "<installed-version>",
   "token_saver_executable": "/path/to/token-saver",
   "root": "absolute project path",
   "config_path": "/project/.token-saver.toml",
@@ -153,8 +153,8 @@ state, not a degraded/error JSON contract.
 ```json
 {
   "schema": 1,
-  "version": "1.10.0",
-  "path": "/absolute/private/token-saver/claude-plugin/token-saver-1.10.0",
+  "version": "<installed-version>",
+  "path": "/absolute/private/token-saver/claude-plugin/token-saver-<installed-version>",
   "rendered": true
 }
 ```
@@ -1025,6 +1025,133 @@ command being explained. Consumers should tolerate additive diagnostic keys.
 
 Exit `1` means one or more replay quality contracts failed. With
 `--require-frozen`, malformed/mutated freeze metadata exits `2`.
+
+## `recover --json`
+
+```json
+{
+  "handle": "tsr_0123456789abcdef0123456789abcdef",
+  "content_type": "text/plain",
+  "encoding": "utf-8",
+  "payload": "exact recovered content",
+  "output": null,
+  "size_bytes": 1280,
+  "metadata": {
+    "transform": "provider-tool-result"
+  },
+  "access_count": 2
+}
+```
+
+When `--output FILE` is used, `payload` is `null` and `output` contains
+the resolved destination path. Binary payloads use `encoding: "base64"`.
+Integrity is checked before bytes are returned.
+
+## `recovery-status --json`
+
+```json
+{
+  "path": "/private/token-saver/recovery/project.sqlite3",
+  "records": 14,
+  "used_bytes": 1048576,
+  "capacity_bytes": 536870912,
+  "remaining_bytes": 535822336
+}
+```
+
+The command reports capacity only; it never returns stored source content.
+
+## `prefix-status --json`
+
+```json
+{
+  "providers": {
+    "anthropic": {
+      "hits": 8,
+      "misses": 2,
+      "reuse_rate": 0.8,
+      "stable_tokens": 4200,
+      "stable_bytes": 16800,
+      "components": ["system", "tools", "messages[:-latest-user]"],
+      "fingerprint": "sha256-hex"
+    }
+  }
+}
+```
+
+The fingerprint is content-derived evidence, not request text. `reuse_rate`
+is `null` until at least one comparable prior prefix observation exists.
+
+## `browser-context --json`
+
+```json
+{
+  "text": "focused browser context\n[token-saver recovery: tsr_...]",
+  "changed": true,
+  "original_tokens": 12000,
+  "output_tokens": 430,
+  "recovery_handle": "tsr_0123456789abcdef0123456789abcdef",
+  "matched_terms": ["checkout", "total"]
+}
+```
+
+When focusing is not smaller or exact recovery cannot be guaranteed,
+`changed` is false, `recovery_handle` is null, and `text` is the original
+caller-supplied payload.
+
+## `optimize --json`
+
+Planning mode returns currently applicable Token Saver-owned configuration
+hypotheses:
+
+```json
+{
+  "schema": 1,
+  "root": "/project",
+  "window_days": 7,
+  "proposals": [
+    {
+      "id": "adaptive-mcp",
+      "title": "Use adaptive MCP tool disclosure",
+      "rationale": "...",
+      "section": "mcp",
+      "key": "profile",
+      "value": "adaptive",
+      "risk": "low"
+    }
+  ],
+  "advisor_recommendations": [],
+  "evidence": {
+    "measured": "provider-reported usage is used when available",
+    "not_claimed": "a proposal is not a savings claim until a post-change evaluation"
+  }
+}
+```
+
+`--apply PROPOSAL_ID --json` returns the journal record, including
+`id`, `proposal`, `config_path`, exact-config `recovery_handle`,
+`baseline_mean_tokens_per_turn`, `baseline_turns`, `applied_at`, and
+`status`.
+
+`--evaluate RUN_ID --json` adds
+`treatment_mean_tokens_per_turn`, `treatment_turns`, `min_improvement`,
+`decision`, `reverted`, and the updated `status`. A decision may be
+`keep`, `revert`, `insufficient-baseline`, or
+`insufficient-treatment`; insufficient evidence is not converted to zero
+savings.
+
+`--status --json` returns:
+
+```json
+{"runs": []}
+```
+
+## Long-running service commands
+
+`provider-proxy` is a long-running reverse-proxy process and deliberately has
+no one-shot JSON report. Use `prefix-status --json`,
+`recovery-status --json`, and the normal process exit/log stream for
+operational evidence.
 
 ## `dashboard --json`
 

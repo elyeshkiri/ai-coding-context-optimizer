@@ -238,9 +238,13 @@ Delta stores only a bounded structured diagnostic inventory in Token Saver's
 existing local session state. It does not persist raw command output as part of
 the Delta feature.
 
-The separate recoverable-output mechanism used by the Bash hook is unchanged:
-when Token Saver replaces a large Bash result, it saves the original locally so
-the agent can retrieve omitted ranges explicitly.
+When Token Saver replaces a large Bash result, it preserves two compatible
+recovery paths. The legacy paged-output store remains available for explicit
+range retrieval, and v1.13 also stores the exact stdout in the universal
+content-addressed recovery store when capacity permits, emitting a `tsr_...`
+handle recoverable through CLI `recover` or MCP `recover_context`. If the
+universal recovery store cannot accept the original, that additional lossy
+replacement path fails closed rather than creating a dangling handle.
 
 ### When Delta replaces output
 
@@ -306,7 +310,7 @@ host-managed files, and all hook settings.
 | `TOKEN_SAVER_MIN_LINES` | `40` | Minimum Bash stdout lines considered for filtering |
 | `TOKEN_SAVER_MAX_LINES` | adaptive | Target size for generic output filtering |
 | `TOKEN_SAVER_KEEP_TAIL` | `15` | Tail lines preserved by generic filtering |
-| `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | Local state, index, and recoverable-output storage |
+| `TOKEN_SAVER_STATE_DIR` | `~/.claude/token-saver` | Local state, indexes, legacy paged output, and universal recovery storage |
 | `TOKEN_SAVER_DISABLED` | unset | Set to a truthy value to disable hook behavior |
 
 ## 7. Extension boundary

@@ -137,10 +137,12 @@ Prefer bounded line-range reads instead of globally disabling protection.
 
 The hook stores the original result when replacement is beneficial.
 
-The replacement message includes an id. Recover it with:
+The replacement can include both the legacy paged-output id and a universal
+`tsr_...` recovery handle. Use either path:
 
 ```bash
 token-saver output <id> --stream stdout --offset 1 --limit 80
+token-saver recover tsr_... --path .
 ```
 
 Delete old stored results:
@@ -148,6 +150,102 @@ Delete old stored results:
 ```bash
 token-saver outputs-prune --days 7
 ```
+
+## A `tsr_...` recovery handle cannot be resolved
+
+Recovery handles are project-scoped. Use the same project root that produced the
+compressed representation:
+
+```bash
+token-saver recover tsr_... --path .
+token-saver recovery-status . --json
+```
+
+If the handle is unknown under that project, verify `TOKEN_SAVER_STATE_DIR`
+and the project path. Handles are identifiers, not remote object URLs; Token
+Saver does not fetch missing recovery payloads from a service.
+
+If a transform reports that recovery capacity is exhausted, inspect
+`recovery-status`. Token Saver intentionally refuses the new lossy transform
+rather than evicting an older source record and creating a dangling handle.
+
+For Bash output, the legacy paged-output id remains usable:
+
+```bash
+token-saver output <id> --stream stdout --offset 1 --limit 80
+```
+
+## Adaptive MCP is missing a tool I expected
+
+Adaptive mode starts with a small core and expands after `discover_tools`.
+Inspect the configured profile first:
+
+```bash
+token-saver doctor . --json
+```
+
+Use `mcp.profile = "full"` as the compatibility fallback when a host does not
+honor MCP `listChanged` notifications or cannot refresh the tool list. Schema
+compression is independent: set `mcp.compress_schemas = false` when diagnosing
+a host that rejects compressed descriptions/annotations.
+
+Exact `recover_context` stays in the adaptive core so a model-visible
+`tsr_...` handle always has a recovery path.
+
+## Provider proxy refuses to start or returns an upstream error
+
+Validate the explicit trust boundary:
+
+```bash
+token-saver provider-proxy . \
+  --provider anthropic \
+  --upstream https://api.anthropic.com
+```
+
+The proxy rejects non-loopback binding unless `--allow-non-loopback` is
+explicitly supplied. Plain HTTP upstreams are accepted only for localhost.
+Credentials must be supplied by the client headers, not embedded in the
+upstream URL.
+
+Automatic redirect following is disabled. A provider redirect is returned to
+the client instead of silently forwarding authorization headers to another
+origin. A `502` means the configured upstream could not be reached; Token
+Saver does not silently switch providers.
+
+Use `token-saver prefix-status .` to inspect content-free stable-prefix reuse
+evidence. Disable only that telemetry with `--no-prefix-tracking` when testing
+request transformation behavior.
+
+## `token-saver optimize` will not keep or revert a change yet
+
+The optimizer requires enough **provider-reported** measured turns in both the
+baseline and treatment windows. Inspect the journal:
+
+```bash
+token-saver optimize . --status --json
+token-saver optimize . --evaluate opt_... --json
+```
+
+`insufficient-baseline` or `insufficient-treatment` means the evidence floor
+has not been met; it is not treated as zero savings. By default, a completed
+comparison that fails the configured improvement threshold restores the exact
+pre-change Token Saver config from recovery.
+
+The optimizer edits only Token Saver-owned project configuration. It does not
+rewrite application source or arbitrary host/provider settings.
+
+## Browser context was not compressed
+
+`browser-context` accepts captured HTML or AX-like text; it does not fetch a
+URL. A transform is returned only when the focused representation plus recovery
+handle is actually smaller than the original.
+
+```bash
+token-saver browser-context page.html --query "checkout total" --json
+```
+
+If `changed` is false, the original was kept because focusing did not reduce
+estimated context or exact recovery could not be guaranteed.
 
 ## Diagnostic Delta is not activating
 

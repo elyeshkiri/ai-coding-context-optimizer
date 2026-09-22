@@ -215,39 +215,6 @@ The feature is disabled by default; no source is sent to a model unless it is
 explicitly enabled. See [Configuration](docs/CONFIGURATION.md) and
 [Security & privacy](SECURITY.md).
 
-## Smart Tool Proxy for large Reads
-
-Claude Code can opt in to routing large unbounded source Reads through Token Saver before the result reaches Claude:
-
-```toml
-[tool_proxy]
-enabled = true
-provider = "ollama"
-model = "qwen2.5-coder:7b"
-endpoint = "http://127.0.0.1:11434"
-min_tokens = 2500
-target_tokens = 1800
-```
-
-The free/local model is a **range selector, not a source of truth**. Token Saver builds bounded structural/exact candidate evidence, asks the selector which ranges matter for the current task, validates those ranges, then rehydrates the delivered excerpts from the real file bytes. No selector-generated prose is forwarded to Claude. If Ollama is unavailable, times out, or returns invalid JSON, Token Saver falls back to deterministic structural/lexical range selection.
-
-```text
-Claude Read(large source)
-        ↓
-PreToolUse delegates eligible read
-        ↓
-local Ollama selector (optional)
-        ↓
-validated line ranges
-        ↓
-exact excerpts from original source
-        ↓
-PostToolUse updatedToolOutput
-        ↓
-Claude receives bounded evidence
-```
-
-Bounded Reads remain untouched and are the exact-byte recovery path for edits. The feature is disabled by default; no source is sent to a model unless it is explicitly enabled. See [Configuration](docs/CONFIGURATION.md) and [Security & privacy](SECURITY.md).
 ## Hybrid semantic retrieval
 
 Token Saver 1.10 adds opt-in **chunk-level semantic discovery** without turning
@@ -1095,13 +1062,17 @@ Large successful Bash output is compressed only when the replacement is material
 
 Errors, exceptions, tracebacks, failed assertions, interrupted commands, images, unsupported structured responses, and stderr are treated conservatively. Test failures preserve diagnostic evidence.
 
-Before replacing output, Token Saver stores the original result locally. The model receives a retrieval command instead of being forced to rerun the command:
+Before replacing output, Token Saver stores the original result locally. The
+replacement keeps the legacy paged-output id and also emits a universal
+`tsr_...` recovery handle when available:
 
 ```bash
 token-saver output OUTPUT_ID --stream stdout --offset 1 --limit 80
+token-saver recover tsr_... --path .
 ```
 
-Prune old originals explicitly:
+MCP clients can use `recover_context` for the same `tsr_...` handle. Prune
+legacy paged-output originals explicitly:
 
 ```bash
 token-saver outputs-prune --days 7

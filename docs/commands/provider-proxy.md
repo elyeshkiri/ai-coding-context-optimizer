@@ -7,6 +7,7 @@ Run the opt-in local provider optimization reverse proxy.
 ```bash
 token-saver provider-proxy [path] --upstream URL [--provider NAME]
   [--bind IP] [--port N] [--tool-result-min-tokens N]
+  [--timeout-seconds SECONDS]
   [--no-schema-compression] [--no-tool-result-compression]
   [--no-prefix-tracking] [--allow-non-loopback]
 ```
@@ -18,6 +19,7 @@ token-saver provider-proxy [path] --upstream URL [--provider NAME]
 - `--provider` — `generic`, `anthropic`, `openai`, or `gemini`.
 - `--bind` / `--port` — local listener; loopback is the safe default.
 - `--tool-result-min-tokens` — minimum large tool-result size before compression.
+- `--timeout-seconds` — upstream request timeout; default 120 seconds.
 - `--no-schema-compression` — preserve incoming tool catalogs byte-for-byte.
 - `--no-tool-result-compression` — disable historical tool-result transforms.
 - `--no-prefix-tracking` — disable content-free stable-prefix hit/miss telemetry.

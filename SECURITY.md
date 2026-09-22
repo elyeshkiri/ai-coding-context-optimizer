@@ -33,10 +33,15 @@ content. The database is not encrypted at rest; protect the state directory with
 the same care as agent transcripts. Token Saver uses private file permissions
 where the platform supports them.
 
-The store has a hard capacity and does not evict older exact source merely to
-make room for a new transform. If an original cannot be stored, that lossy
-transform is refused and the unmodified representation is retained. This
-prevents model-visible recovery handles from becoming intentionally dangling.
+The store has a 512 MiB per-project default hard capacity and does not evict
+older exact source merely to make room for a new transform. If an original
+cannot be stored, that lossy transform is refused and the unmodified
+representation is retained. This prevents model-visible recovery handles from
+becoming intentionally dangling.
+
+v1.13 has no per-record recovery-prune command. Deleting the project recovery
+database manually invalidates every handle it contains, so do that only when no
+active session or saved evidence depends on those handles.
 
 ## Provider reverse-proxy boundary
 
@@ -109,15 +114,6 @@ tail to orient selection. Token Saver does not persist that prompt text in Smart
 Tool Proxy state. Operational savings telemetry stores only token counts and the
 selector label, not the source excerpts or task text.
 
-## Smart Tool Proxy model boundary
-
-Smart Tool Proxy is disabled by default. When enabled with the default `provider = "ollama"`, Token Saver sends a bounded task hint, structural outline, and bounded exact candidate source windows to the configured Ollama HTTP endpoint. The default endpoint is loopback `http://127.0.0.1:11434`.
-
-Changing that endpoint to a remote host changes the privacy boundary: the bounded task/source evidence is then sent to that host. Configure remote endpoints only when that provider is approved to receive the repository material.
-
-The selector is not trusted as source truth. Returned JSON can only nominate line ranges; Token Saver validates/clamps those ranges and re-reads the delivered code from the original file. No model-generated selector prose is forwarded to Claude. If the selector fails, deterministic local range selection is used. Bounded Reads are never proxied.
-
-The latest user task may be read transiently from the local Claude transcript tail to orient selection. Token Saver does not persist that prompt text in Smart Tool Proxy state. Operational savings telemetry stores only token counts and the selector label, not the source excerpts or task text.
 ## Semantic vector state
 
 Opt-in semantic retrieval reads the same repository files already admitted by
@@ -169,14 +165,19 @@ The analysis is local.
 
 ## Saved command output
 
-When the Claude hook safely replaces a large command result, the original can be
-stored locally so it remains recoverable.
+When the Claude hook safely replaces a large command result, the original is
+stored locally for recovery. The legacy paged-output id remains supported and
+v1.13 also emits a project-scoped `tsr_...` handle when universal recovery
+storage succeeds.
 
-Retrieve it with:
+Retrieve through either compatible path:
 
 ```bash
 token-saver output <id>
+token-saver recover tsr_... --path .
 ```
+
+MCP clients can resolve the universal handle with `recover_context`.
 
 Prune old outputs with:
 
