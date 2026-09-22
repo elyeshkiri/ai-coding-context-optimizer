@@ -95,13 +95,11 @@ fn char_ngrams(token: &str, n: usize) -> PyResult<Vec<String>> {
         .collect())
 }
 
-
 #[pyfunction]
 fn strip_ansi(text: &str) -> PyResult<String> {
     static ANSI: OnceLock<Regex> = OnceLock::new();
-    let pattern = ANSI.get_or_init(|| {
-        Regex::new(r"\x1b\[[0-9;?]*[ -/]*[@-~]").expect("static ansi regex")
-    });
+    let pattern =
+        ANSI.get_or_init(|| Regex::new(r"\x1b\[[0-9;?]*[ -/]*[@-~]").expect("static ansi regex"));
     Ok(pattern.replace_all(text, "").into_owned())
 }
 
