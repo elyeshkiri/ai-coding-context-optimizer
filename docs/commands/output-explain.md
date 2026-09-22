@@ -1,11 +1,11 @@
-# `token-saver output-explain`
+# `acco output-explain`
 
 Explain which output processor handles a command/failure.
 
 ## Synopsis
 
 ```bash
-token-saver output-explain <command> [--exit-code N] [--sample FILE]
+acco output-explain <command> [--exit-code N] [--sample FILE]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Always JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#output-explain-
 
 ## Authoritative runtime help
 
-Run `token-saver output-explain --help` for argparse's exact usage text for the installed version.
+Run `acco output-explain --help` for argparse's exact usage text for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver output-telemetry`
+# `acco output-telemetry`
 
 Report locally captured generation-budget telemetry for the current project.
 
 ## Synopsis
 
 ```bash
-token-saver output-telemetry [path] [--json] [--records] [--limit N]
+acco output-telemetry [path] [--json] [--records] [--limit N]
 ```
 
 ## Arguments and options
@@ -38,5 +38,5 @@ task/mode groups, and observational underuse/overrun signals. See
 
 ## Authoritative runtime help
 
-Run `token-saver output-telemetry --help` for argparse's exact usage text for
+Run `acco output-telemetry --help` for argparse's exact usage text for
 the installed version.

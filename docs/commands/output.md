@@ -1,11 +1,11 @@
-# `token-saver output`
+# `acco output`
 
 Page an original saved command result without re-execution.
 
 ## Synopsis
 
 ```bash
-token-saver output <id> [--stream stdout|stderr] [--offset N] [--limit N]
+acco output <id> [--stream stdout|stderr] [--offset N] [--limit N]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ Recovered original text.
 
 ## Authoritative runtime help
 
-Run `token-saver output --help` for argparse's exact usage text for the installed version.
+Run `acco output --help` for argparse's exact usage text for the installed version.
