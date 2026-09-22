@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Clone/fetch repositories required by a frozen Token Saver experiment suite."""
+"""Clone/fetch repositories required by a frozen ACCO experiment suite."""
 
 from __future__ import annotations
 
