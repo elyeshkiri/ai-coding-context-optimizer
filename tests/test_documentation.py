@@ -82,7 +82,7 @@ def test_public_document_versions_match_package_metadata():
     validation = (ROOT / "VALIDATION.md").read_text(encoding="utf-8")
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert readme.startswith(f"# ACCO {version}\n")
+    assert readme.startswith(f"# ACCO — AI Coding Context Optimizer {version}\n")
     assert validation.startswith(f"# Validation for {version}\n")
     assert f"# {version} -" in changelog
 
