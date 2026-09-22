@@ -45,7 +45,7 @@ Supported automatic setup now covers:
 | **OpenCode** | project `.opencode/opencode.json` using `mcp.servers` |
 | **OpenClaw** | native `openclaw mcp set/unset` registry |
 | **Hermes Agent** | marked entry under `mcp_servers` in `~/.hermes/config.yaml` |
-| **GitHub Copilot / VS Code** | workspace `.vscode/mcp.json` using `servers` |
+| **GitHub Copilot** | native Copilot CLI MCP registry (`~/.copilot/mcp-config.json`) and/or VS Code workspace `.vscode/mcp.json` |
 | **Google Antigravity** | workspace `.agents/mcp_config.json` using `mcpServers` |
 
 Only Token Saver-owned entries are changed. Setup is idempotent, so rerunning it
@@ -63,7 +63,9 @@ token-saver setup . --host all
 ```
 
 OpenClaw is mutated through its own validated MCP registry command rather than
-by parsing JSON5 directly. OpenCode uses a strict-JSON project layer and fails
+by parsing JSON5 directly. Copilot CLI is likewise managed through `copilot mcp`
+with a user-level `token-saver` entry that launches `token-saver serve .`; the
+VS Code Copilot surface remains workspace-scoped in `.vscode/mcp.json`. OpenCode uses a strict-JSON project layer and fails
 closed instead of creating a second sibling config when
 `.opencode/opencode.jsonc` already exists. Hermes uses a clearly marked YAML
 block and refuses to overwrite an unowned `token-saver` entry.
