@@ -45,6 +45,24 @@ _REQUIRED_TREATMENT_ENV = {
 }
 
 
+def _compat_env_value(env: dict, key: str):
+    """Read ACCO benchmark env keys with frozen Token Saver compatibility."""
+    if key in env:
+        return env[key]
+    if key.startswith("ACCO_"):
+        return env.get("TOKEN_SAVER_" + key[len("ACCO_"):])
+    return env.get(key)
+
+
+def _profile_installed(profile: dict) -> bool:
+    """Read the current or historical install flag from a frozen profile."""
+    value = profile.get("install_acco")
+    if not isinstance(value, bool):
+        value = profile.get("install_token_saver")
+    return value is True
+
+
+
 def _knowledge_metrics(run: dict) -> dict:
     """Validate intervention telemetry used only for feature-exposure evidence."""
     telemetry = run.get("session_efficiency_telemetry")
@@ -78,9 +96,9 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     enabled = profiles["enabled"]
     if not isinstance(baseline, dict) or not isinstance(enabled, dict):
         return False, ["invalid_knowledge_condition_profiles"]
-    if baseline.get("install_acco") is not True:
+    if not _profile_installed(baseline):
         issues.append("control_does_not_install_acco")
-    if enabled.get("install_acco") is not True:
+    if not _profile_installed(enabled):
         issues.append("treatment_does_not_install_acco")
     if str(baseline.get("label") or "") != "knowledge-memory-control":
         issues.append("control_label_mismatch")
@@ -93,12 +111,12 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
         issues.append("condition_env_missing")
     else:
         for key, expected in _REQUIRED_CONTROL_ENV.items():
-            if baseline_env.get(key) != expected:
+            if _compat_env_value(baseline_env, key) != expected:
                 issues.append(f"control_env_mismatch:{key}")
         for key, expected in _REQUIRED_TREATMENT_ENV.items():
-            if enabled_env.get(key) != expected:
+            if _compat_env_value(enabled_env, key) != expected:
                 issues.append(f"treatment_env_mismatch:{key}")
-        controlled = set(_REQUIRED_CONTROL_ENV)
+        controlled = set(_REQUIRED_CONTROL_ENV) | {key.replace("ACCO_", "TOKEN_SAVER_", 1) for key in _REQUIRED_CONTROL_ENV}
         control_other = {
             key: value for key, value in baseline_env.items() if key not in controlled
         }
@@ -111,7 +129,7 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     command = runner.get("command") if isinstance(runner, dict) else None
     if (
         not isinstance(command, list)
-        or "acco.knowledge_holdout_docker" not in command
+        or not any(name in command for name in ("acco.knowledge_holdout_docker", "token_saver.knowledge_holdout_docker"))
     ):
         issues.append("knowledge_holdout_runner_missing")
     if not isinstance(runner, dict) or runner.get("knowledge_holdout_protocol_version") != 1:
