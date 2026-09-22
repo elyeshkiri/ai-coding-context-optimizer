@@ -1,11 +1,11 @@
-# `token-saver ingress-read`
+# `acco ingress-read`
 
 Recover an exact bounded line range from an oversized prompt previously staged by the opt-in ingress optimizer.
 
 ## Synopsis
 
 ```bash
-token-saver ingress-read STAGE_ID --path . --start-line 80 --end-line 140
+acco ingress-read STAGE_ID --path . --start-line 80 --end-line 140
 ```
 
 ## Arguments and options
@@ -29,5 +29,5 @@ Writes the requested exact line range to stdout followed by a newline. It does n
 ## Authoritative runtime help
 
 ```bash
-token-saver ingress-read --help
+acco ingress-read --help
 ```
