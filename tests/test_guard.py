@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
 
-from token_saver.guard import decide_read, run
-from token_saver.install import install, merge_hooks
+from acco.guard import decide_read, run
+from acco.install import install, merge_hooks
 
 
 def _big_source(path: Path, n: int = 300) -> Path:
@@ -45,8 +45,8 @@ def test_allowlist_skips_package_json(tmp_path):
 
 
 def test_duplicate_read_denied_by_efficiency_dedup_default(tmp_path):
-    from token_saver.state import record_read
-    from token_saver.guard import _digest
+    from acco.state import record_read
+    from acco.guard import _digest
 
     p = _big_source(tmp_path / "mod.py")
     record_read(tmp_path, p, _digest(p.read_text()))
@@ -56,20 +56,20 @@ def test_duplicate_read_denied_by_efficiency_dedup_default(tmp_path):
 
 
 def test_duplicate_read_dedup_can_be_disabled(tmp_path, monkeypatch):
-    from token_saver.state import record_read
-    from token_saver.guard import _digest
+    from acco.state import record_read
+    from acco.guard import _digest
 
-    monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "0")
+    monkeypatch.setenv("ACCO_CROSS_TURN_DEDUP", "0")
     p = _big_source(tmp_path / "mod.py", n=10)
     record_read(tmp_path, p, _digest(p.read_text()))
     assert decide_read({"file_path": str(p)}, cwd=tmp_path) is None
 
 
 def test_duplicate_read_denied_when_enabled(tmp_path, monkeypatch):
-    from token_saver.state import record_read
-    from token_saver.guard import _digest
+    from acco.state import record_read
+    from acco.guard import _digest
 
-    monkeypatch.setenv("TOKEN_SAVER_REREAD", "1")
+    monkeypatch.setenv("ACCO_REREAD", "1")
     p = _big_source(tmp_path / "mod.py")
     record_read(tmp_path, p, _digest(p.read_text()))
     decision = decide_read({"file_path": str(p)}, cwd=tmp_path)
@@ -79,7 +79,7 @@ def test_duplicate_read_denied_when_enabled(tmp_path, monkeypatch):
 
 def test_allow_env_glob(tmp_path, monkeypatch):
     p = _big_source(tmp_path / "generated.py")
-    monkeypatch.setenv("TOKEN_SAVER_ALLOW", "generated.py")
+    monkeypatch.setenv("ACCO_ALLOW", "generated.py")
     assert decide_read({"file_path": str(p)}) is None
 
 
@@ -90,7 +90,7 @@ def test_markdown_not_guarded(tmp_path):
 
 
 def test_guard_env_off(tmp_path, monkeypatch):
-    monkeypatch.setenv("TOKEN_SAVER_GUARD", "0")
+    monkeypatch.setenv("ACCO_GUARD", "0")
     p = _big_source(tmp_path / "big.py")
     assert decide_read({"file_path": str(p)}) is None
 
@@ -167,18 +167,18 @@ def test_bash_cat_of_several_files_outlines_only_the_large_ones(tmp_path):
 
 def test_bash_guard_respects_kill_switches_and_allowlist(tmp_path, monkeypatch):
     path = _big_py(tmp_path)
-    monkeypatch.setenv("TOKEN_SAVER_GUARD", "0")
+    monkeypatch.setenv("ACCO_GUARD", "0")
     assert _bash(f"cat {path}", tmp_path) is None
-    monkeypatch.delenv("TOKEN_SAVER_GUARD")
-    monkeypatch.setenv("TOKEN_SAVER_ALLOW", "big.py")
+    monkeypatch.delenv("ACCO_GUARD")
+    monkeypatch.setenv("ACCO_ALLOW", "big.py")
     assert _bash(f"cat {path}", tmp_path) is None
-    monkeypatch.delenv("TOKEN_SAVER_ALLOW")
-    monkeypatch.setenv("TOKEN_SAVER_READ_MAX_LINES", "5000")
+    monkeypatch.delenv("ACCO_ALLOW")
+    monkeypatch.setenv("ACCO_READ_MAX_LINES", "5000")
     assert _bash(f"cat {path}", tmp_path) is None
 
 
 def test_hook_dispatches_pre_tool_use_bash_to_the_guard(tmp_path):
-    from token_saver.hook import run as hook_run
+    from acco.hook import run as hook_run
     path = _big_py(tmp_path)
     _, response = hook_run({
         "hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(tmp_path),
@@ -188,18 +188,18 @@ def test_hook_dispatches_pre_tool_use_bash_to_the_guard(tmp_path):
 
 
 def test_install_registers_the_bash_pre_hook():
-    from token_saver.install import merge_hooks
+    from acco.install import merge_hooks
     pre = merge_hooks({})["hooks"]["PreToolUse"]
     assert [e["matcher"] for e in pre] == ["Read|Bash"]
 
 
 def test_install_upgrades_old_post_matcher(tmp_path):
-    from token_saver.install import merge_hooks
+    from acco.install import merge_hooks
     old = {
         "hooks": {
             "PostToolUse": [{
                 "matcher": "Bash|Grep|WebFetch",
-                "hooks": [{"type": "command", "command": "token-saver hook"}],
+                "hooks": [{"type": "command", "command": "acco hook"}],
             }]
         }
     }
@@ -216,27 +216,27 @@ def test_install_merges(tmp_path):
     (root / ".claude" / "settings.json").write_text('{"env": {"FOO": "1"}}\n')
     path = install(root)
     text = path.read_text()
-    assert "token-saver hook" in text
+    assert "acco hook" in text
     assert "FOO" in text
     # second install is idempotent
     install(root)
-    data = merge_hooks({"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "token-saver hook"}]}]}})
+    data = merge_hooks({"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "acco hook"}]}]}})
     posts = data["hooks"]["PostToolUse"]
     assert sum(
         1
         for e in posts
-        if any(h.get("command") == "token-saver hook" for h in e.get("hooks", []))
+        if any(h.get("command") == "acco hook" for h in e.get("hooks", []))
     ) == 1
 
 
 
 def test_efficiency_master_switch_disables_default_read_dedup(tmp_path, monkeypatch):
     """The control arm must be able to disable 1.7 read dedup with one master flag."""
-    from token_saver.guard import _digest
-    from token_saver.state import record_read
+    from acco.guard import _digest
+    from acco.state import record_read
 
-    monkeypatch.setenv("TOKEN_SAVER_EFFICIENCY", "0")
-    monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "1")
+    monkeypatch.setenv("ACCO_EFFICIENCY", "0")
+    monkeypatch.setenv("ACCO_CROSS_TURN_DEDUP", "1")
     path = _big_source(tmp_path / "mod.py", n=40)
     record_read(tmp_path, path, _digest(path.read_text()))
 
@@ -246,10 +246,10 @@ def test_efficiency_master_switch_disables_default_read_dedup(tmp_path, monkeypa
 
 def test_verified_current_knowledge_can_avoid_full_read(tmp_path, monkeypatch):
     """Opt-in knowledge avoidance should replace a redundant full source read."""
-    from token_saver.knowledge import FindingStore
+    from acco.knowledge import FindingStore
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_KNOWLEDGE_READ_AVOIDANCE", "1")
     path = _big_source(tmp_path / "known.py", n=100)
     FindingStore(tmp_path).remember(
         claim="The target behavior is implemented by foo",
@@ -270,10 +270,10 @@ def test_verified_current_knowledge_can_avoid_full_read(tmp_path, monkeypatch):
 
 def test_stale_knowledge_never_blocks_a_read(tmp_path, monkeypatch):
     """Changing anchored source should disable automatic read avoidance."""
-    from token_saver.knowledge import FindingStore
+    from acco.knowledge import FindingStore
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_KNOWLEDGE_READ_AVOIDANCE", "1")
     path = _big_source(tmp_path / "known.py", n=100)
     FindingStore(tmp_path).remember(
         claim="The file contains the target behavior",
@@ -288,10 +288,10 @@ def test_stale_knowledge_never_blocks_a_read(tmp_path, monkeypatch):
 
 def test_non_verified_knowledge_never_blocks_a_read(tmp_path, monkeypatch):
     """Probable/speculative findings must remain hints, not automatic read substitutes."""
-    from token_saver.knowledge import FindingStore
+    from acco.knowledge import FindingStore
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_KNOWLEDGE_READ_AVOIDANCE", "1")
     path = _big_source(tmp_path / "known.py", n=100)
     FindingStore(tmp_path).remember(
         claim="The file might contain the target behavior",
@@ -309,12 +309,12 @@ def test_cache_economics_can_reject_marginal_knowledge_replacement(
     monkeypatch,
 ):
     """An aggressive economic floor should preserve reads that do not clear it."""
-    from token_saver.knowledge import FindingStore
+    from acco.knowledge import FindingStore
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "1")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_ECONOMICS", "1")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS", "0.99")
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_KNOWLEDGE_READ_AVOIDANCE", "1")
+    monkeypatch.setenv("ACCO_CACHE_ECONOMICS", "1")
+    monkeypatch.setenv("ACCO_CACHE_MIN_RELATIVE_SAVINGS", "0.99")
     path = _big_source(tmp_path / "known.py", n=100)
     FindingStore(tmp_path).remember(
         claim="foo is relevant",

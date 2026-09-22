@@ -1,7 +1,7 @@
 import pytest
 
-from token_saver import syntax
-from token_saver.repo_index import build_index
+from acco import syntax
+from acco.repo_index import build_index
 
 # A long chained expression is a realistic shape for generated code (data
 # tables, bundled/minified output). Every parser-backed language builds a tree

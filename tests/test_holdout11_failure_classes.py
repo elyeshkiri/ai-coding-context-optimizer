@@ -1,7 +1,7 @@
 import textwrap
 
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.repo_index import record_for_text
+from acco.pack import build_context_pack, rank_files
+from acco.repo_index import record_for_text
 
 
 def _line(source: str, needle: str) -> int:

@@ -5,8 +5,8 @@ import json
 
 import pytest
 
-from token_saver.hook import cap_for, main, run
-from token_saver.output_telemetry import load_output_telemetry
+from acco.hook import cap_for, main, run
+from acco.output_telemetry import load_output_telemetry
 
 
 def _payload(response, tool="Bash", command="npm test"):
@@ -27,7 +27,7 @@ def _updated(payload):
 
 
 def test_hook_kill_switch_makes_all_events_noops(monkeypatch):
-    monkeypatch.setenv("TOKEN_SAVER_DISABLED", "1")
+    monkeypatch.setenv("ACCO_DISABLED", "1")
     noisy = "\n".join(f"line {i}" for i in range(500))
     assert run(_payload(noisy)) == (0, None)
     assert run({
@@ -42,11 +42,11 @@ def test_large_bash_output_is_filtered():
     out = _updated(_payload(noisy))
     assert out is not None
     assert len(out.splitlines()) < 120
-    assert "token-saver: filtered" in out
+    assert "acco: filtered" in out
 
 
 def test_session_start_resume_does_not_treat_matcher_as_clear(tmp_path):
-    from token_saver.state import record_read, load as load_state
+    from acco.state import record_read, load as load_state
 
     p = tmp_path / "a.py"
     p.write_text("x = 1\n")
@@ -70,7 +70,7 @@ def test_session_start_without_transcripts_is_silent(tmp_path):
 
 def test_user_prompt_auto_policy_injects_once_per_task(tmp_path, monkeypatch):
     """Claude prompt hooks should inject a task policy once, then inherit it silently."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     payload = {
         "hook_event_name": "UserPromptSubmit",
         "cwd": str(tmp_path),
@@ -90,8 +90,8 @@ def test_user_prompt_auto_policy_injects_once_per_task(tmp_path, monkeypatch):
 
 def test_user_prompt_auto_policy_can_be_disabled(tmp_path, monkeypatch):
     """The generation-policy hook should have an independent project/env kill switch."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_POLICY", "0")
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_OUTPUT_POLICY", "0")
 
     assert run(
         {
@@ -107,7 +107,7 @@ def test_prompt_and_stop_hooks_capture_real_usage_without_content(
     tmp_path, monkeypatch
 ):
     """Claude prompt/Stop hooks should produce content-free usage telemetry."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     transcript = tmp_path / "session.jsonl"
     transcript.write_text("", encoding="utf-8")
     prompt = {
@@ -159,8 +159,8 @@ def test_prompt_and_stop_hooks_capture_real_usage_without_content(
 
 def test_output_telemetry_can_be_disabled_independently(tmp_path, monkeypatch):
     """Telemetry opt-out should not disable generation policy injection."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TELEMETRY", "0")
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_OUTPUT_TELEMETRY", "0")
     transcript = tmp_path / "session.jsonl"
     transcript.write_text("", encoding="utf-8")
 
@@ -257,8 +257,8 @@ def test_cap_scales_with_input():
 
 def test_marginal_saving_is_refused(monkeypatch):
     """The note costs ~30 tokens. Filtering must not be a net loss."""
-    monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "10")
-    monkeypatch.setenv("TOKEN_SAVER_MAX_LINES", "8")
+    monkeypatch.setenv("ACCO_MIN_LINES", "10")
+    monkeypatch.setenv("ACCO_MAX_LINES", "8")
     tiny = "\n".join(f"{i}" for i in range(12))
     assert _updated(_payload(tiny)) is None, "saved less than the note it adds"
 
@@ -266,11 +266,11 @@ def test_marginal_saving_is_refused(monkeypatch):
 def test_thresholds_are_configurable(monkeypatch):
     """Env overrides still win over the defaults."""
     body = _log(60)
-    monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "500")
+    monkeypatch.setenv("ACCO_MIN_LINES", "500")
     assert _updated(_payload(body)) is None, "floor raised above the input"
 
-    monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "10")
-    monkeypatch.setenv("TOKEN_SAVER_MAX_LINES", "8")
+    monkeypatch.setenv("ACCO_MIN_LINES", "10")
+    monkeypatch.setenv("ACCO_MAX_LINES", "8")
     out = _updated(_payload(body))
     assert out is not None
     assert len(out.splitlines()) < len(body.splitlines())
@@ -294,7 +294,7 @@ def test_main_emits_valid_json_for_a_big_payload(monkeypatch, capsys):
 def test_a_hook_crash_never_breaks_the_tool_call(monkeypatch, capsys):
     monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(_payload("x\n" * 500))))
     monkeypatch.setattr(
-        "token_saver.hook.OutputPipeline.process",
+        "acco.hook.OutputPipeline.process",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
     )
     assert main() == 0

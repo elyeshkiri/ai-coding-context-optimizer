@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from token_saver.hook_runtime import HookConfig, HookRuntime, HookServices
-from token_saver.output import OutputResult
+from acco.hook_runtime import HookConfig, HookRuntime, HookServices
+from acco.output import OutputResult
 
 
 class _PassthroughPipeline:
@@ -217,7 +217,7 @@ def test_runtime_injects_generation_policy_with_session_config(tmp_path):
                 "adaptive": True,
                 "min_tokens": None,
                 "max_tokens": None,
-                "calibration_file": ".token-saver.output-calibration.json",
+                "calibration_file": ".acco.output-calibration.json",
             },
         )
     ]

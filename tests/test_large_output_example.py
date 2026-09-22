@@ -1,4 +1,4 @@
-"""The large-output demo must genuinely trigger both Token Saver savings paths."""
+"""The large-output demo must genuinely trigger both ACCO savings paths."""
 
 import subprocess
 import sys
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.estimate import estimate_tokens
-from token_saver.hook import run
+from acco.estimate import estimate_tokens
+from acco.hook import run
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "examples" / "large_output_demo"))
 import make_project as demo  # noqa: E402
@@ -60,7 +60,7 @@ def test_test_run_output_is_filtered_but_keeps_the_failure(project):
     assert "test_discount_at_threshold" in filtered
     assert "assert 125.0 == 112.5" in filtered
     assert "1 failed, 606 passed" in filtered
-    assert "token-saver output" in filtered  # recovery path for the omitted lines
+    assert "acco output" in filtered  # recovery path for the omitted lines
 
 
 def test_whole_file_read_of_the_large_module_is_redirected(project):
@@ -79,7 +79,7 @@ def test_whole_file_read_of_the_large_module_is_redirected(project):
 
 
 def test_demo_rates_cover_the_supported_models():
-    from token_saver.pricing import load_rates
+    from acco.pricing import load_rates
 
     rates = load_rates(Path(demo.__file__).with_name("rates.json"))
     assert {"claude-haiku-4-5-20251001", "claude-sonnet-5"} <= set(rates)

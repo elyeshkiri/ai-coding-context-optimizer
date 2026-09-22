@@ -6,10 +6,10 @@ import json
 
 import pytest
 
-from token_saver.command_handlers.host import completion_main
-from token_saver.guard import decide_read
-from token_saver.hook import _config_from_env
-from token_saver.integration_setup import (
+from acco.command_handlers.host import completion_main
+from acco.guard import decide_read
+from acco.hook import _config_from_env
+from acco.integration_setup import (
     CODEX_END,
     CODEX_START,
     detect_hosts,
@@ -17,7 +17,7 @@ from token_saver.integration_setup import (
     setup_integrations,
     uninstall_integrations,
 )
-from token_saver.runtime_config import settings_for
+from acco.runtime_config import settings_for
 
 
 def _which(names):
@@ -26,7 +26,7 @@ def _which(names):
 
 
 def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
-    """Setup should own only Token Saver entries across supported hosts."""
+    """Setup should own only ACCO entries across supported hosts."""
     root = tmp_path / "repo"
     home = tmp_path / "home"
     root.mkdir()
@@ -69,11 +69,11 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
 
     assert first["configured_hosts"] == ["claude", "cursor", "codex"]
     assert second["configured_hosts"] == ["claude", "cursor", "codex"]
-    config_text = (root / ".token-saver.toml").read_text(encoding="utf-8")
+    config_text = (root / ".acco.toml").read_text(encoding="utf-8")
     assert "[output]" in config_text
     assert 'task = "auto"' in config_text
     assert "adaptive = true" in config_text
-    assert 'calibration_file = ".token-saver.output-calibration.json"' in config_text
+    assert 'calibration_file = ".acco.output-calibration.json"' in config_text
     assert "telemetry = true" in config_text
     assert "[model_routing]" in config_text
     assert 'mode = "advisory"' in config_text
@@ -81,7 +81,7 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert 'allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]' in config_text
     assert "min_savings = 0.05" in config_text
     assert "conservative = true" in config_text
-    assert 'calibration_file = ".token-saver.routing-calibration.json"' in config_text
+    assert 'calibration_file = ".acco.routing-calibration.json"' in config_text
     assert "[efficiency]" in config_text
     assert "continuity = true" in config_text
     assert "dedup = true" in config_text
@@ -100,8 +100,8 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     assert "cache_max_entries = 64" in config_text
 
     claude_mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
-    assert set(claude_mcp["mcpServers"]) == {"github", "token-saver"}
-    assert claude_mcp["mcpServers"]["token-saver"]["args"] == [
+    assert set(claude_mcp["mcpServers"]) == {"github", "acco"}
+    assert claude_mcp["mcpServers"]["acco"]["args"] == [
         "serve",
         str(root.resolve()),
     ]
@@ -109,7 +109,7 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     cursor_mcp = json.loads(
         (root / ".cursor" / "mcp.json").read_text(encoding="utf-8")
     )
-    assert set(cursor_mcp["mcpServers"]) == {"docs", "token-saver"}
+    assert set(cursor_mcp["mcpServers"]) == {"docs", "acco"}
 
     settings = json.loads(
         (root / ".claude" / "settings.json").read_text(encoding="utf-8")
@@ -120,7 +120,7 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
         for entry in entries
         for hook in entry.get("hooks", [])
     ]
-    assert commands.count("token-saver hook") == 6
+    assert commands.count("acco hook") == 6
     assert set(settings["hooks"]) >= {
         "UserPromptSubmit",
         "Stop",
@@ -145,18 +145,18 @@ def test_doctor_detects_pre_telemetry_partial_claude_hook_install(tmp_path):
             "hooks": {
                 "PreToolUse": [{
                     "matcher": "Read|Bash",
-                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                    "hooks": [{"type": "command", "command": "acco hook"}],
                 }],
                 "PostToolUse": [{
                     "matcher": "Bash|Read",
-                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                    "hooks": [{"type": "command", "command": "acco hook"}],
                 }],
                 "SessionStart": [{
                     "matcher": "startup|resume|clear|compact",
-                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                    "hooks": [{"type": "command", "command": "acco hook"}],
                 }],
                 "UserPromptSubmit": [{
-                    "hooks": [{"type": "command", "command": "token-saver hook"}],
+                    "hooks": [{"type": "command", "command": "acco hook"}],
                 }],
             }
         }),
@@ -165,8 +165,8 @@ def test_doctor_detects_pre_telemetry_partial_claude_hook_install(tmp_path):
     (root / ".mcp.json").write_text(
         json.dumps({
             "mcpServers": {
-                "token-saver": {
-                    "command": "token-saver",
+                "acco": {
+                    "command": "acco",
                     "args": ["serve", str(root.resolve())],
                 }
             }
@@ -207,7 +207,7 @@ def test_uninstall_removes_only_owned_entries(tmp_path):
 
     assert result["removed_hosts"] == ["claude", "cursor", "codex"]
     assert not skill.exists()
-    assert (root / ".token-saver.toml").exists()
+    assert (root / ".acco.toml").exists()
     remaining = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     assert remaining["mcpServers"] == {"github": {"command": "gh"}}
     assert CODEX_START not in (home / ".codex" / "config.toml").read_text(
@@ -223,7 +223,7 @@ def test_uninstall_can_remove_project_config(tmp_path):
 
     uninstall_integrations(root, ("cursor",), remove_config=True)
 
-    assert not (root / ".token-saver.toml").exists()
+    assert not (root / ".acco.toml").exists()
 
 
 def test_setup_auto_detects_only_available_hosts(tmp_path):
@@ -242,7 +242,7 @@ def test_setup_auto_detects_only_available_hosts(tmp_path):
     assert not (home / ".codex" / "config.toml").exists()
 
 
-def test_setup_refuses_unmanaged_codex_token_saver_section(tmp_path):
+def test_setup_refuses_unmanaged_codex_acco_section(tmp_path):
     """Setup should never silently overwrite a user-owned Codex MCP section."""
     root = tmp_path / "repo"
     home = tmp_path / "home"
@@ -250,11 +250,11 @@ def test_setup_refuses_unmanaged_codex_token_saver_section(tmp_path):
     path = home / ".codex" / "config.toml"
     path.parent.mkdir(parents=True)
     path.write_text(
-        '[mcp_servers.token-saver]\ncommand = "custom"\n',
+        '[mcp_servers.acco]\ncommand = "custom"\n',
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="unmanaged Token Saver Codex config"):
+    with pytest.raises(ValueError, match="unmanaged ACCO Codex config"):
         setup_integrations(root, ("codex",), home=home, which=_which({"codex"}))
 
     assert 'command = "custom"' in path.read_text(encoding="utf-8")
@@ -264,7 +264,7 @@ def test_project_config_controls_runtime_and_env_overrides(tmp_path, monkeypatch
     """Project TOML should be real runtime config, with environment taking priority."""
     root = tmp_path / "repo"
     root.mkdir()
-    (root / ".token-saver.toml").write_text(
+    (root / ".acco.toml").write_text(
         """[hooks]
 guard = false
 read_max_lines = 12
@@ -314,19 +314,19 @@ telemetry = false
     assert hook_config.output_policy_calibration_file == "custom-calibration.json"
     assert hook_config.output_telemetry_enabled is False
 
-    monkeypatch.setenv("TOKEN_SAVER_DELTA", "0")
-    monkeypatch.setenv("TOKEN_SAVER_MIN_LINES", "33")
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_POLICY", "1")
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MODE", "detailed")
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TASK", "coding")
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_ADAPTIVE", "1")
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MIN_TOKENS", "450")
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_MAX_TOKENS", "1400")
+    monkeypatch.setenv("ACCO_DELTA", "0")
+    monkeypatch.setenv("ACCO_MIN_LINES", "33")
+    monkeypatch.setenv("ACCO_OUTPUT_POLICY", "1")
+    monkeypatch.setenv("ACCO_OUTPUT_MODE", "detailed")
+    monkeypatch.setenv("ACCO_OUTPUT_TASK", "coding")
+    monkeypatch.setenv("ACCO_OUTPUT_ADAPTIVE", "1")
+    monkeypatch.setenv("ACCO_OUTPUT_MIN_TOKENS", "450")
+    monkeypatch.setenv("ACCO_OUTPUT_MAX_TOKENS", "1400")
     monkeypatch.setenv(
-        "TOKEN_SAVER_OUTPUT_CALIBRATION_FILE",
+        "ACCO_OUTPUT_CALIBRATION_FILE",
         "learned.json",
     )
-    monkeypatch.setenv("TOKEN_SAVER_OUTPUT_TELEMETRY", "1")
+    monkeypatch.setenv("ACCO_OUTPUT_TELEMETRY", "1")
     overridden = settings_for(root)
     assert overridden.delta is False
     assert overridden.min_lines == 33
@@ -346,7 +346,7 @@ def test_guard_uses_project_config(tmp_path):
     root.mkdir()
     source = root / "large.py"
     source.write_text("\n".join(f"x{i} = {i}" for i in range(30)), encoding="utf-8")
-    config = root / ".token-saver.toml"
+    config = root / ".acco.toml"
     config.write_text("[hooks]\nguard = false\nread_max_lines = 5\n", encoding="utf-8")
 
     assert decide_read({"file_path": str(source)}, cwd=root) is None
@@ -363,15 +363,15 @@ def test_doctor_reports_configured_hosts_and_index(tmp_path):
     home = tmp_path / "home"
     root.mkdir()
     (root / "app.py").write_text("def run():\n    return 1\n", encoding="utf-8")
-    setup_integrations(root, ("cursor",), home=home, which=_which({"cursor", "token-saver"}))
+    setup_integrations(root, ("cursor",), home=home, which=_which({"cursor", "acco"}))
 
     report = doctor_report(
-        root, home=home, which=_which({"cursor", "token-saver"}), index=True
+        root, home=home, which=_which({"cursor", "acco"}), index=True
     )
 
     assert report["ready"] is True
     assert report["configured_hosts"] == ["cursor"]
-    assert report["config_path"].endswith(".token-saver.toml")
+    assert report["config_path"].endswith(".acco.toml")
     assert report["index"]["files"] >= 1
 
 
@@ -408,7 +408,7 @@ def test_guard_allow_supports_repository_relative_globs(tmp_path):
     generated.mkdir(parents=True)
     source = generated / "large.py"
     source.write_text("\n".join(f"x{i} = {i}" for i in range(30)), encoding="utf-8")
-    (root / ".token-saver.toml").write_text(
+    (root / ".acco.toml").write_text(
         '[hooks]\nguard = true\nread_max_lines = 5\nallow = ["generated/*"]\n',
         encoding="utf-8",
     )
@@ -428,11 +428,11 @@ def test_setup_preflight_prevents_partial_multi_host_mutation(tmp_path):
     codex = home / ".codex" / "config.toml"
     codex.parent.mkdir(parents=True)
     codex.write_text(
-        '[mcp_servers.token-saver]\ncommand = "custom"\n',
+        '[mcp_servers.acco]\ncommand = "custom"\n',
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="unmanaged Token Saver Codex config"):
+    with pytest.raises(ValueError, match="unmanaged ACCO Codex config"):
         setup_integrations(
             root,
             ("claude", "cursor", "codex"),
@@ -444,7 +444,7 @@ def test_setup_preflight_prevents_partial_multi_host_mutation(tmp_path):
     assert json.loads(cursor.read_text(encoding="utf-8")) == {
         "mcpServers": {"docs": {"command": "docs"}}
     }
-    assert not (root / ".token-saver.toml").exists()
+    assert not (root / ".acco.toml").exists()
 
 
 
@@ -452,7 +452,7 @@ def test_efficiency_config_and_environment_overrides(tmp_path, monkeypatch):
     """Session-efficiency controls should resolve from TOML then environment."""
     root = tmp_path / "repo"
     root.mkdir()
-    (root / ".token-saver.toml").write_text(
+    (root / ".acco.toml").write_text(
         """[efficiency]
 enabled = false
 continuity = false
@@ -486,16 +486,16 @@ cache_min_relative_savings = 0.12
     assert hook_config.cross_turn_dedup_enabled is False
     assert hook_config.waste_detection_enabled is False
 
-    monkeypatch.setenv("TOKEN_SAVER_EFFICIENCY", "1")
-    monkeypatch.setenv("TOKEN_SAVER_CONTINUITY", "1")
-    monkeypatch.setenv("TOKEN_SAVER_CROSS_TURN_DEDUP", "1")
-    monkeypatch.setenv("TOKEN_SAVER_WASTE_DETECTION", "1")
-    monkeypatch.setenv("TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE", "0")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_ECONOMICS", "0")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_EXPECTED_REUSES", "7")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_WRITE_FACTOR", "1.75")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_READ_FACTOR", "0.15")
-    monkeypatch.setenv("TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS", "0.2")
+    monkeypatch.setenv("ACCO_EFFICIENCY", "1")
+    monkeypatch.setenv("ACCO_CONTINUITY", "1")
+    monkeypatch.setenv("ACCO_CROSS_TURN_DEDUP", "1")
+    monkeypatch.setenv("ACCO_WASTE_DETECTION", "1")
+    monkeypatch.setenv("ACCO_KNOWLEDGE_READ_AVOIDANCE", "0")
+    monkeypatch.setenv("ACCO_CACHE_ECONOMICS", "0")
+    monkeypatch.setenv("ACCO_CACHE_EXPECTED_REUSES", "7")
+    monkeypatch.setenv("ACCO_CACHE_WRITE_FACTOR", "1.75")
+    monkeypatch.setenv("ACCO_CACHE_READ_FACTOR", "0.15")
+    monkeypatch.setenv("ACCO_CACHE_MIN_RELATIVE_SAVINGS", "0.2")
     overridden = settings_for(root)
 
     assert overridden.efficiency_enabled is True
@@ -520,15 +520,15 @@ def test_posttool_hook_observes_edit_and_write_for_continuity(tmp_path):
         (root / ".claude" / "settings.json").read_text(encoding="utf-8")
     )
     post = settings["hooks"]["PostToolUse"]
-    token_saver = next(
+    acco = next(
         entry
         for entry in post
         if any(
-            hook.get("command") == "token-saver hook"
+            hook.get("command") == "acco hook"
             for hook in entry.get("hooks", [])
         )
     )
-    assert token_saver["matcher"] == "Bash|Read|Edit|Write"
+    assert acco["matcher"] == "Bash|Read|Edit|Write"
 
 
 
@@ -539,7 +539,7 @@ def test_ingress_and_retrieval_cache_config_environment_overrides(
     """Ingress and retrieval caching should resolve from TOML then environment."""
     root = tmp_path / "repo"
     root.mkdir()
-    (root / ".token-saver.toml").write_text(
+    (root / ".acco.toml").write_text(
         """[ingress]
 enabled = true
 threshold_tokens = 9000
@@ -564,11 +564,11 @@ cache_max_entries = 12
     assert hook_config.ingress_threshold_tokens == 9000
     assert hook_config.ingress_packet_tokens == 1200
 
-    monkeypatch.setenv("TOKEN_SAVER_INGRESS_OPTIMIZER", "0")
-    monkeypatch.setenv("TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS", "14000")
-    monkeypatch.setenv("TOKEN_SAVER_INGRESS_PACKET_TOKENS", "1800")
-    monkeypatch.setenv("TOKEN_SAVER_RETRIEVAL_CACHE", "1")
-    monkeypatch.setenv("TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES", "90")
+    monkeypatch.setenv("ACCO_INGRESS_OPTIMIZER", "0")
+    monkeypatch.setenv("ACCO_INGRESS_THRESHOLD_TOKENS", "14000")
+    monkeypatch.setenv("ACCO_INGRESS_PACKET_TOKENS", "1800")
+    monkeypatch.setenv("ACCO_RETRIEVAL_CACHE", "1")
+    monkeypatch.setenv("ACCO_RETRIEVAL_CACHE_MAX_ENTRIES", "90")
     overridden = settings_for(root)
 
     assert overridden.ingress_enabled is False
