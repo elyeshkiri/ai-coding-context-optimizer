@@ -1,7 +1,7 @@
 """Host-specific MCP configuration adapters.
 
 These adapters keep host formats out of the integration lifecycle service. Each
-mutation owns only the acco server entry and either preserves unrelated
+mutation owns only the ACCO server entry and either preserves unrelated
 configuration or fails closed when the host format cannot be mutated safely.
 """
 
@@ -476,7 +476,7 @@ def openclaw_config_path(home: Path | None = None) -> Path:
 
 
 def openclaw_configured(home: Path | None = None) -> bool:
-    """Detect a ACCO MCP entry in JSON or ordinary JSON5-shaped config."""
+    """Detect an ACCO MCP entry in JSON or ordinary JSON5-shaped config."""
     path = openclaw_config_path(home)
     try:
         text = path.read_text(encoding="utf-8")
