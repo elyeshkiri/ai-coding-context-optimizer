@@ -20,10 +20,10 @@ def _reference(monkeypatch):
             ["token", "session", "refresh"],
         ),
         "ngrams": fastpath.char_ngrams("token", 3),
-        "ansi": fastpath.strip_ansi("\\x1b[31mERROR boom\\x1b[0m"),
-        "repeated": fastpath.collapse_repeated_lines("x\\nx\\nx\\ny\\n"),
+        "ansi": fastpath.strip_ansi("\x1b[31mERROR boom\x1b[0m"),
+        "repeated": fastpath.collapse_repeated_lines("x\nx\nx\ny\n"),
         "critical": fastpath.critical_lines(
-            "INFO ok\\nERROR boom\\nERROR boom\\nsrc/main.rs:12 failed\\n"
+            "INFO ok\nERROR boom\nERROR boom\nsrc/main.rs:12 failed\n"
         ),
         "bm25": fastpath.bm25_score(
             {"auth": 3, "token": 2},
@@ -69,10 +69,10 @@ def test_compiled_fastpath_matches_python_reference_when_available(monkeypatch):
             ["token", "session", "refresh"],
         ),
         "ngrams": fastpath.char_ngrams("token", 3),
-        "ansi": fastpath.strip_ansi("\\x1b[31mERROR boom\\x1b[0m"),
-        "repeated": fastpath.collapse_repeated_lines("x\\nx\\nx\\ny\\n"),
+        "ansi": fastpath.strip_ansi("\x1b[31mERROR boom\x1b[0m"),
+        "repeated": fastpath.collapse_repeated_lines("x\nx\nx\ny\n"),
         "critical": fastpath.critical_lines(
-            "INFO ok\\nERROR boom\\nERROR boom\\nsrc/main.rs:12 failed\\n"
+            "INFO ok\nERROR boom\nERROR boom\nsrc/main.rs:12 failed\n"
         ),
         "bm25": fastpath.bm25_score(
             {"auth": 3, "token": 2},
