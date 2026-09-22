@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import math
 
-from token_saver import fastpath
+from acco import fastpath
 
 
 def _reference(monkeypatch):
     """Force and collect Python-reference primitive outputs."""
-    monkeypatch.setenv("TOKEN_SAVER_RUST_FASTPATH", "0")
+    monkeypatch.setenv("ACCO_RUST_FASTPATH", "0")
     return {
         "tokens": fastpath.estimate_tokens("αβ auth_service() " * 30, 3.3),
         "identifiers": fastpath.identifier_tokens(
@@ -61,7 +61,7 @@ def test_fastpath_python_reference_contract(monkeypatch):
 def test_compiled_fastpath_matches_python_reference_when_available(monkeypatch):
     """Installing the native extension must not change observable primitives."""
     expected = _reference(monkeypatch)
-    monkeypatch.delenv("TOKEN_SAVER_RUST_FASTPATH", raising=False)
+    monkeypatch.delenv("ACCO_RUST_FASTPATH", raising=False)
 
     actual = {
         "tokens": fastpath.estimate_tokens("αβ auth_service() " * 30, 3.3),

@@ -1,8 +1,8 @@
 import json
 from types import SimpleNamespace
 
-from token_saver import evaluate as evaluate_module
-from token_saver.evaluate import evaluate_manifest
+from acco import evaluate as evaluate_module
+from acco.evaluate import evaluate_manifest
 
 
 def _repo_and_manifest(tmp_path):

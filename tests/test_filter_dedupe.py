@@ -1,4 +1,4 @@
-from token_saver.filter_output import filter_command_output, preprocess
+from acco.filter_output import filter_command_output, preprocess
 
 
 def test_preprocess_collapses_consecutive_duplicate_success_lines():

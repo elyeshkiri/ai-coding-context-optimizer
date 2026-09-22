@@ -1,7 +1,7 @@
 import textwrap
 
-from token_saver.context_browser import browse_context
-from token_saver.pack import build_context_pack, rank_files
+from acco.context_browser import browse_context
+from acco.pack import build_context_pack, rank_files
 
 
 def test_repo_scope_typo_normalization_can_surface_symbol_file(tmp_path):

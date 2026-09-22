@@ -1,7 +1,7 @@
 import json
 import textwrap
 
-from token_saver.entry import main
+from acco.entry import main
 
 
 def test_dispatcher_preserves_legacy_commands(capsys):
@@ -105,7 +105,7 @@ def test_cost_report_accepts_single_paired_agent_manifest(tmp_path, capsys):
                 "seconds": 2.0, "cost_usd": 1.0,
             },
             {
-                "task": "task", "condition": "token-saver", "success": True,
+                "task": "task", "condition": "acco", "success": True,
                 "input_tokens": 400, "output_tokens": 100,
                 "seconds": 1.0, "cost_usd": 0.4,
             },
@@ -196,7 +196,7 @@ def test_dispatcher_exposes_setup_doctor_and_uninstall(tmp_path, capsys):
     setup = json.loads(capsys.readouterr().out)
     assert setup["configured_hosts"] == ["cursor"]
     assert (tmp_path / ".cursor" / "mcp.json").is_file()
-    assert (tmp_path / ".token-saver.toml").is_file()
+    assert (tmp_path / ".acco.toml").is_file()
 
     assert main([
         "doctor",
@@ -206,7 +206,7 @@ def test_dispatcher_exposes_setup_doctor_and_uninstall(tmp_path, capsys):
     ]) == 0
     doctor = json.loads(capsys.readouterr().out)
     assert "cursor" in doctor["configured_hosts"]
-    assert doctor["config_path"].endswith(".token-saver.toml")
+    assert doctor["config_path"].endswith(".acco.toml")
 
     assert main([
         "uninstall",

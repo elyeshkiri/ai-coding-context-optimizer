@@ -10,11 +10,11 @@ from __future__ import annotations
 import subprocess
 import textwrap
 
-from token_saver.pack import build_context_pack
-from token_saver.patch_context import build_diff_context
-from token_saver.repo_index import _extract, build_index
-from token_saver.security import inspect_path
-from token_saver.skeleton import walk_repo
+from acco.pack import build_context_pack
+from acco.patch_context import build_diff_context
+from acco.repo_index import _extract, build_index
+from acco.security import inspect_path
+from acco.skeleton import walk_repo
 
 
 def test_sql_migration_extracts_table_and_references_as_calls():
