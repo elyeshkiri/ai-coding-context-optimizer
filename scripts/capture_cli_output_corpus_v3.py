@@ -2,7 +2,7 @@
 
 Corpus v3 is a post-v2 proof set for Git log/status tuning. It uses a new Git
 history/worktree and different command variants, and intentionally performs no
-Token Saver or peer evaluation.
+ACCO or peer evaluation.
 """
 
 from __future__ import annotations
@@ -375,7 +375,7 @@ def capture(out_dir: Path, workspace: Path) -> dict:
         except subprocess.TimeoutExpired as exc:
             stdout = exc.stdout if isinstance(exc.stdout, str) else ""
             stderr = exc.stderr if isinstance(exc.stderr, str) else ""
-            output = stdout + stderr + "\n[TOKEN_SAVER_CAPTURE_TIMEOUT]\n"
+            output = stdout + stderr + "\n[ACCO_CAPTURE_TIMEOUT]\n"
             exit_code = 124
 
         capture_path = captures_dir / f"{case_id}.txt"
