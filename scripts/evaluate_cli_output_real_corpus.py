@@ -1,4 +1,4 @@
-"""Evaluate a frozen real-output corpus with Token Saver and a pinned peer."""
+"""Evaluate a frozen real-output corpus with ACCO and a pinned peer."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from token_saver.estimate import estimate_tokens
-from token_saver.output.text import critical_lines
-from token_saver.output_processors import process_output
+from acco.estimate import estimate_tokens
+from acco.output.text import critical_lines
+from acco.output_processors import process_output
 
 
 def _load_and_verify(corpus: Path) -> tuple[dict, list[tuple[dict, str]]]:
@@ -122,7 +122,7 @@ def _summarize(rows: list[dict]) -> dict:
 
 
 def _evaluate_local(cases: list[tuple[dict, str]]) -> dict:
-    """Evaluate the current Token Saver implementation."""
+    """Evaluate the current ACCO implementation."""
     rows = []
     for case, raw in cases:
         result = process_output(
@@ -178,7 +178,7 @@ def _evaluate_peer(
     corpus: Path,
     peer_path: Path,
 ) -> dict:
-    """Evaluate a checked-out ppgranger/token-saver revision in isolation."""
+    """Evaluate a checked-out ppgranger/acco revision in isolation."""
     env = dict(os.environ)
     env["PYTHONPATH"] = str(peer_path)
     completed = subprocess.run(
