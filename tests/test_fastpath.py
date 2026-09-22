@@ -21,7 +21,11 @@ def _reference(monkeypatch):
         ),
         "ngrams": fastpath.char_ngrams("token", 3),
         "ansi": fastpath.strip_ansi("\x1b[31mERROR boom\x1b[0m"),
-        "repeated": fastpath.collapse_repeated_lines(            "this is a repeated diagnostic line\n"            "this is a repeated diagnostic line\n"            "this is a repeated diagnostic line\ny\n"        ),
+        "repeated": fastpath.collapse_repeated_lines(
+            "this is a repeated diagnostic line\n"
+            "this is a repeated diagnostic line\n"
+            "this is a repeated diagnostic line\ny\n"
+        ),
         "critical": fastpath.critical_lines(
             "INFO ok\nERROR boom\nERROR boom\nsrc/main.rs:12 failed\n"
         ),
@@ -70,7 +74,11 @@ def test_compiled_fastpath_matches_python_reference_when_available(monkeypatch):
         ),
         "ngrams": fastpath.char_ngrams("token", 3),
         "ansi": fastpath.strip_ansi("\x1b[31mERROR boom\x1b[0m"),
-        "repeated": fastpath.collapse_repeated_lines(            "this is a repeated diagnostic line\n"            "this is a repeated diagnostic line\n"            "this is a repeated diagnostic line\ny\n"        ),
+        "repeated": fastpath.collapse_repeated_lines(
+            "this is a repeated diagnostic line\n"
+            "this is a repeated diagnostic line\n"
+            "this is a repeated diagnostic line\ny\n"
+        ),
         "critical": fastpath.critical_lines(
             "INFO ok\nERROR boom\nERROR boom\nsrc/main.rs:12 failed\n"
         ),
