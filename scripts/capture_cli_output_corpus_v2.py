@@ -1,7 +1,7 @@
 """Capture untouched real CLI outputs for fresh corpus v2.
 
 Corpus v2 deliberately uses different Git history/worktree shapes and Go
-failure modes from v1. It performs no Token Saver evaluation.
+failure modes from v1. It performs no ACCO evaluation.
 """
 
 from __future__ import annotations
@@ -313,7 +313,7 @@ def capture(out_dir: Path, workspace: Path) -> dict:
         except subprocess.TimeoutExpired as exc:
             stdout = exc.stdout if isinstance(exc.stdout, str) else ""
             stderr = exc.stderr if isinstance(exc.stderr, str) else ""
-            output = stdout + stderr + "\n[TOKEN_SAVER_CAPTURE_TIMEOUT]\n"
+            output = stdout + stderr + "\n[ACCO_CAPTURE_TIMEOUT]\n"
             exit_code = 124
 
         capture_path = captures_dir / f"{case_id}.txt"
