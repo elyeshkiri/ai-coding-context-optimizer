@@ -481,7 +481,11 @@ def setup_integrations(
     home = home or Path.home()
     detected = detect_hosts(root, home=home, which=which)
     if hosts:
-        requested = HOSTS if "all" in hosts else tuple(dict.fromkeys(hosts))
+        requested = (
+            tuple(item.name for item in detected if item.detected)
+            if "all" in hosts
+            else tuple(dict.fromkeys(hosts))
+        )
     else:
         requested = tuple(item.name for item in detected if item.detected)
     unknown = sorted(set(requested) - set(HOSTS))
