@@ -363,13 +363,19 @@ RunCommand = Callable[[list[str]], subprocess.CompletedProcess]
 
 
 def run_command(argv: list[str]) -> subprocess.CompletedProcess:
-    """Run a host-native configuration command and raise on failure."""
-    return subprocess.run(
-        argv,
-        check=True,
-        text=True,
-        capture_output=True,
-    )
+    """Run a host-native config command and normalize failures for the CLI."""
+    try:
+        return subprocess.run(
+            argv,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or str(exc)).strip()
+        raise ValueError(
+            f"Host configuration command failed: {' '.join(argv[:3])}: {detail}"
+        ) from exc
 
 
 def install_openclaw(
