@@ -55,6 +55,75 @@ replace a pre-existing unmanaged `[mcp_servers.token-saver]` block.
 Either remove/rename that manual section yourself or keep managing Codex
 manually.
 
+## Setup refuses OpenCode configuration
+
+Token Saver manages OpenCode through project `.opencode/opencode.json`.
+If only `.opencode/opencode.jsonc` already exists, setup fails closed instead
+of creating a second project config with ambiguous precedence.
+
+Either add the Token Saver MCP entry to the existing JSONC file manually or
+choose one project config representation before rerunning setup.
+
+## Setup refuses Hermes configuration
+
+Hermes uses the top-level `mcp_servers` mapping in
+`~/.hermes/config.yaml`. Token Saver owns only its marked block and refuses:
+
+- an unmanaged same-name `token-saver` entry;
+- duplicate top-level `mcp_servers` keys;
+- inline/complex `mcp_servers` shapes that cannot be safely edited.
+
+Preserve the existing configuration and normalize it manually before rerunning
+`token-saver setup . --host hermes`.
+
+## OpenClaw setup or uninstall fails
+
+OpenClaw is configured through its native registry rather than by editing its
+JSON5 file directly:
+
+```bash
+openclaw mcp
+token-saver setup . --host openclaw
+```
+
+The `openclaw` executable must be available on `PATH` for managed setup or
+removal. Token Saver respects `OPENCLAW_CONFIG_PATH` when locating the active
+registry for detection.
+
+## Copilot setup is not detected
+
+Token Saver supports both Copilot CLI and the VS Code Copilot MCP surface.
+
+For Copilot CLI, verify:
+
+```bash
+copilot --version
+copilot mcp
+token-saver setup . --host copilot
+```
+
+For VS Code, Token Saver recognizes an installed GitHub Copilot extension or an
+existing workspace `.vscode/mcp.json`. A generic VS Code installation alone is
+not treated as Copilot.
+
+If the Copilot CLI already has a user-owned MCP server named `token-saver`,
+Token Saver refuses to replace it. Rename/remove that manual entry before using
+managed setup.
+
+## Antigravity is not detected
+
+Current Antigravity CLI detection uses the `agy` executable. Workspace MCP is
+stored in `.agents/mcp_config.json`; the documented global MCP profile is also
+reported by doctor when present.
+
+Run:
+
+```bash
+agy --help
+token-saver setup . --host antigravity
+token-saver doctor . --json
+```
+
 ## Claude hooks are configured but not behaving as expected
 
 Run:
