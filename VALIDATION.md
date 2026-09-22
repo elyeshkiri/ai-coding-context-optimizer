@@ -1,6 +1,6 @@
-> **Branding note:** ACCO was previously named Token Saver. Frozen historical validation artifacts keep their original identifiers so their hashes and provenance remain unchanged.
-
 # Validation for 1.14.0
+
+> **Branding note:** ACCO was previously named Token Saver. Frozen historical validation artifacts keep their original identifiers so their hashes and provenance remain unchanged.
 
 ## 1.14 multi-host integration mechanics
 
