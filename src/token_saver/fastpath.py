@@ -12,6 +12,11 @@ import re
 from collections.abc import Iterable
 
 _IDENT = re.compile(r"\b[A-Za-z_$][\w$]*\b")
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+_CRITICAL = re.compile(
+    r"(?i)(Traceback|AssertionError|\b(?:ERROR|FAILED|FATAL|PANIC)\b|Caused by:|"
+    r"(?:^|\s)[\w./\\-]+\.(?:py|pyi|ts|tsx|js|jsx|go|rs|java|cs|rb|php):\d+)"
+)
 
 
 def _extension():
@@ -45,6 +50,9 @@ def capabilities() -> tuple[str, ...]:
         "bm25_score",
         "jaccard_similarity",
         "char_ngrams",
+        "strip_ansi",
+        "collapse_repeated_lines",
+        "critical_lines",
     )
 
 
@@ -131,6 +139,65 @@ def char_ngrams(token: str, n: int = 3) -> list[str]:
     if len(padded) < n:
         return [padded]
     return [padded[i:i + n] for i in range(len(padded) - n + 1)]
+
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escapes through Rust when present, otherwise Python parity."""
+    ext = _extension()
+    if ext is not None and hasattr(ext, "strip_ansi"):
+        return str(ext.strip_ansi(text))
+    return _ANSI.sub("", text)
+
+
+def collapse_repeated_lines(text: str, minimum: int = 3) -> str:
+    """Collapse consecutive identical lines through the parity-gated fastpath."""
+    if minimum <= 0:
+        raise ValueError("minimum must be positive")
+    ext = _extension()
+    if ext is not None and hasattr(ext, "collapse_repeated_lines"):
+        return str(ext.collapse_repeated_lines(text, minimum))
+    lines = text.splitlines()
+    if len(lines) < minimum:
+        return text
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        j = i + 1
+        while j < len(lines) and lines[j] == line:
+            j += 1
+        count = j - i
+        if line.strip() and count >= minimum:
+            out.append(line)
+            out.append(
+                f"[token-saver: previous line repeated {count - 1} more times]"
+            )
+        else:
+            out.extend(lines[i:j])
+        i = j
+    candidate = "\n".join(out) + ("\n" if text.endswith("\n") else "")
+    return candidate if len(candidate) < len(text) else text
+
+
+def critical_lines(text: str, max_lines: int = 20) -> list[str]:
+    """Return unique critical diagnostics through Rust or exact Python fallback."""
+    if max_lines <= 0:
+        return []
+    ext = _extension()
+    if ext is not None and hasattr(ext, "critical_lines"):
+        return [str(value) for value in ext.critical_lines(text, max_lines)]
+    out: list[str] = []
+    seen: set[str] = set()
+    for line in strip_ansi(text).splitlines():
+        key = line.strip()
+        if not key or key in seen or not _CRITICAL.search(line):
+            continue
+        seen.add(key)
+        out.append(line)
+        if len(out) >= max_lines:
+            break
+    return out
 
 
 def status() -> dict:
