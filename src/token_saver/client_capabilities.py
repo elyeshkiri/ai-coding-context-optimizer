@@ -134,7 +134,7 @@ CLIENT_CAPABILITIES = {
     ),
     "copilot": _caps(
         "copilot",
-        "GitHub Copilot in VS Code consumes workspace MCP servers; editor hook interception is not assumed.",
+        "GitHub Copilot CLI and VS Code both expose MCP surfaces; proprietary lifecycle interception is not assumed.",
         pre_tool_intercept="unknown",
         post_tool_replace="unknown",
         prompt_ingress="no",
