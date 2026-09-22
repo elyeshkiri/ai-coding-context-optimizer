@@ -1,7 +1,7 @@
 """Task-aware context packing facade and final orchestration stage.
 
 The algorithm is implemented as private pipeline stages under
-:mod:`token_saver.packing`. This module preserves the historical public and
+:mod:`acco.packing`. This module preserves the historical public and
 private import surface while keeping final budgeted pack assembly centralized.
 """
 

@@ -486,7 +486,7 @@ def evaluate_output_effectiveness(
         condition = normalize_condition(raw.get("condition"))
         if not task or condition not in {BASELINE_CONDITION, OPTIMIZED_CONDITION}:
             raise ValueError(
-                "each run requires task and condition baseline|token-saver|enabled"
+                "each run requires task and condition baseline|acco|enabled"
             )
         trial = _trial(raw.get("trial"), task, condition)
         if not isinstance(raw.get("success"), bool):
@@ -812,7 +812,7 @@ def evaluate_output_effectiveness(
             "blinded": blinded,
             "judge": quality_judge or None,
             "baseline": base_quality,
-            "token_saver": opt_quality,
+            "acco": opt_quality,
             "parity": quality_parity,
             "tolerance": _PARITY_TOLERANCE,
         },

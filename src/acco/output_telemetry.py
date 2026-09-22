@@ -79,9 +79,9 @@ def start_output_turn(
         "started_at": int(time.time()),
         "prompt_id": str(prompt_id) if prompt_id else None,
         "experiment": {
-            "task": os.environ.get("TOKEN_SAVER_BENCHMARK_TASK"),
-            "trial": os.environ.get("TOKEN_SAVER_BENCHMARK_TRIAL"),
-            "condition": os.environ.get("TOKEN_SAVER_BENCHMARK_CONDITION"),
+            "task": os.environ.get("ACCO_BENCHMARK_TASK"),
+            "trial": os.environ.get("ACCO_BENCHMARK_TRIAL"),
+            "condition": os.environ.get("ACCO_BENCHMARK_CONDITION"),
         },
         "policy": {
             key: policy.get(key)
@@ -381,7 +381,7 @@ def finish_output_turn(
 
 
 def load_output_telemetry_from_state(state_root: Path) -> list[dict]:
-    """Load valid telemetry records from an explicit Token Saver state directory."""
+    """Load valid telemetry records from an explicit ACCO state directory."""
     telemetry_dir = state_root / "telemetry"
     if not telemetry_dir.is_dir():
         return []

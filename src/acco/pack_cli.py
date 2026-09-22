@@ -12,7 +12,7 @@ from .repository_service import RepositoryContextService
 def main(argv: list[str] | None = None) -> int:
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
-        prog="token-saver-pack",
+        prog="acco-pack",
         description="Build a task-aware source context pack under a hard token budget.",
     )
     parser.add_argument("path", nargs="?", default=".")

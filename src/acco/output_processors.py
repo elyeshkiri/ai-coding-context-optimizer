@@ -1,6 +1,6 @@
-"""Compatibility facade for the composable :mod:`token_saver.output` package.
+"""Compatibility facade for the composable :mod:`acco.output` package.
 
-New code should depend on ``token_saver.output`` contracts or ``OutputPipeline``.
+New code should depend on ``acco.output`` contracts or ``OutputPipeline``.
 This module preserves the pre-1.4 public import surface for callers and plugins.
 """
 
