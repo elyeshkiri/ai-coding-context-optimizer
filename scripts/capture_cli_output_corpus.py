@@ -1,6 +1,6 @@
 """Capture provenance-backed CLI outputs from disposable local fixtures.
 
-The script intentionally records raw stdout/stderr before any Token Saver
+The script intentionally records raw stdout/stderr before any ACCO
 processing. Captures are suitable for freezing as an untouched evaluation
 corpus; missing optional tools are recorded as skips rather than synthesized.
 """
@@ -225,7 +225,7 @@ def capture(out_dir: Path, workspace: Path) -> dict:
         ("docker-ps", "docker", "docker ps -a", "docker"),
         ("docker-build-failure", "docker", "docker build --progress=plain .", "docker"),
         ("docker-compose-config", "docker", "docker compose config", "docker"),
-        ("docker-inspect-failure", "docker", "docker inspect token-saver-missing-container", "docker"),
+        ("docker-inspect-failure", "docker", "docker inspect acco-missing-container", "docker"),
         ("jq-query", "jq", "printf '%s\\n' '{\"items\":[1,2,3]}' | jq '.items[]'", "root"),
         ("terraform-plan", "terraform", "terraform init -backend=false -input=false >/dev/null && terraform plan -no-color -input=false", "terraform"),
         ("helm-template", "helm", "helm template capture .", "helm"),
@@ -248,7 +248,7 @@ def capture(out_dir: Path, workspace: Path) -> dict:
             result = _run(command, cwd)
             output = result.stdout
         except subprocess.TimeoutExpired as exc:
-            output = (exc.stdout or "") + "\n[TOKEN_SAVER_CAPTURE_TIMEOUT]\n"
+            output = (exc.stdout or "") + "\n[ACCO_CAPTURE_TIMEOUT]\n"
             result = subprocess.CompletedProcess(command, 124, output)
         capture_path = captures_dir / f"{case_id}.txt"
         capture_path.write_text(output, encoding="utf-8")
