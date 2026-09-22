@@ -5,13 +5,13 @@ Auto-detect/configure supported coding-agent integrations.
 ## Synopsis
 
 ```bash
-token-saver setup [path] [--host claude|cursor|codex|all ...] [--json]
+token-saver setup [path] [--host HOST|all ...] [--json]
 ```
 
 ## Arguments and options
 
 - `path` default `.`.
-- `--host` repeatable; omitted means auto-detect.
+- `--host` repeatable; omitted means auto-detect. Supported hosts: `claude`, `cursor`, `codex`, `opencode`, `openclaw`, `hermes`, `copilot`, and `antigravity`.
 - `--json` emits lifecycle result.
 
 ## Exit codes
