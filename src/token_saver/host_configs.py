@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import json
+import os
 import re
 from pathlib import Path
 import subprocess
+import tempfile
 from typing import Any
 
 from .config import update_json
@@ -19,6 +21,26 @@ from .config import update_json
 TOKEN_SAVER_SERVER = "token-saver"
 HERMES_START = "  # >>> token-saver managed >>>"
 HERMES_END = "  # <<< token-saver managed <<<"
+
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Atomically replace one UTF-8 host configuration file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=path.name + ".",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def stdio_entry(root: Path) -> dict[str, Any]:
@@ -258,12 +280,20 @@ def validate_hermes_manageable(path: Path) -> None:
         raise ValueError(
             f"Refusing to replace unmanaged Hermes Token Saver config: {path}"
         )
-    roots = [
+    all_roots = [
         line for line in text.splitlines()
+        if re.match(r"^mcp_servers\s*:", line)
+    ]
+    roots = [
+        line for line in all_roots
         if re.match(r"^mcp_servers:\s*(?:#.*)?$", line)
     ]
-    if len(roots) > 1:
+    if len(all_roots) > 1:
         raise ValueError(f"Refusing ambiguous duplicate mcp_servers keys: {path}")
+    if all_roots and not roots:
+        raise ValueError(
+            f"Refusing unsupported inline/complex mcp_servers YAML shape: {path}"
+        )
 
 
 def _hermes_entry(root: Path) -> str:
@@ -300,8 +330,7 @@ def install_hermes(root: Path, home: Path | None = None) -> None:
     else:
         base = text.rstrip()
         rendered = (base + "\n\n" if base else "") + "mcp_servers:\n" + entry
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(rendered, encoding="utf-8")
+    _atomic_write(path, rendered)
 
 
 def uninstall_hermes(home: Path | None = None) -> None:
@@ -313,7 +342,7 @@ def uninstall_hermes(home: Path | None = None) -> None:
     text = path.read_text(encoding="utf-8")
     cleaned = _strip_hermes_block(text)
     if cleaned != text:
-        path.write_text(cleaned, encoding="utf-8")
+        _atomic_write(path, cleaned)
 
 
 def hermes_configured(home: Path | None = None) -> bool:
@@ -329,7 +358,11 @@ def hermes_configured(home: Path | None = None) -> bool:
 
 
 def openclaw_config_path(home: Path | None = None) -> Path:
-    """Return OpenClaw's default JSON5 configuration path."""
+    """Return OpenClaw's active/default JSON5 configuration path."""
+    if home is None:
+        override = os.environ.get("OPENCLAW_CONFIG_PATH", "").strip()
+        if override:
+            return Path(override).expanduser()
     return (home or Path.home()) / ".openclaw" / "openclaw.json"
 
 
@@ -351,9 +384,10 @@ def openclaw_configured(home: Path | None = None) -> bool:
             return True
     return bool(
         re.search(
-            r"(?s)\bmcp\s*:\s*\{.*?\bservers\s*:\s*\{.*?"
+            r"(?s)['\"]?mcp['\"]?\s*:\s*\{.*?"
+            r"['\"]?servers['\"]?\s*:\s*\{.*?"
             r"['\"]?token-saver['\"]?\s*:\s*\{.*?"
-            r"\bcommand\s*:\s*['\"]token-saver['\"]",
+            r"['\"]?command['\"]?\s*:\s*['\"]token-saver['\"]",
             text,
         )
     )
