@@ -2,6 +2,8 @@
 
 **ACCO (AI Coding Context Optimizer)** is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
+> **Rename note:** ACCO was previously developed under the Token Saver name. Frozen historical benchmark artifacts keep their original identifiers and hashes so published evidence remains reproducible.
+
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. ACCO does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
 ## Install
@@ -56,9 +58,7 @@ acco completion zsh
 acco completion fish
 ```
 
-The distribution is named `ai-coding-context-optimizer` because PyPI rejects
-`acco` as too similar to an unrelated existing project. The command
-and the import are unchanged:
+The distribution, command, and Python import now use the ACCO identity:
 
 | | Name |
 |---|---|
@@ -173,8 +173,8 @@ ranges. **There is no silent first-N-words truncation fallback.**
 
 ## Smart Tool Proxy for large Reads
 
-Claude Code can opt in to routing large unbounded source Reads through Token
-Saver before the result reaches Claude:
+Claude Code can opt in to routing large unbounded source Reads through ACCO
+before the result reaches Claude:
 
 ```toml
 [tool_proxy]
@@ -656,8 +656,8 @@ not universal provider pricing. Override them for the active provider/model.
 
 The feature is **not enabled by default and no end-to-end savings percentage is
 claimed yet**. A separate frozen causal experiment reuses the 24 SWE-bench
-Verified tasks at three trials per task. Both arms run the same current Token
-Saver binary, disable continuity/dedup/waste features, perform the same
+Verified tasks at three trials per task. Both arms run the same current ACCO
+binary, disable continuity/dedup/waste features, perform the same
 investigation phase, and explicitly persist verified findings. A fresh
 implementation session then compares memory-control against knowledge-assisted
 read avoidance plus the cache-economics gate.
