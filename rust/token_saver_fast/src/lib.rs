@@ -95,6 +95,88 @@ fn char_ngrams(token: &str, n: usize) -> PyResult<Vec<String>> {
         .collect())
 }
 
+
+#[pyfunction]
+fn strip_ansi(text: &str) -> PyResult<String> {
+    static ANSI: OnceLock<Regex> = OnceLock::new();
+    let pattern = ANSI.get_or_init(|| {
+        Regex::new(r"\x1b\[[0-9;?]*[ -/]*[@-~]").expect("static ansi regex")
+    });
+    Ok(pattern.replace_all(text, "").into_owned())
+}
+
+#[pyfunction]
+#[pyo3(signature = (text, minimum=3))]
+fn collapse_repeated_lines(text: &str, minimum: usize) -> PyResult<String> {
+    if minimum == 0 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "minimum must be positive",
+        ));
+    }
+    let lines: Vec<&str> = text.lines().collect();
+    if lines.len() < minimum {
+        return Ok(text.to_string());
+    }
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0usize;
+    while i < lines.len() {
+        let line = lines[i];
+        let mut j = i + 1;
+        while j < lines.len() && lines[j] == line {
+            j += 1;
+        }
+        let count = j - i;
+        if !line.trim().is_empty() && count >= minimum {
+            out.push(line.to_string());
+            out.push(format!(
+                "[token-saver: previous line repeated {} more times]",
+                count - 1
+            ));
+        } else {
+            out.extend(lines[i..j].iter().map(|value| (*value).to_string()));
+        }
+        i = j;
+    }
+    let mut candidate = out.join("\n");
+    if text.ends_with('\n') {
+        candidate.push('\n');
+    }
+    if candidate.len() < text.len() {
+        Ok(candidate)
+    } else {
+        Ok(text.to_string())
+    }
+}
+
+#[pyfunction]
+#[pyo3(signature = (text, max_lines=20))]
+fn critical_lines(text: &str, max_lines: usize) -> PyResult<Vec<String>> {
+    if max_lines == 0 {
+        return Ok(Vec::new());
+    }
+    static CRITICAL: OnceLock<Regex> = OnceLock::new();
+    let pattern = CRITICAL.get_or_init(|| {
+        Regex::new(
+            r"(?i)(Traceback|AssertionError|\b(?:ERROR|FAILED|FATAL|PANIC)\b|Caused by:|(?:^|\s)[\w./\\-]+\.(?:py|pyi|ts|tsx|js|jsx|go|rs|java|cs|rb|php):\d+)"
+        ).expect("static critical-line regex")
+    });
+    let stripped = strip_ansi(text)?;
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut out = Vec::new();
+    for line in stripped.lines() {
+        let key = line.trim();
+        if key.is_empty() || seen.contains(key) || !pattern.is_match(line) {
+            continue;
+        }
+        seen.insert(key.to_string());
+        out.push(line.to_string());
+        if out.len() >= max_lines {
+            break;
+        }
+    }
+    Ok(out)
+}
+
 #[pymodule]
 fn _token_saver_fast(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(estimate_tokens, m)?)?;
@@ -102,6 +184,9 @@ fn _token_saver_fast(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(jaccard_similarity, m)?)?;
     m.add_function(wrap_pyfunction!(bm25_score, m)?)?;
     m.add_function(wrap_pyfunction!(char_ngrams, m)?)?;
+    m.add_function(wrap_pyfunction!(strip_ansi, m)?)?;
+    m.add_function(wrap_pyfunction!(collapse_repeated_lines, m)?)?;
+    m.add_function(wrap_pyfunction!(critical_lines, m)?)?;
     Ok(())
 }
 
@@ -135,6 +220,25 @@ mod tests {
         let score =
             jaccard_similarity(vec!["a".into(), "b".into()], vec!["b".into(), "c".into()]).unwrap();
         assert!((score - (1.0 / 3.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn ansi_and_repetition_match_reference_behavior() {
+        assert_eq!(strip_ansi("\x1b[31merror\x1b[0m").unwrap(), "error");
+        assert_eq!(
+            collapse_repeated_lines("x\nx\nx\ny\n", 3).unwrap(),
+            "x\n[token-saver: previous line repeated 2 more times]\ny\n"
+        );
+    }
+
+    #[test]
+    fn critical_diagnostics_are_unique_and_bounded() {
+        let values = critical_lines(
+            "INFO ok\nERROR boom\nERROR boom\nsrc/main.rs:12 failed\n",
+            20,
+        )
+        .unwrap();
+        assert_eq!(values, vec!["ERROR boom", "src/main.rs:12 failed"]);
     }
 
     #[test]
