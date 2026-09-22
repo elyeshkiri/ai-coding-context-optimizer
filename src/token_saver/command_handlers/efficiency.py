@@ -9,7 +9,9 @@ import sys
 
 from ..cache_economics import assess_context_rewrite
 from ..efficiency import continuity_report, dashboard_report
+from ..estimate import Counter, DEFAULT_MODEL
 from ..efficiency.advisor import advisor_report
+from ..unified_audit import unified_audit_report
 from ..efficiency.dashboard import render_dashboard_html
 
 
@@ -23,6 +25,127 @@ def _tokens(value: object) -> str:
     if abs(number) >= 1_000:
         return f"{number / 1_000:.1f}K"
     return str(number)
+
+
+
+def audit_main(argv: list[str]) -> int:
+    """Run one consolidated audit across context, retrieval, output, and host layers."""
+    parser = argparse.ArgumentParser(prog="token-saver audit")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--days", type=int, default=7)
+    parser.add_argument("--window", type=int, default=200_000)
+    parser.add_argument(
+        "--no-user-scope",
+        "--project-only",
+        dest="project_only",
+        action="store_true",
+        help="ignore user-scope Claude instructions",
+    )
+    parser.add_argument("--probe-mcp", action="store_true")
+    parser.add_argument("--mcp-timeout", type=int, default=15)
+    parser.add_argument("--client")
+    parser.add_argument("--rates")
+    parser.add_argument("--top", type=int, default=10)
+    parser.add_argument("--min-processor-tokens", type=int, default=100)
+    parser.add_argument("--exact", action="store_true")
+    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        report = unified_audit_report(
+            Path(args.path),
+            days=args.days,
+            window=args.window,
+            user_scope=not args.project_only,
+            rates_path=(
+                args.rates
+                if args.rates == "builtin"
+                else Path(args.rates)
+                if args.rates
+                else None
+            ),
+            client=args.client,
+            top=args.top,
+            min_processor_tokens=args.min_processor_tokens,
+            probe_mcp=args.probe_mcp,
+            mcp_timeout=args.mcp_timeout,
+            counter=Counter(exact=args.exact, model=args.model),
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    context = report["context"]
+    efficiency = report["efficiency"]
+    semantic = report["retrieval"]["semantic"]
+    fastpath = report["fastpath"]
+    processors = report["processor_coverage"]
+    recovery = report["recovery"]
+    print("TOKEN SAVER AUDIT")
+    print(f"project: {report['root']}")
+    share = context["window_share"]
+    share_text = f"{share:.1%}" if isinstance(share, (int, float)) else "n/a"
+    print(
+        f"context: {context['always_on_tokens']:,} always-on tokens "
+        f"({share_text} of {context['window']:,})"
+    )
+    if context["mcp_servers_configured"]:
+        print(
+            "mcp: "
+            f"{len(context['mcp_servers_configured'])} configured"
+            + ("; schemas probed" if context["mcp_probe"] else "; use --probe-mcp to measure")
+        )
+    score = efficiency.get("score") or {}
+    grade = score.get("grade") or "insufficient evidence"
+    print(
+        "efficiency: "
+        f"{float(score.get('percent') or 0):.1f}% ({grade}), "
+        f"coverage {float(score.get('coverage') or 0):.0%}"
+    )
+    print(
+        "retrieval: "
+        f"{semantic.get('chunks', 0)} semantic chunks; "
+        f"backend={semantic.get('backend', 'unknown')}"
+    )
+    print(
+        "fastpath: "
+        f"{fastpath.get('backend', 'python')} "
+        f"({len(fastpath.get('capabilities', []))} accelerated primitives)"
+    )
+    coverage = processors.get("specialized_coverage")
+    if coverage is None:
+        print("processors: no eligible Bash transcript evidence")
+    else:
+        print(
+            "processors: "
+            f"{coverage:.1%} of analyzed output tokens specialized; "
+            f"{processors.get('generic_output_tokens', 0):,} generic tokens"
+        )
+    print(
+        "recovery: "
+        f"{recovery.get('records', 0)} exact payload(s), "
+        f"{recovery.get('used_bytes', 0):,}/{recovery.get('capacity_bytes', 0):,} bytes"
+    )
+    if report["client_capabilities"]:
+        client = report["client_capabilities"]["client"]
+        print(f"client: {client['client']} — {client['note']}")
+    print("next actions:")
+    if not report["recommendations"]:
+        print("  none from current evidence")
+    for item in report["recommendations"]:
+        print(
+            f"  [{item['priority']}] {item['id']} — "
+            f"{item['evidence']} — {item['action']}"
+        )
+    print(
+        "evidence: operational measurements/estimates only; "
+        "cost-per-success still requires paired evaluation"
+    )
+    return 0
 
 
 def dashboard_main(argv: list[str]) -> int:
