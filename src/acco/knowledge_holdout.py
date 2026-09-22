@@ -28,20 +28,20 @@ from .session_holdout import (
 )
 
 _REQUIRED_CONTROL_ENV = {
-    "TOKEN_SAVER_EFFICIENCY": "1",
-    "TOKEN_SAVER_CONTINUITY": "0",
-    "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-    "TOKEN_SAVER_WASTE_DETECTION": "0",
-    "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE": "0",
-    "TOKEN_SAVER_CACHE_ECONOMICS": "0",
+    "ACCO_EFFICIENCY": "1",
+    "ACCO_CONTINUITY": "0",
+    "ACCO_CROSS_TURN_DEDUP": "0",
+    "ACCO_WASTE_DETECTION": "0",
+    "ACCO_KNOWLEDGE_READ_AVOIDANCE": "0",
+    "ACCO_CACHE_ECONOMICS": "0",
 }
 _REQUIRED_TREATMENT_ENV = {
-    "TOKEN_SAVER_EFFICIENCY": "1",
-    "TOKEN_SAVER_CONTINUITY": "0",
-    "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-    "TOKEN_SAVER_WASTE_DETECTION": "0",
-    "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE": "1",
-    "TOKEN_SAVER_CACHE_ECONOMICS": "1",
+    "ACCO_EFFICIENCY": "1",
+    "ACCO_CONTINUITY": "0",
+    "ACCO_CROSS_TURN_DEDUP": "0",
+    "ACCO_WASTE_DETECTION": "0",
+    "ACCO_KNOWLEDGE_READ_AVOIDANCE": "1",
+    "ACCO_CACHE_ECONOMICS": "1",
 }
 
 
@@ -78,10 +78,10 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     enabled = profiles["enabled"]
     if not isinstance(baseline, dict) or not isinstance(enabled, dict):
         return False, ["invalid_knowledge_condition_profiles"]
-    if baseline.get("install_token_saver") is not True:
-        issues.append("control_does_not_install_token_saver")
-    if enabled.get("install_token_saver") is not True:
-        issues.append("treatment_does_not_install_token_saver")
+    if baseline.get("install_acco") is not True:
+        issues.append("control_does_not_install_acco")
+    if enabled.get("install_acco") is not True:
+        issues.append("treatment_does_not_install_acco")
     if str(baseline.get("label") or "") != "knowledge-memory-control":
         issues.append("control_label_mismatch")
     if str(enabled.get("label") or "") != "knowledge-read-avoidance-cache-economics":
@@ -111,7 +111,7 @@ def _profile_gate(payload: dict) -> tuple[bool, list[str]]:
     command = runner.get("command") if isinstance(runner, dict) else None
     if (
         not isinstance(command, list)
-        or "token_saver.knowledge_holdout_docker" not in command
+        or "acco.knowledge_holdout_docker" not in command
     ):
         issues.append("knowledge_holdout_runner_missing")
     if not isinstance(runner, dict) or runner.get("knowledge_holdout_protocol_version") != 1:

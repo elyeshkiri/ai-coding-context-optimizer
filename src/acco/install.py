@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-HOOK_COMMAND = "token-saver hook"
+HOOK_COMMAND = "acco hook"
 HOOK_TIMEOUT = 10
 
 PRE_MATCHER = "Read|Bash"
@@ -54,7 +54,7 @@ def merge_hooks(existing: dict) -> dict:
 
 
 def remove_hooks(existing: dict) -> dict:
-    """Remove only Token Saver hook commands while preserving unrelated hooks."""
+    """Remove only ACCO hook commands while preserving unrelated hooks."""
     from copy import deepcopy
 
     out = deepcopy(existing)
@@ -114,7 +114,7 @@ def install(root: Path, user: bool = False, templates: bool = False) -> Path:
 
 
 def uninstall(root: Path, user: bool = False) -> Path:
-    """Remove Token Saver hooks without touching unrelated Claude settings."""
+    """Remove ACCO hooks without touching unrelated Claude settings."""
     path = user_settings_path() if user else settings_path(root)
     if not path.exists():
         return path

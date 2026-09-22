@@ -69,7 +69,7 @@ def _handshake_payload() -> str:
             "params": {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": {},
-                "clientInfo": {"name": "token-saver", "version": "0.2.0"},
+                "clientInfo": {"name": "acco", "version": "0.2.0"},
             },
         },
         {"jsonrpc": "2.0", "method": "notifications/initialized"},
@@ -83,7 +83,7 @@ def probe(name: str, spec: dict, timeout: int = DEFAULT_TIMEOUT,
     """Ask one stdio MCP server for its tool list and measure the schemas.
 
     `cwd` should be the project root: server commands in .mcp.json are written
-    relative to the project, not to wherever token-saver was invoked from.
+    relative to the project, not to wherever acco was invoked from.
     """
     cost = ServerCost(name=name)
     if spec.get("type") in {"http", "sse"} or spec.get("url"):

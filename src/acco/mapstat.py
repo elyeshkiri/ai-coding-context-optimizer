@@ -29,5 +29,5 @@ def map_freshness(root: Path, map_path: Path | None = None) -> tuple[bool, str]:
     rel = newest.relative_to(root).as_posix()
     return False, (
         f"CODEMAP.md older than {rel} — "
-        "token-saver map . --max-tokens 8000 -o CODEMAP.md --refresh-if-stale"
+        "acco map . --max-tokens 8000 -o CODEMAP.md --refresh-if-stale"
     )

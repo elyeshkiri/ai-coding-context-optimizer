@@ -23,11 +23,11 @@ when useful, but do not edit or create repository files. Establish the likely
 root cause and concrete implementation/verification plan.
 
 Before stopping, persist 1 to 3 VERIFIED project findings with the installed
-Token Saver CLI. Each finding must be grounded in a real source file you
+ACCO CLI. Each finding must be grounded in a real source file you
 inspected and useful to the implementation session. Use Bash commands in this
 form, with repository-relative anchors:
 
-token-saver remember . --claim "..." --anchor "path/to/file.py::symbol" --evidence "..." --applicability "..." --confidence verified
+acco remember . --claim "..." --anchor "path/to/file.py::symbol" --evidence "..." --applicability "..." --confidence verified
 
 Do not store guesses. Stop after investigation and the finding writes; a fresh
 session will implement the fix.
@@ -94,9 +94,9 @@ def run(
     if not worktree.is_dir() or not prompt_file.is_file():
         raise ValueError("benchmark worktree and prompt file must exist")
 
-    state_raw = os.environ.get("TOKEN_SAVER_STATE_DIR")
+    state_raw = os.environ.get("ACCO_STATE_DIR")
     if not state_raw:
-        raise ValueError("TOKEN_SAVER_STATE_DIR is required for knowledge holdout runs")
+        raise ValueError("ACCO_STATE_DIR is required for knowledge holdout runs")
     state_dir = Path(state_raw).resolve()
     state_dir.mkdir(parents=True, exist_ok=True)
 
@@ -113,8 +113,8 @@ def run(
         "anthropic-workspace-id: " + os.environ["ANTHROPIC_WORKSPACE_ID"]
     )
     phase1_env = dict(common_env)
-    phase1_env["TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE"] = "0"
-    phase1_env["TOKEN_SAVER_CACHE_ECONOMICS"] = "0"
+    phase1_env["ACCO_KNOWLEDGE_READ_AVOIDANCE"] = "0"
+    phase1_env["ACCO_CACHE_ECONOMICS"] = "0"
 
     status_before = _repository_status(worktree)
     rc1, stdout1, stderr1 = _run_claude_phase(
@@ -144,7 +144,7 @@ def run(
 
     seed_count = _knowledge_seed_count(state_dir)
     if seed_count < 1:
-        raise ValueError("phase 1 produced no verified Token Saver project finding")
+        raise ValueError("phase 1 produced no verified ACCO project finding")
     append_event(
         worktree,
         {

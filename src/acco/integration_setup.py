@@ -73,8 +73,8 @@ HOST_EXECUTABLES = {
     "copilot": "copilot",
     "antigravity": "agy",
 }
-CODEX_START = "# >>> token-saver managed >>>"
-CODEX_END = "# <<< token-saver managed <<<"
+CODEX_START = "# >>> acco managed >>>"
+CODEX_END = "# <<< acco managed <<<"
 
 DEFAULT_CONFIG = """version = 1
 
@@ -92,7 +92,7 @@ enabled = true
 mode = "normal"
 task = "auto"
 adaptive = true
-calibration_file = ".token-saver.output-calibration.json"
+calibration_file = ".acco.output-calibration.json"
 telemetry = true
 
 [model_routing]
@@ -102,7 +102,7 @@ current_model = ""
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
-calibration_file = ".token-saver.routing-calibration.json"
+calibration_file = ".acco.routing-calibration.json"
 
 [efficiency]
 enabled = true
@@ -178,15 +178,15 @@ def _atomic_write(path: Path, text: str) -> None:
 
 def _mcp_entry(root: Path) -> dict:
     """Return the project-scoped MCP server definition."""
-    return {"command": "token-saver", "args": ["serve", str(root.resolve())]}
+    return {"command": "acco", "args": ["serve", str(root.resolve())]}
 
 
 def _merge_mcp(root: Path) -> Callable[[dict], dict]:
-    """Return a JSON mutator that owns only the Token Saver MCP entry."""
+    """Return a JSON mutator that owns only the ACCO MCP entry."""
     def mutate(current: dict) -> dict:
         updated = dict(current)
         servers = dict(updated.get("mcpServers", {}))
-        servers["token-saver"] = _mcp_entry(root)
+        servers["acco"] = _mcp_entry(root)
         updated["mcpServers"] = servers
         return updated
 
@@ -194,13 +194,13 @@ def _merge_mcp(root: Path) -> Callable[[dict], dict]:
 
 
 def _remove_mcp(current: dict) -> dict:
-    """Remove only the Token Saver MCP entry from a JSON config."""
+    """Remove only the ACCO MCP entry from a JSON config."""
     updated = dict(current)
     servers = updated.get("mcpServers")
     if not isinstance(servers, dict):
         return updated
     servers = dict(servers)
-    servers.pop("token-saver", None)
+    servers.pop("acco", None)
     if servers:
         updated["mcpServers"] = servers
     else:
@@ -221,26 +221,26 @@ def _validate_json_object(path: Path) -> None:
 
 
 def _validate_codex_manageable(path: Path) -> None:
-    """Reject a conflicting unmanaged Codex Token Saver section."""
+    """Reject a conflicting unmanaged Codex ACCO section."""
     if not path.exists():
         return
     existing = path.read_text(encoding="utf-8")
-    if "[mcp_servers.token-saver]" in existing and CODEX_START not in existing:
+    if "[mcp_servers.acco]" in existing and CODEX_START not in existing:
         raise ValueError(
-            f"Refusing to replace unmanaged Token Saver Codex config: {path}"
+            f"Refusing to replace unmanaged ACCO Codex config: {path}"
         )
     if CODEX_START in existing and CODEX_END not in existing:
-        raise ValueError("Codex Token Saver managed block is incomplete")
+        raise ValueError("Codex ACCO managed block is incomplete")
 
 
 def _json_mcp_configured(path: Path) -> bool:
-    """Return whether a JSON config contains Token Saver MCP."""
+    """Return whether a JSON config contains ACCO MCP."""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
     servers = payload.get("mcpServers") if isinstance(payload, dict) else None
-    return isinstance(servers, dict) and "token-saver" in servers
+    return isinstance(servers, dict) and "acco" in servers
 
 
 def claude_mcp_path(root: Path) -> Path:
@@ -262,21 +262,21 @@ def _codex_block() -> str:
     """Return the managed Codex MCP configuration block."""
     return (
         f"{CODEX_START}\n"
-        "[mcp_servers.token-saver]\n"
-        'command = "token-saver"\n'
+        "[mcp_servers.acco]\n"
+        'command = "acco"\n'
         'args = ["serve", "."]\n'
         f"{CODEX_END}\n"
     )
 
 
 def _strip_codex_block(text: str) -> str:
-    """Remove the Token Saver managed block while preserving all other TOML."""
+    """Remove the ACCO managed block while preserving all other TOML."""
     start = text.find(CODEX_START)
     if start < 0:
         return text
     end = text.find(CODEX_END, start)
     if end < 0:
-        raise ValueError("Codex Token Saver managed block is incomplete")
+        raise ValueError("Codex ACCO managed block is incomplete")
     end += len(CODEX_END)
     while end < len(text) and text[end] in "\r\n":
         end += 1
@@ -323,7 +323,7 @@ def _remove_managed_claude_skill(root: Path) -> None:
 
 
 def _claude_hooks_configured(root: Path) -> bool:
-    """Return whether project Claude settings contain Token Saver hooks."""
+    """Return whether project Claude settings contain ACCO hooks."""
     path = claude_settings_path(root)
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -380,7 +380,7 @@ def detect_hosts(
     home: Path | None = None,
     which: Callable[[str], str | None] = shutil.which,
 ) -> list[HostStatus]:
-    """Detect supported hosts and whether Token Saver is already configured."""
+    """Detect supported hosts and whether ACCO is already configured."""
     root = root.resolve()
     home = home or Path.home()
     executable = {
@@ -562,7 +562,7 @@ def setup_integrations(
         validate_hermes_manageable(hermes_config_path(home))
     if "openclaw" in requested and not which(HOST_EXECUTABLES["openclaw"]):
         raise ValueError(
-            "OpenClaw setup requires the openclaw executable so Token Saver can "
+            "OpenClaw setup requires the openclaw executable so ACCO can "
             "use its validated native MCP registry."
         )
 
@@ -621,7 +621,7 @@ def uninstall_integrations(
     which: Callable[[str], str | None] = shutil.which,
     runner: RunCommand = run_command,
 ) -> dict:
-    """Remove only Token Saver-owned integration entries."""
+    """Remove only ACCO-owned integration entries."""
     root = root.resolve()
     home = home or Path.home()
     requested = HOSTS if not hosts or "all" in hosts else tuple(dict.fromkeys(hosts))
@@ -703,7 +703,7 @@ def uninstall_integrations(
 def _version() -> str:
     """Return installed package version with a source-checkout fallback."""
     try:
-        return metadata.version("claude-token-saver")
+        return metadata.version("ai-coding-context-optimizer")
     except metadata.PackageNotFoundError:
         from . import __version__
 
@@ -738,14 +738,14 @@ def doctor_report(
             index_error = str(exc)
     hosts = detect_hosts(root, home=home, which=which)
     transcripts = len(transcript_paths(root))
-    executable = which("token-saver")
+    executable = which("acco")
     ready_hosts = [item.name for item in hosts if item.configured]
     detected_hosts = [item.name for item in hosts if item.detected]
     ready = bool(executable and ready_hosts and not config_error and not index_error)
     return {
         "ready": ready,
         "version": _version(),
-        "token_saver_executable": executable,
+        "acco_executable": executable,
         "root": str(root),
         "config_path": str(config_path) if config_path else None,
         "config_error": config_error,

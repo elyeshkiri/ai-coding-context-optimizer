@@ -118,7 +118,7 @@ def _packet(
         f"# id: {stage_id}\n"
         "# The original prompt is stored exactly and was NOT sent to the model.\n"
         "# Omitted spans are recoverable with:\n"
-        f"# token-saver ingress-read {stage_id} --start-line N --end-line M\n\n"
+        f"# acco ingress-read {stage_id} --start-line N --end-line M\n\n"
     )
     header_tokens = estimate_tokens(header)
     available = max(0, packet_tokens - header_tokens)

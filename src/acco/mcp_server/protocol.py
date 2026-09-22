@@ -1,4 +1,4 @@
-"""JSON-RPC protocol runtime for the Token Saver MCP server."""
+"""JSON-RPC protocol runtime for the ACCO MCP server."""
 
 from __future__ import annotations
 
@@ -52,14 +52,14 @@ class McpProtocol:
         else:
             selected_profile = (
                 profile
-                or os.environ.get("TOKEN_SAVER_MCP_PROFILE")
+                or os.environ.get("ACCO_MCP_PROFILE")
                 or settings.mcp_profile
             )
             self._profile = selected_profile.strip().lower()
             self._adaptive_max_tools = settings.mcp_adaptive_max_tools
             self.registry = tool_registry_for_profile(self._profile)
             if self._profile == "adaptive":
-                initial_task = os.environ.get("TOKEN_SAVER_MCP_TASK", "").strip()
+                initial_task = os.environ.get("ACCO_MCP_TASK", "").strip()
                 if initial_task:
                     names = adaptive_tool_names(
                         initial_task,
@@ -156,7 +156,7 @@ class McpProtocol:
                     "tools": {"listChanged": self._profile == "adaptive"}
                 },
                 "serverInfo": {
-                    "name": "token-saver",
+                    "name": "acco",
                     "version": SERVER_VERSION,
                 },
             }
