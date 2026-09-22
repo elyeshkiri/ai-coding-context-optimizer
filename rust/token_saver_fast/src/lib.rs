@@ -224,8 +224,12 @@ mod tests {
     fn ansi_and_repetition_match_reference_behavior() {
         assert_eq!(strip_ansi("\x1b[31merror\x1b[0m").unwrap(), "error");
         assert_eq!(
-            collapse_repeated_lines("x\nx\nx\ny\n", 3).unwrap(),
-            "x\n[token-saver: previous line repeated 2 more times]\ny\n"
+            collapse_repeated_lines(
+                "this is a repeated diagnostic line\nthis is a repeated diagnostic line\nthis is a repeated diagnostic line\ny\n",
+                3,
+            )
+            .unwrap(),
+            "this is a repeated diagnostic line\n[token-saver: previous line repeated 2 more times]\ny\n"
         );
     }
 
