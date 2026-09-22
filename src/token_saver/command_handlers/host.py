@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from ..claude_plugin import plugin_status, render_plugin
+from ..client_capabilities import capability_report
 from ..fastpath import status as fastpath_status
 from ..host_validate import validate_host
 from ..integration_setup import (
@@ -53,6 +54,47 @@ def fastpath_status_main(argv: list[str]) -> int:
         print("capabilities: " + (", ".join(capabilities) if capabilities else "none"))
         if not result["available"]:
             print("fallback: Python reference implementation")
+    return 0
+
+
+
+def client_capabilities_main(argv: list[str]) -> int:
+    """Report conservative host capability guarantees and feature prerequisites."""
+    parser = argparse.ArgumentParser(prog="token-saver client-capabilities")
+    parser.add_argument("--client", help="claude-code, codex, cursor, gemini-cli, or generic-mcp")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    report = capability_report(args.client)
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    if args.client:
+        record = report["client"]
+        print(f"TOKEN SAVER CLIENT CAPABILITIES — {record['client']}")
+        for name, level in record["capabilities"].items():
+            print(f"  {name:<24} {level}")
+        if record["note"]:
+            print("note: " + record["note"])
+        print("feature prerequisites:")
+        for name, evidence in report["features"].items():
+            state = "guaranteed" if evidence["guaranteed"] else (
+                "fallback" if evidence["available_with_fallback"] else "unavailable"
+            )
+            print(f"  {name:<26} {state}")
+        return 0
+
+    print("TOKEN SAVER CLIENT CAPABILITY REGISTRY")
+    for name, record in report["clients"].items():
+        guaranteed = sum(
+            1 for level in record["capabilities"].values() if level == "yes"
+        )
+        conditional = sum(
+            1 for level in record["capabilities"].values()
+            if level in {"conditional", "advisory"}
+        )
+        print(f"  {name:<14} guaranteed={guaranteed} conditional={conditional}")
+    print("Use --client NAME for feature-level prerequisites.")
     return 0
 
 
