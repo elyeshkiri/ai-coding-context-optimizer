@@ -12,6 +12,7 @@ from token_saver.host_configs import (
     HERMES_END,
     HERMES_START,
     antigravity_mcp_path,
+    copilot_cli_config_path,
     copilot_mcp_path,
     hermes_config_path,
     openclaw_config_path,
@@ -50,6 +51,36 @@ def _openclaw_runner(home: Path, calls: list[list[str]]):
             raise AssertionError(argv)
         mcp["servers"] = servers
         payload["mcp"] = mcp
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    return run
+
+
+def _copilot_runner(home: Path, calls: list[list[str]]):
+    """Return a fake Copilot CLI MCP registry implementation."""
+    def run(argv: list[str]) -> subprocess.CompletedProcess:
+        calls.append(list(argv))
+        path = copilot_cli_config_path(home)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = (
+            json.loads(path.read_text(encoding="utf-8"))
+            if path.exists()
+            else {}
+        )
+        servers = dict(payload.get("mcpServers", {}))
+        if argv[:3] == ["copilot", "mcp", "add"]:
+            servers["token-saver"] = {
+                "type": "local",
+                "command": "token-saver",
+                "args": ["serve", "."],
+                "tools": ["*"],
+            }
+        elif argv == ["copilot", "mcp", "remove", "token-saver"]:
+            servers.pop("token-saver", None)
+        else:
+            raise AssertionError(argv)
+        payload["mcpServers"] = servers
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return subprocess.CompletedProcess(argv, 0, "", "")
 
@@ -295,3 +326,106 @@ def test_openclaw_explicit_setup_requires_native_cli(tmp_path):
             ("openclaw",),
             which=_which(set()),
         )
+
+
+def test_copilot_cli_native_registry_is_idempotent_and_owned(tmp_path):
+    """Copilot CLI should use its native registry without replacing user entries."""
+    root = tmp_path / "repo"
+    home = tmp_path / "home"
+    root.mkdir()
+    calls: list[list[str]] = []
+    runner = _copilot_runner(home, calls)
+
+    first = setup_integrations(
+        root,
+        ("copilot",),
+        home=home,
+        which=_which({"copilot"}),
+        runner=runner,
+    )
+    second = setup_integrations(
+        root,
+        ("copilot",),
+        home=home,
+        which=_which({"copilot"}),
+        runner=runner,
+    )
+
+    assert first["configured_hosts"] == ["copilot"]
+    assert second["configured_hosts"] == ["copilot"]
+    assert calls.count([
+        "copilot",
+        "mcp",
+        "add",
+        "--tools",
+        "*",
+        "token-saver",
+        "--",
+        "token-saver",
+        "serve",
+        ".",
+    ]) == 1
+
+    config = json.loads(
+        copilot_cli_config_path(home).read_text(encoding="utf-8")
+    )
+    assert config["mcpServers"]["token-saver"]["args"] == ["serve", "."]
+
+    statuses = {
+        item.name: item
+        for item in detect_hosts(
+            root,
+            home=home,
+            which=_which({"copilot"}),
+        )
+    }
+    assert statuses["copilot"].detected is True
+    assert statuses["copilot"].configured is True
+    assert "copilot-cli" in statuses["copilot"].details
+
+    uninstall_integrations(
+        root,
+        ("copilot",),
+        home=home,
+        which=_which({"copilot"}),
+        runner=runner,
+    )
+    assert calls[-1] == ["copilot", "mcp", "remove", "token-saver"]
+    config = json.loads(
+        copilot_cli_config_path(home).read_text(encoding="utf-8")
+    )
+    assert "token-saver" not in config["mcpServers"]
+
+
+def test_copilot_cli_refuses_unmanaged_same_name_entry(tmp_path):
+    """Native Copilot setup must not overwrite an existing user-owned server."""
+    root = tmp_path / "repo"
+    home = tmp_path / "home"
+    root.mkdir()
+    path = copilot_cli_config_path(home)
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps({
+            "mcpServers": {
+                "token-saver": {
+                    "command": "custom",
+                    "args": ["serve"],
+                    "tools": ["*"],
+                }
+            }
+        }),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unmanaged Copilot CLI"):
+        setup_integrations(
+            root,
+            ("copilot",),
+            home=home,
+            which=_which({"copilot"}),
+            runner=_copilot_runner(home, []),
+        )
+
+    assert json.loads(path.read_text(encoding="utf-8"))[
+        "mcpServers"
+    ]["token-saver"]["command"] == "custom"
