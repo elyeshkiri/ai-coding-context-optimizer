@@ -2,6 +2,38 @@
 
 Token Saver treats setup as an idempotent repair/migration operation.
 
+## 1.14 expanded coding-agent integration matrix
+
+Version 1.14 extends managed setup, doctor, and uninstall support across Claude
+Code, Cursor, Codex, OpenCode, OpenClaw, Hermes Agent, GitHub Copilot CLI /
+VS Code, and Google Antigravity.
+
+Existing Claude/Cursor/Codex users do not need to change configuration. Re-run:
+
+```bash
+token-saver setup .
+token-saver doctor .
+```
+
+to refresh Token Saver-owned entries after upgrading.
+
+New host-specific behavior:
+
+- OpenCode uses project `.opencode/opencode.json`; Token Saver refuses to
+  create a competing sibling JSON file when only `.opencode/opencode.jsonc`
+  exists.
+- OpenClaw is configured through its own `openclaw mcp set/unset` commands.
+- Hermes receives a marked Token Saver block under top-level `mcp_servers`
+  in `~/.hermes/config.yaml`; unmanaged same-name entries are preserved and
+  cause setup to fail closed.
+- Copilot CLI is managed through `copilot mcp add/remove`. VS Code Copilot
+  continues to use the workspace `.vscode/mcp.json` surface when present.
+- Antigravity uses workspace `.agents/mcp_config.json`; the current CLI is
+  detected through the `agy` executable.
+
+`token-saver setup . --host all` now means all detected supported hosts,
+rather than every host Token Saver knows about.
+
 ## 1.13 recoverable optimization platform
 
 Version 1.13 adds persistent typed project memory, adaptive MCP disclosure,
@@ -137,7 +169,7 @@ New releases can change:
   for output-budget telemetry);
 - MCP command arguments;
 - generated project defaults;
-- managed Codex block contents;
+- managed host MCP/config block contents;
 - generated on-demand skills.
 
 Setup re-applies the current managed representation while preserving unrelated
@@ -158,7 +190,8 @@ Environment variables remain higher-priority overrides.
 ## From manual integrations to managed setup
 
 If Claude/Cursor already has a normal `mcpServers.token-saver` entry, setup can
-refresh that owned key.
+refresh that owned key. Other hosts use the host-specific ownership rules in
+[Integrations](../INTEGRATIONS.md).
 
 Codex is stricter: an unmanaged `[mcp_servers.token-saver]` section is not
 silently converted. Remove or rename it yourself before using managed setup.
