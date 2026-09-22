@@ -61,10 +61,10 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
     codex.write_text('model = "gpt-test"\n', encoding="utf-8")
 
     first = setup_integrations(
-        root, ("all",), home=home, which=_which({"claude", "cursor", "codex"})
+        root, ("claude", "cursor", "codex"), home=home, which=_which({"claude", "cursor", "codex"})
     )
     second = setup_integrations(
-        root, ("all",), home=home, which=_which({"claude", "cursor", "codex"})
+        root, ("claude", "cursor", "codex"), home=home, which=_which({"claude", "cursor", "codex"})
     )
 
     assert first["configured_hosts"] == ["claude", "cursor", "codex"]
@@ -194,7 +194,7 @@ def test_uninstall_removes_only_owned_entries(tmp_path):
     home = tmp_path / "home"
     root.mkdir()
     setup_integrations(
-        root, ("all",), home=home, which=_which({"claude", "cursor", "codex"})
+        root, ("claude", "cursor", "codex"), home=home, which=_which({"claude", "cursor", "codex"})
     )
     mcp = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
     mcp["mcpServers"]["github"] = {"command": "gh"}
@@ -203,7 +203,7 @@ def test_uninstall_removes_only_owned_entries(tmp_path):
     skill = root / ".claude" / "skills" / "token-budget" / "SKILL.md"
     assert skill.is_file()
 
-    result = uninstall_integrations(root, ("all",), home=home)
+    result = uninstall_integrations(root, ("claude", "cursor", "codex"), home=home)
 
     assert result["removed_hosts"] == ["claude", "cursor", "codex"]
     assert not skill.exists()
@@ -435,7 +435,7 @@ def test_setup_preflight_prevents_partial_multi_host_mutation(tmp_path):
     with pytest.raises(ValueError, match="unmanaged Token Saver Codex config"):
         setup_integrations(
             root,
-            ("all",),
+            ("claude", "cursor", "codex"),
             home=home,
             which=_which({"claude", "cursor", "codex"}),
         )
