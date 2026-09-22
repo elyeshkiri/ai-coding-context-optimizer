@@ -1,11 +1,11 @@
-# `token-saver output-benchmark`
+# `acco output-benchmark`
 
 Evaluate deterministic Output Saver fixtures.
 
 ## Synopsis
 
 ```bash
-token-saver output-benchmark <manifest>
+acco output-benchmark <manifest>
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ Always JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#output-benchmar
 
 ## Authoritative runtime help
 
-Run `token-saver output-benchmark --help` for argparse's exact usage text for the installed version.
+Run `acco output-benchmark --help` for argparse's exact usage text for the installed version.
