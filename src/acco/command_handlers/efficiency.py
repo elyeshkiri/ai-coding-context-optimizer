@@ -30,7 +30,7 @@ def _tokens(value: object) -> str:
 
 def audit_main(argv: list[str]) -> int:
     """Run one consolidated audit across context, retrieval, output, and host layers."""
-    parser = argparse.ArgumentParser(prog="token-saver audit")
+    parser = argparse.ArgumentParser(prog="acco audit")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument("--window", type=int, default=200_000)
@@ -150,7 +150,7 @@ def audit_main(argv: list[str]) -> int:
 
 def dashboard_main(argv: list[str]) -> int:
     """Show local operational savings, continuity, and waste telemetry."""
-    parser = argparse.ArgumentParser(prog="token-saver dashboard")
+    parser = argparse.ArgumentParser(prog="acco dashboard")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument("--json", action="store_true")
@@ -207,7 +207,7 @@ def dashboard_main(argv: list[str]) -> int:
 
 def cost_advisor_main(argv: list[str]) -> int:
     """Show measured local cost intelligence and prioritized efficiency actions."""
-    parser = argparse.ArgumentParser(prog="token-saver cost-advisor")
+    parser = argparse.ArgumentParser(prog="acco cost-advisor")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument(
@@ -291,7 +291,7 @@ def cost_advisor_main(argv: list[str]) -> int:
 
 def continuity_main(argv: list[str]) -> int:
     """Inspect the latest structured continuity checkpoint."""
-    parser = argparse.ArgumentParser(prog="token-saver continuity")
+    parser = argparse.ArgumentParser(prog="acco continuity")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -328,7 +328,7 @@ def continuity_main(argv: list[str]) -> int:
 
 def cache_economics_main(argv: list[str]) -> int:
     """Estimate whether one context rewrite is cheaper after cache effects."""
-    parser = argparse.ArgumentParser(prog="token-saver cache-economics")
+    parser = argparse.ArgumentParser(prog="acco cache-economics")
     parser.add_argument("--original-frontier-tokens", type=int, required=True)
     parser.add_argument("--replacement-frontier-tokens", type=int, required=True)
     parser.add_argument("--cached-prefix-tokens", type=int, default=0)

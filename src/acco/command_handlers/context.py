@@ -12,7 +12,7 @@ from ..repository_service import RepositoryContextService
 
 def semantic_index_main(argv: list[str]) -> int:
     """Build or incrementally refresh the persistent local semantic index."""
-    parser = argparse.ArgumentParser(prog="token-saver semantic-index")
+    parser = argparse.ArgumentParser(prog="acco semantic-index")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -35,7 +35,7 @@ def semantic_index_main(argv: list[str]) -> int:
 
 def semantic_status_main(argv: list[str]) -> int:
     """Report persistent semantic-index status without loading embeddings."""
-    parser = argparse.ArgumentParser(prog="token-saver semantic-status")
+    parser = argparse.ArgumentParser(prog="acco semantic-status")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -54,7 +54,7 @@ def semantic_status_main(argv: list[str]) -> int:
 
 def impact_main(argv: list[str]) -> int:
     """Run the impact command."""
-    parser = argparse.ArgumentParser(prog="token-saver impact")
+    parser = argparse.ArgumentParser(prog="acco impact")
     parser.add_argument("target", help="repository-relative file or symbol name")
     parser.add_argument("--path", default=".")
     parser.add_argument("--json", action="store_true")
@@ -80,7 +80,7 @@ def impact_main(argv: list[str]) -> int:
 
 def feedback_main(argv: list[str]) -> int:
     """Run the feedback command."""
-    parser = argparse.ArgumentParser(prog="token-saver feedback")
+    parser = argparse.ArgumentParser(prog="acco feedback")
     parser.add_argument("file")
     parser.add_argument("--path", default=".")
     group = parser.add_mutually_exclusive_group(required=True)
@@ -98,7 +98,7 @@ def feedback_main(argv: list[str]) -> int:
 
 def ranking_explain_main(argv: list[str]) -> int:
     """Run the ranking explanation command."""
-    parser = argparse.ArgumentParser(prog="token-saver ranking-explain")
+    parser = argparse.ArgumentParser(prog="acco ranking-explain")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--query", required=True)
     parser.add_argument("--max-files", type=int, default=8)
@@ -141,7 +141,7 @@ def ranking_explain_main(argv: list[str]) -> int:
 
 def browse_main(argv: list[str]) -> int:
     """Run the browse command."""
-    parser = argparse.ArgumentParser(prog="token-saver browse")
+    parser = argparse.ArgumentParser(prog="acco browse")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--query", required=True)
     parser.add_argument("--max-files", type=int, default=8)
@@ -221,7 +221,7 @@ def browse_main(argv: list[str]) -> int:
 
 def remember_main(argv: list[str]) -> int:
     """Persist one explicit evidence-backed project finding."""
-    parser = argparse.ArgumentParser(prog="token-saver remember")
+    parser = argparse.ArgumentParser(prog="acco remember")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--claim", required=True)
     parser.add_argument("--anchor", action="append", required=True)
@@ -263,7 +263,7 @@ def remember_main(argv: list[str]) -> int:
 
 def recall_main(argv: list[str]) -> int:
     """Recall durable project findings relevant to one query."""
-    parser = argparse.ArgumentParser(prog="token-saver recall")
+    parser = argparse.ArgumentParser(prog="acco recall")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--query", required=True)
     parser.add_argument("--limit", type=int, default=5)
@@ -301,7 +301,7 @@ def recall_main(argv: list[str]) -> int:
 
 def knowledge_status_main(argv: list[str]) -> int:
     """Report durable project-knowledge counts and local storage path."""
-    parser = argparse.ArgumentParser(prog="token-saver knowledge-status")
+    parser = argparse.ArgumentParser(prog="acco knowledge-status")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)

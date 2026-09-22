@@ -1,6 +1,6 @@
 """Compatibility facade for vertical CLI command handlers.
 
-New code should import handlers from :mod:`token_saver.command_handlers`
+New code should import handlers from :mod:`acco.command_handlers`
 submodules. This module preserves the pre-refactor import surface only.
 """
 

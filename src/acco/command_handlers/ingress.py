@@ -12,7 +12,7 @@ from ..ingress import load_stage, read_stage
 
 def ingress_show_main(argv: list[str]) -> int:
     """Print one bounded staged-prompt packet for agent consumption."""
-    parser = argparse.ArgumentParser(prog="token-saver ingress-show")
+    parser = argparse.ArgumentParser(prog="acco ingress-show")
     parser.add_argument("id")
     parser.add_argument("--path", default=".")
     parser.add_argument("--json", action="store_true")
@@ -31,7 +31,7 @@ def ingress_show_main(argv: list[str]) -> int:
 
 def ingress_read_main(argv: list[str]) -> int:
     """Print an exact line range from the locally staged original prompt."""
-    parser = argparse.ArgumentParser(prog="token-saver ingress-read")
+    parser = argparse.ArgumentParser(prog="acco ingress-read")
     parser.add_argument("id")
     parser.add_argument("--path", default=".")
     parser.add_argument("--start-line", type=int, required=True)

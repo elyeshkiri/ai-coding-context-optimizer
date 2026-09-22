@@ -26,7 +26,7 @@ from ..ranking_regression import (
 
 def evaluate_main(argv: list[str]) -> int:
     """Run the evaluate command."""
-    parser = argparse.ArgumentParser(prog="token-saver evaluate")
+    parser = argparse.ArgumentParser(prog="acco evaluate")
     parser.add_argument("manifest")
     parser.add_argument("--path", default=".")
     parser.add_argument("--max-tokens", type=int, default=6000)
@@ -64,7 +64,7 @@ def evaluate_main(argv: list[str]) -> int:
 
 def blind_grade_main(argv: list[str]) -> int:
     """Run deterministic blind A/B grading over paired experiment responses."""
-    parser = argparse.ArgumentParser(prog="token-saver blind-grade")
+    parser = argparse.ArgumentParser(prog="acco blind-grade")
     parser.add_argument("manifest")
     parser.add_argument("--out")
     parser.add_argument("--force", action="store_true")
@@ -86,7 +86,7 @@ def blind_grade_main(argv: list[str]) -> int:
 
 def agent_evaluate_main(argv: list[str]) -> int:
     """Run the agent evaluate command."""
-    parser = argparse.ArgumentParser(prog="token-saver agent-evaluate")
+    parser = argparse.ArgumentParser(prog="acco agent-evaluate")
     parser.add_argument("manifest")
     args = parser.parse_args(argv)
     try:
@@ -100,7 +100,7 @@ def agent_evaluate_main(argv: list[str]) -> int:
 
 def ranking_snapshot_main(argv: list[str]) -> int:
     """Capture ranking traces for an evaluation-style task manifest."""
-    parser = argparse.ArgumentParser(prog="token-saver ranking-snapshot")
+    parser = argparse.ArgumentParser(prog="acco ranking-snapshot")
     parser.add_argument("manifest")
     parser.add_argument("--path", default=".")
     parser.add_argument("--max-files", type=int, default=20)
@@ -136,7 +136,7 @@ def ranking_snapshot_main(argv: list[str]) -> int:
 
 def ranking_diff_main(argv: list[str]) -> int:
     """Compare two ranking snapshots and attribute expected-file movement."""
-    parser = argparse.ArgumentParser(prog="token-saver ranking-diff")
+    parser = argparse.ArgumentParser(prog="acco ranking-diff")
     parser.add_argument("baseline")
     parser.add_argument("candidate")
     output = parser.add_mutually_exclusive_group()
@@ -211,7 +211,7 @@ def ranking_diff_main(argv: list[str]) -> int:
 
 def ranking_calibrate_main(argv: list[str]) -> int:
     """Aggregate ranking-diff history into empirical gate-calibration evidence."""
-    parser = argparse.ArgumentParser(prog="token-saver ranking-calibrate")
+    parser = argparse.ArgumentParser(prog="acco ranking-calibrate")
     parser.add_argument("history")
     parser.add_argument("--ground-truth-sha")
     parser.add_argument("--min-reports", type=int, default=20)

@@ -18,7 +18,7 @@ from ..model_routing import (
 
 def model_route_main(argv: list[str]) -> int:
     """Explain or emit one capability- and price-aware model route."""
-    parser = argparse.ArgumentParser(prog="token-saver model-route")
+    parser = argparse.ArgumentParser(prog="acco model-route")
     parser.add_argument("prompt")
     parser.add_argument("--input-tokens", type=int)
     parser.add_argument("--output-tokens", type=int)
@@ -95,7 +95,7 @@ def model_route_main(argv: list[str]) -> int:
         ):
             print(f"  {model}: USD {cost:.6f}")
     print(
-        "note: capability profiles are conservative Token Saver policy, "
+        "note: capability profiles are conservative ACCO policy, "
         "not a benchmark ranking of model quality"
     )
     return 0
@@ -104,7 +104,7 @@ def model_route_main(argv: list[str]) -> int:
 
 def model_route_calibrate_main(argv: list[str]) -> int:
     """Build a fail-closed routing calibration artifact from graded paired runs."""
-    parser = argparse.ArgumentParser(prog="token-saver model-route-calibrate")
+    parser = argparse.ArgumentParser(prog="acco model-route-calibrate")
     parser.add_argument(
         "manifest",
         help="frozen paired experiment manifest after blind-grade",

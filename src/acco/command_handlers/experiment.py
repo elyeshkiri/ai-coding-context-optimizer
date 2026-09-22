@@ -19,7 +19,7 @@ from ..session_holdout_pipeline import load_session_pricing, run_session_holdout
 
 def experiment_main(argv: list[str]) -> int:
     """Run the experiment command."""
-    parser = argparse.ArgumentParser(prog="token-saver experiment")
+    parser = argparse.ArgumentParser(prog="acco experiment")
     parser.add_argument("suite")
     parser.add_argument("--out", default="benchmark-runs.json")
     parser.add_argument(
@@ -35,7 +35,7 @@ def experiment_main(argv: list[str]) -> int:
     parser.add_argument(
         "--allow-user-hook",
         action="store_true",
-        help="allow an existing user-level token-saver hook (can double-instrument enabled runs)",
+        help="allow an existing user-level acco hook (can double-instrument enabled runs)",
     )
     parser.add_argument(
         "--task",
@@ -76,7 +76,7 @@ def experiment_main(argv: list[str]) -> int:
 
 def evidence_run_main(argv: list[str]) -> int:
     """Run/resume the complete experiment -> grade -> evidence pipeline."""
-    parser = argparse.ArgumentParser(prog="token-saver evidence-run")
+    parser = argparse.ArgumentParser(prog="acco evidence-run")
     parser.add_argument("suite")
     parser.add_argument("--out", default="benchmark-runs.json")
     parser.add_argument("--rates")
@@ -112,7 +112,7 @@ def evidence_run_main(argv: list[str]) -> int:
 
 def session_holdout_main(argv: list[str]) -> int:
     """Run/resume the frozen v1.6-vs-v1.7 session-efficiency holdout."""
-    parser = argparse.ArgumentParser(prog="token-saver session-holdout")
+    parser = argparse.ArgumentParser(prog="acco session-holdout")
     parser.add_argument("suite")
     parser.add_argument("--out", default="session-holdout-runs.json")
     parser.add_argument("--rates")
@@ -146,7 +146,7 @@ def session_holdout_main(argv: list[str]) -> int:
 
 def session_holdout_evaluate_main(argv: list[str]) -> int:
     """Evaluate an already-run and blind-graded session holdout manifest."""
-    parser = argparse.ArgumentParser(prog="token-saver session-holdout-evaluate")
+    parser = argparse.ArgumentParser(prog="acco session-holdout-evaluate")
     parser.add_argument("manifest")
     parser.add_argument("--rates", required=True)
     parser.add_argument("--model")
@@ -205,7 +205,7 @@ def session_holdout_evaluate_main(argv: list[str]) -> int:
 
 def knowledge_holdout_main(argv: list[str]) -> int:
     """Run/resume the frozen knowledge-read-avoidance holdout."""
-    parser = argparse.ArgumentParser(prog="token-saver knowledge-holdout")
+    parser = argparse.ArgumentParser(prog="acco knowledge-holdout")
     parser.add_argument("suite")
     parser.add_argument("--out", default="knowledge-holdout-runs.json")
     parser.add_argument("--rates")
@@ -239,7 +239,7 @@ def knowledge_holdout_main(argv: list[str]) -> int:
 
 def knowledge_holdout_evaluate_main(argv: list[str]) -> int:
     """Evaluate an already-run and blind-graded knowledge holdout manifest."""
-    parser = argparse.ArgumentParser(prog="token-saver knowledge-holdout-evaluate")
+    parser = argparse.ArgumentParser(prog="acco knowledge-holdout-evaluate")
     parser.add_argument("manifest")
     parser.add_argument("--rates", required=True)
     parser.add_argument("--model")
@@ -299,7 +299,7 @@ def knowledge_holdout_evaluate_main(argv: list[str]) -> int:
 
 def cost_report_main(argv: list[str]) -> int:
     """Run the cost report command."""
-    parser = argparse.ArgumentParser(prog="token-saver cost-report")
+    parser = argparse.ArgumentParser(prog="acco cost-report")
     parser.add_argument("baseline")
     parser.add_argument("optimized", nargs="?")
     parser.add_argument("--input-per-million", type=float, default=0.0)

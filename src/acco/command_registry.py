@@ -1,4 +1,4 @@
-"""Extensible command registry for the top-level Token Saver CLI."""
+"""Extensible command registry for the top-level ACCO CLI."""
 
 from __future__ import annotations
 

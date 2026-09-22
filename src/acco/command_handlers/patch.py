@@ -23,7 +23,7 @@ def _patch_args(prog: str, argv: list[str]):
 
 def pack_diff_main(argv: list[str]) -> int:
     """Run the pack diff command."""
-    args = _patch_args("token-saver pack-diff", argv)
+    args = _patch_args("acco pack-diff", argv)
     try:
         result = build_diff_context(
             Path(args.path).resolve(),
@@ -54,7 +54,7 @@ def pack_diff_main(argv: list[str]) -> int:
 
 def review_main(argv: list[str]) -> int:
     """Run the review command."""
-    args = _patch_args("token-saver review", argv)
+    args = _patch_args("acco review", argv)
     try:
         result = review_patch(
             Path(args.path).resolve(),

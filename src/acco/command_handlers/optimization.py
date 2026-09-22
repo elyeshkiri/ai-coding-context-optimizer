@@ -23,7 +23,7 @@ from ..runtime_config import settings_for
 
 def recover_main(argv: list[str]) -> int:
     """Recover exact bytes stored before a lossy transformation."""
-    parser = argparse.ArgumentParser(prog="token-saver recover")
+    parser = argparse.ArgumentParser(prog="acco recover")
     parser.add_argument("handle")
     parser.add_argument("--path", default=".")
     parser.add_argument("--output")
@@ -69,7 +69,7 @@ def recover_main(argv: list[str]) -> int:
 
 def recovery_status_main(argv: list[str]) -> int:
     """Report recovery-store capacity without exposing recovered bytes."""
-    parser = argparse.ArgumentParser(prog="token-saver recovery-status")
+    parser = argparse.ArgumentParser(prog="acco recovery-status")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -87,7 +87,7 @@ def recovery_status_main(argv: list[str]) -> int:
 
 def prefix_status_main(argv: list[str]) -> int:
     """Report content-free stable-prefix reuse counters."""
-    parser = argparse.ArgumentParser(prog="token-saver prefix-status")
+    parser = argparse.ArgumentParser(prog="acco prefix-status")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -112,7 +112,7 @@ def prefix_status_main(argv: list[str]) -> int:
 
 def browser_context_main(argv: list[str]) -> int:
     """Compress captured HTML or AX-like text without fetching a URL."""
-    parser = argparse.ArgumentParser(prog="token-saver browser-context")
+    parser = argparse.ArgumentParser(prog="acco browser-context")
     parser.add_argument("input", help="captured HTML/text file, or - for stdin")
     parser.add_argument("--path", default=".", help="project root for recovery")
     parser.add_argument("--query", default="")
@@ -143,7 +143,7 @@ def browser_context_main(argv: list[str]) -> int:
 
 def provider_proxy_main(argv: list[str]) -> int:
     """Run the opt-in local provider optimization reverse proxy."""
-    parser = argparse.ArgumentParser(prog="token-saver provider-proxy")
+    parser = argparse.ArgumentParser(prog="acco provider-proxy")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--upstream", required=True)
     parser.add_argument(
@@ -182,7 +182,7 @@ def provider_proxy_main(argv: list[str]) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(
-        f"token-saver provider proxy: http://{config.bind}:{config.port} "
+        f"acco provider proxy: http://{config.bind}:{config.port} "
         f"-> {config.upstream}",
         file=sys.stderr,
     )
@@ -195,7 +195,7 @@ def provider_proxy_main(argv: list[str]) -> int:
 
 def optimize_main(argv: list[str]) -> int:
     """Plan, apply, or evaluate reversible measured optimization changes."""
-    parser = argparse.ArgumentParser(prog="token-saver optimize")
+    parser = argparse.ArgumentParser(prog="acco optimize")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--days", type=int, default=7)
     parser.add_argument("--apply", metavar="PROPOSAL_ID")
@@ -249,7 +249,7 @@ def optimize_main(argv: list[str]) -> int:
         print(f"backup: {result['recovery_handle']}")
         print(
             "Run normal work, then evaluate with: "
-            f"token-saver optimize {args.path} --evaluate {result['id']}"
+            f"acco optimize {args.path} --evaluate {result['id']}"
         )
         return 0
     if args.status:
@@ -264,7 +264,7 @@ def optimize_main(argv: list[str]) -> int:
 
     print("TOKEN SAVER OPTIMIZATION PLAN")
     if not result["proposals"]:
-        print("no safe Token Saver-owned config proposals from current evidence")
+        print("no safe ACCO-owned config proposals from current evidence")
     for item in result["proposals"]:
         print(f"[{item['risk']}] {item['id']}: {item['title']}")
         print(f"  {item['rationale']}")

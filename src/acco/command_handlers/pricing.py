@@ -19,7 +19,7 @@ def _model_entry(registry: dict, requested: str) -> tuple[str, dict] | None:
 
 def pricing_main(argv: list[str]) -> int:
     """Inspect packaged pricing rates, provenance, and freshness."""
-    parser = argparse.ArgumentParser(prog="token-saver pricing")
+    parser = argparse.ArgumentParser(prog="acco pricing")
     parser.add_argument("--model", help="show one exact model id or explicit alias")
     parser.add_argument("--max-age-days", type=int)
     parser.add_argument("--require-fresh", action="store_true")

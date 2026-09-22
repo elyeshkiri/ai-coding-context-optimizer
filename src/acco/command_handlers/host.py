@@ -22,7 +22,7 @@ from ..serve import serve
 
 def claude_plugin_path_main(argv: list[str]) -> int:
     """Render the Claude Code plugin and print its absolute directory."""
-    parser = argparse.ArgumentParser(prog="token-saver claude-plugin-path")
+    parser = argparse.ArgumentParser(prog="acco claude-plugin-path")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
@@ -41,7 +41,7 @@ def claude_plugin_path_main(argv: list[str]) -> int:
 
 def fastpath_status_main(argv: list[str]) -> int:
     """Report optional Rust accelerator availability and active capabilities."""
-    parser = argparse.ArgumentParser(prog="token-saver fastpath-status")
+    parser = argparse.ArgumentParser(prog="acco fastpath-status")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     result = fastpath_status()
@@ -60,7 +60,7 @@ def fastpath_status_main(argv: list[str]) -> int:
 
 def client_capabilities_main(argv: list[str]) -> int:
     """Report conservative host capability guarantees and feature prerequisites."""
-    parser = argparse.ArgumentParser(prog="token-saver client-capabilities")
+    parser = argparse.ArgumentParser(prog="acco client-capabilities")
     parser.add_argument("--client", help="claude-code, codex, cursor, opencode, openclaw, hermes, copilot, antigravity, gemini-cli, or generic-mcp")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -100,7 +100,7 @@ def client_capabilities_main(argv: list[str]) -> int:
 
 def host_check_main(argv: list[str]) -> int:
     """Run the host check command."""
-    parser = argparse.ArgumentParser(prog="token-saver host-check")
+    parser = argparse.ArgumentParser(prog="acco host-check")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--host", default="claude", help="host executable to inspect")
     parser.add_argument(
@@ -137,7 +137,7 @@ def host_check_main(argv: list[str]) -> int:
 
 def serve_main(argv: list[str]) -> int:
     """Run the serve command."""
-    parser = argparse.ArgumentParser(prog="token-saver serve")
+    parser = argparse.ArgumentParser(prog="acco serve")
     parser.add_argument("path", nargs="?", default=".")
     args = parser.parse_args(argv)
     return serve(Path(args.path).resolve())
@@ -154,8 +154,8 @@ def _hosts_argument(parser: argparse.ArgumentParser) -> None:
 
 
 def setup_main(argv: list[str]) -> int:
-    """Auto-detect and configure Token Saver integrations."""
-    parser = argparse.ArgumentParser(prog="token-saver setup")
+    """Auto-detect and configure ACCO integrations."""
+    parser = argparse.ArgumentParser(prog="acco setup")
     parser.add_argument("path", nargs="?", default=".")
     _hosts_argument(parser)
     parser.add_argument("--json", action="store_true")
@@ -180,13 +180,13 @@ def setup_main(argv: list[str]) -> int:
     else:
         print("configured: none (no supported host detected)")
         print("hint: rerun with --host " + "|".join([*HOSTS, "all"]))
-    print("next: token-saver doctor " + result["root"])
+    print("next: acco doctor " + result["root"])
     return 0
 
 
 def doctor_main(argv: list[str]) -> int:
     """Run one consolidated installation and integration health check."""
-    parser = argparse.ArgumentParser(prog="token-saver doctor")
+    parser = argparse.ArgumentParser(prog="acco doctor")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--no-index", action="store_true")
@@ -203,7 +203,7 @@ def doctor_main(argv: list[str]) -> int:
     else:
         print(f"TOKEN SAVER DOCTOR {report['version']}")
         print("status: " + ("READY" if report["ready"] else "NEEDS ATTENTION"))
-        print(f"cli:    {report['token_saver_executable'] or 'not found in PATH'}")
+        print(f"cli:    {report['acco_executable'] or 'not found in PATH'}")
         print(f"config: {report['config_path'] or 'not found'}")
         if report["config_error"]:
             print(f"config error: {report['config_error']}")
@@ -221,13 +221,13 @@ def doctor_main(argv: list[str]) -> int:
             print(f"index error: {report['index_error']}")
         print(f"claude usage evidence: {report['claude_transcripts']} transcript(s)")
         if not report["ready"]:
-            print("repair: token-saver setup " + report["root"])
+            print("repair: acco setup " + report["root"])
     return 1 if args.require_ready and not report["ready"] else 0
 
 
 def uninstall_main(argv: list[str]) -> int:
-    """Safely remove Token Saver-owned host integration entries."""
-    parser = argparse.ArgumentParser(prog="token-saver uninstall")
+    """Safely remove ACCO-owned host integration entries."""
+    parser = argparse.ArgumentParser(prog="acco uninstall")
     parser.add_argument("path", nargs="?", default=".")
     _hosts_argument(parser)
     parser.add_argument("--remove-config", action="store_true")
@@ -254,7 +254,7 @@ def uninstall_main(argv: list[str]) -> int:
 
 def completion_main(argv: list[str]) -> int:
     """Generate lightweight shell completion for top-level commands."""
-    parser = argparse.ArgumentParser(prog="token-saver completion")
+    parser = argparse.ArgumentParser(prog="acco completion")
     parser.add_argument("shell", choices=["bash", "zsh", "fish"])
     args = parser.parse_args(argv)
 
@@ -263,28 +263,28 @@ def completion_main(argv: list[str]) -> int:
     names = " ".join(DEFAULT_COMMAND_REGISTRY.names())
     if args.shell == "bash":
         print(
-            "_token_saver_complete() {\n"
+            "_acco_complete() {\n"
             '  local cur="${COMP_WORDS[COMP_CWORD]}"\n'
             f'  COMPREPLY=( $(compgen -W "{names}" -- "$cur") )\n'
             "}\n"
-            "complete -F _token_saver_complete token-saver"
+            "complete -F _acco_complete acco"
         )
     elif args.shell == "zsh":
-        print(f"#compdef token-saver\n_arguments \'1:command:({names})\'")
+        print(f"#compdef acco\n_arguments \'1:command:({names})\'")
     else:
         for name in DEFAULT_COMMAND_REGISTRY.names():
-            print(f"complete -c token-saver -n \'__fish_use_subcommand\' -a \'{name}\'")
+            print(f"complete -c acco -n \'__fish_use_subcommand\' -a \'{name}\'")
     return 0
 
 
 def commands_main(argv: list[str]) -> int:
     """List discoverable top-level commands."""
-    parser = argparse.ArgumentParser(prog="token-saver commands")
+    parser = argparse.ArgumentParser(prog="acco commands")
     parser.parse_args(argv)
     from ..command_registry import DEFAULT_COMMAND_REGISTRY
 
     print("TOKEN SAVER COMMANDS")
     for name in DEFAULT_COMMAND_REGISTRY.names():
         print(name)
-    print("\nUse: token-saver <command> --help")
+    print("\nUse: acco <command> --help")
     return 0

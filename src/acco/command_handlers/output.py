@@ -30,7 +30,7 @@ from ..output_saver import (
 
 def corpus_analyze_main(argv: list[str]) -> int:
     """Mine real Claude transcripts for the highest-cost generic processor gaps."""
-    parser = argparse.ArgumentParser(prog="token-saver corpus-analyze")
+    parser = argparse.ArgumentParser(prog="acco corpus-analyze")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--all-projects", action="store_true")
     parser.add_argument("--min-tokens", type=int, default=100)
@@ -76,7 +76,7 @@ def corpus_analyze_main(argv: list[str]) -> int:
 
 def output_effectiveness_main(argv: list[str]) -> int:
     """Join paired usage, success, quality, and budget evidence."""
-    parser = argparse.ArgumentParser(prog="token-saver output-effectiveness")
+    parser = argparse.ArgumentParser(prog="acco output-effectiveness")
     parser.add_argument("manifest")
     parser.add_argument("--fresh-input-per-million", type=float)
     parser.add_argument("--cache-creation-5m-per-million", type=float)
@@ -123,7 +123,7 @@ def output_effectiveness_main(argv: list[str]) -> int:
         print(json.dumps(result, indent=2))
     else:
         baseline = result["conditions"]["baseline"]
-        optimized = result["conditions"]["token-saver"]
+        optimized = result["conditions"]["acco"]
         reduction = result["delta"]["cost_per_success_reduction"]
         print(
             f"OUTPUT EFFECTIVENESS: {result['paired_trials']} paired trials "
@@ -160,7 +160,7 @@ def output_effectiveness_main(argv: list[str]) -> int:
 
 def output_telemetry_main(argv: list[str]) -> int:
     """Report local generation-budget telemetry without inferring task success."""
-    parser = argparse.ArgumentParser(prog="token-saver output-telemetry")
+    parser = argparse.ArgumentParser(prog="acco output-telemetry")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
     parser.add_argument(
@@ -207,7 +207,7 @@ def output_telemetry_main(argv: list[str]) -> int:
 
 def output_calibrate_main(argv: list[str]) -> int:
     """Build a quality-gated adaptive output-budget calibration artifact."""
-    parser = argparse.ArgumentParser(prog="token-saver output-calibrate")
+    parser = argparse.ArgumentParser(prog="acco output-calibrate")
     parser.add_argument("manifest", help="paired agent-run JSON with blind quality scores")
     parser.add_argument(
         "--margin",
@@ -234,7 +234,7 @@ def output_calibrate_main(argv: list[str]) -> int:
 
 def output_policy_main(argv: list[str]) -> int:
     """Run the output policy command."""
-    parser = argparse.ArgumentParser(prog="token-saver output-policy")
+    parser = argparse.ArgumentParser(prog="acco output-policy")
     parser.add_argument(
         "--mode",
         choices=("terse", "normal", "detailed"),
@@ -263,7 +263,7 @@ def output_policy_main(argv: list[str]) -> int:
 
 def output_save_main(argv: list[str]) -> int:
     """Run the output save command."""
-    parser = argparse.ArgumentParser(prog="token-saver output-save")
+    parser = argparse.ArgumentParser(prog="acco output-save")
     parser.add_argument(
         "input",
         nargs="?",
@@ -320,7 +320,7 @@ def output_save_main(argv: list[str]) -> int:
 
 def output_benchmark_main(argv: list[str]) -> int:
     """Run the output benchmark command."""
-    parser = argparse.ArgumentParser(prog="token-saver output-benchmark")
+    parser = argparse.ArgumentParser(prog="acco output-benchmark")
     parser.add_argument("manifest")
     args = parser.parse_args(argv)
     try:
@@ -334,7 +334,7 @@ def output_benchmark_main(argv: list[str]) -> int:
 
 def output_explain_main(argv: list[str]) -> int:
     """Run the output explain command."""
-    parser = argparse.ArgumentParser(prog="token-saver output-explain")
+    parser = argparse.ArgumentParser(prog="acco output-explain")
     parser.add_argument("command")
     parser.add_argument("--exit-code", type=int)
     parser.add_argument(
@@ -364,7 +364,7 @@ def output_explain_main(argv: list[str]) -> int:
 
 def output_replay_main(argv: list[str]) -> int:
     """Run output quality replay with optional immutable fixture validation."""
-    parser = argparse.ArgumentParser(prog="token-saver output-replay")
+    parser = argparse.ArgumentParser(prog="acco output-replay")
     parser.add_argument("manifest")
     parser.add_argument("--require-frozen", action="store_true")
     parser.add_argument("--print-definition-hash", action="store_true")
