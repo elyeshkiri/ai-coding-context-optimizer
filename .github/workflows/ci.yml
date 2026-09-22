@@ -101,14 +101,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install baseline ACCO
+      - name: Install protected-main baseline
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ./baseline
 
       - name: Capture protected-main ranking snapshot
         run: |
-          acco ranking-snapshot baseline/benchmarks/context-quality.json \
+          token-saver ranking-snapshot baseline/benchmarks/context-quality.json \
             --path baseline \
             --max-files 20 \
             --out baseline-ranking.json
