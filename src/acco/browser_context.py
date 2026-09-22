@@ -176,7 +176,7 @@ def compress_browser_payload(
                 recovery_handle=None,
                 matched_terms=matched,
             )
-        body += f"\n[token-saver recovery: {handle}]"
+        body += f"\n[acco recovery: {handle}]"
         output_tokens = estimate_tokens(body)
         if output_tokens >= original_tokens:
             return BrowserContextResult(

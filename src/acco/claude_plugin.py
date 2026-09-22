@@ -1,4 +1,4 @@
-"""Render the self-contained Claude Code plugin directory for Token Saver."""
+"""Render the self-contained Claude Code plugin directory for ACCO."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ import tempfile
 from . import __version__
 from .state import state_dir
 
-PLUGIN_NAME = "token-saver"
+PLUGIN_NAME = "acco"
 PLUGIN_SCHEMA = 1
 
 _MANIFEST = {
     "name": PLUGIN_NAME,
-    "displayName": "Token Saver",
+    "displayName": "ACCO",
     "description": (
         "Local context, output, session, retrieval, and prompt-ingress optimization "
         "for AI coding work."
@@ -25,13 +25,13 @@ _MANIFEST = {
         "name": "Elyes Hkiri",
         "url": "https://github.com/elyeshkiri",
     },
-    "homepage": "https://github.com/elyeshkiri/token-saver",
-    "repository": "https://github.com/elyeshkiri/token-saver",
+    "homepage": "https://github.com/elyeshkiri/ai-coding-context-optimizer",
+    "repository": "https://github.com/elyeshkiri/ai-coding-context-optimizer",
     "license": "MIT",
 }
 
 _HOOKS = {
-    "description": "Token Saver context/output/session optimization hooks",
+    "description": "ACCO context/output/session optimization hooks",
     "hooks": {
         "PreToolUse": [
             {
@@ -39,7 +39,7 @@ _HOOKS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python -m token_saver.entry hook",
+                        "command": "python -m acco.entry hook",
                         "timeout": 10,
                     }
                 ],
@@ -51,7 +51,7 @@ _HOOKS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python -m token_saver.entry hook",
+                        "command": "python -m acco.entry hook",
                         "timeout": 10,
                     }
                 ],
@@ -63,7 +63,7 @@ _HOOKS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python -m token_saver.entry hook",
+                        "command": "python -m acco.entry hook",
                         "timeout": 10,
                     }
                 ],
@@ -74,7 +74,7 @@ _HOOKS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python -m token_saver.entry hook",
+                        "command": "python -m acco.entry hook",
                         "timeout": 10,
                     }
                 ]
@@ -85,7 +85,7 @@ _HOOKS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python -m token_saver.entry hook",
+                        "command": "python -m acco.entry hook",
                         "timeout": 10,
                     }
                 ]
@@ -96,7 +96,7 @@ _HOOKS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python -m token_saver.entry hook",
+                        "command": "python -m acco.entry hook",
                         "timeout": 10,
                     }
                 ]
@@ -106,30 +106,30 @@ _HOOKS = {
 }
 
 _MCP = {
-    "token-saver": {
+    "acco": {
         "command": "python",
-        "args": ["-m", "token_saver.entry", "serve", "."],
+        "args": ["-m", "acco.entry", "serve", "."],
     }
 }
 
 _INGRESS_SKILL = """---
 name: ingress
-description: Resume a Token Saver oversized prompt that was safely staged before model processing.
+description: Resume a ACCO oversized prompt that was safely staged before model processing.
 argument-hint: stage-id
 allowed-tools: Bash
 ---
 
-# Resume a staged Token Saver prompt
+# Resume a staged ACCO prompt
 
-The argument is a Token Saver ingress stage id:
+The argument is a ACCO ingress stage id:
 
 \`$ARGUMENTS\`
 
-1. Run \`python -m token_saver.entry ingress-show "$ARGUMENTS" --path .\`.
+1. Run \`python -m acco.entry ingress-show "$ARGUMENTS" --path .\`.
 2. Treat the returned staged packet as the user's request and continue the task.
 3. If the packet contains an omitted line span and those exact bytes are needed,
    retrieve only the necessary range with:
-   \`python -m token_saver.entry ingress-read "$ARGUMENTS" --path . --start-line N --end-line M\`.
+   \`python -m acco.entry ingress-read "$ARGUMENTS" --path . --start-line N --end-line M\`.
 4. Do not request the full original merely for convenience. The staged packet
    already includes exact head/tail evidence and explicit omitted-line locators.
 5. Never infer or fabricate omitted content.
@@ -170,7 +170,7 @@ def render_plugin() -> Path:
         skill = temporary / "skills" / "ingress" / "SKILL.md"
         skill.parent.mkdir(parents=True, exist_ok=True)
         skill.write_text(_INGRESS_SKILL, encoding="utf-8")
-        (temporary / ".token-saver-plugin.json").write_text(
+        (temporary / ".acco-plugin.json").write_text(
             json.dumps(
                 {
                     "schema": PLUGIN_SCHEMA,

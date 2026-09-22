@@ -1,4 +1,4 @@
-"""Evaluate paired baseline/Token Saver agent outcomes without inventing quality."""
+"""Evaluate paired baseline/ACCO agent outcomes without inventing quality."""
 
 from __future__ import annotations
 
@@ -143,7 +143,7 @@ def evaluate_agent_runs(path: Path) -> dict:
         condition = normalize_condition(raw_condition)
         if not task or condition not in CONDITIONS:
             raise ValueError(
-                "each run needs task and condition baseline|token-saver|enabled"
+                "each run needs task and condition baseline|acco|enabled"
             )
         trial = _trial_number(run, task, condition)
         key = (task, trial)
@@ -189,7 +189,7 @@ def evaluate_agent_runs(path: Path) -> dict:
         }
 
     base = summaries["baseline"]
-    enabled = summaries["token-saver"]
+    enabled = summaries["acco"]
     task_success_parity = enabled["success_rate"] >= base["success_rate"]
 
     quality_evidence = None
@@ -207,7 +207,7 @@ def evaluate_agent_runs(path: Path) -> dict:
             [pair["baseline"] for pair in grouped.values()]
         )
         enabled_quality = _quality_summary(
-            [pair["token-saver"] for pair in grouped.values()]
+            [pair["acco"] for pair in grouped.values()]
         )
         assert baseline_quality is not None and enabled_quality is not None
         dimensions_ok = all(
@@ -231,7 +231,7 @@ def evaluate_agent_runs(path: Path) -> dict:
                 "parity_tolerance": 0.10,
             },
             "baseline": baseline_quality,
-            "token-saver": enabled_quality,
+            "acco": enabled_quality,
         }
 
     raw_output_reduction = (
@@ -265,7 +265,7 @@ def evaluate_agent_runs(path: Path) -> dict:
     paired_success_output_reductions = []
     for pair in grouped.values():
         baseline = pair["baseline"]
-        optimized = pair["token-saver"]
+        optimized = pair["acco"]
         base_output = int(baseline.get("output_tokens", 0))
         enabled_output = int(optimized.get("output_tokens", 0))
         output_reduction = _pair_reduction(base_output, enabled_output)

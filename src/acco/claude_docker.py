@@ -57,27 +57,27 @@ def run(
         "-v", f"{worktree.resolve()}:/workspace",
         "-v", f"{claude_home.resolve()}:/tmp/.claude",
     ]
-    state_dir = os.environ.get("TOKEN_SAVER_STATE_DIR")
+    state_dir = os.environ.get("ACCO_STATE_DIR")
     if state_dir:
         state_path = Path(state_dir).resolve()
         state_path.mkdir(parents=True, exist_ok=True)
         command.extend([
             "-v",
-            f"{state_path}:/token-saver-state",
+            f"{state_path}:/acco-state",
             "-e",
-            "TOKEN_SAVER_STATE_DIR=/token-saver-state",
+            "ACCO_STATE_DIR=/acco-state",
         ])
     for name in (
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_WORKSPACE_ID",
-        "TOKEN_SAVER_DISABLED",
-        "TOKEN_SAVER_BENCHMARK_CONDITION",
-        "TOKEN_SAVER_BENCHMARK_TASK",
-        "TOKEN_SAVER_BENCHMARK_TRIAL",
-        "TOKEN_SAVER_EFFICIENCY",
-        "TOKEN_SAVER_CONTINUITY",
-        "TOKEN_SAVER_CROSS_TURN_DEDUP",
-        "TOKEN_SAVER_WASTE_DETECTION",
+        "ACCO_DISABLED",
+        "ACCO_BENCHMARK_CONDITION",
+        "ACCO_BENCHMARK_TASK",
+        "ACCO_BENCHMARK_TRIAL",
+        "ACCO_EFFICIENCY",
+        "ACCO_CONTINUITY",
+        "ACCO_CROSS_TURN_DEDUP",
+        "ACCO_WASTE_DETECTION",
     ):
         _docker_env(command, name)
     command.extend(["-e", "ANTHROPIC_CUSTOM_HEADERS"])

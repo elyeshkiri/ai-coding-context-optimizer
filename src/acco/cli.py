@@ -114,7 +114,7 @@ def cmd_filter(args: argparse.Namespace) -> int:
                                      keep_tail=max(0, args.keep_tail))
     if filtered != text:
         from .output_store import store_output
-        note = "\n[token-saver: original saved; token-saver output {id} --offset 1 --limit 80]\n"
+        note = "\n[acco: original saved; acco output {id} --offset 1 --limit 80]\n"
         candidate = filtered + note.format(id="0" * 32)
         if estimate_tokens(text) - estimate_tokens(candidate) >= 50 and len(candidate.encode()) < len(text.encode()):
             try:
@@ -142,7 +142,7 @@ def cmd_install(args: argparse.Namespace) -> int:
     print("  SessionStart / UserPromptSubmit → session state reset + conditional /clear suggestion")
     if getattr(args, "templates", False):
         print("  .claude/skills/token-budget/SKILL.md (on-demand)")
-    print("Disable the read guard with TOKEN_SAVER_GUARD=0")
+    print("Disable the read guard with ACCO_GUARD=0")
     return 0
 
 
@@ -369,7 +369,7 @@ def cmd_sessions(args: argparse.Namespace) -> int:
               f"{share_of_fresh(before - after)}")
         for path, was, now in files[: args.top]:
             print(f"  {was:>8,} → {now:>7,}  {path[-56:]}")
-        print("\n  token-saver outline <file>   # signatures only, then read ranges")
+        print("\n  acco outline <file>   # signatures only, then read ranges")
 
     print("\nPOLICY")
     for item in advise(report):
@@ -518,8 +518,8 @@ def cmd_budget(args: argparse.Namespace) -> int:
     print("  - path-scoped rules and skills load only when needed")
     print("  - prefer @file + line ranges over whole-repo dumps")
     print("  - /clear between unrelated tasks; /compact at breakpoints")
-    print("  - cap the code map: token-saver map . --max-tokens 8000")
-    print("  - send noisy logs through: token-saver filter")
+    print("  - cap the code map: acco map . --max-tokens 8000")
+    print("  - send noisy logs through: acco filter")
     return 0
 
 
@@ -563,7 +563,7 @@ def cmd_benchmark(args):
 def main(argv: list[str] | None = None) -> int:
     """Run the command-line entry point."""
     p = argparse.ArgumentParser(
-        prog="token-saver",
+        prog="acco",
         description="Cut tokens sent to coding AIs (Claude and similar).",
     )
     sub = p.add_subparsers(dest="cmd", required=True)

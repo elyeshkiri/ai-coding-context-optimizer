@@ -1,4 +1,4 @@
-"""Central registry of host capabilities relevant to Token Saver features."""
+"""Central registry of host capabilities relevant to ACCO features."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ CapabilityLevel = Literal["yes", "no", "conditional", "advisory", "unknown"]
 
 @dataclass(frozen=True)
 class ClientCapabilities:
-    """Describe what the installed Token Saver integration may rely on per host."""
+    """Describe what the installed ACCO integration may rely on per host."""
 
     client: str
     capabilities: dict[str, CapabilityLevel]
@@ -56,7 +56,7 @@ def _caps(client: str, note: str = "", **overrides: CapabilityLevel) -> ClientCa
 CLIENT_CAPABILITIES = {
     "claude-code": _caps(
         "claude-code",
-        "Token Saver managed hooks cover pre/post tool, prompt, and session events.",
+        "ACCO managed hooks cover pre/post tool, prompt, and session events.",
         pre_tool_intercept="yes",
         post_tool_replace="yes",
         prompt_ingress="yes",
@@ -69,7 +69,7 @@ CLIENT_CAPABILITIES = {
     ),
     "codex": _caps(
         "codex",
-        "Token Saver treats MCP/context integration as reliable and host hooks as conditional.",
+        "ACCO treats MCP/context integration as reliable and host hooks as conditional.",
         pre_tool_intercept="conditional",
         post_tool_replace="conditional",
         prompt_ingress="no",
@@ -95,7 +95,7 @@ CLIENT_CAPABILITIES = {
     ),
     "opencode": _caps(
         "opencode",
-        "Project-local MCP is supported; Token Saver does not assume OpenCode-specific hook interception.",
+        "Project-local MCP is supported; ACCO does not assume OpenCode-specific hook interception.",
         pre_tool_intercept="unknown",
         post_tool_replace="unknown",
         prompt_ingress="no",
@@ -108,7 +108,7 @@ CLIENT_CAPABILITIES = {
     ),
     "openclaw": _caps(
         "openclaw",
-        "Token Saver uses OpenClaw's native MCP registry; runtime propagation can depend on the selected OpenClaw agent runtime.",
+        "ACCO uses OpenClaw's native MCP registry; runtime propagation can depend on the selected OpenClaw agent runtime.",
         pre_tool_intercept="unknown",
         post_tool_replace="unknown",
         prompt_ingress="unknown",
@@ -121,7 +121,7 @@ CLIENT_CAPABILITIES = {
     ),
     "hermes": _caps(
         "hermes",
-        "Hermes discovers MCP tools from its user config; Token Saver does not assume Hermes-native hook parity.",
+        "Hermes discovers MCP tools from its user config; ACCO does not assume Hermes-native hook parity.",
         pre_tool_intercept="unknown",
         post_tool_replace="unknown",
         prompt_ingress="unknown",
@@ -147,7 +147,7 @@ CLIENT_CAPABILITIES = {
     ),
     "antigravity": _caps(
         "antigravity",
-        "Antigravity consumes workspace MCP profiles; Token Saver does not assume proprietary agent lifecycle hooks.",
+        "Antigravity consumes workspace MCP profiles; ACCO does not assume proprietary agent lifecycle hooks.",
         pre_tool_intercept="unknown",
         post_tool_replace="unknown",
         prompt_ingress="unknown",
@@ -160,7 +160,7 @@ CLIENT_CAPABILITIES = {
     ),
     "gemini-cli": _caps(
         "gemini-cli",
-        "Token Saver exposes reusable MCP/provider surfaces but does not assume vendor hook parity.",
+        "ACCO exposes reusable MCP/provider surfaces but does not assume vendor hook parity.",
         pre_tool_intercept="unknown",
         post_tool_replace="unknown",
         prompt_ingress="unknown",
@@ -217,7 +217,7 @@ def capabilities_for(client: str) -> ClientCapabilities:
     key = normalize_client_name(client)
     return CLIENT_CAPABILITIES.get(
         key,
-        _caps(key, "Unregistered client; Token Saver must use runtime detection/fallbacks."),
+        _caps(key, "Unregistered client; ACCO must use runtime detection/fallbacks."),
     )
 
 
