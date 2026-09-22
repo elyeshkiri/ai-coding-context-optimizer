@@ -1,11 +1,11 @@
-# `token-saver prefix-status`
+# `acco prefix-status`
 
 Inspect content-free stable provider-prefix reuse evidence.
 
 ## Synopsis
 
 ```bash
-token-saver prefix-status [path] [--json]
+acco prefix-status [path] [--json]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ reuse rate. Provider request text is not persisted by this feature.
 
 ## Authoritative runtime help
 
-Run `token-saver prefix-status --help` for the installed version.
+Run `acco prefix-status --help` for the installed version.

@@ -1,17 +1,17 @@
-# `token-saver pricing`
+# `acco pricing`
 
-Inspect Token Saver's packaged first-party Claude API pricing registry.
+Inspect ACCO's packaged first-party Claude API pricing registry.
 
 ## Synopsis
 
 ```bash
-token-saver pricing [--model MODEL] [--max-age-days N] [--require-fresh] [--json]
+acco pricing [--model MODEL] [--max-age-days N] [--require-fresh] [--json]
 ```
 
 ## Arguments and options
 
 - `--model MODEL` — show one canonical model id or an explicitly declared
-  alias. Token Saver does not infer model aliases.
+  alias. ACCO does not infer model aliases.
 - `--max-age-days N` — override the registry freshness threshold for this
   inspection.
 - `--require-fresh` — exit `1` if the registry is older than the allowed
@@ -25,7 +25,7 @@ partner-operated cloud pricing are intentionally outside this registry.
 Use the registry explicitly with the operational advisor:
 
 ```bash
-token-saver cost-advisor . --rates builtin
+acco cost-advisor . --rates builtin
 ```
 
 Historical benchmark/evidence runs should continue to use their frozen rate
@@ -43,4 +43,4 @@ See [Machine-readable contracts](../JSON_OUTPUTS.md#pricing---json).
 
 ## Authoritative runtime help
 
-Run `token-saver pricing --help` for the installed version.
+Run `acco pricing --help` for the installed version.
