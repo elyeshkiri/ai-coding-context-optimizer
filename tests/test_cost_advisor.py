@@ -6,11 +6,11 @@ import json
 
 import pytest
 
-from token_saver.command_handlers.efficiency import cost_advisor_main
-from token_saver.efficiency.advisor import advisor_report
-from token_saver.efficiency.service import start_session
-from token_saver.efficiency.store import append_event
-from token_saver.output_telemetry import telemetry_path
+from acco.command_handlers.efficiency import cost_advisor_main
+from acco.efficiency.advisor import advisor_report
+from acco.efficiency.service import start_session
+from acco.efficiency.store import append_event
+from acco.output_telemetry import telemetry_path
 
 
 def _turn(model: str | None = "claude-sonnet-5") -> dict:
@@ -70,7 +70,7 @@ def _rates(tmp_path):
 
 def test_advisor_prices_only_explicit_measured_usage(tmp_path, monkeypatch):
     """Exact transcript counters plus explicit rates should produce exact local cost."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr("time.time", lambda: 2_000_000_100)
     root = tmp_path / "repo"
     root.mkdir()
@@ -110,7 +110,7 @@ def test_cost_advisor_cli_can_use_fresh_builtin_registry(
     tmp_path, monkeypatch, capsys
 ):
     """The explicit builtin source should price matching measured model usage."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr("time.time", lambda: 1_789_992_100)
     root = tmp_path / "repo"
     root.mkdir()
@@ -128,7 +128,7 @@ def test_cost_advisor_cli_can_use_fresh_builtin_registry(
 
 def test_advisor_does_not_allocate_mixed_model_turns(tmp_path, monkeypatch):
     """A mixed-model turn must stay unpriced instead of guessing token allocation."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr("time.time", lambda: 2_000_000_100)
     root = tmp_path / "repo"
     root.mkdir()
@@ -153,7 +153,7 @@ def test_advisor_does_not_allocate_mixed_model_turns(tmp_path, monkeypatch):
 
 def test_advisor_keeps_missing_pricing_explicit(tmp_path, monkeypatch):
     """No pricing file should preserve measured tokens without a dollar guess."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr("time.time", lambda: 2_000_000_100)
     root = tmp_path / "repo"
     root.mkdir()
@@ -174,7 +174,7 @@ def test_advisor_keeps_missing_pricing_explicit(tmp_path, monkeypatch):
 
 def test_advisor_score_exposes_evidence_coverage(tmp_path, monkeypatch):
     """Sparse telemetry must not masquerade as a fully evidenced A-grade report."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr("time.time", lambda: 2_000_000_100)
     root = tmp_path / "repo"
     root.mkdir()
@@ -192,7 +192,7 @@ def test_advisor_score_exposes_evidence_coverage(tmp_path, monkeypatch):
 
 def test_cost_advisor_cli_emits_structured_json(tmp_path, monkeypatch, capsys):
     """The CLI should expose the stable report contract without requiring prices."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr("time.time", lambda: 2_000_000_100)
     root = tmp_path / "repo"
     root.mkdir()

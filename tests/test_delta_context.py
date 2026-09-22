@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from token_saver.delta_context import apply_delta, extract_diagnostics
+from acco.delta_context import apply_delta, extract_diagnostics
 
 
 def _repo(root: Path):
@@ -37,7 +37,7 @@ def test_extract_pytest_diagnostic_identity():
 
 def test_delta_collapses_unchanged_failure(tmp_path, monkeypatch):
     root = _repo(tmp_path / "repo")
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     original = _failure("expected y")
     fallback = ("collection noise\n" * 100) + original
 
@@ -58,7 +58,7 @@ def test_delta_collapses_unchanged_failure(tmp_path, monkeypatch):
 
 def test_changed_failure_gets_symbol_and_graph_context(tmp_path, monkeypatch):
     root = _repo(tmp_path / "repo")
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     fallback = "noise\n" * 300
 
     apply_delta(
@@ -78,7 +78,7 @@ def test_changed_failure_gets_symbol_and_graph_context(tmp_path, monkeypatch):
 
 def test_clean_rerun_reports_resolved_failure(tmp_path, monkeypatch):
     root = _repo(tmp_path / "repo")
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     fallback = "noise\n" * 200
 
     apply_delta(

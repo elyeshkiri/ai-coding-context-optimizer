@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 
-from token_saver.context_router import detect_context_kind, route_context
-from token_saver.recovery import RecoveryStore
+from acco.context_router import detect_context_kind, route_context
+from acco.recovery import RecoveryStore
 
 
 def _store(tmp_path, monkeypatch) -> RecoveryStore:
     """Create an isolated recovery store for one test."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     return RecoveryStore(tmp_path)
 
 

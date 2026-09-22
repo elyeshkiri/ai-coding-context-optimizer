@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import json
 
-from token_saver.command_handlers.efficiency import (
+from acco.command_handlers.efficiency import (
     cache_economics_main,
     continuity_main,
     dashboard_main,
 )
-from token_saver.efficiency import observe_prompt, observe_tool
-from token_saver.efficiency.store import append_event
+from acco.efficiency import observe_prompt, observe_tool
+from acco.efficiency.store import append_event
 
 
 def test_dashboard_cli_writes_self_contained_html(tmp_path, monkeypatch, capsys):
     """The dashboard should be useful locally without a server or external assets."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     append_event(
@@ -35,7 +35,7 @@ def test_dashboard_cli_writes_self_contained_html(tmp_path, monkeypatch, capsys)
     assert str(html.resolve()) in output
     rendered = html.read_text(encoding="utf-8")
     assert "<!doctype html>" in rendered
-    assert "Token Saver Dashboard" in rendered
+    assert "ACCO Dashboard" in rendered
     assert "cross turn dedup" in rendered
     assert "external assets" not in rendered
 
@@ -44,7 +44,7 @@ def test_dashboard_json_keeps_operational_evidence_boundary(
     tmp_path, monkeypatch, capsys
 ):
     """JSON dashboard output must not imply verified task-success savings."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -59,7 +59,7 @@ def test_continuity_cli_reports_structured_working_state(
     tmp_path, monkeypatch, capsys
 ):
     """Continuity inspection should expose structure without conversation content."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     observe_prompt(root, "implement login refresh", session_id="s1")

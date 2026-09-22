@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from token_saver.cost_report import (
+from acco.cost_report import (
     Pricing, Run, compare_cost_files, compare_costs, compare_paired_agent_file, load_runs,
 )
 
@@ -124,7 +124,7 @@ def test_cost_report_accepts_agent_evaluate_paired_manifest(tmp_path):
                 "seconds": 2.5, "tool_calls": 4, "cost_usd": 0.90,
             },
             {
-                "task": "auth", "condition": "token-saver", "success": True,
+                "task": "auth", "condition": "acco", "success": True,
                 "input_tokens": 500, "output_tokens": 150,
                 "seconds": 1.4, "tool_calls": 2, "cost_usd": 0.35,
             },
@@ -134,7 +134,7 @@ def test_cost_report_accepts_agent_evaluate_paired_manifest(tmp_path):
                 "seconds": 2.0, "cost_usd": 0.70,
             },
             {
-                "task": "cache", "condition": "token-saver", "success": True,
+                "task": "cache", "condition": "acco", "success": True,
                 "input_tokens": 600, "output_tokens": 180,
                 "seconds": 1.5, "cost_usd": 0.40,
             },
@@ -230,7 +230,7 @@ def test_paired_manifest_supports_repeated_trials(tmp_path):
     for trial, (b_ok, o_ok) in enumerate([(False, True), (True, True)], start=1):
         runs.append({"task": "auth", "trial": trial, "condition": "baseline",
                      "success": b_ok, "cost_usd": 1.0, "input_tokens": 100})
-        runs.append({"task": "auth", "trial": trial, "condition": "token-saver",
+        runs.append({"task": "auth", "trial": trial, "condition": "acco",
                      "success": o_ok, "cost_usd": 0.5, "input_tokens": 50})
     path.write_text(json.dumps({"runs": runs}), encoding="utf-8")
 
@@ -277,7 +277,7 @@ def test_confidence_interval_clusters_repeated_trials_by_task():
 
 
 def test_cost_report_cli_prints_confidence_interval(tmp_path, capsys):
-    from token_saver.commands import cost_report_main
+    from acco.commands import cost_report_main
 
     baseline = tmp_path / "baseline.json"
     optimized = tmp_path / "optimized.json"
@@ -300,7 +300,7 @@ def test_cost_report_cli_prints_confidence_interval(tmp_path, capsys):
 
 
 def test_paired_cost_report_accepts_experiment_enabled_alias(tmp_path):
-    """Raw experiment output should not need enabled -> token-saver rewriting."""
+    """Raw experiment output should not need enabled -> acco rewriting."""
     path = tmp_path / "experiment-runs.json"
     path.write_text(
         json.dumps({
