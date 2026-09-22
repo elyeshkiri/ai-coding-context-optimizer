@@ -15,7 +15,7 @@ Use this page as the documentation map for the current Token Saver release.
 ## Understand the system
 
 - [Architecture](../ARCHITECTURE.md) — boundaries, dependency direction, ranking pipeline, MCP, hooks, and invariants.
-- [Integrations](../INTEGRATIONS.md) — Claude Code, Cursor, Codex, MCP, and host lifecycle.
+- [Integrations](../INTEGRATIONS.md) — Claude Code, Cursor, Codex, OpenCode, OpenClaw, Hermes, Copilot, Antigravity, MCP, and host lifecycle.
 - [Output optimization](../OUTPUT_OPTIMIZATION.md) — failure-aware compression, diagnostic Delta, and preservation rules.
 - [Benchmarking](../BENCHMARKING.md) — deterministic retrieval evaluation and paired cost-per-success experiments.
 - [Validation](../VALIDATION.md) — what has actually been run, frozen holdouts, and evidence limits.
