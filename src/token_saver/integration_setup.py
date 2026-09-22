@@ -40,6 +40,7 @@ from .host_configs import (
     uninstall_openclaw,
     uninstall_opencode,
     validate_hermes_manageable,
+    validate_opencode_manageable,
 )
 from .policy import SKILL_TEXT
 from .repository_service import RepositoryContextService
@@ -504,6 +505,7 @@ def setup_integrations(
     if "codex" in requested:
         _validate_codex_manageable(codex_config_path(home))
     if "opencode" in requested:
+        validate_opencode_manageable(root)
         _validate_json_object(opencode_mcp_path(root))
     if "copilot" in requested:
         _validate_json_object(copilot_mcp_path(root))
