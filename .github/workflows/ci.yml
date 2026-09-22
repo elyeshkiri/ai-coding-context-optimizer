@@ -21,17 +21,17 @@ jobs:
       # in pyproject.toml for why E501/E701/E702/I are deliberately excluded.
       - run: ruff check src tests scripts
       - name: Enforce 100% docstring coverage
-        run: interrogate src/token_saver
+        run: interrogate src/acco
       - name: Enforce frozen command-output preservation floor
         run: |
           set -o pipefail
-          token-saver output-replay \
+          acco output-replay \
             benchmarks/output-quality-session-v17.frozen.json \
             --require-frozen | tee /tmp/output-quality-session.json
       - name: Enforce 40-processor CLI compression ratchet
         run: |
           set -o pipefail
-          token-saver output-replay \
+          acco output-replay \
             benchmarks/cli-output-compression-ratchet-v1.frozen.json \
             --require-frozen | tee /tmp/cli-output-compression-ratchet.json
       # An invalid workflow expression is rejected by GitHub before any job
@@ -60,7 +60,7 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev]'
       - run: python -m pytest -q
-      - run: token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+      - run: acco evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 
   holdout:
     # The 25-task self-benchmark above is saturated at 100% and cannot detect
@@ -101,26 +101,26 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install baseline Token Saver
+      - name: Install baseline ACCO
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ./baseline
 
       - name: Capture protected-main ranking snapshot
         run: |
-          token-saver ranking-snapshot baseline/benchmarks/context-quality.json \
+          acco ranking-snapshot baseline/benchmarks/context-quality.json \
             --path baseline \
             --max-files 20 \
             --out baseline-ranking.json
 
-      - name: Install candidate Token Saver
+      - name: Install candidate ACCO
         run: python -m pip install --force-reinstall --no-deps -e ./candidate
 
       - name: Capture candidate ranking snapshot
         # Deliberately use the base manifest for both sides so a PR cannot
         # redefine the ground truth used by its own regression comparison.
         run: |
-          token-saver ranking-snapshot baseline/benchmarks/context-quality.json \
+          acco ranking-snapshot baseline/benchmarks/context-quality.json \
             --path candidate \
             --max-files 20 \
             --out candidate-ranking.json
@@ -133,7 +133,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
-          token-saver ranking-diff baseline-ranking.json candidate-ranking.json \
+          acco ranking-diff baseline-ranking.json candidate-ranking.json \
             --json > ranking-diff.json
           python - <<'PY'
           import json
@@ -151,7 +151,7 @@ jobs:
           }
           path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
           PY
-          token-saver ranking-diff baseline-ranking.json candidate-ranking.json \
+          acco ranking-diff baseline-ranking.json candidate-ranking.json \
             --markdown >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload ranking regression evidence
@@ -178,27 +178,27 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev]' maturin
       - name: Check Rust formatting
-        run: cargo fmt --manifest-path rust/token_saver_fast/Cargo.toml -- --check
+        run: cargo fmt --manifest-path rust/acco_fast/Cargo.toml -- --check
       - name: Run Rust unit tests
-        run: cargo test --manifest-path rust/token_saver_fast/Cargo.toml
+        run: cargo test --manifest-path rust/acco_fast/Cargo.toml
       - name: Build optional accelerator wheel
         run: |
-          maturin build             --release             --manifest-path rust/token_saver_fast/Cargo.toml             --interpreter python             --out /tmp/token-saver-fast
-          python -m pip install /tmp/token-saver-fast/*.whl
+          maturin build             --release             --manifest-path rust/acco_fast/Cargo.toml             --interpreter python             --out /tmp/acco-fast
+          python -m pip install /tmp/acco-fast/*.whl
       - name: Require native backend
         run: |
           python - <<'PY'
-          from token_saver.fastpath import status
+          from acco.fastpath import status
           result = status()
           assert result["backend"] == "rust", result
           print(result)
           PY
       - name: Enforce Python-Rust behavior parity
         env:
-          TOKEN_SAVER_RUST_FASTPATH: "1"
+          ACCO_RUST_FASTPATH: "1"
         run: |
           python -m pytest -q             tests/test_fastpath.py             tests/test_pack.py             tests/test_retrieval_cache.py
-          token-saver evaluate             benchmarks/context-quality.json             --path .             --max-tokens 6000
+          acco evaluate             benchmarks/context-quality.json             --path .             --max-tokens 6000
 
 
   semantic-ann:
