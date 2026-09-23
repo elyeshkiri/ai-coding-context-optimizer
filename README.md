@@ -2,8 +2,6 @@
 
 **ACCO (AI Coding Context Optimizer)** is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
-> **Rename note:** ACCO was previously developed under the Token Saver name. Frozen historical benchmark artifacts keep their original identifiers and hashes so published evidence remains reproducible.
-
 The project is deliberately conservative: **smaller context is useful only when the task still succeeds**. ACCO does not claim a universal percentage reduction in task cost. It measures input size, preserves diagnostics, and keeps omitted command output recoverable.
 
 ## Install
