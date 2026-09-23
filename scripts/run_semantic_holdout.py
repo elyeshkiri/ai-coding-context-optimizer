@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import sys
 
-from token_saver.semantic_holdout import (
+from acco.semantic_holdout import (
     evaluate_semantic_holdout,
     merge_semantic_holdout_results,
     query_freeze_hash,

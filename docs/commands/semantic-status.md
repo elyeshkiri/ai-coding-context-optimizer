@@ -1,12 +1,12 @@
-# `token-saver semantic-status`
+# `acco semantic-status`
 
-Inspect Token Saver's persistent local semantic-vector index without loading the embedding model.
+Inspect ACCO's persistent local semantic-vector index without loading the embedding model.
 
 ## Synopsis
 
 ```bash
-token-saver semantic-status [path]
-token-saver semantic-status [path] --json
+acco semantic-status [path]
+acco semantic-status [path] --json
 ```
 
 ## Arguments and options
@@ -27,5 +27,5 @@ Reports `schema`, synchronized file count, chunk count, vector dimensions, model
 ## Authoritative runtime help
 
 ```bash
-token-saver semantic-status --help
+acco semantic-status --help
 ```

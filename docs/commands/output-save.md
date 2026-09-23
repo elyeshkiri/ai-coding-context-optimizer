@@ -1,11 +1,11 @@
-# `token-saver output-save`
+# `acco output-save`
 
 Compact an already-generated response deterministically.
 
 ## Synopsis
 
 ```bash
-token-saver output-save [input|-] [--mode terse|normal|detailed] [--max-tokens N] [--enforce-budget] [--structured] [--json]
+acco output-save [input|-] [--mode terse|normal|detailed] [--max-tokens N] [--enforce-budget] [--structured] [--json]
 ```
 
 ## Arguments and options
@@ -27,4 +27,4 @@ Compacted text or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#outp
 
 ## Authoritative runtime help
 
-Run `token-saver output-save --help` for argparse's exact usage text for the installed version.
+Run `acco output-save --help` for argparse's exact usage text for the installed version.

@@ -1,6 +1,6 @@
 import json
 
-from token_saver.output_benchmark import evaluate_output_manifest
+from acco.output_benchmark import evaluate_output_manifest
 
 
 def test_output_benchmark_measures_reduction_and_preservation(tmp_path):

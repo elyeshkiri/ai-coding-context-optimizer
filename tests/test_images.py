@@ -5,7 +5,7 @@ import struct
 
 import pytest
 
-from token_saver.images import cost_from_base64, dimensions, visual_tokens
+from acco.images import cost_from_base64, dimensions, visual_tokens
 
 
 def _png(width, height):

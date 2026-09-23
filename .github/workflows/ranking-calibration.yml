@@ -35,7 +35,7 @@ jobs:
       - name: Resolve current frozen ground truth
         id: benchmark
         run: |
-          hash="$(token-saver evaluate benchmarks/context-quality.json --print-ground-truth-hash)"
+          hash="$(acco evaluate benchmarks/context-quality.json --print-ground-truth-hash)"
           echo "ground_truth_sha256=$hash" >> "$GITHUB_OUTPUT"
 
       - name: Collect recent PR ranking diffs
@@ -52,11 +52,11 @@ jobs:
         env:
           GROUND_TRUTH_SHA: ${{ steps.benchmark.outputs.ground_truth_sha256 }}
         run: |
-          token-saver ranking-calibrate ranking-history \
+          acco ranking-calibrate ranking-history \
             --ground-truth-sha "$GROUND_TRUTH_SHA" \
             --min-reports 20 \
             --json > ranking-calibration.json
-          token-saver ranking-calibrate ranking-history \
+          acco ranking-calibrate ranking-history \
             --ground-truth-sha "$GROUND_TRUTH_SHA" \
             --min-reports 20 \
             --markdown >> "$GITHUB_STEP_SUMMARY"

@@ -1,5 +1,5 @@
 
-from token_saver.mapstat import map_freshness
+from acco.mapstat import map_freshness
 
 
 def test_missing_map_is_fresh(tmp_path):

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import textwrap
 
-from token_saver.closure import dependency_closure
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.repo_index import build_index
-from token_saver.syntax import symbols
+from acco.closure import dependency_closure
+from acco.pack import build_context_pack, rank_files
+from acco.repo_index import build_index
+from acco.syntax import symbols
 
 
 def test_exported_data_constant_is_indexed_without_value_in_signature():

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 
-from token_saver.command_handlers.evaluation import ranking_calibrate_main
-from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
-from token_saver.ranking_calibration import (
+from acco.command_handlers.evaluation import ranking_calibrate_main
+from acco.command_registry import DEFAULT_COMMAND_REGISTRY
+from acco.ranking_calibration import (
     calibrate_ranking_history,
     load_ranking_history,
     render_ranking_calibration_markdown,
@@ -211,7 +211,7 @@ def test_calibration_markdown_is_descriptive_not_automatic_policy():
 
     markdown = render_ranking_calibration_markdown(result)
 
-    assert "## Token Saver ranking gate calibration" in markdown
+    assert "## ACCO ranking gate calibration" in markdown
     assert "collecting evidence" in markdown
     assert "1 more reports needed" in markdown
     assert "does not classify observed regressions as noise" in markdown

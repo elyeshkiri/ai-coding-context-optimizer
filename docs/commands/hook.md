@@ -1,11 +1,11 @@
-# `token-saver hook`
+# `acco hook`
 
 Claude Code hook stdin/stdout adapter.
 
 ## Synopsis
 
 ```bash
-token-saver hook
+acco hook
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ Claude hook JSON protocol, not a user-facing report.
 
 ## Authoritative runtime help
 
-Run `token-saver hook --help` for argparse's exact usage text for the installed version.
+Run `acco hook --help` for argparse's exact usage text for the installed version.

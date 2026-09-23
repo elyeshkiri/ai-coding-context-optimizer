@@ -1,11 +1,11 @@
-# `token-saver blind-grade`
+# `acco blind-grade`
 
 Blind-grade paired experiment final responses with deterministic A/B relabeling.
 
 ## Synopsis
 
 ```bash
-token-saver blind-grade <manifest> [--out FILE] [--force] [--dry-run]
+acco blind-grade <manifest> [--out FILE] [--force] [--dry-run]
 ```
 
 ## Arguments and options
@@ -35,5 +35,5 @@ records. See [Machine-readable contracts](../JSON_OUTPUTS.md#blind-grade-always-
 
 ## Authoritative runtime help
 
-Run `token-saver blind-grade --help` for argparse's exact usage text for the
+Run `acco blind-grade --help` for argparse's exact usage text for the
 installed version.

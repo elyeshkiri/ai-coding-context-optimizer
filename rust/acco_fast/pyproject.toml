@@ -1,0 +1,15 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "acco-fast"
+version = "0.1.0"
+description = "Optional Rust acceleration primitives for ACCO — AI Coding Context Optimizer"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.maturin]
+module-name = "_acco_fast"
+manifest-path = "Cargo.toml"
+features = ["extension-module"]

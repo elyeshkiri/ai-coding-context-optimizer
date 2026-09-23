@@ -1,7 +1,7 @@
 import textwrap
 
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.repo_index import build_index
+from acco.pack import build_context_pack, rank_files
+from acco.repo_index import build_index
 
 
 def _line(source: str, fragment: str) -> int:
@@ -151,7 +151,7 @@ def test_array_signature_features_select_runtime_type_array_overload(tmp_path):
 
 
 def test_csharp_partial_parse_recovery_keeps_valid_methods():
-    from token_saver.repo_index import record_for_text
+    from acco.repo_index import record_for_text
 
     source = textwrap.dedent("""
         public static partial class SqlMapper {
@@ -171,7 +171,7 @@ def test_explicit_generic_syntax_in_query_sets_requested_arity():
     # Regression: the explicit `Name<T>` branch used `\\b`/`\\s` inside an
     # rf-string, i.e. a literal backslash, so it could never match and only the
     # "two input types ... return type" wording path ever produced an arity.
-    from token_saver.pack import _query_generic_arity
+    from acco.pack import _query_generic_arity
 
     assert _query_generic_arity("use QueryAsync<T> to map rows", "QueryAsync") == 1
     assert _query_generic_arity("call Query<A, B> for two types", "Query") == 2

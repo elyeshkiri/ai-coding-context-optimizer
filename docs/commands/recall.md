@@ -1,12 +1,12 @@
-# `token-saver recall`
+# `acco recall`
 
 Retrieve durable project findings relevant to the current task without re-reading or re-deriving every conclusion.
 
 ## Synopsis
 
 ```bash
-token-saver recall [path] --query "debug session refresh"
-token-saver recall [path] --query "debug session refresh" --json
+acco recall [path] --query "debug session refresh"
+acco recall [path] --query "debug session refresh" --json
 ```
 
 ## Arguments and options
@@ -33,5 +33,5 @@ A changed anchor is not silently trusted: its finding moves to `stale` and is om
 ## Authoritative runtime help
 
 ```bash
-token-saver recall --help
+acco recall --help
 ```

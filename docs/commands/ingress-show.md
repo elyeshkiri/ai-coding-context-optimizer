@@ -1,12 +1,12 @@
-# `token-saver ingress-show`
+# `acco ingress-show`
 
-Show the bounded, recoverable packet for an oversized prompt that Token Saver staged before Claude model processing.
+Show the bounded, recoverable packet for an oversized prompt that ACCO staged before Claude model processing.
 
 ## Synopsis
 
 ```bash
-token-saver ingress-show STAGE_ID --path .
-token-saver ingress-show STAGE_ID --path . --json
+acco ingress-show STAGE_ID --path .
+acco ingress-show STAGE_ID --path . --json
 ```
 
 ## Arguments and options
@@ -29,5 +29,5 @@ Text mode prints only the staged packet. JSON mode emits `id`, timestamps, SHA-2
 ## Authoritative runtime help
 
 ```bash
-token-saver ingress-show --help
+acco ingress-show --help
 ```

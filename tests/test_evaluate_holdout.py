@@ -3,7 +3,7 @@ import subprocess
 
 import pytest
 
-from token_saver.evaluate import evaluate_manifest, ground_truth_hash
+from acco.evaluate import evaluate_manifest, ground_truth_hash
 
 
 def _write_repo(path, name):

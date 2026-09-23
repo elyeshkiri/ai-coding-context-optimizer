@@ -1,9 +1,9 @@
-"""Generate a small shop project that exercises Token Saver's two savings paths.
+"""Generate a small shop project that exercises ACCO's two savings paths.
 
 * ``shop/catalog.py`` is a ~700-line module. An agent that Reads it whole pays
-  for every line on every later turn; Token Saver answers with an outline.
+  for every line on every later turn; ACCO answers with an outline.
 * ``make check`` runs the suite, and ``pytest.ini`` sets ``-v`` (a common CI-style
-  default), so one run prints ~630 lines. Token Saver keeps the failure and the summary and trims the rest.
+  default), so one run prints ~630 lines. ACCO keeps the failure and the summary and trims the rest.
 
 There is one real bug: ordering exactly ``BULK_THRESHOLD`` units gets no bulk
 discount (``>`` should be ``>=``). Everything else passes.

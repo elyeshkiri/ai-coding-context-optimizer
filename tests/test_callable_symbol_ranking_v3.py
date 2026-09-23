@@ -1,8 +1,8 @@
 import textwrap
 
-from token_saver.lexical import symbol_terms, terms
-from token_saver.pack import build_context_pack
-from token_saver.repo_index import record_for_text
+from acco.lexical import symbol_terms, terms
+from acco.pack import build_context_pack
+from acco.repo_index import record_for_text
 
 
 def test_symbol_scope_keeps_api_verbs_that_file_scope_treats_as_stopwords():

@@ -1,11 +1,11 @@
-# `token-saver doctor`
+# `acco doctor`
 
 Consolidate CLI/config/host/index/transcript health.
 
 ## Synopsis
 
 ```bash
-token-saver doctor [path] [--json] [--no-index] [--require-ready]
+acco doctor [path] [--json] [--no-index] [--require-ready]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ Human health report or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md
 
 ## Authoritative runtime help
 
-Run `token-saver doctor --help` for argparse's exact usage text for the installed version.
+Run `acco doctor --help` for argparse's exact usage text for the installed version.

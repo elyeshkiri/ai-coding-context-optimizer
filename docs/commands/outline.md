@@ -1,11 +1,11 @@
-# `token-saver outline`
+# `acco outline`
 
 Render signatures/structure instead of a whole source file.
 
 ## Synopsis
 
 ```bash
-token-saver outline <file> [--docstrings] [-q|--quiet] [--no-line-numbers]
+acco outline <file> [--docstrings] [-q|--quiet] [--no-line-numbers]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ Outline on stdout; savings note on stderr unless quiet.
 
 ## Authoritative runtime help
 
-Run `token-saver outline --help` for argparse's exact usage text for the installed version.
+Run `acco outline --help` for argparse's exact usage text for the installed version.

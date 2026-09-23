@@ -1,8 +1,8 @@
 import textwrap
 
-from token_saver.estimate import estimate_tokens
-from token_saver.pack import build_context_pack, rank_files
-from token_saver.pack_cli import main as pack_main
+from acco.estimate import estimate_tokens
+from acco.pack import build_context_pack, rank_files
+from acco.pack_cli import main as pack_main
 
 
 def _write_repo(root):
@@ -180,7 +180,7 @@ def test_rank_files_prefers_implementation_over_test_file_for_how_does_x_work(tm
 
 def test_changed_file_gets_bonus(tmp_path, monkeypatch):
     root = _write_repo(tmp_path)
-    monkeypatch.setattr("token_saver.pack._changed_files", lambda _root: {"src/billing.py"})
+    monkeypatch.setattr("acco.pack._changed_files", lambda _root: {"src/billing.py"})
     ranked = rank_files(root, "invoice customer", changed_boost=True)
     billing = next(item for item in ranked if item.rel == "src/billing.py")
     assert billing.changed is True

@@ -6,15 +6,15 @@ import textwrap
 
 import pytest
 
-from token_saver.pack import rank_files
-from token_saver.repository_service import RepositoryContextService
-from token_saver.packing import (
+from acco.pack import rank_files
+from acco.repository_service import RepositoryContextService
+from acco.packing import (
     DEFAULT_RANKING_STAGE_REGISTRY,
     RankingStageContext,
     RankingStageOptions,
     RankingStageRegistry,
 )
-from token_saver.packing.contracts import RankedFile
+from acco.packing.contracts import RankedFile
 
 
 class _RecordingStage:

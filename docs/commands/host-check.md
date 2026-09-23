@@ -1,11 +1,11 @@
-# `token-saver host-check`
+# `acco host-check`
 
 Validate Claude host configuration, transport, recovery, and optional live evidence.
 
 ## Synopsis
 
 ```bash
-token-saver host-check [path] [--host EXE] [--live-evidence FILE] [--require-ready] [--require-live]
+acco host-check [path] [--host EXE] [--live-evidence FILE] [--require-ready] [--require-live]
 ```
 
 ## Arguments and options
@@ -26,4 +26,4 @@ Always JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#host-check-alwa
 
 ## Authoritative runtime help
 
-Run `token-saver host-check --help` for argparse's exact usage text for the installed version.
+Run `acco host-check --help` for argparse's exact usage text for the installed version.

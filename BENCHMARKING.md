@@ -1,3 +1,5 @@
+> **Branding note:** frozen benchmark artifacts created before the ACCO rename retain their original Token Saver identifiers and hashes. The documentation uses the current ACCO product name; frozen evidence files are not rewritten.
+
 # Verify integration, then benchmark successful work
 
 ## Deterministic context-quality benchmark
@@ -7,7 +9,7 @@ benchmark. It measures relevant-file recall, relevant-symbol recall, and context
 reduction; selection metrics alone do not prove agent success.
 
 ```bash
-token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+acco evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 ```
 
 Each item also reports `symbol_recall_in_expected_files`, which counts a
@@ -26,7 +28,7 @@ manifest under version control so ranking changes can be compared reproducibly.
 A frozen hash prevents post-hoc edits to the **query text**, expected files, and
 expected symbols. It does not make an easy query difficult. New holdouts must
 therefore declare which retrieval behavior they are measuring before the first
-Token Saver run.
+ACCO run.
 
 For a **semantic natural-language holdout**, construct each query from the
 upstream issue, bug report, user request, or behavior description **before
@@ -55,7 +57,7 @@ rather than semantic-natural-language and report it separately.
 Do not present identifier-bearing recall as a continuation of a
 natural-language difficulty trend. The two answer different questions:
 
-- semantic suites test whether Token Saver can discover the identity from a
+- semantic suites test whether ACCO can discover the identity from a
   behavior/problem description;
 - identifier-bearing suites test exact navigation, overload resolution,
   scoping, and identity recovery once some answer vocabulary is already known.
@@ -68,7 +70,7 @@ For future headline semantic holdouts:
 3. record any unavoidable identifier-bearing tasks explicitly;
 4. run a trivial lexical baseline (for example grep/ctags/exact identifier
    lookup where applicable) on the same frozen tasks;
-5. report Token Saver recall alongside that baseline rather than quoting only an
+5. report ACCO recall alongside that baseline rather than quoting only an
    absolute recall percentage;
 6. never rewrite queries after seeing retrieval misses.
 
@@ -77,7 +79,7 @@ manifest. The manifest's query strings themselves are part of the ground-truth
 freeze hash, so changing the wording after freeze changes benchmark identity.
 
 The repository-local selector benchmark is useful for regressions, but because
-Token Saver is developed against this codebase it is not independent evidence of
+ACCO is developed against this codebase it is not independent evidence of
 generalization. For unseen evaluation, define ground truth before running the
 tool and point one manifest at repositories that were excluded from ranking
 work/tuning. `benchmarks/holdout.example.json` contains the full schema.
@@ -115,13 +117,13 @@ After the tasks, expected evidence, and revision pins are final, calculate the
 freeze hash without running retrieval:
 
 ```bash
-token-saver evaluate benchmarks/holdout.json --print-ground-truth-hash
+acco evaluate benchmarks/holdout.json --print-ground-truth-hash
 ```
 
 Put that value in `protocol.ground_truth_sha256`, commit the manifest, then run:
 
 ```bash
-token-saver evaluate benchmarks/holdout.json --require-holdout --max-tokens 6000
+acco evaluate benchmarks/holdout.json --require-holdout --max-tokens 6000
 ```
 
 `--require-holdout` rejects a manifest unless both protocol flags are true,
@@ -139,7 +141,7 @@ Preserve manifest history and the task-definition process as audit evidence.
 
 Version 1.10 includes a fresh **no-identifier-leakage semantic holdout** for
 measuring whether hybrid chunk retrieval improves natural-language file
-discovery beyond Token Saver's lexical/structural pipeline.
+discovery beyond ACCO's lexical/structural pipeline.
 
 The benchmark uses 24 behavior descriptions from public upstream issues across
 six repositories that were not used in external holdouts #1-#12:
@@ -177,9 +179,9 @@ Final semantic ground-truth SHA-256:
 Every eligible task is evaluated under the same file-count and token limits
 against three arms:
 
-1. **Token Saver lexical/structural** — the current validated pipeline with
+1. **ACCO lexical/structural** — the current validated pipeline with
    semantic retrieval disabled;
-2. **Token Saver hybrid semantic** — the same pipeline with persistent
+2. **ACCO hybrid semantic** — the same pipeline with persistent
    chunk-level semantic retrieval enabled;
 3. **trivial lexical baseline** — distinct normalized query-term overlap only,
    with no structural authority, fuzzy correction, dependency graph, feedback,
@@ -187,7 +189,7 @@ against three arms:
 
 The semantic arm is pinned to `all-MiniLM-L6-v2` revision
 `bc57282bc374d33e0d6c4de27f12dc1c2a87f37a`. Model revision participates in
-Token Saver's semantic vector/query-cache identity. The evidence workflow
+ACCO's semantic vector/query-cache identity. The evidence workflow
 explicitly removes `hnswlib`, so the canonical first run uses exact cosine
 over the persistent vectors rather than approximate nearest-neighbor search.
 
@@ -197,11 +199,11 @@ result over the 22 eligible tasks was:
 
 | Arm | File recall |
 | --- | ---: |
-| Token Saver hybrid semantic | **50.00% (11/22)** |
-| Token Saver lexical/structural | **45.45% (10/22)** |
+| ACCO hybrid semantic | **50.00% (11/22)** |
+| ACCO lexical/structural | **45.45% (10/22)** |
 | Trivial lexical baseline | **40.91% (9/22)** |
 
-Hybrid semantic retrieval recovered one task missed by Token Saver's lexical
+Hybrid semantic retrieval recovered one task missed by ACCO's lexical
 arm and regressed none. Mean estimated context reduction was effectively flat
 (97.8374% vs 97.8373%).
 
@@ -217,8 +219,8 @@ Its first complete exact-cosine run was GitHub Actions **35615316639**:
 
 | Arm | File recall |
 | --- | ---: |
-| Token Saver hybrid semantic | **82.50%** |
-| Token Saver lexical/structural | **80.00%** |
+| ACCO hybrid semantic | **82.50%** |
+| ACCO lexical/structural | **80.00%** |
 | Trivial lexical baseline | **70.00%** |
 
 The semantic arm improved aggregate file recall by 2.5 percentage points with
@@ -292,7 +294,7 @@ Before any paid run, finalize the task definitions and experimental design, then
 freeze them:
 
 ```bash
-token-saver experiment benchmarks/e2e-suite.json \
+acco experiment benchmarks/e2e-suite.json \
   --print-task-definition-hash
 ```
 
@@ -300,7 +302,7 @@ Copy that SHA-256 into `protocol.task_definition_sha256`, set `frozen_at`,
 commit the suite, and inspect the randomized schedule without calling a model:
 
 ```bash
-token-saver experiment benchmarks/e2e-suite.json \
+acco experiment benchmarks/e2e-suite.json \
   --out benchmark-runs.json \
   --dry-run
 ```
@@ -308,17 +310,17 @@ token-saver experiment benchmarks/e2e-suite.json \
 Run the experiment:
 
 ```bash
-token-saver experiment benchmarks/e2e-suite.json \
+acco experiment benchmarks/e2e-suite.json \
   --out benchmark-runs.json
 ```
 
-The baseline arm exports `TOKEN_SAVER_DISABLED=1`, which makes any inherited
-Token Saver hook a true no-op. The enabled arm installs project-local hooks.
+The baseline arm exports `ACCO_DISABLED=1`, which makes any inherited
+ACCO hook a true no-op. The enabled arm installs project-local hooks.
 Both arms receive the same history-isolated source snapshot, exact prompt, model,
 turn limit, and verifier. Hidden SWE-bench regression tests are applied only
 after the agent process has ended.
 To avoid double instrumentation, the runner refuses to start when it detects a
-user-level `token-saver hook`; use a clean host configuration for publishable
+user-level `acco hook`; use a clean host configuration for publishable
 runs rather than bypassing that guard.
 
 For development/smoke experiments with fewer tasks or an unfrozen suite, pass
@@ -329,7 +331,7 @@ After the runs finish, price the exact recorded model usage and require the broa
 protocol:
 
 ```bash
-token-saver benchmark benchmark-runs.json \
+acco benchmark benchmark-runs.json \
   --rates rates.json \
   --require-publishable
 ```
@@ -388,11 +390,11 @@ currently **no completed publishable v1.13 bundle experiment** in the repository
 
 ## Paired agent outcomes
 
-Record independently validated baseline and Token Saver runs using the schema in
+Record independently validated baseline and ACCO runs using the schema in
 `benchmarks/agent-runs.example.json`, then run:
 
 ```bash
-token-saver agent-evaluate benchmarks/agent-runs.json
+acco agent-evaluate benchmarks/agent-runs.json
 ```
 
 The evaluator pairs runs by `(task, trial, condition)`. `trial` defaults to
@@ -412,7 +414,7 @@ is available.
 For generation-time output-policy experiments, the same manifest can carry
 optional **blind response-quality evidence**. Score both conditions on identical
 tasks/trials after relabelling them so the grader cannot see which response came
-from Token Saver. The built-in rubric weights correctness 40%, completeness
+from ACCO. The built-in rubric weights correctness 40%, completeness
 20%, actionability 15%, safety 15%, and concision 10%.
 
 ```json
@@ -442,7 +444,7 @@ from Token Saver. The built-in rubric weights correctness 40%, completeness
 }
 ```
 
-When quality scores are supplied, every paired run must be scored. Token Saver
+When quality scores are supplied, every paired run must be scored. ACCO
 then requires task-success parity, no material correctness/safety regression,
 no increase in blockers, and weighted-quality parity before authorizing a
 savings claim. `raw_output_token_reduction` remains a descriptive measurement;
@@ -461,7 +463,7 @@ next to cost per success rather than treating response length alone as quality.
 The high-level production path is now:
 
 ```bash
-token-saver evidence-run benchmarks/e2e-swebench-24.frozen.json \
+acco evidence-run benchmarks/e2e-swebench-24.frozen.json \
   --out benchmark-runs.json \
   --require-publishable
 ```
@@ -471,7 +473,7 @@ frozen randomized experiment, executes independent hidden verification, extracts
 only final assistant response text for a balanced deterministic blind A/B judge,
 writes quality scores back into the same run identities, evaluates exact
 cache-TTL-aware cost per successful task, and emits an adaptive-budget
-calibration artifact. The judge never receives baseline/Token Saver labels,
+calibration artifact. The judge never receives baseline/ACCO labels,
 patches, verifier outcomes, or billing data.
 
 The repository also ships a paid GitHub workflow for the existing **24-task ×
@@ -490,7 +492,7 @@ emit policy telemetry. After blind response grading has been attached to the
 same task/trial records, run:
 
 ```bash
-token-saver output-effectiveness benchmark-runs.json \
+acco output-effectiveness benchmark-runs.json \
   --fresh-input-per-million <rate> \
   --cache-creation-5m-per-million <rate> \
   --cache-creation-1h-per-million <rate> \
@@ -524,7 +526,7 @@ cross-turn dedup, or waste prevention improve coding-agent economics. Version
 1.8 therefore adds a separate frozen paired-agent holdout:
 
 ```bash
-token-saver session-holdout \
+acco session-holdout \
   benchmarks/session-efficiency-swebench-24.frozen.json \
   --out session-holdout-runs.json \
   --require-publishable
@@ -541,7 +543,7 @@ Every arm uses the same two-session protocol:
 
 1. phase 1 receives the frozen task and is restricted to Read/Grep/Glob/Bash;
 2. phase 1 must leave benchmark-visible repository state unchanged;
-3. the runner invokes Token Saver's actual `SessionStart:resume` hook;
+3. the runner invokes ACCO's actual `SessionStart:resume` hook;
 4. phase 2 starts in a new Claude home/session and implements/verifies the task;
 5. treatment may receive the structured continuity checkpoint; control cannot.
 
@@ -562,7 +564,7 @@ arms:
 - blind final-response quality;
 - cache-TTL-aware cost per successful task.
 
-Treatment-side Token Saver efficiency events are kept in a separate
+Treatment-side ACCO efficiency events are kept in a separate
 `feature_activation` block. They prove whether continuity, dedup, and waste
 signals fired, but they are not substituted for outcome metrics.
 
@@ -609,7 +611,7 @@ The session-efficiency layer does not replace retrieval or end-to-end evidence.
 Its expanded command processors have a separate deterministic frozen fixture:
 
 ```bash
-token-saver output-replay \
+acco output-replay \
   benchmarks/output-quality-session-v17.frozen.json \
   --require-frozen
 ```
@@ -638,7 +640,7 @@ usage counters against the selected policy budget without storing conversation
 content. Use it to discover candidate task/mode groups for future experiments:
 
 ```bash
-token-saver output-telemetry . --json
+acco output-telemetry . --json
 ```
 
 A low p90 budget-utilization ratio is only an **observational tuning signal**.
@@ -648,16 +650,16 @@ candidate budget changes with paired successful runs before calibrating them.
 
 ### Calibrating adaptive output budgets
 
-Token Saver can turn the same blind paired evidence into conservative learned
-task/mode bases. Add `output_task` and `output_mode` to Token Saver runs, then:
+ACCO can turn the same blind paired evidence into conservative learned
+task/mode bases. Add `output_task` and `output_mode` to ACCO runs, then:
 
 ```bash
-token-saver output-calibrate benchmarks/agent-runs.json \
-  --out .token-saver.output-calibration.json
+acco output-calibrate benchmarks/agent-runs.json \
+  --out .acco.output-calibration.json
 ```
 
-The calibrator considers only pairs where baseline and Token Saver both succeed,
-the Token Saver response has no blocker, and correctness, safety, and weighted
+The calibrator considers only pairs where baseline and ACCO both succeed,
+the ACCO response has no blocker, and correctness, safety, and weighted
 blind quality remain within the evaluator parity tolerance. At least three valid samples spanning at least three distinct task IDs are
 required per task/mode. The recommendation is p90 observed output
 tokens plus a 15% safety margin, bounded by the mode safety range. Failed,
@@ -670,31 +672,31 @@ Start with the consolidated configuration/index check, then run the deeper host
 transport check before a live host trial:
 
 ```bash
-token-saver doctor . --require-ready
-token-saver host-check . --require-ready
+acco doctor . --require-ready
+acco host-check . --require-ready
 ```
 
 This checks project/user hook configuration, probes the host executable version,
 runs a synthetic 500-line Bash response through the real PostToolUse hook, and
-retrieves an omitted middle line from Token Saver's saved original output. That
+retrieves an omitted middle line from ACCO's saved original output. That
 is a local transport test; it does **not** prove the host actually feeds
 `hookSpecificOutput.updatedToolOutput` back to the model.
 
 For that final gate, capture a real host debug transcript and supply it explicitly:
 
 ```bash
-token-saver host-check . \
+acco host-check . \
   --live-evidence /path/to/claude-debug.log \
   --require-live
 ```
 
 `live_verified=true` is reported only when the supplied evidence contains both
-the host replacement field and Token Saver's filtered-output recovery marker.
+the host replacement field and ACCO's filtered-output recovery marker.
 The manual validation protocol remains:
 
-1. Record `claude --version`, model ID, configuration, and Token Saver version.
+1. Record `claude --version`, model ID, configuration, and ACCO version.
 2. Use a disposable project. Install the package and its project hooks. Check
-   that inherited user hooks do not run Token Saver a second time.
+   that inherited user hooks do not run ACCO a second time.
 3. Start Claude Code with debugging enabled. Ask it to run a harmless command
    that prints 500 distinct progress lines. Do not use a command with side effects.
 4. Verify the host accepts `hookSpecificOutput.updatedToolOutput` without a
@@ -702,7 +704,7 @@ The manual validation protocol remains:
    show the shortened head/tail, and preserve the structured Bash fields.
    Hook stdout alone is not sufficient evidence of host acceptance.
 5. Ask it to retrieve a known omitted middle line using the supplied
-   `token-saver output` command. Verify the exact line without rerunning the
+   `acco output` command. Verify the exact line without rerunning the
    original command. Test stderr independently and test a failing Jest-style
    output containing a test name, stack location and multiline assertion diff.
 6. Test a >220-line source read. A bounded Read must return actual bytes, and a
@@ -722,7 +724,7 @@ state isolation, retrieval, and accounting. Live behavior remains a separate gat
   repo navigation, noisy passing tests, and failures requiring deep diagnostics.
 - Use independent fresh worktrees at the same commit and the same exact prompt,
   model, effort, tools, system instructions, and approval configuration.
-- In baseline, disable all Token Saver hooks (including user-scope hooks). In
+- In baseline, disable all ACCO hooks (including user-scope hooks). In
   enabled runs, use the release's hooks. Do not add orientation maps to only one
   arm unless that is the specific intervention being tested.
 - Randomize condition order and run multiple trials per task. Record cache
@@ -734,7 +736,7 @@ state isolation, retrieval, and accounting. Live behavior remains a separate gat
   transcripts where applicable. Do not reuse a transcript across runs.
 - Keep raw transcripts local; they may contain code or secrets.
 
-`token-saver benchmark` analyzes recorded runs; it does not execute coding agents
+`acco benchmark` analyzes recorded runs; it does not execute coding agents
 or certify evaluator outcomes. It verifies paired task/trial identity, revision,
 model and prompt metadata, requires measured usage and explicit prices, and
 rejects incomplete or duplicate runs. Metadata must be recorded honestly by the
@@ -802,7 +804,7 @@ an explicit rate for missing TTL details. Missing prices or unexplained cache
 creation prevent a complete cost result.
 
 ```bash
-token-saver benchmark runs.json --rates rates.json
+acco benchmark runs.json --rates rates.json
 ```
 
 The output includes per-condition success rates, total tokens by usage type,
@@ -811,7 +813,7 @@ Costs from failed attempts are included. A reduced success rate suppresses the
 headline cost-per-success reduction. Inspect per-task outcomes too: aggregate
 success parity does not prove each task retained the same quality.
 
-For the automated experiment path above, `token-saver benchmark` reports a
+For the automated experiment path above, `acco benchmark` reports a
 deterministic task-cluster bootstrap 95% interval. This is still an empirical
 benchmark, not a proof that savings generalize to every repository or model.
 Before publishing savings, retain the frozen task definitions, repeated trials,
@@ -835,11 +837,11 @@ benchmarks/knowledge-efficiency-swebench-24.frozen.json
 
 The causal contract intentionally equalizes memory creation. Phase 1 is
 investigation-only in both arms and requires the agent to persist 1–3
-`verified` Token Saver findings backed by source it actually inspected.
+`verified` ACCO findings backed by source it actually inspected.
 Repository state must remain unchanged. Phase 2 uses a fresh Claude home/session
 and receives no conversation transcript or continuity checkpoint.
 
-The control and treatment install the **same current Token Saver binary**.
+The control and treatment install the **same current ACCO binary**.
 Both disable continuity, cross-turn command/read dedup, reread blocking, and
 behavioral waste detection. The control disables knowledge read avoidance and
 cache economics; the treatment enables those two switches. This tests the
@@ -852,7 +854,7 @@ Outcome metrics come from independent evidence:
 - hidden task verifier: task success;
 - blinded judge: response quality parity;
 - transcript cache-usage fields plus frozen rates: billed cost/cost per success;
-- Token Saver's efficiency ledger: feature exposure only (knowledge seeds,
+- ACCO's efficiency ledger: feature exposure only (knowledge seeds,
   read-avoidance interventions, and cache-economics-approved interventions).
 
 The ledger never grades its own success. A publishable claim requires at least
@@ -865,7 +867,7 @@ task-cluster 95% confidence interval with a strictly positive lower bound.
 Run the frozen preflight without paid execution:
 
 ```bash
-token-saver knowledge-holdout \
+acco knowledge-holdout \
   benchmarks/knowledge-efficiency-swebench-24.frozen.json \
   --out /tmp/knowledge-holdout-runs.json \
   --dry-run

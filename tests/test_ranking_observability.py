@@ -8,13 +8,13 @@ import textwrap
 
 import pytest
 
-from token_saver.command_handlers.context import ranking_explain_main
-from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
-from token_saver.pack import rank_files
-from token_saver.packing import RankingStageRegistry
-from token_saver.packing.ranking_stages import RankingStageContext
-from token_saver.repository_service import RepositoryContextService
-from token_saver.serve import TOOLS, call_tool
+from acco.command_handlers.context import ranking_explain_main
+from acco.command_registry import DEFAULT_COMMAND_REGISTRY
+from acco.pack import rank_files
+from acco.packing import RankingStageRegistry
+from acco.packing.ranking_stages import RankingStageContext
+from acco.repository_service import RepositoryContextService
+from acco.serve import TOOLS, call_tool
 
 
 class _BoostStage:

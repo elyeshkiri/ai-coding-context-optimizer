@@ -1,6 +1,6 @@
 """Regressions for the output filter."""
 
-from token_saver.filter_output import filter_command_output, filter_text, preprocess
+from acco.filter_output import filter_command_output, filter_text, preprocess
 
 
 def _lines(text: str) -> list[str]:

@@ -6,27 +6,27 @@ import json
 
 import pytest
 
-from token_saver.browser_context import compress_browser_payload
-from token_saver.mcp_server.contracts import McpToolSpec
-from token_saver.mcp_server.protocol import McpProtocol
-from token_saver.mcp_server.tools import McpToolRegistry
-from token_saver.optimizer import apply_optimization, evaluate_optimization
-from token_saver.prefix_cache import observe_prefix, prefix_status
-from token_saver.provider_proxy import (
+from acco.browser_context import compress_browser_payload
+from acco.mcp_server.contracts import McpToolSpec
+from acco.mcp_server.protocol import McpProtocol
+from acco.mcp_server.tools import McpToolRegistry
+from acco.optimizer import apply_optimization, evaluate_optimization
+from acco.prefix_cache import observe_prefix, prefix_status
+from acco.provider_proxy import (
     ProviderProxyConfig,
     _upstream_url,
     transform_request_bytes,
 )
-from token_saver.provider_transform import transform_provider_request
-from token_saver.recovery import RecoveryCapacityError, RecoveryStore
-from token_saver.tool_schema import compress_tool_catalog
+from acco.provider_transform import transform_provider_request
+from acco.recovery import RecoveryCapacityError, RecoveryStore
+from acco.tool_schema import compress_tool_catalog
 
 
 def test_recovery_store_is_content_addressed_exact_and_capacity_safe(
     tmp_path, monkeypatch
 ):
     """Exact bytes should dedupe, round-trip, and never evict on capacity failure."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     store = RecoveryStore(root, capacity_bytes=64)
@@ -50,7 +50,7 @@ def test_tool_schema_compression_preserves_construction_contract_and_recovery(
     tmp_path, monkeypatch
 ):
     """Schema annotations may shrink, but property identity/defaults/constraints survive."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     long_intro = "Use this tool to inspect project context. " * 12
@@ -94,7 +94,7 @@ def test_tool_schema_compression_preserves_construction_contract_and_recovery(
 
 def test_browser_context_focus_is_recoverable(tmp_path, monkeypatch):
     """Focused browser context should keep the requested row and exact source recovery."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     rows = "".join(
@@ -127,7 +127,7 @@ def test_provider_transform_recovers_tool_output_and_tracks_stable_prefix(
     tmp_path, monkeypatch
 ):
     """Provider request optimization should be deterministic across latest-user turns."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     noisy = "\n".join(f"build progress {index} " + "x" * 70 for index in range(180))
@@ -168,7 +168,7 @@ def test_provider_transform_fails_closed_when_recovery_capacity_is_too_small(
     tmp_path, monkeypatch
 ):
     """A lossy transform must not ship when exact recovery cannot be stored."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     noisy = "\n".join("noise " + "x" * 80 for _ in range(150))
@@ -193,7 +193,7 @@ def test_provider_transform_fails_closed_when_recovery_capacity_is_too_small(
 
 def test_prefix_tracking_ignores_only_latest_user_turn(tmp_path, monkeypatch):
     """Latest user text may change while the provider-stable prefix still hits."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -226,7 +226,7 @@ def test_prefix_tracking_ignores_only_latest_user_turn(tmp_path, monkeypatch):
 
 def test_provider_proxy_security_and_json_transform(tmp_path, monkeypatch):
     """Proxy must default to loopback and transform only supported JSON bodies."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -259,10 +259,10 @@ def test_optimizer_auto_reverts_when_measured_tokens_per_turn_do_not_improve(
     tmp_path, monkeypatch
 ):
     """Closed-loop config changes should restore exact bytes on measured regression."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
-    config = root / ".token-saver.toml"
+    config = root / ".acco.toml"
     original = (
         '[mcp]\nprofile = "full"\nadaptive_max_tools = 12\n'
         'compress_schemas = false\n'
@@ -270,12 +270,12 @@ def test_optimizer_auto_reverts_when_measured_tokens_per_turn_do_not_improve(
     config.write_text(original, encoding="utf-8")
 
     monkeypatch.setattr(
-        "token_saver.optimizer.advisor_report",
+        "acco.optimizer.advisor_report",
         lambda *args, **kwargs: {"recommendations": []},
     )
     samples = iter([(1000.0, 5), (1100.0, 5)])
     monkeypatch.setattr(
-        "token_saver.optimizer._mean_measured_tokens",
+        "acco.optimizer._mean_measured_tokens",
         lambda *args, **kwargs: next(samples),
     )
 
@@ -293,8 +293,8 @@ def test_mcp_tools_list_schema_compression_has_recovery_metadata(
     tmp_path, monkeypatch
 ):
     """Compressed MCP catalogs should expose the exact original through metadata."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    (tmp_path / ".token-saver.toml").write_text(
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    (tmp_path / ".acco.toml").write_text(
         '[mcp]\nprofile = "full"\ncompress_schemas = true\n',
         encoding="utf-8",
     )
@@ -351,7 +351,7 @@ def test_provider_prefix_tracking_can_be_disabled_without_changing_transform(
     tmp_path, monkeypatch
 ):
     """Disabling prefix telemetry should not disable request optimization."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     noisy = "\n".join("progress " + "x" * 80 for _ in range(150))

@@ -1,22 +1,22 @@
-# `token-saver optimize`
+# `acco optimize`
 
-Plan and evaluate reversible Token Saver-owned efficiency changes.
+Plan and evaluate reversible ACCO-owned efficiency changes.
 
 ## Synopsis
 
 ```bash
-token-saver optimize [path] [--days N] [--json]
-token-saver optimize [path] --apply PROPOSAL_ID
-token-saver optimize [path] --evaluate RUN_ID [--min-turns N]
+acco optimize [path] [--days N] [--json]
+acco optimize [path] --apply PROPOSAL_ID
+acco optimize [path] --evaluate RUN_ID [--min-turns N]
   [--min-improvement FRACTION] [--no-auto-revert]
-token-saver optimize [path] --status
+acco optimize [path] --status
 ```
 
 ## Arguments and options
 
 - `path` — project root.
 - `--days` — baseline evidence window; default 7.
-- `--apply ID` — apply one current low-risk Token Saver config proposal.
+- `--apply ID` — apply one current low-risk ACCO config proposal.
 - `--evaluate RUN_ID` — compare post-change provider-reported tokens/turn.
 - `--min-turns` — minimum measured turns in each arm; default 5.
 - `--min-improvement` — required fractional reduction before keeping a change.
@@ -39,4 +39,4 @@ previous config by default. A proposal alone is never presented as a savings cla
 
 ## Authoritative runtime help
 
-Run `token-saver optimize --help` for the installed version.
+Run `acco optimize --help` for the installed version.

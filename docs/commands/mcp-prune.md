@@ -1,11 +1,11 @@
-# `token-saver mcp-prune`
+# `acco mcp-prune`
 
 Identify and optionally disable MCP servers unused in transcripts.
 
 ## Synopsis
 
 ```bash
-token-saver mcp-prune [path] [--apply] [--force]
+acco mcp-prune [path] [--apply] [--force]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Human-readable server list/status.
 
 ## Authoritative runtime help
 
-Run `token-saver mcp-prune --help` for argparse's exact usage text for the installed version.
+Run `acco mcp-prune --help` for argparse's exact usage text for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver audit`
+# `acco audit`
 
-Run one consolidated evidence-oriented audit across Token Saver optimization layers.
+Run one consolidated evidence-oriented audit across ACCO optimization layers.
 
 ## Synopsis
 
 ```bash
-token-saver audit [path] [--days N] [--window N] [--no-user-scope] [--probe-mcp]
+acco audit [path] [--days N] [--window N] [--no-user-scope] [--probe-mcp]
                   [--mcp-timeout N] [--client CLIENT] [--rates SOURCE]
                   [--top N] [--min-processor-tokens N] [--exact] [--model MODEL]
                   [--json]
@@ -49,4 +49,4 @@ quality-preservation, or end-to-end cost-per-success claims. See
 
 ## Authoritative runtime help
 
-Run `token-saver audit --help` for argparse's exact usage text for the installed version.
+Run `acco audit --help` for argparse's exact usage text for the installed version.

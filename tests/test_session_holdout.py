@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.benchmark import task_definition_hash
-from token_saver.experiment import validate_suite
-from token_saver.output_effectiveness import EffectivenessPricing
-from token_saver.session_holdout import (
+from acco.benchmark import task_definition_hash
+from acco.experiment import validate_suite
+from acco.output_effectiveness import EffectivenessPricing
+from acco.session_holdout import (
     evaluate_session_holdout,
     validate_session_holdout_definition,
 )
-from token_saver.session_holdout_pipeline import run_session_holdout
+from acco.session_holdout_pipeline import run_session_holdout
 
 
 def _profiles() -> dict:
@@ -23,22 +23,22 @@ def _profiles() -> dict:
     return {
         "baseline": {
             "label": "v1.6-session-baseline",
-            "install_token_saver": True,
+            "install_acco": True,
             "env": {
-                "TOKEN_SAVER_EFFICIENCY": "0",
-                "TOKEN_SAVER_CONTINUITY": "0",
-                "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-                "TOKEN_SAVER_WASTE_DETECTION": "0",
+                "ACCO_EFFICIENCY": "0",
+                "ACCO_CONTINUITY": "0",
+                "ACCO_CROSS_TURN_DEDUP": "0",
+                "ACCO_WASTE_DETECTION": "0",
             },
         },
         "enabled": {
             "label": "v1.7-session-efficiency",
-            "install_token_saver": True,
+            "install_acco": True,
             "env": {
-                "TOKEN_SAVER_EFFICIENCY": "1",
-                "TOKEN_SAVER_CONTINUITY": "1",
-                "TOKEN_SAVER_CROSS_TURN_DEDUP": "1",
-                "TOKEN_SAVER_WASTE_DETECTION": "1",
+                "ACCO_EFFICIENCY": "1",
+                "ACCO_CONTINUITY": "1",
+                "ACCO_CROSS_TURN_DEDUP": "1",
+                "ACCO_WASTE_DETECTION": "1",
             },
         },
     }
@@ -159,7 +159,7 @@ def _manifest(path):
             "command": [
                 "python",
                 "-m",
-                "token_saver.session_holdout_docker",
+                "acco.session_holdout_docker",
                 "--condition",
                 "{condition}",
             ],

@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from token_saver.blind_grader import blind_grade_manifest
+from acco.blind_grader import blind_grade_manifest
 
 
 def _transcript(path, text: str) -> None:
@@ -42,7 +42,7 @@ import sys
 prompt = sys.stdin.read()
 assert "condition: baseline" not in prompt.lower()
 assert "condition: enabled" not in prompt.lower()
-assert "token-saver" not in prompt.lower()
+assert "acco" not in prompt.lower()
 counter = pathlib.Path(os.environ["GRADE_COUNTER"])
 value = int(counter.read_text() or "0") if counter.exists() else 0
 counter.write_text(str(value + 1))

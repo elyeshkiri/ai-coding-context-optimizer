@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from token_saver.efficiency import (
+from acco.efficiency import (
     continuity_context,
     continuity_report,
     dashboard_report,
@@ -13,12 +13,12 @@ from token_saver.efficiency import (
     observe_tool,
     start_session,
 )
-from token_saver.efficiency.store import append_event, load_snapshot
+from acco.efficiency.store import append_event, load_snapshot
 
 
 def _root(tmp_path, monkeypatch) -> Path:
-    """Create an isolated project and private Token Saver state directory."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    """Create an isolated project and private ACCO state directory."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     return root

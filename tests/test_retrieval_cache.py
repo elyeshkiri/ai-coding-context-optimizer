@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from token_saver.repository_service import RepositoryContextService
+from acco.repository_service import RepositoryContextService
 
 
 def _repo(tmp_path):
@@ -32,7 +32,7 @@ def _service(root):
 
 def test_identical_fresh_service_query_hits_persistent_cache(tmp_path, monkeypatch):
     """A second process-like service should reuse an identical completed pack."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path)
 
     first = _service(root).build_context(
@@ -56,7 +56,7 @@ def test_identical_fresh_service_query_hits_persistent_cache(tmp_path, monkeypat
 
 def test_source_mutation_invalidates_cache_by_content_fingerprint(tmp_path, monkeypatch):
     """Changed indexed evidence must produce a new key and never stale cache reuse."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path)
 
     first = _service(root).build_context(
@@ -81,7 +81,7 @@ def test_source_mutation_invalidates_cache_by_content_fingerprint(tmp_path, monk
 
 def test_retrieval_configuration_is_part_of_cache_identity(tmp_path, monkeypatch):
     """Changing the bounded context contract must not reuse an incompatible pack."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path)
 
     first = _service(root).build_context(
@@ -102,7 +102,7 @@ def test_retrieval_configuration_is_part_of_cache_identity(tmp_path, monkeypatch
 
 def test_cache_can_be_disabled_at_application_boundary(tmp_path, monkeypatch):
     """Explicit cache opt-out should leave repeated retrieval fully uncached."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = _repo(tmp_path)
 
     service = RepositoryContextService(

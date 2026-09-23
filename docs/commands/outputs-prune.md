@@ -1,11 +1,11 @@
-# `token-saver outputs-prune`
+# `acco outputs-prune`
 
 Delete saved command results older than a threshold.
 
 ## Synopsis
 
 ```bash
-token-saver outputs-prune [--days DAYS]
+acco outputs-prune [--days DAYS]
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ Removal count.
 
 ## Authoritative runtime help
 
-Run `token-saver outputs-prune --help` for argparse's exact usage text for the installed version.
+Run `acco outputs-prune --help` for argparse's exact usage text for the installed version.

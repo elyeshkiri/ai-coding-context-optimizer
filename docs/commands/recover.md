@@ -1,11 +1,11 @@
-# `token-saver recover`
+# `acco recover`
 
-Recover exact bytes saved before a lossy Token Saver transformation.
+Recover exact bytes saved before a lossy ACCO transformation.
 
 ## Synopsis
 
 ```bash
-token-saver recover HANDLE [--path PROJECT] [--output FILE] [--json]
+acco recover HANDLE [--path PROJECT] [--output FILE] [--json]
 ```
 
 ## Arguments and options
@@ -27,4 +27,4 @@ tokens.
 
 ## Authoritative runtime help
 
-Run `token-saver recover --help` for the installed version.
+Run `acco recover --help` for the installed version.

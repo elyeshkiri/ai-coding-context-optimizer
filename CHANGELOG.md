@@ -1,5 +1,9 @@
 # Unreleased
 
+- **Rebranded the project as ACCO — AI Coding Context Optimizer.** The canonical repository, Python package, CLI, MCP/plugin identifiers, config/state names, environment variables, documentation, and source/Rust folder names now use the ACCO identity. Frozen historical benchmark artifacts are intentionally left byte-for-byte unchanged so their hashes and provenance remain valid.
+- **Renamed canonical code folders and executables.** `src/token_saver` is now `src/acco`, `rust/token_saver_fast` is now `rust/acco_fast`, the CLI is `acco`, and the optional native module is `_acco_fast`.
+
+
 # 1.14.0 - 2026-09-22
 
 - **Expanded managed setup/doctor/uninstall support from three to eight coding-agent hosts.**

@@ -2,7 +2,7 @@
 
 import textwrap
 
-from token_saver.skeleton import line_is_signature, skeletonize, skeletonize_text
+from acco.skeleton import line_is_signature, skeletonize, skeletonize_text
 
 
 def _py(src: str) -> str:
@@ -191,7 +191,7 @@ def test_markdown_heading_rule_does_not_leak_into_code():
 
 def test_markdown_ignores_comments_inside_code_fences():
     """Regression: `# run this` in a bash block was promoted to a heading."""
-    src = "## Commands\n\n```bash\n# Compact map of the repo\ntoken-saver map .\n```\n"
+    src = "## Commands\n\n```bash\n# Compact map of the repo\nacco map .\n```\n"
     out = skeletonize_text(src, ".md")
     assert "## Commands" in out
     assert "Compact map of the repo" not in out
@@ -210,7 +210,7 @@ def _git_repo(tmp_path):
 
 def test_gitignored_files_stay_out_of_the_map(tmp_path):
     """Regression: a hardcoded skip list drifts from every real project."""
-    from token_saver.skeleton import walk_repo
+    from acco.skeleton import walk_repo
 
     repo = _git_repo(tmp_path)
     (repo / "src").mkdir()
@@ -227,14 +227,14 @@ def test_gitignored_files_stay_out_of_the_map(tmp_path):
 
 
 def test_a_non_git_directory_still_walks(tmp_path):
-    from token_saver.skeleton import walk_repo
+    from acco.skeleton import walk_repo
 
     (tmp_path / "a.py").write_text("def f(): pass\n")
     assert [p.name for p in walk_repo(tmp_path)] == ["a.py"]
 
 
 def test_gitignore_can_be_switched_off(tmp_path):
-    from token_saver.skeleton import build_map
+    from acco.skeleton import build_map
 
     repo = _git_repo(tmp_path)
     (repo / "keep.py").write_text("def keep(): pass\n")

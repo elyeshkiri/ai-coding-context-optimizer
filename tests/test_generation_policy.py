@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 
-from token_saver.generation_policy import (
+from acco.generation_policy import (
     automatic_output_policy,
     classify_output_task,
     explicit_output_mode,
 )
-from token_saver.state import load as load_state
+from acco.state import load as load_state
 
 
 def test_task_classifier_is_conservative_and_task_aware():
@@ -33,7 +33,7 @@ def test_automatic_policy_injects_once_and_inherits_ambiguous_followups(
     tmp_path, monkeypatch
 ):
     """Repeated turns in one task should not pay the full policy injection again."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -56,7 +56,7 @@ def test_automatic_policy_injects_once_and_inherits_ambiguous_followups(
 
 def test_automatic_policy_reinjects_when_task_changes(tmp_path, monkeypatch):
     """A real task-class change should replace the active generation contract."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -74,7 +74,7 @@ def test_automatic_policy_reinjects_when_task_changes(tmp_path, monkeypatch):
 
 def test_new_task_language_drops_ambiguous_task_inheritance(tmp_path, monkeypatch):
     """Explicit task switches should not inherit an unrelated old task class."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -92,7 +92,7 @@ def test_new_task_language_drops_ambiguous_task_inheritance(tmp_path, monkeypatc
 
 def test_explicit_detail_request_changes_mode_and_budget(tmp_path, monkeypatch):
     """User-requested detail should override a normal configured mode."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -113,7 +113,7 @@ def test_explicit_detail_request_changes_mode_and_budget(tmp_path, monkeypatch):
 
 def test_policy_state_is_isolated_by_session(tmp_path, monkeypatch):
     """The same policy should still inject for a distinct host session."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -126,9 +126,9 @@ def test_policy_state_is_isolated_by_session(tmp_path, monkeypatch):
 
 def test_new_session_reset_reenables_policy_injection(tmp_path, monkeypatch):
     """Context resets should force the compact generation contract to be restored."""
-    from token_saver.state import reset_session
+    from acco.state import reset_session
 
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -146,7 +146,7 @@ def test_strong_same_task_prompt_can_raise_budget_but_ambiguous_followup_does_no
     tmp_path, monkeypatch
 ):
     """Complexity changes should be deliberate and stable across vague follow-ups."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -171,7 +171,7 @@ def test_strong_same_task_prompt_can_raise_budget_but_ambiguous_followup_does_no
 
 def test_automatic_policy_can_disable_adaptation(tmp_path, monkeypatch):
     """Static task budgets remain available as an explicit compatibility mode."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -191,7 +191,7 @@ def test_fixed_task_config_does_not_recalculate_on_ambiguous_followup(
     tmp_path, monkeypatch
 ):
     """Fixed task selection should not make every vague prompt a fresh complexity sample."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
 
@@ -215,10 +215,10 @@ def test_fixed_task_config_does_not_recalculate_on_ambiguous_followup(
 
 def test_automatic_policy_consumes_quality_calibration_artifact(tmp_path, monkeypatch):
     """A valid project calibration should become the adaptive task/mode base."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
-    (root / ".token-saver.output-calibration.json").write_text(
+    (root / ".acco.output-calibration.json").write_text(
         json.dumps({
             "schema": 1,
             "recommendations": {

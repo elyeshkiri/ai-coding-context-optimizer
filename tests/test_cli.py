@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 
-from token_saver.cli import main
+from acco.cli import main
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def test_map_to_file(repo, tmp_path, capsys):
 
 def test_map_is_much_smaller_than_the_sources_it_covers(tmp_path):
     """The per-file `## path` header only pays for itself on real files."""
-    from token_saver.skeleton import build_map
+    from acco.skeleton import build_map
 
     raw = 0
     for n in range(10):
@@ -146,7 +146,7 @@ def test_map_on_a_file_is_a_clean_error(repo, capsys):
 
 
 def test_map_respects_max_tokens_flag(repo, capsys):
-    from token_saver.estimate import estimate_tokens
+    from acco.estimate import estimate_tokens
 
     assert main(["map", str(repo), "--max-tokens", "150"]) == 0
     assert estimate_tokens(capsys.readouterr().out) <= 150
@@ -180,7 +180,7 @@ def test_outline_output_is_smaller_than_the_source(tmp_path, capsys):
 
 
 def test_sessions_reports_when_there_are_no_transcripts(tmp_path, capsys, monkeypatch):
-    monkeypatch.setattr("token_saver.sessions.projects_dir", lambda: tmp_path)
+    monkeypatch.setattr("acco.sessions.projects_dir", lambda: tmp_path)
     assert main(["sessions", str(tmp_path)]) == 1
     assert "no session transcripts" in capsys.readouterr().err
 
@@ -188,7 +188,7 @@ def test_sessions_reports_when_there_are_no_transcripts(tmp_path, capsys, monkey
 def test_sessions_summarises_a_real_transcript(tmp_path, capsys, monkeypatch):
     import json
 
-    from token_saver.sessions import project_slug
+    from acco.sessions import project_slug
 
     project = tmp_path / project_slug(tmp_path / "proj")
     project.mkdir(parents=True)
@@ -202,7 +202,7 @@ def test_sessions_summarises_a_real_transcript(tmp_path, capsys, monkeypatch):
          "toolUseResult": {"file": {"filePath": "/a/b.py", "content": body}}},
     ]
     (project / "s.jsonl").write_text("\n".join(json.dumps(r) for r in records))
-    monkeypatch.setattr("token_saver.sessions.projects_dir", lambda: tmp_path)
+    monkeypatch.setattr("acco.sessions.projects_dir", lambda: tmp_path)
 
     assert main(["sessions", str(tmp_path / "proj")]) == 0
     out = capsys.readouterr().out
@@ -220,12 +220,12 @@ def test_refresh_if_stale_writes_codemap(repo, capsys):
 
 def test_mcp_prune_dry_run_is_zero_when_unused_unknown(tmp_path, capsys, monkeypatch):
     import json
-    from token_saver.sessions import project_slug
+    from acco.sessions import project_slug
 
     (tmp_path / ".mcp.json").write_text('{"mcpServers": {"github": {"command": "npx"}}}\n')
     project = tmp_path / project_slug(tmp_path)
     project.mkdir(parents=True)
     (project / "s.jsonl").write_text(json.dumps({"type": "assistant", "message": {"usage": {"input_tokens": 1}, "content": []}}) + "\n")
-    monkeypatch.setattr("token_saver.sessions.projects_dir", lambda: tmp_path)
+    monkeypatch.setattr("acco.sessions.projects_dir", lambda: tmp_path)
     assert main(["mcp-prune", str(tmp_path)]) == 0
     assert main(["mcp-prune", str(tmp_path), "--apply"]) == 2

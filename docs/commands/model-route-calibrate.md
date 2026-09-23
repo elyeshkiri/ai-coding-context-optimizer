@@ -1,4 +1,4 @@
-# `token-saver model-route-calibrate`
+# `acco model-route-calibrate`
 
 Build a fail-closed model-routing calibration artifact from a frozen paired
 experiment that compares a stronger static-policy baseline model with a cheaper
@@ -7,8 +7,8 @@ candidate model.
 ## Synopsis
 
 ```bash
-token-saver model-route-calibrate MANIFEST
-  [--out .token-saver.routing-calibration.json]
+acco model-route-calibrate MANIFEST
+  [--out .acco.routing-calibration.json]
   [--stdout]
 ```
 
@@ -16,12 +16,12 @@ token-saver model-route-calibrate MANIFEST
 
 - `MANIFEST` — completed paired experiment JSON after `blind-grade`.
 - `--out FILE` — calibration artifact path; defaults to
-  `.token-saver.routing-calibration.json`.
+  `.acco.routing-calibration.json`.
 - `--stdout` — emit the artifact to stdout instead of writing `--out`.
 
 The experiment must isolate model choice as the treatment. Its explicit
 `runner.condition_profiles.baseline` and `enabled` entries must use the same
-Token Saver installation setting and environment; only `model` and an optional
+ACCO installation setting and environment; only `model` and an optional
 human label may differ.
 
 An exact routing bucket is promoted only when all of these gates pass:
@@ -63,4 +63,4 @@ rejection reasons. See
 
 ## Authoritative runtime help
 
-Run `token-saver model-route-calibrate --help`.
+Run `acco model-route-calibrate --help`.

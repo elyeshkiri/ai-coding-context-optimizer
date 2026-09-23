@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from token_saver.knowledge import FindingStore
+from acco.knowledge import FindingStore
 
 
 def _project(tmp_path, monkeypatch):
-    """Create an isolated repository and private Token Saver state directory."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    """Create an isolated repository and private ACCO state directory."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     (root / "auth.py").write_text(

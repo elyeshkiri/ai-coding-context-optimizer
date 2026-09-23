@@ -6,9 +6,9 @@ import json
 
 import pytest
 
-from token_saver.estimate import estimate_tokens
-from token_saver.mcp_server.protocol import McpProtocol
-from token_saver.mcp_server.tools import tool_registry_for_profile
+from acco.estimate import estimate_tokens
+from acco.mcp_server.protocol import McpProtocol
+from acco.mcp_server.tools import tool_registry_for_profile
 
 
 def test_minimal_profile_contains_only_high_frequency_context_tools():
@@ -65,7 +65,7 @@ def test_unknown_profile_fails_closed():
 
 def test_protocol_reads_profile_from_environment(tmp_path, monkeypatch):
     """Live MCP sessions should honor the bounded profile environment setting."""
-    monkeypatch.setenv("TOKEN_SAVER_MCP_PROFILE", "minimal")
+    monkeypatch.setenv("ACCO_MCP_PROFILE", "minimal")
     protocol = McpProtocol(tmp_path)
 
     listed = protocol.handle_message(
@@ -148,8 +148,8 @@ def test_adaptive_protocol_advertises_list_changed_capability(tmp_path):
 
 def test_project_config_can_select_adaptive_profile(tmp_path, monkeypatch):
     """Project config should opt into adaptive disclosure without environment mutation."""
-    monkeypatch.delenv("TOKEN_SAVER_MCP_PROFILE", raising=False)
-    (tmp_path / ".token-saver.toml").write_text(
+    monkeypatch.delenv("ACCO_MCP_PROFILE", raising=False)
+    (tmp_path / ".acco.toml").write_text(
         '[mcp]\nprofile = "adaptive"\nadaptive_max_tools = 10\n',
         encoding="utf-8",
     )
@@ -167,7 +167,7 @@ def test_project_config_can_select_adaptive_profile(tmp_path, monkeypatch):
 
 def test_mcp_memory_progressive_round_trip(tmp_path, monkeypatch):
     """MCP memory tools should preserve the index-search-get disclosure contract."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     (tmp_path / "auth.py").write_text(
         "def refresh(token):\n    return token\n",
         encoding="utf-8",
@@ -232,7 +232,7 @@ def test_adaptive_discovery_replaces_previous_specialists_and_enforces_project_c
     tmp_path,
 ):
     """Each task should get a fresh bounded specialist surface, not cumulative growth."""
-    (tmp_path / ".token-saver.toml").write_text(
+    (tmp_path / ".acco.toml").write_text(
         '[mcp]\nprofile = "adaptive"\nadaptive_max_tools = 8\n',
         encoding="utf-8",
     )

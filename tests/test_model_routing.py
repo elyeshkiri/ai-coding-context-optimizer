@@ -6,12 +6,12 @@ import json
 
 import pytest
 
-from token_saver.command_handlers.model_routing import (
+from acco.command_handlers.model_routing import (
     model_route_calibrate_main,
     model_route_main,
 )
-from token_saver.hook import _config_from_env, run_user_prompt
-from token_saver.model_routing import (
+from acco.hook import _config_from_env, run_user_prompt
+from acco.model_routing import (
     MIN_CALIBRATION_PAIRS,
     MIN_CALIBRATION_TASKS,
     automatic_model_route,
@@ -19,9 +19,9 @@ from token_saver.model_routing import (
     load_routing_calibration,
     route_task,
 )
-from token_saver.runtime_config import settings_for
-from token_saver.serve import call_tool
-from token_saver.state import load as load_state
+from acco.runtime_config import settings_for
+from acco.serve import call_tool
+from acco.state import load as load_state
 
 
 def test_simple_explanation_routes_to_cheapest_eligible_model():
@@ -139,7 +139,7 @@ def test_invalid_unknown_profile_is_rejected():
 
 def test_automatic_route_observe_mode_records_without_injecting(tmp_path, monkeypatch):
     """Observe mode should store content-free routing metadata only."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
 
     note = automatic_model_route(
         tmp_path,
@@ -159,7 +159,7 @@ def test_automatic_advisory_is_not_repeated_for_ambiguous_followup(
     tmp_path, monkeypatch
 ):
     """Unchanged route advice should not be injected on every continuation."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
 
     first = automatic_model_route(
         tmp_path,
@@ -230,7 +230,7 @@ def test_route_task_is_available_to_mcp_orchestrators(tmp_path):
 
 def test_model_routing_config_and_environment_overrides(tmp_path, monkeypatch):
     """Project routing policy should be explicit with temporary env overrides."""
-    (tmp_path / ".token-saver.toml").write_text(
+    (tmp_path / ".acco.toml").write_text(
         """[model_routing]
 enabled = true
 mode = "observe"
@@ -260,15 +260,15 @@ calibration_file = "routing-calibration.json"
     assert hook_config.model_routing_mode == "observe"
     assert hook_config.model_routing_calibration_file == "routing-calibration.json"
 
-    monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_MODE", "advisory")
+    monkeypatch.setenv("ACCO_MODEL_ROUTING_MODE", "advisory")
     monkeypatch.setenv(
-        "TOKEN_SAVER_MODEL_ROUTING_ALLOWED",
+        "ACCO_MODEL_ROUTING_ALLOWED",
         "claude-sonnet-5:claude-opus-5",
     )
-    monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS", "0.10")
-    monkeypatch.setenv("TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE", "1")
+    monkeypatch.setenv("ACCO_MODEL_ROUTING_MIN_SAVINGS", "0.10")
+    monkeypatch.setenv("ACCO_MODEL_ROUTING_CONSERVATIVE", "1")
     monkeypatch.setenv(
-        "TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE",
+        "ACCO_MODEL_ROUTING_CALIBRATION_FILE",
         "learned-routing.json",
     )
     overridden = settings_for(tmp_path)
@@ -287,8 +287,8 @@ def test_claude_prompt_hook_automatically_injects_advisory_when_enabled(
     tmp_path, monkeypatch
 ):
     """Claude's prompt hook should auto-decide while stating its host limitation."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
-    (tmp_path / ".token-saver.toml").write_text(
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    (tmp_path / ".acco.toml").write_text(
         """[output]
 enabled = false
 
@@ -373,14 +373,14 @@ def _routing_calibration_manifest(tmp_path, *, degrade_quality=False, regress=Fa
             "model": "claude-sonnet-5",
             "condition_profiles": {
                 "baseline": {
-                    "install_token_saver": True,
+                    "install_acco": True,
                     "model": "claude-sonnet-5",
-                    "env": {"TOKEN_SAVER_MODEL_ROUTING": "0"},
+                    "env": {"ACCO_MODEL_ROUTING": "0"},
                 },
                 "enabled": {
-                    "install_token_saver": True,
+                    "install_acco": True,
                     "model": "claude-haiku-4-5",
-                    "env": {"TOKEN_SAVER_MODEL_ROUTING": "0"},
+                    "env": {"ACCO_MODEL_ROUTING": "0"},
                 },
             },
         },
@@ -547,11 +547,11 @@ def test_model_route_cli_can_apply_calibration_file(tmp_path, capsys):
 
 
 def test_calibration_rejects_non_model_treatment_difference(tmp_path):
-    """A routing benchmark may differ by model, not by Token Saver/config state."""
+    """A routing benchmark may differ by model, not by ACCO/config state."""
     manifest = _routing_calibration_manifest(tmp_path)
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     payload["runner"]["condition_profiles"]["enabled"]["env"] = {
-        "TOKEN_SAVER_MODEL_ROUTING": "1"
+        "ACCO_MODEL_ROUTING": "1"
     }
     manifest.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -576,7 +576,7 @@ def test_automatic_route_falls_back_to_static_policy_on_invalid_calibration(
     tmp_path, monkeypatch
 ):
     """A corrupt calibration must not disable or relax the conservative router."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     bad = tmp_path / "bad-routing.json"
     bad.write_text('{"schema":1,"recommendations":[{"pairs":1}]}', encoding="utf-8")
 

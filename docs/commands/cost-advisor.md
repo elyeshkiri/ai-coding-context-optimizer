@@ -1,18 +1,18 @@
-# `token-saver cost-advisor`
+# `acco cost-advisor`
 
 Build a measured local cost-intelligence and efficiency report.
 
 ## Synopsis
 
 ```bash
-token-saver cost-advisor [path] [--days N] [--rates FILE] [--project-only] [--json]
+acco cost-advisor [path] [--days N] [--rates FILE] [--project-only] [--json]
 ```
 
 ## Arguments and options
 
 - `path` — project root; default current directory.
 - `--days N` — telemetry window; default 7 days.
-- `--rates SOURCE` — `builtin` for Token Saver's freshness-gated verified registry,
+- `--rates SOURCE` — `builtin` for ACCO's freshness-gated verified registry,
   or an explicit exact-model USD-per-million pricing JSON file.
 - `--project-only` — exclude user-scope Claude instructions from the
   always-on context audit.
@@ -44,4 +44,4 @@ tool-context tokens saved are not presented as measured API-dollar savings.
 
 ## Authoritative runtime help
 
-Run `token-saver cost-advisor --help` for the installed version.
+Run `acco cost-advisor --help` for the installed version.

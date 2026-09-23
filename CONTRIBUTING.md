@@ -1,14 +1,14 @@
-# Contributing to Token Saver
+# Contributing to ACCO — AI Coding Context Optimizer
 
-Token Saver optimizes context only when correctness evidence survives. Changes
+ACCO optimizes context only when correctness evidence survives. Changes
 that make outputs smaller but weaken task success, diagnostic preservation, or
 retrieval recall are regressions.
 
 ## Development setup
 
 ```bash
-git clone https://github.com/elyeshkiri/token-saver.git
-cd token-saver
+git clone https://github.com/elyeshkiri/ai-coding-context-optimizer.git
+cd acco
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -e '.[dev]'
@@ -23,9 +23,9 @@ Run:
 
 ```bash
 ruff check src tests scripts
-interrogate src/token_saver
+interrogate src/acco
 python -m pytest -q
-token-saver evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+acco evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 python scripts/check_holdout.py benchmarks/holdout-external.floor.json
 ```
 
@@ -50,7 +50,7 @@ Important invariants include:
   fail closed to the original representation;
 - provider/network adapters stay opt-in at the edge and must not silently widen
   the trust boundary;
-- integration setup must mutate only Token Saver-owned host entries.
+- integration setup must mutate only ACCO-owned host entries.
 
 Compatibility facades should stay thin. New features should normally grow
 vertically in the relevant command/application module rather than by adding

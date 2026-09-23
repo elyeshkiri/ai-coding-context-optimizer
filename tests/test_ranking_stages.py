@@ -7,7 +7,7 @@ rather than only shifting an aggregate benchmark number.
 """
 from collections import Counter
 
-from token_saver.pack import (
+from acco.pack import (
     _ACTION_TERMS,
     _apply_file_boosts,
     _bm25_score,
@@ -20,7 +20,7 @@ from token_saver.pack import (
     _SymbolScope,
     RankedFile,
 )
-from token_saver.repo_index import build_index
+from acco.repo_index import build_index
 
 
 def _scope(**overrides) -> _FileRankingScope:
@@ -91,7 +91,7 @@ def test_low_value_directory_dampening_scales_with_score():
 def test_ordinary_source_file_is_not_dampened():
     scope = _scope(q_terms=[], index=_FakeIndex())
 
-    source = _apply_file_boosts(scope, "src/token_saver/pack.py", "", 100.0, [])
+    source = _apply_file_boosts(scope, "src/acco/pack.py", "", 100.0, [])
     test_file = _apply_file_boosts(scope, "tests/test_pack.py", "", 100.0, [])
 
     assert source > 100.0

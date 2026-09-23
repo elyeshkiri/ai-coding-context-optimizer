@@ -3,10 +3,10 @@ import sys
 
 import pytest
 
-from token_saver.benchmark import task_definition_hash
-from token_saver.experiment import _git as experiment_git
-from token_saver.experiment import prompt_sha256, run_experiment, validate_suite
-from token_saver.swebench_docker import (
+from acco.benchmark import task_definition_hash
+from acco.experiment import _git as experiment_git
+from acco.experiment import prompt_sha256, run_experiment, validate_suite
+from acco.swebench_docker import (
     grade_swebench,
     parse_test_statuses,
     passed_tests,
@@ -160,7 +160,7 @@ t.write_text(json.dumps({"type": "assistant", "message": {
 
 def test_swebench_run_survives_all_three_harness_failure_modes(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured", lambda: False
+        "acco.experiment.user_acco_hook_configured", lambda: False
     )
     calls = []
 
@@ -180,7 +180,7 @@ def test_swebench_run_survives_all_three_harness_failure_modes(tmp_path, monkeyp
         stderr_path.write_text("")
         return 1, 0.1
 
-    monkeypatch.setattr("token_saver.swebench_docker.verify_swebench", fake_verify)
+    monkeypatch.setattr("acco.swebench_docker.verify_swebench", fake_verify)
     result = run_experiment(
         _swebench_suite(tmp_path), tmp_path / "runs.json", allow_development=True
     )
@@ -199,7 +199,7 @@ def test_swebench_run_survives_all_three_harness_failure_modes(tmp_path, monkeyp
 
 def test_swebench_regression_against_reference_fails_the_run(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured", lambda: False
+        "acco.experiment.user_acco_hook_configured", lambda: False
     )
 
     def fake_verify(*, agent_patch, stdout_path, stderr_path, **_):
@@ -212,7 +212,7 @@ def test_swebench_regression_against_reference_fails_the_run(tmp_path, monkeypat
         stderr_path.write_text("")
         return 0, 0.1
 
-    monkeypatch.setattr("token_saver.swebench_docker.verify_swebench", fake_verify)
+    monkeypatch.setattr("acco.swebench_docker.verify_swebench", fake_verify)
     result = run_experiment(
         _swebench_suite(tmp_path), tmp_path / "runs.json", allow_development=True
     )

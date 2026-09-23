@@ -1,11 +1,11 @@
-# `token-saver output-replay`
+# `acco output-replay`
 
 Replay captured output fixtures against preservation/savings contracts.
 
 ## Synopsis
 
 ```bash
-token-saver output-replay <manifest> [--require-frozen] [--print-definition-hash]
+acco output-replay <manifest> [--require-frozen] [--print-definition-hash]
 ```
 
 ## Arguments and options
@@ -29,4 +29,4 @@ introduces text that was absent from the original. See
 
 ## Authoritative runtime help
 
-Run `token-saver output-replay --help` for argparse's exact usage text for the installed version.
+Run `acco output-replay --help` for argparse's exact usage text for the installed version.

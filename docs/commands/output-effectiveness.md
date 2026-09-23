@@ -1,4 +1,4 @@
-# `token-saver output-effectiveness`
+# `acco output-effectiveness`
 
 Join measured runtime usage, adaptive output-policy telemetry, independently
 verified task success, blind response quality, and optional token pricing.
@@ -6,7 +6,7 @@ verified task success, blind response quality, and optional token pricing.
 ## Synopsis
 
 ```bash
-token-saver output-effectiveness <manifest> \
+acco output-effectiveness <manifest> \
   [--fresh-input-per-million F] \
   [--cache-creation-5m-per-million F] \
   [--cache-creation-1h-per-million F] \
@@ -19,7 +19,7 @@ token-saver output-effectiveness <manifest> \
 ## Arguments and options
 
 - `manifest` — paired agent/experiment JSON. Conditions may be
-  `baseline` + `token-saver` or the experiment-native
+  `baseline` + `acco` or the experiment-native
   `baseline` + `enabled`.
 - Pricing flags are USD per million tokens for fresh input, 5-minute cache
   creation, 1-hour cache creation, unknown-TTL cache creation, cache reads, and
@@ -30,7 +30,7 @@ token-saver output-effectiveness <manifest> \
 - `--require-publishable` exits `1` unless all publication gates pass.
 
 For a publishable cost-per-success claim, the manifest must include at least
-20 distinct tasks and three trials per task. Token Saver recomputes
+20 distinct tasks and three trials per task. ACCO recomputes
 `protocol.task_definition_sha256`, checks each run's model/revision/prompt hash
 against the frozen suite, requires blind quality scores for every paired run,
 no task-success or quality regression, and complete optimized-arm policy
@@ -53,5 +53,5 @@ blockers. See [Machine-readable contracts](../JSON_OUTPUTS.md#output-effectivene
 
 ## Authoritative runtime help
 
-Run `token-saver output-effectiveness --help` for argparse's exact usage text
+Run `acco output-effectiveness --help` for argparse's exact usage text
 for the installed version.

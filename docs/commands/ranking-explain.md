@@ -1,11 +1,11 @@
-# `token-saver ranking-explain`
+# `acco ranking-explain`
 
 Explain deterministic and post-score contributions for ranked files.
 
 ## Synopsis
 
 ```bash
-token-saver ranking-explain [path] --query TEXT [--max-files N] [--json] [--no-changed-boost] [--semantic]
+acco ranking-explain [path] --query TEXT [--max-files N] [--json] [--no-changed-boost] [--semantic]
 ```
 
 ## Arguments and options
@@ -27,4 +27,4 @@ Human score trace or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#r
 
 ## Authoritative runtime help
 
-Run `token-saver ranking-explain --help` for argparse's exact usage text for the installed version.
+Run `acco ranking-explain --help` for argparse's exact usage text for the installed version.

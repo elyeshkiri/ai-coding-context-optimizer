@@ -12,14 +12,14 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.hook import run, main as hook_main
-from token_saver.guard import decide_read
-from token_saver.output_store import retrieve, store_output
-from token_saver.sessions import Report, Turn, ToolCall, analyze
-from token_saver.snippet import extract_symbol
-from token_saver.state import load, record_read, seen_read
-from token_saver.install import install, merge_hooks
-from token_saver.pricing import cost
+from acco.hook import run, main as hook_main
+from acco.guard import decide_read
+from acco.output_store import retrieve, store_output
+from acco.sessions import Report, Turn, ToolCall, analyze
+from acco.snippet import extract_symbol
+from acco.state import load, record_read, seen_read
+from acco.install import install, merge_hooks
+from acco.pricing import cost
 
 
 def bash(stdout, stderr='', **extra):
@@ -40,7 +40,7 @@ def test_hook_emits_documented_structured_replacement_and_recovers_original():
     assert output['stderr'] == original['tool_response']['stderr']
     assert output['exitCode'] == 3
     assert output['interrupted'] is False and output['isImage'] is False
-    output_id = re.search(r'token-saver output ([a-f0-9]{32})', output['stdout'])[1]
+    output_id = re.search(r'acco output ([a-f0-9]{32})', output['stdout'])[1]
     assert retrieve(output_id, limit=1000) == original['tool_response']['stdout']
     assert retrieve(output_id, 'stderr') == original['tool_response']['stderr']
     assert retrieve(output_id, offset=250, limit=2) == ''.join(noisy().splitlines(True)[249:251])
@@ -56,7 +56,7 @@ def test_unsupported_or_interrupted_bash_results_pass_through(patch):
 
 def test_archive_failure_fails_open(monkeypatch, capsys):
     import io
-    monkeypatch.setattr('token_saver.output_store.store_output', lambda _: (_ for _ in ()).throw(OSError('disk full')))
+    monkeypatch.setattr('acco.output_store.store_output', lambda _: (_ for _ in ()).throw(OSError('disk full')))
     monkeypatch.setattr(sys, 'stdin', io.StringIO(json.dumps(bash(noisy()))))
     assert hook_main() == 0
     assert capsys.readouterr().out == ''
@@ -69,7 +69,7 @@ def test_failure_name_stack_and_multiline_diff_survive():
 
 def test_saved_output_private_and_id_validated():
     output_id = store_output({'stdout': 'secret\n', 'stderr': ''})
-    path = Path(os.environ['TOKEN_SAVER_STATE_DIR']) / 'outputs' / (output_id + '.json')
+    path = Path(os.environ['ACCO_STATE_DIR']) / 'outputs' / (output_id + '.json')
     if os.name != 'nt': assert path.stat().st_mode & 0o077 == 0
     with pytest.raises(ValueError): retrieve('../../etc/passwd')
     with pytest.raises(ValueError): retrieve(output_id, offset=0)
@@ -160,7 +160,7 @@ def test_truncated_read_is_not_recorded_as_whole_file(tmp_path):
 
 
 def test_install_preserves_shared_matchers_and_registers_compaction():
-    existing = {'hooks': {'PostToolUse':[{'matcher':'Grep','hooks':[{'command':'token-saver hook'}, {'command':'other'}]}]}}
+    existing = {'hooks': {'PostToolUse':[{'matcher':'Grep','hooks':[{'command':'acco hook'}, {'command':'other'}]}]}}
     before = json.dumps(existing)
     updated = merge_hooks(existing)
     assert json.dumps(existing) == before
@@ -226,7 +226,7 @@ def test_pricing_uses_model_and_ttl():
 
 
 def test_subprocess_hook_contract(tmp_path):
-    proc=subprocess.run([sys.executable,'-m','token_saver.hook'],input=json.dumps(bash(noisy())),text=True,capture_output=True)
+    proc=subprocess.run([sys.executable,'-m','acco.hook'],input=json.dumps(bash(noisy())),text=True,capture_output=True)
     assert proc.returncode == 0
     response=json.loads(proc.stdout)['hookSpecificOutput']
     assert response['hookEventName'] == 'PostToolUse'
@@ -234,7 +234,7 @@ def test_subprocess_hook_contract(tmp_path):
 
 
 def test_benchmark_compares_actual_usage_and_quality(tmp_path):
-    from token_saver.benchmark import evaluate
+    from acco.benchmark import evaluate
     rate={'test-model':{'input':1,'output':5,'cache_write_5m':1.25,'cache_write_1h':2,'cache_read':.1}}
     rates=tmp_path/'rates.json';rates.write_text(json.dumps(rate))
     transcript(tmp_path,[assistant('a',created=40000)],'before.jsonl')

@@ -1,11 +1,11 @@
-# `token-saver policy`
+# `acco policy`
 
 Generate lifecycle advice from Claude transcript evidence.
 
 ## Synopsis
 
 ```bash
-token-saver policy [path] [--all-projects]
+acco policy [path] [--all-projects]
 ```
 
 ## Arguments and options
@@ -23,4 +23,4 @@ Human-readable policy advice + snapshot id.
 
 ## Authoritative runtime help
 
-Run `token-saver policy --help` for argparse's exact usage text for the installed version.
+Run `acco policy --help` for argparse's exact usage text for the installed version.

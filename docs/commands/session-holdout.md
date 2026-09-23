@@ -1,4 +1,4 @@
-# `token-saver session-holdout`
+# `acco session-holdout`
 
 Run or resume the frozen session-efficiency experiment, blind grading, and
 effectiveness evaluation.
@@ -6,7 +6,7 @@ effectiveness evaluation.
 ## Synopsis
 
 ```bash
-token-saver session-holdout <suite>
+acco session-holdout <suite>
   [--out FILE] [--rates FILE] [--report FILE]
   [--task ID ...] [--force-grades]
   [--allow-development] [--allow-user-hook]
@@ -24,7 +24,7 @@ token-saver session-holdout <suite>
 - `--force-grades` — replace complete existing blind grades.
 - `--allow-development` — permit a narrow/unfrozen smoke suite while retaining
   condition-isolation validation.
-- `--allow-user-hook` — permit an existing user-level Token Saver hook.
+- `--allow-user-hook` — permit an existing user-level ACCO hook.
 - `--dry-run` — validate schedule, profiles, grader, and pricing without paid
   agent calls.
 - `--require-publishable` — exit `1` if the final strict publication gate
@@ -32,10 +32,10 @@ token-saver session-holdout <suite>
 
 ## What it compares
 
-The shipped frozen suite compares two profiles of the **same current Token Saver
+The shipped frozen suite compares two profiles of the **same current ACCO
 binary**:
 
-- `v1.6-session-baseline` — Token Saver installed, session efficiency master,
+- `v1.6-session-baseline` — ACCO installed, session efficiency master,
   continuity, cross-turn dedup, and waste detection disabled.
 - `v1.7-session-efficiency` — the same binary with those four switches enabled.
 
@@ -57,7 +57,7 @@ The run manifest records exact transcript usage plus independently derived:
 - identical-failure retry attempts;
 - duplicate full-file Reads.
 
-Treatment-side Token Saver events are recorded separately to prove continuity,
+Treatment-side ACCO events are recorded separately to prove continuity,
 dedup, and waste mechanisms actually fired; they are not used as outcome truth.
 
 ## Publication gate
@@ -85,4 +85,4 @@ integrity, and publication blockers. See
 
 ## Authoritative runtime help
 
-Run `token-saver session-holdout --help` for the installed version.
+Run `acco session-holdout --help` for the installed version.

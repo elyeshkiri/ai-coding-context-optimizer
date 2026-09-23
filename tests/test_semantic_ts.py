@@ -1,7 +1,7 @@
 import pytest
 
-from token_saver.repo_index import build_index
-from token_saver.semantic_ts import (
+from acco.repo_index import build_index
+from acco.semantic_ts import (
     enrich_index_with_typescript,
     extract_module_refs,
     resolve_module_path,
@@ -110,7 +110,7 @@ def test_repository_graph_tracks_reexport_module(tmp_path):
 
 
 def test_typescript_compiler_resolver_falls_back_without_node(tmp_path, monkeypatch):
-    monkeypatch.setattr("token_saver.semantic_ts.shutil.which", lambda _name: None)
+    monkeypatch.setattr("acco.semantic_ts.shutil.which", lambda _name: None)
     assert resolve_typescript_edges(tmp_path) == {}
     with pytest.raises(RuntimeError, match="Node.js"):
         resolve_typescript_edges(tmp_path, strict=True)
@@ -130,7 +130,7 @@ def test_compiler_edges_enrich_existing_index_without_replacing_it(tmp_path, mon
     )
     index = build_index(tmp_path, persist=False)
     monkeypatch.setattr(
-        "token_saver.semantic_ts.resolve_typescript_edges",
+        "acco.semantic_ts.resolve_typescript_edges",
         lambda _root, **_kwargs: {"src/controller.ts": ["src/service.ts"]},
     )
 

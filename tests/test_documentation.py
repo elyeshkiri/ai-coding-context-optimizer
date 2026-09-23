@@ -1,4 +1,4 @@
-"""Documentation quality gates for public Token Saver surfaces."""
+"""Documentation quality gates for public ACCO surfaces."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import ast
 from pathlib import Path
 import re
 
-from token_saver.cli import LEGACY_COMMANDS
-from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
+from acco.cli import LEGACY_COMMANDS
+from acco.command_registry import DEFAULT_COMMAND_REGISTRY
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMAND_DOCS = tuple(sorted((ROOT / "docs" / "commands").glob("*.md")))
@@ -43,7 +43,7 @@ def _project_version() -> str:
 
 def _legacy_cli_commands() -> set[str]:
     """Extract argparse subcommand literals from the compatibility CLI."""
-    tree = ast.parse((ROOT / "src" / "token_saver" / "cli.py").read_text())
+    tree = ast.parse((ROOT / "src" / "acco" / "cli.py").read_text())
     commands: set[str] = set()
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call) or not node.args:
@@ -82,7 +82,7 @@ def test_public_document_versions_match_package_metadata():
     validation = (ROOT / "VALIDATION.md").read_text(encoding="utf-8")
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert readme.startswith(f"# Token Saver {version}\n")
+    assert readme.startswith(f"# ACCO — AI Coding Context Optimizer {version}\n")
     assert validation.startswith(f"# Validation for {version}\n")
     assert f"# {version} -" in changelog
 
@@ -158,7 +158,7 @@ def test_setup_is_documented_as_idempotent_and_reversible():
     integrations = (ROOT / "INTEGRATIONS.md").read_text(encoding="utf-8")
 
     assert "Setup is idempotent" in quickstart
-    assert "Token Saver-owned entries" in quickstart
+    assert "ACCO-owned entries" in quickstart
     assert "idempotent" in integrations
     assert "preserving unrelated host" in integrations
 
@@ -184,7 +184,7 @@ def test_every_command_has_a_dedicated_reference_page():
     )
     for name in sorted(commands):
         text = pages[name].read_text(encoding="utf-8")
-        assert text.startswith(f"# `token-saver {name}`\n")
+        assert text.startswith(f"# `acco {name}`\n")
         for section in required_sections:
             assert section in text, f"{name} is missing {section}"
 
@@ -265,7 +265,7 @@ def test_current_docs_cover_v113_operational_surfaces():
     integrations = (ROOT / "INTEGRATIONS.md").read_text(encoding="utf-8")
     contracts = (ROOT / "docs" / "JSON_OUTPUTS.md").read_text(encoding="utf-8")
 
-    assert "documentation map for Token Saver 1." not in hub
+    assert "documentation map for ACCO 1." not in hub
     assert "## 1.13 recoverable optimization platform" in upgrading
     assert "## A `tsr_...` recovery handle cannot be resolved" in troubleshooting
     assert "## Provider proxy refuses to start or returns an upstream error" in troubleshooting
@@ -283,7 +283,7 @@ def test_current_docs_cover_v113_operational_surfaces():
 def test_configuration_reference_has_unique_environment_rows():
     """Environment override tables should not silently duplicate config keys."""
     config = (ROOT / "docs" / "CONFIGURATION.md").read_text(encoding="utf-8")
-    variables = re.findall(r"(?m)^\| `(TOKEN_SAVER_[A-Z0-9_]+)` \|", config)
+    variables = re.findall(r"(?m)^\| `(ACCO_[A-Z0-9_]+)` \|", config)
     assert len(variables) == len(set(variables))
 
 

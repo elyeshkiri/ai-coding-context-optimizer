@@ -9,15 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.benchmark import task_definition_hash
-from token_saver.experiment import validate_suite
-from token_saver.knowledge_holdout import (
+from acco.benchmark import task_definition_hash
+from acco.experiment import validate_suite
+from acco.knowledge_holdout import (
     evaluate_knowledge_holdout,
     validate_knowledge_holdout_definition,
 )
-from token_saver.knowledge_holdout_pipeline import run_knowledge_holdout
-from token_saver.output_effectiveness import EffectivenessPricing
-from token_saver.knowledge_holdout_docker import (
+from acco.knowledge_holdout_pipeline import run_knowledge_holdout
+from acco.output_effectiveness import EffectivenessPricing
+from acco.knowledge_holdout_docker import (
     _PHASE1_PREFIX,
     _knowledge_seed_count,
 )
@@ -51,7 +51,7 @@ def test_profile_gate_rejects_unrelated_condition_difference():
 
 def test_phase1_contract_requires_explicit_verified_findings():
     """The benchmark should measure explicit memory, not hidden auto-harvesting."""
-    assert "token-saver remember" in _PHASE1_PREFIX
+    assert "acco remember" in _PHASE1_PREFIX
     assert "VERIFIED project findings" in _PHASE1_PREFIX
     assert "Do not store guesses" in _PHASE1_PREFIX
 
@@ -81,28 +81,28 @@ def test_knowledge_seed_count_reads_isolated_state(tmp_path):
 def _profiles() -> dict:
     """Return exact isolated memory-control and knowledge-treatment profiles."""
     common = {
-        "TOKEN_SAVER_EFFICIENCY": "1",
-        "TOKEN_SAVER_CONTINUITY": "0",
-        "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-        "TOKEN_SAVER_WASTE_DETECTION": "0",
+        "ACCO_EFFICIENCY": "1",
+        "ACCO_CONTINUITY": "0",
+        "ACCO_CROSS_TURN_DEDUP": "0",
+        "ACCO_WASTE_DETECTION": "0",
     }
     return {
         "baseline": {
             "label": "knowledge-memory-control",
-            "install_token_saver": True,
+            "install_acco": True,
             "env": {
                 **common,
-                "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE": "0",
-                "TOKEN_SAVER_CACHE_ECONOMICS": "0",
+                "ACCO_KNOWLEDGE_READ_AVOIDANCE": "0",
+                "ACCO_CACHE_ECONOMICS": "0",
             },
         },
         "enabled": {
             "label": "knowledge-read-avoidance-cache-economics",
-            "install_token_saver": True,
+            "install_acco": True,
             "env": {
                 **common,
-                "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE": "1",
-                "TOKEN_SAVER_CACHE_ECONOMICS": "1",
+                "ACCO_KNOWLEDGE_READ_AVOIDANCE": "1",
+                "ACCO_CACHE_ECONOMICS": "1",
             },
         },
     }
@@ -220,7 +220,7 @@ def _publication_manifest(path: Path) -> dict:
             "command": [
                 "python",
                 "-m",
-                "token_saver.knowledge_holdout_docker",
+                "acco.knowledge_holdout_docker",
                 "--condition",
                 "{condition}",
             ],

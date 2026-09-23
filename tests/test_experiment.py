@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.benchmark import evaluate, task_definition_hash
-from token_saver.experiment import (
+from acco.benchmark import evaluate, task_definition_hash
+from acco.experiment import (
     _expand_command,
     build_schedule,
     prompt_sha256,
@@ -168,7 +168,7 @@ def test_experiment_runs_both_arms_and_independent_verifier(
 ):
     path, _suite_payload = _suite(tmp_path)
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
     output = tmp_path / "runs.json"
@@ -216,7 +216,7 @@ def test_experiment_output_flows_into_transcript_cost_report(
 ):
     path, _suite_payload = _suite(tmp_path)
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
     output = tmp_path / "runs.json"
@@ -326,7 +326,7 @@ new file mode 100644
     path = tmp_path / "hidden-suite.json"
     path.write_text(json.dumps(suite, indent=2), encoding="utf-8")
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
 
@@ -415,7 +415,7 @@ def test_agent_runner_failure_is_reported_before_missing_transcript(
     path = tmp_path / "failure-suite.json"
     path.write_text(json.dumps(suite, indent=2), encoding="utf-8")
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
 
@@ -434,20 +434,20 @@ def test_agent_runner_failure_is_reported_before_missing_transcript(
 
 
 def test_condition_profiles_are_frozen_and_exposed_in_dry_run(tmp_path):
-    """Session holdouts can install Token Saver in both arms with isolated env switches."""
+    """Session holdouts can install ACCO in both arms with isolated env switches."""
     path, _suite_payload = _suite(tmp_path)
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["runner"]["condition_profiles"] = {
         "baseline": {
             "label": "v1.6-session-baseline",
-            "install_token_saver": True,
-            "env": {"TOKEN_SAVER_EFFICIENCY": "0"},
+            "install_acco": True,
+            "env": {"ACCO_EFFICIENCY": "0"},
             "model": "baseline-model",
         },
         "enabled": {
             "label": "v1.7-session-efficiency",
-            "install_token_saver": True,
-            "env": {"TOKEN_SAVER_EFFICIENCY": "1"},
+            "install_acco": True,
+            "env": {"ACCO_EFFICIENCY": "1"},
             "model": "candidate-model",
         },
     }
@@ -461,9 +461,9 @@ def test_condition_profiles_are_frozen_and_exposed_in_dry_run(tmp_path):
         allow_development=True,
     )
 
-    assert result["condition_profiles"]["baseline"]["install_token_saver"] is True
+    assert result["condition_profiles"]["baseline"]["install_acco"] is True
     assert result["condition_profiles"]["baseline"]["env"] == {
-        "TOKEN_SAVER_EFFICIENCY": "0"
+        "ACCO_EFFICIENCY": "0"
     }
     assert result["condition_profiles"]["enabled"]["label"] == (
         "v1.7-session-efficiency"
@@ -478,8 +478,8 @@ def test_condition_profiles_reject_extra_or_missing_arm(tmp_path):
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["runner"]["condition_profiles"] = {
         "enabled": {
-            "install_token_saver": True,
-            "env": {"TOKEN_SAVER_EFFICIENCY": "1"},
+            "install_acco": True,
+            "env": {"ACCO_EFFICIENCY": "1"},
         }
     }
     payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
@@ -498,12 +498,12 @@ def test_condition_profile_model_override_is_used_and_confirmed_in_transcript(
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["runner"]["condition_profiles"] = {
         "baseline": {
-            "install_token_saver": False,
+            "install_acco": False,
             "model": "baseline-model",
             "env": {},
         },
         "enabled": {
-            "install_token_saver": False,
+            "install_acco": False,
             "model": "candidate-model",
             "env": {},
         },
@@ -511,7 +511,7 @@ def test_condition_profile_model_override_is_used_and_confirmed_in_transcript(
     payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
     path.write_text(json.dumps(payload), encoding="utf-8")
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
 
@@ -534,12 +534,12 @@ def test_condition_profile_rejects_empty_model_override(tmp_path):
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["runner"]["condition_profiles"] = {
         "baseline": {
-            "install_token_saver": False,
+            "install_acco": False,
             "model": "",
             "env": {},
         },
         "enabled": {
-            "install_token_saver": False,
+            "install_acco": False,
             "model": "candidate-model",
             "env": {},
         },

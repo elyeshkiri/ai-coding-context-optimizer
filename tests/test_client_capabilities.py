@@ -1,6 +1,6 @@
 """Tests for conservative client capability declarations."""
 
-from token_saver.client_capabilities import (
+from acco.client_capabilities import (
     capabilities_for,
     capability_report,
     feature_support,
@@ -8,7 +8,7 @@ from token_saver.client_capabilities import (
 
 
 def test_claude_code_declares_managed_hook_boundaries():
-    """Claude Code should expose only the boundaries Token Saver manages directly."""
+    """Claude Code should expose only the boundaries ACCO manages directly."""
     caps = capabilities_for("claude")
     assert caps.client == "claude-code"
     assert caps.guaranteed("pre_tool_intercept")

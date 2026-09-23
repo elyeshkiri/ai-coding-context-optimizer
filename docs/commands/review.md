@@ -1,11 +1,11 @@
-# `token-saver review`
+# `acco review`
 
 Review a Git diff using bounded repository evidence.
 
 ## Synopsis
 
 ```bash
-token-saver review [path] [--base REV] [--staged] [--json] [--max-tokens N]
+acco review [path] [--base REV] [--staged] [--json] [--max-tokens N]
 ```
 
 ## Arguments and options
@@ -22,4 +22,4 @@ Human file/warning report or JSON; see [Machine-readable contracts](../JSON_OUTP
 
 ## Authoritative runtime help
 
-Run `token-saver review --help` for argparse's exact usage text for the installed version.
+Run `acco review --help` for argparse's exact usage text for the installed version.

@@ -1,21 +1,21 @@
 {
-  "name": "token-saver-tools",
+  "name": "acco-tools",
   "owner": {
     "name": "Elyes Hkiri",
     "url": "https://github.com/elyeshkiri"
   },
-  "description": "Token Saver plugins for Claude Code.",
+  "description": "ACCO — AI Coding Context Optimizer plugins for Claude Code.",
   "plugins": [
     {
-      "name": "token-saver",
+      "name": "acco",
       "description": "Local context, output, session, retrieval, and safe prompt-ingress optimization.",
       "source": {
         "source": "command",
-        "command": "python -m pip install --user --quiet \"claude-token-saver>=1.14.0\" || python -m pip install --user --quiet git+https://github.com/elyeshkiri/token-saver.git && python -c \"from token_saver.claude_plugin import render_plugin; print(render_plugin())\"",
+        "command": "python -m pip install --user --quiet \"ai-coding-context-optimizer>=1.14.0\" || python -m pip install --user --quiet git+https://github.com/elyeshkiri/ai-coding-context-optimizer.git && python -c \"from acco.claude_plugin import render_plugin; print(render_plugin())\"",
         "timeout": 300
       },
-      "homepage": "https://github.com/elyeshkiri/token-saver",
-      "repository": "https://github.com/elyeshkiri/token-saver",
+      "homepage": "https://github.com/elyeshkiri/ai-coding-context-optimizer",
+      "repository": "https://github.com/elyeshkiri/ai-coding-context-optimizer",
       "license": "MIT"
     }
   ]

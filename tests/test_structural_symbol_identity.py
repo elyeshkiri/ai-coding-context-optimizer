@@ -1,8 +1,8 @@
 import json
 import textwrap
 
-from token_saver.evaluate import evaluate_manifest, ground_truth_hash
-from token_saver.pack import build_context_pack
+from acco.evaluate import evaluate_manifest, ground_truth_hash
+from acco.pack import build_context_pack
 
 
 def test_qualified_parent_terms_disambiguate_same_named_methods(tmp_path):

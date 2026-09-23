@@ -5,9 +5,9 @@ from __future__ import annotations
 import inspect
 import textwrap
 
-from token_saver.lexical import symbol_terms
-from token_saver.packing import file_scoring, graph_rerank, query_analysis, ranking
-from token_saver.repo_index import build_index
+from acco.lexical import symbol_terms
+from acco.packing import file_scoring, graph_rerank, query_analysis, ranking
+from acco.repo_index import build_index
 
 
 def _repo(tmp_path):
@@ -83,7 +83,7 @@ def test_graph_rerank_does_not_redefine_lexical_scoring():
 
 def test_symbol_scoring_uses_query_analysis_directly():
     """Within-file symbol scoring should bypass the ranking compatibility facade."""
-    import token_saver.packing.symbol_scoring as symbol_scoring
+    import acco.packing.symbol_scoring as symbol_scoring
 
     source = inspect.getsource(symbol_scoring)
     assert "from .query_analysis import" in source

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from token_saver.processor_mining import command_signature, mine_transcripts
+from acco.processor_mining import command_signature, mine_transcripts
 
 
 def _write_pair(handle, uid: str, command: str, result: str) -> None:

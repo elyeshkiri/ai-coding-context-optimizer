@@ -1,24 +1,24 @@
 # Quickstart
 
-This guide gets Token Saver from installation to a verified local integration in
+This guide gets **ACCO — AI Coding Context Optimizer** from installation to a verified local integration in
 about five minutes.
 
 ## 1. Install
 
-Token Saver supports Python 3.10+.
+ACCO supports Python 3.10+.
 
 ```bash
-python -m pip install --upgrade claude-token-saver
+python -m pip install --upgrade ai-coding-context-optimizer
 ```
 
-The PyPI distribution is `claude-token-saver`; the executable remains
-`token-saver`.
+The PyPI distribution is `ai-coding-context-optimizer`; the executable remains
+`acco`.
 
 Verify the executable and discover the complete command surface:
 
 ```bash
-token-saver --help
-token-saver commands
+acco --help
+acco commands
 ```
 
 `--help` includes both registry-backed and legacy-compatible commands; you no
@@ -31,36 +31,36 @@ From the repository you want your coding agent to work on:
 
 ```bash
 cd /path/to/project
-token-saver setup
+acco setup
 ```
 
-Setup auto-detects supported hosts and configures only Token Saver-owned entries.
+Setup auto-detects supported hosts and configures only ACCO-owned entries.
 
 Explicit host selection is also available:
 
 ```bash
-token-saver setup . --host claude
-token-saver setup . --host cursor --host codex
-token-saver setup . --host opencode --host hermes
-token-saver setup . --host copilot --host antigravity
-token-saver setup . --host openclaw
-token-saver setup . --host all
+acco setup . --host claude
+acco setup . --host cursor --host codex
+acco setup . --host opencode --host hermes
+acco setup . --host copilot --host antigravity
+acco setup . --host openclaw
+acco setup . --host all
 ```
 
 Setup is idempotent. `--host all` means all detected supported hosts, not every
-product Token Saver knows about. Re-running setup after an upgrade is the
+product ACCO knows about. Re-running setup after an upgrade is the
 supported repair/migration path.
 
 ## 3. Verify the installation
 
 ```bash
-token-saver doctor .
+acco doctor .
 ```
 
 A healthy report should show:
 
-- the `token-saver` executable;
-- a project `.token-saver.toml`;
+- the `acco` executable;
+- a project `.acco.toml`;
 - at least one configured supported host;
 - a healthy repository index;
 - Claude transcript evidence when Claude Code has already been used.
@@ -68,8 +68,8 @@ A healthy report should show:
 For automation:
 
 ```bash
-token-saver doctor . --json
-token-saver doctor . --require-ready
+acco doctor . --json
+acco doctor . --require-ready
 ```
 
 ## 4. Try retrieval directly
@@ -77,26 +77,26 @@ token-saver doctor . --require-ready
 Inspect ranked context without involving an agent:
 
 ```bash
-token-saver browse . --query "refresh session token"
+acco browse . --query "refresh session token"
 ```
 
 Build a bounded context pack:
 
 ```bash
-token-saver pack . --query "refresh session token" --max-tokens 6000
+acco pack . --query "refresh session token" --max-tokens 6000
 ```
 
 Explain a surprising rank:
 
 ```bash
-token-saver ranking-explain . --query "refresh session token"
+acco ranking-explain . --query "refresh session token"
 ```
 
 ## 5. Measure your existing context
 
 ```bash
-token-saver audit .
-token-saver sessions .
+acco audit .
+acco sessions .
 ```
 
 `audit` measures always-on project/user context. `sessions` reads Claude
@@ -105,7 +105,7 @@ sizes. These are measurements, not universal savings claims.
 
 ## 6. Optional project configuration
 
-Setup creates a project-owned `.token-saver.toml`. A small excerpt of the
+Setup creates a project-owned `.acco.toml`. A small excerpt of the
 current defaults is:
 
 ```toml
@@ -135,20 +135,20 @@ them. Environment variables take precedence. See
 Repair after changing host configuration:
 
 ```bash
-token-saver setup .
-token-saver doctor .
+acco setup .
+acco doctor .
 ```
 
-Remove Token Saver-owned host entries:
+Remove ACCO-owned host entries:
 
 ```bash
-token-saver uninstall . --host all
+acco uninstall . --host all
 ```
 
 Also remove the project config:
 
 ```bash
-token-saver uninstall . --host all --remove-config
+acco uninstall . --host all --remove-config
 ```
 
 Uninstall preserves unrelated MCP servers, unrelated Claude hooks, unmanaged

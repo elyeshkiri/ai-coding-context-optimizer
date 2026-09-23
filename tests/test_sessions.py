@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from token_saver.sessions import (
+from acco.sessions import (
     OUTLINE_SUFFIXES,
     REPRIME_MIN_TOKENS,
     analyze,
@@ -164,21 +164,21 @@ def test_project_slug_matches_claude_code_layout():
 
 
 def test_project_slug_replaces_every_non_alphanumeric_like_claude_code():
-    # tempfile names such as /tmp/token-saver-e2e-m5_wfwlk/repo contain "_"
+    # tempfile names such as /tmp/acco-e2e-m5_wfwlk/repo contain "_"
     assert (
-        project_slug("/tmp/token-saver-e2e-m5_wfwlk/repo")
-        == "-tmp-token-saver-e2e-m5-wfwlk-repo"
+        project_slug("/tmp/acco-e2e-m5_wfwlk/repo")
+        == "-tmp-acco-e2e-m5-wfwlk-repo"
     )
     assert project_slug("/home/u/.config/my proj") == "-home-u--config-my-proj"
 
 
 def test_transcript_paths_for_an_unknown_project(tmp_path, monkeypatch):
-    monkeypatch.setattr("token_saver.sessions.projects_dir", lambda: tmp_path)
+    monkeypatch.setattr("acco.sessions.projects_dir", lambda: tmp_path)
     assert transcript_paths(tmp_path / "nope") == []
 
 
 def test_transcript_paths_scopes_to_one_project(tmp_path, monkeypatch):
-    monkeypatch.setattr("token_saver.sessions.projects_dir", lambda: tmp_path)
+    monkeypatch.setattr("acco.sessions.projects_dir", lambda: tmp_path)
     project = tmp_path / project_slug("/home/u/proj")
     project.mkdir()
     (project / "a.jsonl").write_text("")

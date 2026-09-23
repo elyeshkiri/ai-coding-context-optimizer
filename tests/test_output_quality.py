@@ -1,7 +1,7 @@
 import json
 
-from token_saver.output.contracts import OutputResult
-from token_saver.output_quality import (
+from acco.output.contracts import OutputResult
+from acco.output_quality import (
     evaluate_quality_manifest,
     quality_definition_hash,
 )
@@ -139,7 +139,7 @@ def test_quality_replay_rejects_introduced_forbidden_text(tmp_path, monkeypatch)
     )
 
     monkeypatch.setattr(
-        "token_saver.output_quality.process_output",
+        "acco.output_quality.process_output",
         lambda *args, **kwargs: OutputResult(
             "real line\nFABRICATED_DIAGNOSTIC\n",
             "fake",

@@ -1,17 +1,17 @@
-# `token-saver cache-economics`
+# `acco cache-economics`
 
 Estimate whether replacing context is cheaper after prompt-cache write/read effects, including the penalty for recreating an already-cached prefix.
 
 ## Synopsis
 
 ```bash
-token-saver cache-economics \
+acco cache-economics \
   --original-frontier-tokens 4000 \
   --replacement-frontier-tokens 800 \
   --cached-prefix-tokens 12000 \
   --expected-reuses 2
 
-token-saver cache-economics \
+acco cache-economics \
   --original-frontier-tokens 4000 \
   --replacement-frontier-tokens 800 \
   --cached-prefix-tokens 12000 \
@@ -47,5 +47,5 @@ Costs are relative input-cost units. They deliberately avoid pretending that one
 ## Authoritative runtime help
 
 ```bash
-token-saver cache-economics --help
+acco cache-economics --help
 ```

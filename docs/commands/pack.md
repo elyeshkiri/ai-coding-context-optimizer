@@ -1,11 +1,11 @@
-# `token-saver pack`
+# `acco pack`
 
 Build a task-aware bounded source context pack.
 
 ## Synopsis
 
 ```bash
-token-saver pack [path] [-q|--query TEXT] [--max-tokens N] [--max-files N] [--context-lines N] [--no-gitignore] [--no-changed-boost] [--graph-hops N] [--closure-items N] [--duplicate-threshold F] [--session ID] [--embeddings|--semantic] [--typescript-semantic] [--strict-semantic] [--no-index-cache] [--no-retrieval-cache] [--target-symbol NAME] [--json] [--explain] [-o FILE]
+acco pack [path] [-q|--query TEXT] [--max-tokens N] [--max-files N] [--context-lines N] [--no-gitignore] [--no-changed-boost] [--graph-hops N] [--closure-items N] [--duplicate-threshold F] [--session ID] [--embeddings|--semantic] [--typescript-semantic] [--strict-semantic] [--no-index-cache] [--no-retrieval-cache] [--target-symbol NAME] [--json] [--explain] [-o FILE]
 ```
 
 ## Arguments and options
@@ -31,4 +31,4 @@ Context text or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#pack-j
 
 ## Authoritative runtime help
 
-Run `token-saver pack --help` for argparse's exact usage text for the installed version.
+Run `acco pack --help` for argparse's exact usage text for the installed version.

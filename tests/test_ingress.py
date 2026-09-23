@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from token_saver.ingress import (
+from acco.ingress import (
     _paths,
     load_stage,
     maybe_stage_prompt,
@@ -27,7 +27,7 @@ def _large_prompt() -> str:
 
 def test_stage_prompt_is_lossless_recoverable_and_bounded(tmp_path, monkeypatch):
     """Staging should preserve the exact original while emitting a small packet."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     prompt = _large_prompt()
@@ -53,7 +53,7 @@ def test_stage_prompt_is_lossless_recoverable_and_bounded(tmp_path, monkeypatch)
 
 def test_stage_integrity_failure_is_explicit(tmp_path, monkeypatch):
     """Tampering with the exact stored original must fail instead of degrading."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     stage = stage_prompt(root, _large_prompt(), packet_tokens=500)
@@ -66,7 +66,7 @@ def test_stage_integrity_failure_is_explicit(tmp_path, monkeypatch):
 
 def test_ingress_is_opt_in_and_threshold_gated(tmp_path, monkeypatch):
     """Ordinary prompts and disabled ingress must remain untouched."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     prompt = _large_prompt()
@@ -96,7 +96,7 @@ def test_ingress_is_opt_in_and_threshold_gated(tmp_path, monkeypatch):
 
 def test_ingress_read_rejects_invalid_ranges(tmp_path, monkeypatch):
     """Recovery should require explicit valid bounded line ranges."""
-    monkeypatch.setenv("TOKEN_SAVER_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
     stage = stage_prompt(root, _large_prompt(), packet_tokens=500)

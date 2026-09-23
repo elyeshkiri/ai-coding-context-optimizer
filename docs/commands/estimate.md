@@ -1,11 +1,11 @@
-# `token-saver estimate`
+# `acco estimate`
 
 Estimate/count tokens in a file or stdin.
 
 ## Synopsis
 
 ```bash
-token-saver estimate [-f FILE] [--exact] [--model MODEL]
+acco estimate [-f FILE] [--exact] [--model MODEL]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Plain token count.
 
 ## Authoritative runtime help
 
-Run `token-saver estimate --help` for argparse's exact usage text for the installed version.
+Run `acco estimate --help` for argparse's exact usage text for the installed version.

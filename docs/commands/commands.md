@@ -1,11 +1,11 @@
-# `token-saver commands`
+# `acco commands`
 
 List registered modern top-level commands.
 
 ## Synopsis
 
 ```bash
-token-saver commands
+acco commands
 ```
 
 ## Arguments and options
@@ -18,8 +18,8 @@ token-saver commands
 
 ## Output contract
 
-Plain-text command list. `token-saver --help` now shows the merged modern + legacy-compatible surface.
+Plain-text command list. `acco --help` now shows the merged modern + legacy-compatible surface.
 
 ## Authoritative runtime help
 
-Run `token-saver commands --help` for argparse's exact usage text for the installed version.
+Run `acco commands --help` for argparse's exact usage text for the installed version.

@@ -1,11 +1,11 @@
-# `token-saver impact`
+# `acco impact`
 
 Analyze callers/dependencies/tests affected by a file or symbol.
 
 ## Synopsis
 
 ```bash
-token-saver impact <target> [--path PATH] [--json]
+acco impact <target> [--path PATH] [--json]
 ```
 
 ## Arguments and options
@@ -24,4 +24,4 @@ Human impact list or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#i
 
 ## Authoritative runtime help
 
-Run `token-saver impact --help` for argparse's exact usage text for the installed version.
+Run `acco impact --help` for argparse's exact usage text for the installed version.

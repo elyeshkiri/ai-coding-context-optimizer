@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import textwrap
 
-from token_saver.repo_index import build_index
-from token_saver.repository_service import RepositoryContextService
+from acco.repo_index import build_index
+from acco.repository_service import RepositoryContextService
 
 
 def _repository(tmp_path):
@@ -61,7 +61,7 @@ def test_service_reuses_one_injected_index_across_repository_use_cases(
         raise AssertionError("injected repository index was rebuilt")
 
     monkeypatch.setattr(
-        "token_saver.repository_service.build_index",
+        "acco.repository_service.build_index",
         unexpected_rebuild,
     )
     service = RepositoryContextService(
@@ -109,7 +109,7 @@ def test_service_owns_index_refresh_policy(tmp_path, monkeypatch):
         )
 
     monkeypatch.setattr(
-        "token_saver.repository_service.build_index",
+        "acco.repository_service.build_index",
         tracked_build_index,
     )
     service = RepositoryContextService(
@@ -138,7 +138,7 @@ def test_service_owns_typescript_semantic_enrichment(tmp_path, monkeypatch):
         return 4
 
     monkeypatch.setattr(
-        "token_saver.repository_service.enrich_index_with_typescript",
+        "acco.repository_service.enrich_index_with_typescript",
         enrich,
     )
     service = RepositoryContextService(root, index=index)

@@ -93,7 +93,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        with tempfile.TemporaryDirectory(prefix="token-saver-real-corpus-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="acco-real-corpus-") as tmp:
             root = Path(tmp)
             freeze = _extract_verified(
                 Path(args.archive).resolve(),

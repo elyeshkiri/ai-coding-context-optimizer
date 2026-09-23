@@ -1,18 +1,18 @@
 # Configuration
 
-Token Saver has two configuration layers:
+ACCO has two configuration layers:
 
-1. the nearest project `.token-saver.toml`;
-2. `TOKEN_SAVER_*` environment variables, which override project values.
+1. the nearest project `.acco.toml`;
+2. `ACCO_*` environment variables, which override project values.
 
-Host integration files are managed separately by `token-saver setup`.
+Host integration files are managed separately by `acco setup`.
 
 ## Project config discovery
 
-Starting from the active repository path, Token Saver walks toward the
-filesystem root and loads the nearest `.token-saver.toml`.
+Starting from the active repository path, ACCO walks toward the
+filesystem root and loads the nearest `.acco.toml`.
 
-A default file created by `token-saver setup` is:
+A default file created by `acco setup` is:
 
 ```toml
 version = 1
@@ -31,7 +31,7 @@ enabled = true
 mode = "normal"
 task = "auto"
 adaptive = true
-calibration_file = ".token-saver.output-calibration.json"
+calibration_file = ".acco.output-calibration.json"
 telemetry = true
 
 [model_routing]
@@ -41,7 +41,7 @@ current_model = ""
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
-calibration_file = ".token-saver.routing-calibration.json"
+calibration_file = ".acco.routing-calibration.json"
 
 [efficiency]
 enabled = true
@@ -94,10 +94,10 @@ max_range_lines = 80
 | `hooks.reread` | `false` | Block unchanged repeated full reads in a session. |
 | `hooks.delta` | `false` | Enable graph-aware diagnostic Delta where supported. |
 | `hooks.min_lines` | `40` | Minimum Bash output size before normal compression is considered. |
-| `hooks.max_lines` | unset | Explicit retained-line cap; otherwise Token Saver derives one. |
+| `hooks.max_lines` | unset | Explicit retained-line cap; otherwise ACCO derives one. |
 | `hooks.keep_tail` | `15` | Tail lines retained by output compaction. |
 | `hooks.allow` | `[]` | Filename, absolute-path, or repository-relative guard globs. |
-| `hooks.disabled` | `false` | Disable Token Saver hook behavior without uninstalling it. |
+| `hooks.disabled` | `false` | Disable ACCO hook behavior without uninstalling it. |
 
 ## Generation output policy
 
@@ -115,11 +115,11 @@ follow-ups inherit the current session class without another policy injection.
 | `output.adaptive` | `true` | Scale the task/mode base budget using deterministic prompt-complexity signals. |
 | `output.min_tokens` | unset | Optional project floor for adaptive budgets, still bounded by the selected mode's safety range. |
 | `output.max_tokens` | unset | Optional project ceiling for adaptive budgets, still bounded by the selected mode's safety range. |
-| `output.calibration_file` | `".token-saver.output-calibration.json"` | Optional learned-budget artifact produced by `output-calibrate`; missing/invalid files fall back to built-in bases. |
+| `output.calibration_file` | `".acco.output-calibration.json"` | Optional learned-budget artifact produced by `output-calibrate`; missing/invalid files fall back to built-in bases. |
 | `output.telemetry` | `true` | Record local content-free turn usage at Claude `Stop`/`StopFailure` for budget-effectiveness reporting. |
 
 The full policy is injected only when the resolved task/mode changes, on the
-first prompt in a session, or after a clear/compact context reset. Token Saver
+first prompt in a session, or after a clear/compact context reset. ACCO
 stores only the resolved task, mode, and budget in local session state; it does
 not persist the user prompt for this feature. Explicit requests such as
 "keep it short" or "give a comprehensive explanation" override the configured
@@ -135,10 +135,10 @@ becomes the learned base before complexity scaling.
 With telemetry enabled, the Claude prompt hook checkpoints only the transcript
 byte offset and resolved policy metadata. The `Stop`/`StopFailure` hook then
 reads only transcript bytes appended during that turn and stores usage counters
-plus policy metadata under the private Token Saver state directory. Prompt text,
+plus policy metadata under the private ACCO state directory. Prompt text,
 assistant text, tool payloads, and transcript content are not copied into the
 telemetry log. Disable temporarily with
-`TOKEN_SAVER_OUTPUT_TELEMETRY=0`.
+`ACCO_OUTPUT_TELEMETRY=0`.
 
 Example allowlist:
 
@@ -219,7 +219,7 @@ request prefix. Raw provider request text is not copied into this state.
 | `provider.prefix_tracking` | `true` | Keep content-free stable-prefix reuse counters when provider request transformation is active. |
 
 The network-facing proxy itself is intentionally not auto-started from project
-configuration. Start it explicitly with `token-saver provider-proxy
+configuration. Start it explicitly with `acco provider-proxy
 --upstream ...`. It binds to loopback by default, requires HTTPS for non-local
 upstreams, forwards provider responses unchanged, and fails closed to the
 original request whenever a lossy transform cannot store exact recovery bytes.
@@ -235,7 +235,7 @@ output-policy hook.
 | `ingress.threshold_tokens` | `12000` | Offline-estimated prompt size at which staging activates. |
 | `ingress.packet_tokens` | `1600` | Maximum target size for the bounded exact-excerpt stage packet. |
 
-Claude Code's `UserPromptSubmit` hook cannot replace the prompt. Token Saver
+Claude Code's `UserPromptSubmit` hook cannot replace the prompt. ACCO
 therefore blocks the oversized turn, stores the exact original locally with a
 SHA-256 integrity digest, and asks for a small follow-up using the stage id.
 There is no automatic prefix-only truncation fallback.
@@ -245,7 +245,7 @@ There is no automatic prefix-only truncation fallback.
 Smart Tool Proxy applies only to verified, unbounded repository source Reads.
 It is disabled by default. With `provider = "ollama"`, a free/local model
 selects relevant source ranges from a bounded structural/exact candidate packet.
-Token Saver validates those ranges and delivers exact source bytes from the
+ACCO validates those ranges and delivers exact source bytes from the
 original file. If the model cannot be reached or returns unusable output,
 deterministic selection is used instead.
 
@@ -279,7 +279,7 @@ Embedding reranking and custom ranking-stage registries bypass this cache versio
 because their external identities are not yet included in the key.
 
 The optional Rust extension has no TOML switch because fallback is automatic.
-Set `TOKEN_SAVER_RUST_FASTPATH=0` to force Python for diagnosis/parity checks.
+Set `ACCO_RUST_FASTPATH=0` to force Python for diagnosis/parity checks.
 
 ## Environment overrides
 
@@ -287,73 +287,73 @@ Environment variables take precedence over TOML:
 
 | Variable | Project equivalent |
 |---|---|
-| `TOKEN_SAVER_DISABLED` | `hooks.disabled` |
-| `TOKEN_SAVER_GUARD` | `hooks.guard` |
-| `TOKEN_SAVER_READ_MAX_LINES` | `hooks.read_max_lines` |
-| `TOKEN_SAVER_REREAD` | `hooks.reread` |
-| `TOKEN_SAVER_ALLOW` | `hooks.allow` (colon-separated) |
-| `TOKEN_SAVER_DELTA` | `hooks.delta` |
-| `TOKEN_SAVER_MIN_LINES` | `hooks.min_lines` |
-| `TOKEN_SAVER_MAX_LINES` | `hooks.max_lines` |
-| `TOKEN_SAVER_KEEP_TAIL` | `hooks.keep_tail` |
-| `TOKEN_SAVER_OUTPUT_POLICY` | `output.enabled` |
-| `TOKEN_SAVER_OUTPUT_MODE` | `output.mode` |
-| `TOKEN_SAVER_OUTPUT_TASK` | `output.task` |
-| `TOKEN_SAVER_OUTPUT_ADAPTIVE` | `output.adaptive` |
-| `TOKEN_SAVER_OUTPUT_MIN_TOKENS` | `output.min_tokens` |
-| `TOKEN_SAVER_OUTPUT_MAX_TOKENS` | `output.max_tokens` |
-| `TOKEN_SAVER_OUTPUT_CALIBRATION_FILE` | `output.calibration_file` |
-| `TOKEN_SAVER_OUTPUT_TELEMETRY` | `output.telemetry` |
-| `TOKEN_SAVER_MODEL_ROUTING` | `model_routing.enabled` |
-| `TOKEN_SAVER_MODEL_ROUTING_MODE` | `model_routing.mode` |
-| `TOKEN_SAVER_MODEL_ROUTING_CURRENT_MODEL` | `model_routing.current_model` |
-| `TOKEN_SAVER_MODEL_ROUTING_ALLOWED` | `model_routing.allowed_models` (colon-separated) |
-| `TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS` | `model_routing.min_savings` |
-| `TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE` | `model_routing.conservative` |
-| `TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE` | `model_routing.calibration_file` |
-| `TOKEN_SAVER_EFFICIENCY` | `efficiency.enabled` |
-| `TOKEN_SAVER_CONTINUITY` | `efficiency.continuity` |
-| `TOKEN_SAVER_CROSS_TURN_DEDUP` | `efficiency.dedup` |
-| `TOKEN_SAVER_WASTE_DETECTION` | `efficiency.waste_detection` |
-| `TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE` | `efficiency.knowledge_read_avoidance` |
-| `TOKEN_SAVER_CACHE_ECONOMICS` | `efficiency.cache_economics` |
-| `TOKEN_SAVER_CACHE_EXPECTED_REUSES` | `efficiency.cache_expected_reuses` |
-| `TOKEN_SAVER_CACHE_WRITE_FACTOR` | `efficiency.cache_write_factor` |
-| `TOKEN_SAVER_CACHE_READ_FACTOR` | `efficiency.cache_read_factor` |
-| `TOKEN_SAVER_CACHE_MIN_RELATIVE_SAVINGS` | `efficiency.cache_min_relative_savings` |
-| `TOKEN_SAVER_INGRESS_OPTIMIZER` | `ingress.enabled` |
-| `TOKEN_SAVER_INGRESS_THRESHOLD_TOKENS` | `ingress.threshold_tokens` |
-| `TOKEN_SAVER_INGRESS_PACKET_TOKENS` | `ingress.packet_tokens` |
-| `TOKEN_SAVER_RETRIEVAL_CACHE` | `retrieval.cache` |
-| `TOKEN_SAVER_RETRIEVAL_CACHE_MAX_ENTRIES` | `retrieval.cache_max_entries` |
-| `TOKEN_SAVER_MCP_PROFILE` | `mcp.profile` |
-| `TOKEN_SAVER_MCP_ADAPTIVE_MAX_TOOLS` | `mcp.adaptive_max_tools` |
-| `TOKEN_SAVER_MCP_COMPRESS_SCHEMAS` | `mcp.compress_schemas` |
-| `TOKEN_SAVER_PREFIX_TRACKING` | `provider.prefix_tracking` |
-| `TOKEN_SAVER_TOOL_PROXY` | `tool_proxy.enabled` |
-| `TOKEN_SAVER_TOOL_PROXY_PROVIDER` | `tool_proxy.provider` |
-| `TOKEN_SAVER_TOOL_PROXY_MODEL` | `tool_proxy.model` |
-| `TOKEN_SAVER_TOOL_PROXY_ENDPOINT` | `tool_proxy.endpoint` |
-| `TOKEN_SAVER_TOOL_PROXY_MIN_TOKENS` | `tool_proxy.min_tokens` |
-| `TOKEN_SAVER_TOOL_PROXY_TARGET_TOKENS` | `tool_proxy.target_tokens` |
-| `TOKEN_SAVER_TOOL_PROXY_MODEL_INPUT_TOKENS` | `tool_proxy.model_input_tokens` |
-| `TOKEN_SAVER_TOOL_PROXY_TIMEOUT_SECONDS` | `tool_proxy.timeout_seconds` |
-| `TOKEN_SAVER_TOOL_PROXY_MAX_RANGES` | `tool_proxy.max_ranges` |
-| `TOKEN_SAVER_TOOL_PROXY_MAX_RANGE_LINES` | `tool_proxy.max_range_lines` |
-| `TOKEN_SAVER_RUST_FASTPATH` | native acceleration override (no TOML equivalent) |
+| `ACCO_DISABLED` | `hooks.disabled` |
+| `ACCO_GUARD` | `hooks.guard` |
+| `ACCO_READ_MAX_LINES` | `hooks.read_max_lines` |
+| `ACCO_REREAD` | `hooks.reread` |
+| `ACCO_ALLOW` | `hooks.allow` (colon-separated) |
+| `ACCO_DELTA` | `hooks.delta` |
+| `ACCO_MIN_LINES` | `hooks.min_lines` |
+| `ACCO_MAX_LINES` | `hooks.max_lines` |
+| `ACCO_KEEP_TAIL` | `hooks.keep_tail` |
+| `ACCO_OUTPUT_POLICY` | `output.enabled` |
+| `ACCO_OUTPUT_MODE` | `output.mode` |
+| `ACCO_OUTPUT_TASK` | `output.task` |
+| `ACCO_OUTPUT_ADAPTIVE` | `output.adaptive` |
+| `ACCO_OUTPUT_MIN_TOKENS` | `output.min_tokens` |
+| `ACCO_OUTPUT_MAX_TOKENS` | `output.max_tokens` |
+| `ACCO_OUTPUT_CALIBRATION_FILE` | `output.calibration_file` |
+| `ACCO_OUTPUT_TELEMETRY` | `output.telemetry` |
+| `ACCO_MODEL_ROUTING` | `model_routing.enabled` |
+| `ACCO_MODEL_ROUTING_MODE` | `model_routing.mode` |
+| `ACCO_MODEL_ROUTING_CURRENT_MODEL` | `model_routing.current_model` |
+| `ACCO_MODEL_ROUTING_ALLOWED` | `model_routing.allowed_models` (colon-separated) |
+| `ACCO_MODEL_ROUTING_MIN_SAVINGS` | `model_routing.min_savings` |
+| `ACCO_MODEL_ROUTING_CONSERVATIVE` | `model_routing.conservative` |
+| `ACCO_MODEL_ROUTING_CALIBRATION_FILE` | `model_routing.calibration_file` |
+| `ACCO_EFFICIENCY` | `efficiency.enabled` |
+| `ACCO_CONTINUITY` | `efficiency.continuity` |
+| `ACCO_CROSS_TURN_DEDUP` | `efficiency.dedup` |
+| `ACCO_WASTE_DETECTION` | `efficiency.waste_detection` |
+| `ACCO_KNOWLEDGE_READ_AVOIDANCE` | `efficiency.knowledge_read_avoidance` |
+| `ACCO_CACHE_ECONOMICS` | `efficiency.cache_economics` |
+| `ACCO_CACHE_EXPECTED_REUSES` | `efficiency.cache_expected_reuses` |
+| `ACCO_CACHE_WRITE_FACTOR` | `efficiency.cache_write_factor` |
+| `ACCO_CACHE_READ_FACTOR` | `efficiency.cache_read_factor` |
+| `ACCO_CACHE_MIN_RELATIVE_SAVINGS` | `efficiency.cache_min_relative_savings` |
+| `ACCO_INGRESS_OPTIMIZER` | `ingress.enabled` |
+| `ACCO_INGRESS_THRESHOLD_TOKENS` | `ingress.threshold_tokens` |
+| `ACCO_INGRESS_PACKET_TOKENS` | `ingress.packet_tokens` |
+| `ACCO_RETRIEVAL_CACHE` | `retrieval.cache` |
+| `ACCO_RETRIEVAL_CACHE_MAX_ENTRIES` | `retrieval.cache_max_entries` |
+| `ACCO_MCP_PROFILE` | `mcp.profile` |
+| `ACCO_MCP_ADAPTIVE_MAX_TOOLS` | `mcp.adaptive_max_tools` |
+| `ACCO_MCP_COMPRESS_SCHEMAS` | `mcp.compress_schemas` |
+| `ACCO_PREFIX_TRACKING` | `provider.prefix_tracking` |
+| `ACCO_TOOL_PROXY` | `tool_proxy.enabled` |
+| `ACCO_TOOL_PROXY_PROVIDER` | `tool_proxy.provider` |
+| `ACCO_TOOL_PROXY_MODEL` | `tool_proxy.model` |
+| `ACCO_TOOL_PROXY_ENDPOINT` | `tool_proxy.endpoint` |
+| `ACCO_TOOL_PROXY_MIN_TOKENS` | `tool_proxy.min_tokens` |
+| `ACCO_TOOL_PROXY_TARGET_TOKENS` | `tool_proxy.target_tokens` |
+| `ACCO_TOOL_PROXY_MODEL_INPUT_TOKENS` | `tool_proxy.model_input_tokens` |
+| `ACCO_TOOL_PROXY_TIMEOUT_SECONDS` | `tool_proxy.timeout_seconds` |
+| `ACCO_TOOL_PROXY_MAX_RANGES` | `tool_proxy.max_ranges` |
+| `ACCO_TOOL_PROXY_MAX_RANGE_LINES` | `tool_proxy.max_range_lines` |
+| `ACCO_RUST_FASTPATH` | native acceleration override (no TOML equivalent) |
 
 Boolean overrides accept `1/true/yes/on`; other values resolve to false.
 
 Example temporary override:
 
 ```bash
-TOKEN_SAVER_DELTA=1 TOKEN_SAVER_READ_MAX_LINES=150 claude
+ACCO_DELTA=1 ACCO_READ_MAX_LINES=150 claude
 
 # Disable automatic generation-policy injection temporarily:
-TOKEN_SAVER_OUTPUT_POLICY=0 claude
+ACCO_OUTPUT_POLICY=0 claude
 
 # Force a fixed terse review policy instead of auto-classification:
-TOKEN_SAVER_OUTPUT_MODE=terse TOKEN_SAVER_OUTPUT_TASK=review claude
+ACCO_OUTPUT_MODE=terse ACCO_OUTPUT_TASK=review claude
 ```
 
 ## Managed host files
@@ -362,19 +362,19 @@ TOKEN_SAVER_OUTPUT_MODE=terse TOKEN_SAVER_OUTPUT_TASK=review claude
 
 Setup manages:
 
-- `.claude/settings.json`: only hook commands equal to `token-saver hook`;
-- `.mcp.json`: only `mcpServers.token-saver`;
+- `.claude/settings.json`: only hook commands equal to `acco hook`;
+- `.mcp.json`: only `mcpServers.acco`;
 - `.claude/skills/token-budget/SKILL.md`: generated template.
 
 Uninstall removes the generated skill only if it is still byte-identical to the
-Token Saver template. A user-edited skill is preserved.
+ACCO template. A user-edited skill is preserved.
 
 ### Cursor
 
 Setup manages only:
 
 ```text
-.cursor/mcp.json → mcpServers.token-saver
+.cursor/mcp.json → mcpServers.acco
 ```
 
 Other MCP servers remain untouched.
@@ -384,17 +384,17 @@ Other MCP servers remain untouched.
 Setup manages only the block between:
 
 ```toml
-# >>> token-saver managed >>>
+# >>> acco managed >>>
 ...
-# <<< token-saver managed <<<
+# <<< acco managed <<<
 ```
 
-If an unmanaged `[mcp_servers.token-saver]` already exists, setup refuses to
+If an unmanaged `[mcp_servers.acco]` already exists, setup refuses to
 overwrite it.
 
 ## Mutation safety
 
-For multi-host setup, Token Saver preflights every selected managed file before
+For multi-host setup, ACCO preflights every selected managed file before
 the first write. Invalid JSON or a conflicting Codex block therefore fails
 before any earlier host is partially configured.
 
@@ -407,7 +407,7 @@ the configured model name identifies the semantic vector store. For a
 reproducible benchmark or a deployment that pins model weights, also set:
 
 ```bash
-export TOKEN_SAVER_SEMANTIC_MODEL_REVISION=<immutable-model-revision>
+export ACCO_SEMANTIC_MODEL_REVISION=<immutable-model-revision>
 ```
 
 The revision is passed to SentenceTransformers and is included in the semantic
@@ -423,19 +423,19 @@ configuration does not need to pin a model revision.
 Session state defaults to:
 
 ```text
-~/.claude/token-saver/
+~/.claude/acco/
 ```
 
 Override it with:
 
 ```bash
-export TOKEN_SAVER_STATE_DIR=/another/private/path
+export ACCO_STATE_DIR=/another/private/path
 ```
 
-Saved original command output is local and can be paged with `token-saver
-output` or pruned with `token-saver outputs-prune`. New lossy optimization
+Saved original command output is local and can be paged with `acco
+output` or pruned with `acco outputs-prune`. New lossy optimization
 surfaces also use the project-scoped content-addressed recovery store and emit
-`tsr_...` handles recoverable with `token-saver recover` or MCP
+`tsr_...` handles recoverable with `acco recover` or MCP
 `recover_context`. The recovery store refuses new transforms rather than
 evicting old source when its hard capacity would be exceeded.
 
@@ -453,18 +453,18 @@ current_model = "" # optional exact model id when the host does not supply one
 allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
 min_savings = 0.05
 conservative = true
-calibration_file = ".token-saver.routing-calibration.json"
+calibration_file = ".acco.routing-calibration.json"
 ```
 
 Environment overrides:
 
-- `TOKEN_SAVER_MODEL_ROUTING`
-- `TOKEN_SAVER_MODEL_ROUTING_MODE`
-- `TOKEN_SAVER_MODEL_ROUTING_CURRENT_MODEL`
-- `TOKEN_SAVER_MODEL_ROUTING_ALLOWED` (colon-separated exact model ids)
-- `TOKEN_SAVER_MODEL_ROUTING_MIN_SAVINGS`
-- `TOKEN_SAVER_MODEL_ROUTING_CONSERVATIVE`
-- `TOKEN_SAVER_MODEL_ROUTING_CALIBRATION_FILE`
+- `ACCO_MODEL_ROUTING`
+- `ACCO_MODEL_ROUTING_MODE`
+- `ACCO_MODEL_ROUTING_CURRENT_MODEL`
+- `ACCO_MODEL_ROUTING_ALLOWED` (colon-separated exact model ids)
+- `ACCO_MODEL_ROUTING_MIN_SAVINGS`
+- `ACCO_MODEL_ROUTING_CONSERVATIVE`
+- `ACCO_MODEL_ROUTING_CALIBRATION_FILE`
 
 `observe` computes/stores decisions without prompt injection. `advisory`
 also injects a bounded host-neutral recommendation. The Claude prompt hook
@@ -479,9 +479,9 @@ experiment with identical arm configuration except model choice, independent
 post-agent verification, and complete blind A/B quality grading:
 
 ```bash
-token-saver experiment routing-suite.json --out routing-runs.json
-token-saver blind-grade routing-runs.json
-token-saver model-route-calibrate routing-runs.json
+acco experiment routing-suite.json --out routing-runs.json
+acco blind-grade routing-runs.json
+acco model-route-calibrate routing-runs.json
 ```
 
 Accepted recommendations are exact-bucket exceptions, not global model

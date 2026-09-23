@@ -1,18 +1,18 @@
-# `token-saver agent-evaluate`
+# `acco agent-evaluate`
 
-Evaluate paired baseline/Token Saver agent outcomes.
+Evaluate paired baseline/ACCO agent outcomes.
 
 ## Synopsis
 
 ```bash
-token-saver agent-evaluate <manifest>
+acco agent-evaluate <manifest>
 ```
 
 ## Arguments and options
 
 - `manifest` — paired agent-run JSON. Runs are paired by `task` + `trial`;
   `trial` defaults to `1` for legacy manifests. Optimized runs may use
-  condition `token-saver` or experiment-native `enabled`.
+  condition `acco` or experiment-native `enabled`.
 - Runs may optionally include blind response-quality scores for `correctness`,
   `completeness`, `actionability`, `safety`, and `concision`, plus a
   boolean `blocker`. When supplied, every paired run must be scored and the
@@ -34,4 +34,4 @@ confidence interval.
 
 ## Authoritative runtime help
 
-Run `token-saver agent-evaluate --help` for argparse's exact usage text for the installed version.
+Run `acco agent-evaluate --help` for argparse's exact usage text for the installed version.

@@ -2,8 +2,8 @@
 
 import pytest
 
-from token_saver.output import DEFAULT_REGISTRY
-from token_saver.output_processors import explain_processor, process_output
+from acco.output import DEFAULT_REGISTRY
+from acco.output_processors import explain_processor, process_output
 
 
 @pytest.mark.parametrize(

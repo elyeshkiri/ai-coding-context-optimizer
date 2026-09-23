@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from token_saver.benchmark import task_definition_hash
-from token_saver.evidence_pipeline import run_evidence_pipeline
-from token_saver.experiment import prompt_sha256
+from acco.benchmark import task_definition_hash
+from acco.evidence_pipeline import run_evidence_pipeline
+from acco.experiment import prompt_sha256
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -68,14 +68,14 @@ transcript.write_text(json.dumps({
 }) + "\\n", encoding="utf-8")
 
 if condition == "enabled":
-    state = pathlib.Path(os.environ["TOKEN_SAVER_STATE_DIR"])
+    state = pathlib.Path(os.environ["ACCO_STATE_DIR"])
     telemetry = state / "telemetry" / "synthetic.jsonl"
     telemetry.parent.mkdir(parents=True, exist_ok=True)
     telemetry.write_text(json.dumps({
         "schema": 1,
         "experiment": {
-            "task": os.environ["TOKEN_SAVER_BENCHMARK_TASK"],
-            "trial": os.environ["TOKEN_SAVER_BENCHMARK_TRIAL"],
+            "task": os.environ["ACCO_BENCHMARK_TASK"],
+            "trial": os.environ["ACCO_BENCHMARK_TRIAL"],
             "condition": condition,
         },
         "turn_status": "completed",
@@ -206,7 +206,7 @@ def test_evidence_pipeline_runs_grades_reports_calibrates_and_resumes(
     """One command should compose all evidence stages and reuse checkpoints."""
     suite, counter = _suite(tmp_path)
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
     runs = tmp_path / "runs.json"
@@ -254,7 +254,7 @@ def test_evidence_pipeline_publishable_flag_fails_closed_for_small_suite(
     """The combined command should expose a nonzero publishability failure."""
     suite, _counter = _suite(tmp_path)
     monkeypatch.setattr(
-        "token_saver.experiment.user_token_saver_hook_configured",
+        "acco.experiment.user_acco_hook_configured",
         lambda: False,
     )
 

@@ -92,7 +92,7 @@ def main() -> int:
         ensure_clone(manifest.parent / name, repo["url"], repo["revision"])
 
     # Imported here so clone failures surface before an import error would.
-    from token_saver.evaluate import evaluate_manifest
+    from acco.evaluate import evaluate_manifest
 
     result = evaluate_manifest(
         REPO_ROOT, manifest, max_tokens=max_tokens, require_holdout=True,

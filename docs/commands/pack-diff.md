@@ -1,11 +1,11 @@
-# `token-saver pack-diff`
+# `acco pack-diff`
 
 Build bounded repository context around a Git diff.
 
 ## Synopsis
 
 ```bash
-token-saver pack-diff [path] [--base REV] [--staged] [--json] [--max-tokens N]
+acco pack-diff [path] [--base REV] [--staged] [--json] [--max-tokens N]
 ```
 
 ## Arguments and options
@@ -26,4 +26,4 @@ Context/coverage text or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.
 
 ## Authoritative runtime help
 
-Run `token-saver pack-diff --help` for argparse's exact usage text for the installed version.
+Run `acco pack-diff --help` for argparse's exact usage text for the installed version.

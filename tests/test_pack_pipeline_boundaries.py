@@ -5,12 +5,12 @@ from __future__ import annotations
 import inspect
 import textwrap
 
-import token_saver.pack as pack_facade
-from token_saver.packing.contracts import ContextPack, RankedFile
-from token_saver.packing.ranking import rank_files as ranking_stage
-from token_saver.packing.render import _fit_section as render_fit_section
-from token_saver.packing.symbols import _file_section as symbol_file_section
-from token_saver.repo_index import build_index
+import acco.pack as pack_facade
+from acco.packing.contracts import ContextPack, RankedFile
+from acco.packing.ranking import rank_files as ranking_stage
+from acco.packing.render import _fit_section as render_fit_section
+from acco.packing.symbols import _file_section as symbol_file_section
+from acco.repo_index import build_index
 
 
 def _repo(tmp_path):
@@ -88,7 +88,7 @@ def test_facade_ranking_matches_extracted_stage_exactly(tmp_path):
 
 
 def test_changed_file_monkeypatch_seam_survives_extraction(tmp_path, monkeypatch):
-    """Existing callers patching token_saver.pack._changed_files must still work."""
+    """Existing callers patching acco.pack._changed_files must still work."""
     root = _repo(tmp_path)
     monkeypatch.setattr(
         pack_facade,

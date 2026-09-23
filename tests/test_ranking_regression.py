@@ -8,12 +8,12 @@ import textwrap
 
 import pytest
 
-from token_saver.command_handlers.evaluation import (
+from acco.command_handlers.evaluation import (
     ranking_diff_main,
     ranking_snapshot_main,
 )
-from token_saver.command_registry import DEFAULT_COMMAND_REGISTRY
-from token_saver.ranking_regression import (
+from acco.command_registry import DEFAULT_COMMAND_REGISTRY
+from acco.ranking_regression import (
     build_ranking_snapshot,
     compare_ranking_snapshots,
     regression_violations,
@@ -235,7 +235,7 @@ def test_markdown_report_surfaces_rank_and_stage_changes(tmp_path):
     report = compare_ranking_snapshots(baseline, candidate)
     markdown = render_ranking_diff_markdown(report)
 
-    assert "## Token Saver ranking regression report" in markdown
+    assert "## ACCO ranking regression report" in markdown
     assert "**1 regressed**" in markdown
     assert "<code>billing.py</code>" in markdown
     assert "2 → 5 (+3)" in markdown
@@ -272,4 +272,4 @@ def test_ranking_diff_cli_supports_markdown(tmp_path, capsys):
     )
 
     assert result == 0
-    assert "## Token Saver ranking regression report" in capsys.readouterr().out
+    assert "## ACCO ranking regression report" in capsys.readouterr().out

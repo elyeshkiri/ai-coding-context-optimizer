@@ -1,18 +1,18 @@
-# `token-saver uninstall`
+# `acco uninstall`
 
-Remove only Token Saver-owned host integration entries.
+Remove only ACCO-owned host integration entries.
 
 ## Synopsis
 
 ```bash
-token-saver uninstall [path] [--host HOST|all ...] [--remove-config] [--json]
+acco uninstall [path] [--host HOST|all ...] [--remove-config] [--json]
 ```
 
 ## Arguments and options
 
 - `path` default `.`.
 - `--host` repeatable; default is all supported hosts: `claude`, `cursor`, `codex`, `opencode`, `openclaw`, `hermes`, `copilot`, and `antigravity`.
-- `--remove-config` also removes `.token-saver.toml`.
+- `--remove-config` also removes `.acco.toml`.
 - `--json` emits lifecycle result.
 
 ## Exit codes
@@ -25,4 +25,4 @@ Human removal summary or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.
 
 ## Authoritative runtime help
 
-Run `token-saver uninstall --help` for argparse's exact usage text for the installed version.
+Run `acco uninstall --help` for argparse's exact usage text for the installed version.

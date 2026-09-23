@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "token-saver hook",
+            "command": "acco hook",
             "timeout": 10
           }
         ],
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "token-saver hook",
+            "command": "acco hook",
             "timeout": 10
           }
         ],
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "token-saver hook",
+            "command": "acco hook",
             "timeout": 10
           }
         ],
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "token-saver hook",
+            "command": "acco hook",
             "timeout": 10
           }
         ]

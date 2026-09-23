@@ -1,11 +1,11 @@
-# `token-saver experiment`
+# `acco experiment`
 
 Run or dry-run randomized paired agent experiments.
 
 ## Synopsis
 
 ```bash
-token-saver experiment <suite> [--out FILE] [--dry-run] [--allow-development] [--allow-user-hook] [--task ID ...] [--print-task-definition-hash]
+acco experiment <suite> [--out FILE] [--dry-run] [--allow-development] [--allow-user-hook] [--task ID ...] [--print-task-definition-hash]
 ```
 
 ## Arguments and options
@@ -25,7 +25,7 @@ but do not alter the already-frozen task-definition hash.
 
 For routing experiments, `runner.condition_profiles.baseline.model` and
 `runner.condition_profiles.enabled.model` may override `runner.model` per
-arm. Use the same `install_token_saver` and `env` values in both arms so model
+arm. Use the same `install_acco` and `env` values in both arms so model
 choice is the only treatment. Each completed run records `actual_models` from
 transcript usage; `model-route-calibrate` requires exactly one actual model and
 requires it to match the declared arm model.
@@ -50,4 +50,4 @@ experiment-native `enabled` condition.
 
 ## Authoritative runtime help
 
-Run `token-saver experiment --help` for argparse's exact usage text for the installed version.
+Run `acco experiment --help` for argparse's exact usage text for the installed version.

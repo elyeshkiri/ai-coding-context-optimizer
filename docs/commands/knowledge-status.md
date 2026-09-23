@@ -1,12 +1,12 @@
-# `token-saver knowledge-status`
+# `acco knowledge-status`
 
 Inspect the size and freshness state of local durable project knowledge without printing the stored claims.
 
 ## Synopsis
 
 ```bash
-token-saver knowledge-status [path]
-token-saver knowledge-status [path] --json
+acco knowledge-status [path]
+acco knowledge-status [path] --json
 ```
 
 ## Arguments and options
@@ -26,5 +26,5 @@ The report contains `schema`, `total`, `active`, `stale`, `superseded`, and `pat
 ## Authoritative runtime help
 
 ```bash
-token-saver knowledge-status --help
+acco knowledge-status --help
 ```

@@ -1,11 +1,11 @@
-# `token-saver benchmark`
+# `acco benchmark`
 
 Evaluate recorded paired tasks with supplied model rates.
 
 ## Synopsis
 
 ```bash
-token-saver benchmark <manifest> [--rates FILE] [--require-publishable] [--print-task-definition-hash]
+acco benchmark <manifest> [--rates FILE] [--require-publishable] [--print-task-definition-hash]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ JSON when evaluating; a single hash when printing the task-definition hash. See 
 
 ## Authoritative runtime help
 
-Run `token-saver benchmark --help` for argparse's exact usage text for the installed version.
+Run `acco benchmark --help` for argparse's exact usage text for the installed version.

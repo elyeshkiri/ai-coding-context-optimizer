@@ -1,19 +1,19 @@
-# `token-saver fastpath-status`
+# `acco fastpath-status`
 
 Inspect whether the optional Rust acceleration extension is active.
 
 ## Synopsis
 
 ```bash
-token-saver fastpath-status
-token-saver fastpath-status --json
+acco fastpath-status
+acco fastpath-status --json
 ```
 
 ## Arguments and options
 
 - `--json` — emit the backend, accelerated capabilities, and environment override.
 
-Set `TOKEN_SAVER_RUST_FASTPATH=0` to force the Python reference implementation even when the extension is installed.
+Set `ACCO_RUST_FASTPATH=0` to force the Python reference implementation even when the extension is installed.
 
 ## Exit codes
 
@@ -26,5 +26,5 @@ Reports `available`, `backend` (`rust` or `python`), `capabilities[]`, and `env_
 ## Authoritative runtime help
 
 ```bash
-token-saver fastpath-status --help
+acco fastpath-status --help
 ```

@@ -1,4 +1,4 @@
-from token_saver.benchmark import _publishability_issues, task_definition_hash
+from acco.benchmark import _publishability_issues, task_definition_hash
 
 
 def _manifest(task_count=20, trials=3):

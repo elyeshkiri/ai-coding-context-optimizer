@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-import token_saver
+import acco
 
 
 def test_runtime_version_matches_project_metadata():
@@ -9,4 +9,4 @@ def test_runtime_version_matches_project_metadata():
     text = (root / "pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'(?m)^version\s*=\s*"([^"]+)"\s*$', text)
     assert match is not None
-    assert token_saver.__version__ == match.group(1)
+    assert acco.__version__ == match.group(1)

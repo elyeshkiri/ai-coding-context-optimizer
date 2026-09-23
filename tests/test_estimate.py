@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from token_saver.estimate import (
+from acco.estimate import (
     Counter,
     count_tokens_exact,
     estimate_tokens,
@@ -73,7 +73,7 @@ def test_exact_mode_reports_a_usable_error_without_the_sdk(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", fake)
-    with pytest.raises(RuntimeError, match="token-saver\\[exact\\]"):
+    with pytest.raises(RuntimeError, match="acco\\[exact\\]"):
         count_tokens_exact("hi")
 
 
@@ -100,7 +100,7 @@ def test_openai_unknown_tokenizer_is_not_silently_approximated(monkeypatch):
 
 def test_google_exact_mode_routes_to_gemini_counter(monkeypatch):
     monkeypatch.setattr(
-        "token_saver.estimate._count_google",
+        "acco.estimate._count_google",
         lambda text, model: 17 if text == "hello" and model == "gemini-2.5-pro" else 0,
     )
     assert count_tokens_exact(

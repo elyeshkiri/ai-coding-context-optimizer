@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from token_saver.experiment import build_schedule, validate_suite
+from acco.experiment import build_schedule, validate_suite
 
 
 SUITE = Path(__file__).parents[1] / "benchmarks" / "e2e-swebench-24.frozen.json"

@@ -1,4 +1,4 @@
-from token_saver.lexical import fuzzy_symbol_terms, symbol_terms, terms
+from acco.lexical import fuzzy_symbol_terms, symbol_terms, terms
 
 
 def test_acronym_prefixed_identifiers_split_at_every_word_boundary():

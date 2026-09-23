@@ -1,11 +1,11 @@
-# `token-saver output-policy`
+# `acco output-policy`
 
 Generate compact model-response policy instructions.
 
 ## Synopsis
 
 ```bash
-token-saver output-policy [--mode terse|normal|detailed] [--task TASK] [--max-tokens N] [--json]
+acco output-policy [--mode terse|normal|detailed] [--task TASK] [--max-tokens N] [--json]
 ```
 
 ## Arguments and options
@@ -25,4 +25,4 @@ Instructions or JSON; see [Machine-readable contracts](../JSON_OUTPUTS.md#output
 
 ## Authoritative runtime help
 
-Run `token-saver output-policy --help` for argparse's exact usage text for the installed version.
+Run `acco output-policy --help` for argparse's exact usage text for the installed version.
