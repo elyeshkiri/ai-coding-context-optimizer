@@ -48,7 +48,7 @@ def fastpath_status_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        print("TOKEN SAVER FASTPATH")
+        print("ACCO FASTPATH")
         print(f"backend: {result['backend']}")
         capabilities = result["capabilities"]
         print("capabilities: " + (", ".join(capabilities) if capabilities else "none"))
@@ -71,7 +71,7 @@ def client_capabilities_main(argv: list[str]) -> int:
 
     if args.client:
         record = report["client"]
-        print(f"TOKEN SAVER CLIENT CAPABILITIES — {record['client']}")
+        print(f"ACCO CLIENT CAPABILITIES — {record['client']}")
         for name, level in record["capabilities"].items():
             print(f"  {name:<24} {level}")
         if record["note"]:
@@ -84,7 +84,7 @@ def client_capabilities_main(argv: list[str]) -> int:
             print(f"  {name:<26} {state}")
         return 0
 
-    print("TOKEN SAVER CLIENT CAPABILITY REGISTRY")
+    print("ACCO CLIENT CAPABILITY REGISTRY")
     for name, record in report["clients"].items():
         guaranteed = sum(
             1 for level in record["capabilities"].values() if level == "yes"
@@ -172,7 +172,7 @@ def setup_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(result, indent=2))
         return 0
-    print("TOKEN SAVER SETUP")
+    print("ACCO SETUP")
     print(f"project: {result['root']}")
     print(f"config:  {result['config']}")
     if result["configured_hosts"]:
@@ -201,7 +201,7 @@ def doctor_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(report, indent=2))
     else:
-        print(f"TOKEN SAVER DOCTOR {report['version']}")
+        print(f"ACCO DOCTOR {report['version']}")
         print("status: " + ("READY" if report["ready"] else "NEEDS ATTENTION"))
         print(f"cli:    {report['acco_executable'] or 'not found in PATH'}")
         print(f"config: {report['config_path'] or 'not found'}")
@@ -245,7 +245,7 @@ def uninstall_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        print("TOKEN SAVER UNINSTALL")
+        print("ACCO UNINSTALL")
         print("removed: " + ", ".join(result["removed_hosts"]))
         if result["config_removed"]:
             print("project config removed")
@@ -283,7 +283,7 @@ def commands_main(argv: list[str]) -> int:
     parser.parse_args(argv)
     from ..command_registry import DEFAULT_COMMAND_REGISTRY
 
-    print("TOKEN SAVER COMMANDS")
+    print("ACCO COMMANDS")
     for name in DEFAULT_COMMAND_REGISTRY.names():
         print(name)
     print("\nUse: acco <command> --help")

@@ -224,6 +224,6 @@ def automatic_output_policy(
     update_state(root, mutate, session_id)
 
     return (
-        "TOKEN SAVER GENERATION POLICY — apply for this task until it changes:\n"
+        "ACCO GENERATION POLICY — apply for this task until it changes:\n"
         + policy.instructions
     )

@@ -54,7 +54,7 @@ def corpus_analyze_main(argv: list[str]) -> int:
         print(json.dumps(report, indent=2))
         return 0
 
-    print("TOKEN SAVER PROCESSOR CORPUS ANALYSIS")
+    print("ACCO PROCESSOR CORPUS ANALYSIS")
     print(f"sessions: {report['sessions']}")
     print(f"bash calls: {report['bash_calls']}")
     print(f"output tokens: {report['total_output_tokens']:,}")
@@ -181,7 +181,7 @@ def output_telemetry_main(argv: list[str]) -> int:
         return 0
 
     summary = report["summary"]
-    print("TOKEN SAVER OUTPUT TELEMETRY")
+    print("ACCO OUTPUT TELEMETRY")
     print(f"path: {report['path']}")
     print(
         "turns: "

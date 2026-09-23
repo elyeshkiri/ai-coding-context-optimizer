@@ -508,7 +508,7 @@ def continuity_context(
         return None
 
     lines = [
-        "TOKEN SAVER CONTINUITY CHECKPOINT — structured local state, not a transcript.",
+        "ACCO CONTINUITY CHECKPOINT — structured local state, not a transcript.",
         f"Task class: {session.get('task') or 'general'}.",
     ]
     if files:

@@ -77,7 +77,7 @@ def recovery_status_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(report, indent=2))
     else:
-        print("TOKEN SAVER RECOVERY")
+        print("ACCO RECOVERY")
         print(f"records:   {report['records']}")
         print(f"used:      {report['used_bytes']} bytes")
         print(f"remaining: {report['remaining_bytes']} bytes")
@@ -95,7 +95,7 @@ def prefix_status_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(report, indent=2))
         return 0
-    print("TOKEN SAVER PREFIX CACHE")
+    print("ACCO PREFIX CACHE")
     if not report["providers"]:
         print("no provider-prefix observations")
         return 0
@@ -262,7 +262,7 @@ def optimize_main(argv: list[str]) -> int:
             )
         return 0
 
-    print("TOKEN SAVER OPTIMIZATION PLAN")
+    print("ACCO OPTIMIZATION PLAN")
     if not result["proposals"]:
         print("no safe ACCO-owned config proposals from current evidence")
     for item in result["proposals"]:

@@ -1106,7 +1106,7 @@ def automatic_model_route(
         else ""
     )
     return (
-        "TOKEN SAVER MODEL ROUTE — host-neutral advisory. "
+        "ACCO MODEL ROUTE — host-neutral advisory. "
         "The Claude prompt hook cannot switch the active top-level model itself. "
         "For a model-selectable subagent/orchestrator, use "
         f"{decision.selected_model}. "

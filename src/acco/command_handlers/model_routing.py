@@ -64,7 +64,7 @@ def model_route_main(argv: list[str]) -> int:
         print(json.dumps(payload, indent=2))
         return 0
 
-    print("TOKEN SAVER MODEL ROUTE")
+    print("ACCO MODEL ROUTE")
     print(f"task: {decision.task}")
     print(
         "complexity: "
