@@ -2,7 +2,7 @@
   "protocol": {
     "frozen": true,
     "frozen_at": "2026-09-21T08:30:00Z",
-    "definition_sha256": "96200e12642e7ff5e3d462a7aad70544175bc3d761191e6f5008edac18b11ff4"
+    "definition_sha256": "e3fcee9bf06fb76b0efc141c8be7647337775fbad42554229c2a4cae13a5f50c"
   },
   "description": "CLI output compression ratchet v1. Representative canonical fixtures; not claimed as captured production logs.",
   "cases": [
