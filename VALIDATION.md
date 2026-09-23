@@ -1,6 +1,21 @@
-# Validation for 1.14.0
+# Validation for 1.15.0
 
 > **Branding note:** ACCO was previously named Token Saver. Frozen historical validation artifacts keep their original identifiers so their hashes and provenance remain unchanged.
+
+## 1.15 ACCO identity and packaging mechanics
+
+Version 1.15 completes the rename to **ACCO — AI Coding Context Optimizer**.
+The canonical PyPI distribution, Python import, CLI, MCP/plugin id, config/state
+namespace, source folder, and optional Rust module all use ACCO identifiers.
+
+Validation covers packaging/import/CLI consistency, documentation version
+alignment, managed integration identifiers, Rust/Python parity, and replay of
+historical frozen benchmark manifests through explicit compatibility
+normalization. Frozen evidence files themselves are not rewritten.
+
+These checks establish rename and packaging correctness. They do not create a
+new retrieval-quality, task-success, or cost-savings claim.
+
 
 ## 1.14 multi-host integration mechanics
 
