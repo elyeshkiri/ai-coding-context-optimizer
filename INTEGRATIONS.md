@@ -4,7 +4,7 @@ Install ACCO in the environment that launches the coding agent, then let
 the setup command detect and configure supported hosts:
 
 ```bash
-pip install ai-coding-context-optimizer
+pip install acco
 cd /absolute/path/to/project
 acco setup
 acco doctor
