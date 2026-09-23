@@ -1,4 +1,4 @@
-# ACCO — AI Coding Context Optimizer 1.14.0
+# ACCO — AI Coding Context Optimizer 1.15.0
 
 **ACCO (AI Coding Context Optimizer)** is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -24,7 +24,7 @@ console script being on `PATH`.
 For Claude, Codex, Cursor, OpenCode, OpenClaw, Hermes, Copilot, Antigravity, or explicit project-managed installation:
 
 ```bash
-pip install ai-coding-context-optimizer
+pip install acco
 cd /path/to/project
 acco setup
 acco doctor
@@ -62,7 +62,7 @@ The distribution, command, and Python import now use the ACCO identity:
 
 | | Name |
 |---|---|
-| Install | `ai-coding-context-optimizer` |
+| Install | `acco` |
 | Command | `acco` |
 | Import | `acco` |
 
@@ -249,7 +249,7 @@ Install the one-step semantic extra, then explicitly download the local model
 once:
 
 ```bash
-pip install 'ai-coding-context-optimizer[semantic]'
+pip install 'acco[semantic]'
 python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 acco semantic-index .
 acco semantic-status .
@@ -299,7 +299,7 @@ acco fastpath-status
 CI builds the Rust wheel and reruns pack/retrieval/context-quality checks with
 the native backend required before accepting fastpath changes.
 
-The normal `ai-coding-context-optimizer` wheel remains pure Python. To try the optional
+The normal `acco` wheel remains pure Python. To try the optional
 native accelerator from a source checkout:
 
 ```bash

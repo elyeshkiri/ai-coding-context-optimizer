@@ -108,7 +108,7 @@ jobs:
 
       - name: Capture protected-main ranking snapshot
         run: |
-          token-saver ranking-snapshot baseline/benchmarks/context-quality.json \
+          acco ranking-snapshot baseline/benchmarks/context-quality.json \
             --path baseline \
             --max-files 20 \
             --out baseline-ranking.json

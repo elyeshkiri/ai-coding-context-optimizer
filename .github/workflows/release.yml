@@ -115,5 +115,5 @@ jobs:
           gh release create "$TAG" dist/*             --title "ACCO $VERSION"             --generate-notes
 
       # Prefer PyPI Trusted Publishing over the long-lived API token once the
-      # project exists. Configure ai-coding-context-optimizer as a trusted publisher,
+      # project exists. Configure acco as a trusted publisher,
       # add `id-token: write`, and remove the explicit password above.

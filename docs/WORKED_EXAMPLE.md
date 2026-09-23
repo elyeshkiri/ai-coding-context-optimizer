@@ -26,7 +26,7 @@ The independent verifier is the demo's hidden regression test. The agent's own
 From a clean environment:
 
 ```bash
-python -m pip install --upgrade ai-coding-context-optimizer
+python -m pip install --upgrade acco
 cd /path/to/acco
 acco setup . --host claude
 acco doctor . --require-ready

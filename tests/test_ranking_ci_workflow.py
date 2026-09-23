@@ -26,8 +26,9 @@ def test_ranking_regression_uses_base_manifest_for_both_snapshots():
     manifest = "ranking-snapshot baseline/benchmarks/context-quality.json"
 
     assert workflow.count(manifest) == 2
-    assert "token-saver ranking-snapshot baseline/benchmarks/context-quality.json" in workflow
-    assert "acco ranking-snapshot baseline/benchmarks/context-quality.json" in workflow
+    assert workflow.count(
+        "acco ranking-snapshot baseline/benchmarks/context-quality.json"
+    ) == 2
     assert "--path baseline" in workflow
     assert "--path candidate" in workflow
 

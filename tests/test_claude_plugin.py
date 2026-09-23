@@ -64,7 +64,7 @@ def test_marketplace_uses_explicit_command_source_and_renderer():
     assert plugin["name"] == "acco"
     assert source["source"] == "command"
     command = source["command"]
-    assert f"ai-coding-context-optimizer>={__version__}" in command
+    assert f"acco>={__version__}" in command
     assert "pip install --user --quiet" in command
     assert "git+https://github.com/elyeshkiri/ai-coding-context-optimizer.git" in command
     assert "render_plugin" in command
