@@ -1,4 +1,4 @@
-   Compiling cli_corpus_test_fixture v0.1.0 (/home/runner/work/token-saver/token-saver/.tmp-cli-corpus-workspace/rust-test)
+   Compiling cli_corpus_test_fixture v0.1.0 (/home/runner/work/ai-coding-context-optimizer/ai-coding-context-optimizer/.tmp-cli-corpus-workspace/rust-test)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.45s
      Running unittests src/lib.rs (target/debug/deps/cli_corpus_test_fixture-1be04e04c0718ccd)
 
