@@ -115,7 +115,7 @@ def test_deterministic_fallback_returns_exact_task_relevant_source(tmp_path):
     )
 
     assert result is not None
-    assert "TOKEN SAVER SMART READ" in result
+    assert "ACCO SMART READ" in result
     assert "selector: deterministic-fallback" in result
     assert "def refresh_session(token):" in result
     assert "raise ValueError('expired')" in result

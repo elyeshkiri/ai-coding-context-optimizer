@@ -18,7 +18,7 @@ def test_dispatcher_exposes_pack(tmp_path, capsys):
         "pack", str(tmp_path), "--query", "refresh session", "--max-tokens", "500"
     ]) == 0
     out = capsys.readouterr().out
-    assert "TOKEN-SAVER CONTEXT PACK" in out
+    assert "ACCO CONTEXT PACK" in out
     assert "auth.py" in out
 
 

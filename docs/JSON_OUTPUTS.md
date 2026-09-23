@@ -119,7 +119,7 @@ exit `1`.
   "original_tokens": 15000,
   "packet_tokens": 1500,
   "original_lines": 400,
-  "packet": "# TOKEN-SAVER STAGED PROMPT...",
+  "packet": "# ACCO STAGED PROMPT...",
   "omitted_start_line": 50,
   "omitted_end_line": 350
 }

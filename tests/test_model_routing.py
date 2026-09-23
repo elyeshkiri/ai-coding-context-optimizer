@@ -312,7 +312,7 @@ allowed_models = ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"]
     assert code == 0
     assert response is not None
     context = response["hookSpecificOutput"]["additionalContext"]
-    assert "TOKEN SAVER MODEL ROUTE" in context
+    assert "ACCO MODEL ROUTE" in context
     assert "claude-haiku-4-5" in context
     assert "cannot switch the active top-level model itself" in context
 

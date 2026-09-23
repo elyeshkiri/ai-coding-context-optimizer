@@ -634,7 +634,7 @@ def test_runtime_can_replace_verified_full_read_with_smart_proxy(tmp_path):
     def smart_read_proxy(root, path, content, **kwargs):
         """Return a deterministic compact packet while capturing proxy inputs."""
         proxy_calls.append((root, path, content, kwargs))
-        return "TOKEN SAVER SMART READ\nEXACT SOURCE LINES 1-1\nvalue = 1\n"
+        return "ACCO SMART READ\nEXACT SOURCE LINES 1-1\nvalue = 1\n"
 
     runtime = HookRuntime(
         _services(
@@ -660,7 +660,7 @@ def test_runtime_can_replace_verified_full_read_with_smart_proxy(tmp_path):
     assert code == 0
     assert response is not None
     updated = response["hookSpecificOutput"]["updatedToolOutput"]
-    assert updated["file"]["content"].startswith("TOKEN SAVER SMART READ")
+    assert updated["file"]["content"].startswith("ACCO SMART READ")
     assert recorded == [
         (
             Path(tmp_path),

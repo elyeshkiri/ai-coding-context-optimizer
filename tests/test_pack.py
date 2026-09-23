@@ -200,9 +200,9 @@ def test_pack_cli_outputs_pack_and_explanation(tmp_path, capsys):
         str(root), "--query", "refresh session", "--max-tokens", "700", "--explain"
     ]) == 0
     captured = capsys.readouterr()
-    assert "TOKEN-SAVER CONTEXT PACK" in captured.out
+    assert "ACCO CONTEXT PACK" in captured.out
     assert "src/auth.py" in captured.out
-    assert "TOKEN-SAVER RELEVANCE" in captured.err
+    assert "ACCO RELEVANCE" in captured.err
 
 
 def test_pack_cli_rejects_nonpositive_budget(tmp_path, capsys):
