@@ -169,6 +169,6 @@ def test_embedding_mode_has_actionable_missing_dependency_error(tmp_path, monkey
     try:
         rank_files(root, "refresh", embeddings=True, changed_boost=False)
     except RuntimeError as exc:
-        assert "ai-coding-context-optimizer[embeddings]" in str(exc)
+        assert "acco[embeddings]" in str(exc)
     else:
         raise AssertionError("expected missing optional dependency error")
