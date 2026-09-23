@@ -309,7 +309,7 @@ def _load_encoder_cached(model: str, revision: str | None) -> Encoder:
     except ImportError as exc:
         raise RuntimeError(
             "hybrid semantic retrieval requires: "
-            "pip install 'ai-coding-context-optimizer[embeddings]'"
+            "pip install 'acco[embeddings]'"
         ) from exc
     try:
         return SentenceTransformer(
