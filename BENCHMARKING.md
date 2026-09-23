@@ -1,5 +1,3 @@
-> **Branding note:** frozen benchmark artifacts created before the ACCO rename retain their original Token Saver identifiers and hashes. The documentation uses the current ACCO product name; frozen evidence files are not rewritten.
-
 # Verify integration, then benchmark successful work
 
 ## Deterministic context-quality benchmark

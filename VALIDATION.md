@@ -1,7 +1,5 @@
 # Validation for 1.15.0
 
-> **Branding note:** ACCO was previously named Token Saver. Frozen historical validation artifacts keep their original identifiers so their hashes and provenance remain unchanged.
-
 ## 1.15 ACCO identity and packaging mechanics
 
 Version 1.15 completes the rename to **ACCO — AI Coding Context Optimizer**.

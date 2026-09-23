@@ -114,7 +114,7 @@ def _packet(
     """Build a bounded exact-excerpt packet with explicit recoverability."""
     lines = prompt.splitlines()
     header = (
-        "# TOKEN-SAVER STAGED PROMPT\n"
+        "# ACCO STAGED PROMPT\n"
         f"# id: {stage_id}\n"
         "# The original prompt is stored exactly and was NOT sent to the model.\n"
         "# Omitted spans are recoverable with:\n"
@@ -140,7 +140,7 @@ def _packet(
     omitted_end = len(lines) - len(tail)
     marker = (
         "\n\n"
-        f"[TOKEN-SAVER: lines {omitted_start}-{omitted_end} omitted from this "
+        f"[ACCO: lines {omitted_start}-{omitted_end} omitted from this "
         "packet; exact original remains locally recoverable]\n\n"
     )
     body = "\n".join(head) + marker + "\n".join(tail)

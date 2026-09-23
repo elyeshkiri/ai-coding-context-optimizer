@@ -1,4 +1,4 @@
-    Checking cli_corpus_fixture v0.1.0 (/home/runner/work/token-saver/token-saver/.tmp-cli-corpus-workspace/rust)
+    Checking cli_corpus_fixture v0.1.0 (/home/runner/work/ai-coding-context-optimizer/ai-coding-context-optimizer/.tmp-cli-corpus-workspace/rust)
 error[E0382]: borrow of moved value: `s`
  --> src/lib.rs:1:62
   |

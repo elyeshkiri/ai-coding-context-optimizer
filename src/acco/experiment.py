@@ -51,7 +51,7 @@ def _contains_hook(value: Any) -> bool:
 
 
 def user_acco_hook_configured() -> bool:
-    """Handle user token saver hook configured."""
+    """Return whether the user-level ACCO hook is configured."""
     path = user_settings_path()
     if not path.is_file():
         return False
@@ -123,8 +123,6 @@ def validate_suite(
                     f"runner.condition_profiles.{condition} must be an object"
                 )
             install_acco = profile.get("install_acco")
-            if not isinstance(install_acco, bool):
-                install_acco = profile.get("install_token_saver")
             if not isinstance(install_acco, bool):
                 raise ValueError(
                     "runner.condition_profiles."
@@ -365,12 +363,7 @@ def _condition_profile(runner: dict, condition: str) -> dict:
     if isinstance(profiles, dict):
         raw = profiles[condition]
         install_value = raw.get("install_acco")
-        if not isinstance(install_value, bool):
-            install_value = raw.get("install_token_saver")
         env = dict(raw.get("env", {}))
-        for key, value in list(env.items()):
-            if key.startswith("TOKEN_SAVER_"):
-                env.setdefault("ACCO_" + key[len("TOKEN_SAVER_"):], value)
         return {
             "label": str(raw.get("label") or condition),
             "install_acco": bool(install_value),
@@ -411,13 +404,9 @@ def _expand_command(
     # One pass over each argument: substituted text (e.g. a prompt that itself
     # contains "{model}") is never re-scanned, and unknown braces stay literal.
     placeholder = re.compile(r"\{(" + "|".join(map(re.escape, values)) + r")\}")
-    expanded = [
+    return [
         placeholder.sub(lambda match: values[match.group(1)], item)
         for item in command
-    ]
-    return [
-        item.replace("token_saver.", "acco.") if item.startswith("token_saver.") else item
-        for item in expanded
     ]
 
 

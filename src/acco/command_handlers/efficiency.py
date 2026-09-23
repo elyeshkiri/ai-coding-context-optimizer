@@ -85,7 +85,7 @@ def audit_main(argv: list[str]) -> int:
     fastpath = report["fastpath"]
     processors = report["processor_coverage"]
     recovery = report["recovery"]
-    print("TOKEN SAVER AUDIT")
+    print("ACCO AUDIT")
     print(f"project: {report['root']}")
     share = context["window_share"]
     share_text = f"{share:.1%}" if isinstance(share, (int, float)) else "n/a"
@@ -180,7 +180,7 @@ def dashboard_main(argv: list[str]) -> int:
     behavior = report["behavior"]
     continuity = report["continuity"]
     usage = report["billed_usage"]
-    print(f"TOKEN SAVER DASHBOARD — {report['window_days']} days")
+    print(f"ACCO DASHBOARD — {report['window_days']} days")
     print(
         "estimated tool-context saved: "
         + _tokens(savings["estimated_tool_context_tokens"])
@@ -244,7 +244,7 @@ def cost_advisor_main(argv: list[str]) -> int:
 
     score = report["score"]
     grade = score["grade"] or "insufficient evidence"
-    print(f"TOKEN SAVER COST ADVISOR — {report['window_days']} days")
+    print(f"ACCO COST ADVISOR — {report['window_days']} days")
     print(
         f"efficiency score: {score['percent']:.1f}% ({grade}); "
         f"evidence coverage {score['coverage']:.0%}"
@@ -299,7 +299,7 @@ def continuity_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(report, indent=2))
         return 0
-    print("TOKEN SAVER CONTINUITY")
+    print("ACCO CONTINUITY")
     if not report["available"]:
         print("checkpoint: none")
         return 0

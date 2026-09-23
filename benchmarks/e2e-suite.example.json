@@ -5,7 +5,7 @@
     "condition_order_randomized": true,
     "independent_verification": true,
     "frozen_at": "REPLACE_AFTER_FINALIZING_TASKS",
-    "task_definition_sha256": "REPLACE_WITH_TOKEN_SAVER_EXPERIMENT_HASH"
+    "task_definition_sha256": "REPLACE_WITH_ACCO_EXPERIMENT_HASH"
   },
   "design": {
     "trials_per_task": 3,
@@ -52,11 +52,11 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.claude_grader",
+      "acco.claude_grader",
       "--model",
       "{judge}",
       "--image",
-      "token-saver-e2e-agent:2.1.276"
+      "acco-e2e-agent:2.1.276"
     ],
     "judge": "REPLACE_WITH_EXACT_MODEL_ID",
     "assignment_seed": 20260920,

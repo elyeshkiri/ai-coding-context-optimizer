@@ -4,7 +4,7 @@
     "ground_truth_frozen": true,
     "development_excluded": true,
     "frozen_at": "REPLACE_WITH_FREEZE_TIMESTAMP",
-    "ground_truth_sha256": "REPLACE_WITH_TOKEN_SAVER_EVALUATE_PRINT_GROUND_TRUTH_HASH_OUTPUT"
+    "ground_truth_sha256": "REPLACE_WITH_ACCO_EVALUATE_PRINT_GROUND_TRUTH_HASH_OUTPUT"
   },
   "repositories": {
     "project-a": {

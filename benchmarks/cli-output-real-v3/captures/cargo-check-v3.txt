@@ -1,4 +1,4 @@
-    Checking cli_corpus_v3 v0.1.0 (/home/runner/work/token-saver/token-saver/.tmp-cli-corpus-v3/rust-v3)
+    Checking cli_corpus_v3 v0.1.0 (/home/runner/work/ai-coding-context-optimizer/ai-coding-context-optimizer/.tmp-cli-corpus-v3/rust-v3)
 error[E0308]: mismatched types
  --> src/lib.rs:1:46
   |

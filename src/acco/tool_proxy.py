@@ -401,7 +401,7 @@ def _render_proxy_result(
     original_tokens = estimate_tokens(content, suffix)
     target = max(400, target_tokens)
     header = (
-        "TOKEN SAVER SMART READ\n"
+        "ACCO SMART READ\n"
         f"file: {path}\n"
         f"original: {len(lines)} lines, ~{original_tokens} tokens\n"
         f"selector: {selection.selector}\n"

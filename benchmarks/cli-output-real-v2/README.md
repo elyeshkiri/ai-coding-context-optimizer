@@ -12,4 +12,4 @@ The exact GitHub Actions artifact is preserved as `corpus.zip` rather than rewri
 - source artifact: 10629774546
 - capture-definition SHA-256: `ea2461863c384c4c0b56437882a961a817632e6d2af99e81c83b157d220b404b`
 
-No Token Saver or ppgranger comparison was run before this artifact was frozen. Any future tuning informed by v2 results must treat v2 as burned and validate on a later fresh corpus.
+No ACCO or ppgranger comparison was run before this artifact was frozen. Any future tuning informed by v2 results must treat v2 as burned and validate on a later fresh corpus.

@@ -8,8 +8,9 @@
     "hidden_tests_after_agent": true,
     "development_excluded": true,
     "frozen_at": "2026-09-20T19:15:00+02:00",
-    "task_definition_sha256": "84173a6258f41b53f955e5f342e08f087b968583af50a314e34ff2526ff71691",
-    "knowledge_efficiency_isolated": true
+    "task_definition_sha256": "4cb4bc9a05f45666fc1fc013c1a3d29ffd180704c9ac225fd4b7c38ff48fe708",
+    "knowledge_efficiency_isolated": true,
+    "branding_migrated_to": "ACCO"
   },
   "design": {
     "trials_per_task": 3,
@@ -51,7 +52,7 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.knowledge_holdout_docker",
+      "acco.knowledge_holdout_docker",
       "--worktree",
       "{worktree}",
       "--transcript",
@@ -63,7 +64,7 @@
       "--condition",
       "{condition}",
       "--image",
-      "token-saver-e2e-agent:2.1.276",
+      "acco-e2e-agent:2.1.276",
       "--phase1-turns",
       "14",
       "--phase2-turns",
@@ -71,7 +72,7 @@
     ],
     "model": "claude-sonnet-5",
     "claude_code_version": "2.1.276",
-    "agent_image": "token-saver-e2e-agent:2.1.276",
+    "agent_image": "acco-e2e-agent:2.1.276",
     "transcript_mode": "path",
     "timeout_seconds": 2400,
     "container_user_mode": "host-uid-gid",
@@ -84,28 +85,28 @@
     "condition_profiles": {
       "baseline": {
         "label": "knowledge-memory-control",
-        "install_token_saver": true,
+        "install_acco": true,
         "env": {
-          "TOKEN_SAVER_EFFICIENCY": "1",
-          "TOKEN_SAVER_CONTINUITY": "0",
-          "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-          "TOKEN_SAVER_WASTE_DETECTION": "0",
-          "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE": "0",
-          "TOKEN_SAVER_CACHE_ECONOMICS": "0",
-          "TOKEN_SAVER_REREAD": "0"
+          "ACCO_EFFICIENCY": "1",
+          "ACCO_CONTINUITY": "0",
+          "ACCO_CROSS_TURN_DEDUP": "0",
+          "ACCO_WASTE_DETECTION": "0",
+          "ACCO_KNOWLEDGE_READ_AVOIDANCE": "0",
+          "ACCO_CACHE_ECONOMICS": "0",
+          "ACCO_REREAD": "0"
         }
       },
       "enabled": {
         "label": "knowledge-read-avoidance-cache-economics",
-        "install_token_saver": true,
+        "install_acco": true,
         "env": {
-          "TOKEN_SAVER_EFFICIENCY": "1",
-          "TOKEN_SAVER_CONTINUITY": "0",
-          "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-          "TOKEN_SAVER_WASTE_DETECTION": "0",
-          "TOKEN_SAVER_KNOWLEDGE_READ_AVOIDANCE": "1",
-          "TOKEN_SAVER_CACHE_ECONOMICS": "1",
-          "TOKEN_SAVER_REREAD": "0"
+          "ACCO_EFFICIENCY": "1",
+          "ACCO_CONTINUITY": "0",
+          "ACCO_CROSS_TURN_DEDUP": "0",
+          "ACCO_WASTE_DETECTION": "0",
+          "ACCO_KNOWLEDGE_READ_AVOIDANCE": "1",
+          "ACCO_CACHE_ECONOMICS": "1",
+          "ACCO_REREAD": "0"
         }
       }
     },
@@ -700,11 +701,11 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.claude_grader",
+      "acco.claude_grader",
       "--model",
       "{judge}",
       "--image",
-      "token-saver-e2e-agent:2.1.276"
+      "acco-e2e-agent:2.1.276"
     ],
     "judge": "claude-sonnet-5",
     "assignment_seed": 20260920,

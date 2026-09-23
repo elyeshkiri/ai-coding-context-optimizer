@@ -53,7 +53,7 @@ def pricing_main(argv: list[str]) -> int:
         }
         print(json.dumps(payload, indent=2))
     else:
-        print("TOKEN SAVER PRICING")
+        print("ACCO PRICING")
         print(
             f"verified: {status['verified_at']} "
             f"({status['age_days']} day(s) ago; "

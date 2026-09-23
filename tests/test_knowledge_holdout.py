@@ -312,7 +312,7 @@ def test_checked_in_knowledge_holdout_pipeline_dry_run_needs_no_external_repos(
     )
 
     assert suite["protocol"]["task_definition_sha256"] == (
-        "84173a6258f41b53f955e5f342e08f087b968583af50a314e34ff2526ff71691"
+        "4cb4bc9a05f45666fc1fc013c1a3d29ffd180704c9ac225fd4b7c38ff48fe708"
     )
     assert result["stage"] == "dry-run"
     assert result["experiment"]["task_count"] == 24

@@ -128,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(pack.text)
 
     if args.explain:
-        print("\nTOKEN-SAVER RELEVANCE", file=sys.stderr)
+        print("\nACCO RELEVANCE", file=sys.stderr)
         if semantic_edges:
             print(f"compiler semantic edges: {semantic_edges}", file=sys.stderr)
         for item in pack.ranked[: min(20, len(pack.ranked))]:

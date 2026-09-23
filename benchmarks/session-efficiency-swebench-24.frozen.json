@@ -8,8 +8,9 @@
     "hidden_tests_after_agent": true,
     "development_excluded": true,
     "frozen_at": "2026-09-20T15:45:00+02:00",
-    "task_definition_sha256": "7bfbd63b28219e715c2361469c8134aad5930fac808b858b199f69c4b10e922d",
-    "session_efficiency_isolated": true
+    "task_definition_sha256": "0f2ae97074ec9f915ef33f918f45abbe34b8a8d87292f5afa28c53af90d0cf14",
+    "session_efficiency_isolated": true,
+    "branding_migrated_to": "ACCO"
   },
   "design": {
     "trials_per_task": 3,
@@ -51,7 +52,7 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.session_holdout_docker",
+      "acco.session_holdout_docker",
       "--worktree",
       "{worktree}",
       "--transcript",
@@ -63,7 +64,7 @@
       "--condition",
       "{condition}",
       "--image",
-      "token-saver-e2e-agent:2.1.276",
+      "acco-e2e-agent:2.1.276",
       "--phase1-turns",
       "12",
       "--phase2-turns",
@@ -71,7 +72,7 @@
     ],
     "model": "claude-sonnet-5",
     "claude_code_version": "2.1.276",
-    "agent_image": "token-saver-e2e-agent:2.1.276",
+    "agent_image": "acco-e2e-agent:2.1.276",
     "transcript_mode": "path",
     "timeout_seconds": 2400,
     "container_user_mode": "host-uid-gid",
@@ -86,22 +87,22 @@
     "condition_profiles": {
       "baseline": {
         "label": "v1.6-session-baseline",
-        "install_token_saver": true,
+        "install_acco": true,
         "env": {
-          "TOKEN_SAVER_EFFICIENCY": "0",
-          "TOKEN_SAVER_CONTINUITY": "0",
-          "TOKEN_SAVER_CROSS_TURN_DEDUP": "0",
-          "TOKEN_SAVER_WASTE_DETECTION": "0"
+          "ACCO_EFFICIENCY": "0",
+          "ACCO_CONTINUITY": "0",
+          "ACCO_CROSS_TURN_DEDUP": "0",
+          "ACCO_WASTE_DETECTION": "0"
         }
       },
       "enabled": {
         "label": "v1.7-session-efficiency",
-        "install_token_saver": true,
+        "install_acco": true,
         "env": {
-          "TOKEN_SAVER_EFFICIENCY": "1",
-          "TOKEN_SAVER_CONTINUITY": "1",
-          "TOKEN_SAVER_CROSS_TURN_DEDUP": "1",
-          "TOKEN_SAVER_WASTE_DETECTION": "1"
+          "ACCO_EFFICIENCY": "1",
+          "ACCO_CONTINUITY": "1",
+          "ACCO_CROSS_TURN_DEDUP": "1",
+          "ACCO_WASTE_DETECTION": "1"
         }
       }
     }
@@ -695,11 +696,11 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.claude_grader",
+      "acco.claude_grader",
       "--model",
       "{judge}",
       "--image",
-      "token-saver-e2e-agent:2.1.276"
+      "acco-e2e-agent:2.1.276"
     ],
     "judge": "claude-sonnet-5",
     "assignment_seed": 20260920,

@@ -10,10 +10,10 @@
     "source_artifact_sha256": "f5345e19b1b77ccf41257c7393242c14b6e5dc88d7cc72f0833e0f032241742b",
     "source_candidate_sha": "12ef49a1130f784f392ae4d5c1c83077a084aeea",
     "source_checkout_sha": "7ed3b8bbc48d3a8633bb0943599a26091b24b36f",
-    "capture_definition_sha256": "0866719efa899c3d1d81fc2aa70eabe116ceb4401148ced000d854571581baae",
+    "capture_definition_sha256": "1bdb6e91c020fbc28ee76f7fed4287164b6a8758080c6ef4d49b6bd0ffecc1c9",
     "focus": "git-log-status",
     "claim_boundary": "Fresh real CLI executions captured after v2-guided Git log/status tuning and before any v3 comparison; controlled CI evidence, not production-user logs or end-to-end API-cost evidence.",
-    "freeze_sha256": "0866719efa899c3d1d81fc2aa70eabe116ceb4401148ced000d854571581baae"
+    "freeze_sha256": "1bdb6e91c020fbc28ee76f7fed4287164b6a8758080c6ef4d49b6bd0ffecc1c9"
   },
   "environment": {
     "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
@@ -30,7 +30,7 @@
     "attempted": 29,
     "captured": 29,
     "skipped": 0,
-    "raw_bytes": 14068
+    "raw_bytes": 14132
   },
   "captures": [
     {
@@ -328,8 +328,8 @@
       "cwd_fixture": "javascript",
       "exit_code": 1,
       "output_path": "captures/eslint-v3.txt",
-      "output_sha256": "a29603e20a771594d987b217e835dda500f67d82a5544bb9a9158ae0f040e3ae",
-      "output_bytes": 228,
+      "output_sha256": "646b8154435f77c7984e02f6e109ddf30bec76b936bf7d2173225173272b3480",
+      "output_bytes": 260,
       "output_lines": 7
     },
     {
@@ -341,8 +341,8 @@
       "cwd_fixture": "rust",
       "exit_code": 101,
       "output_path": "captures/cargo-check-v3.txt",
-      "output_sha256": "7bad36d944657196bc83c38a54a942ff532bd165acd18adf9d83c82b4de4ff05",
-      "output_bytes": 550,
+      "output_sha256": "8993df5c2930fabea8cf01f4ddb69e6a4d8f6c24cce26e29ecf6845b650cc3bd",
+      "output_bytes": 582,
       "output_lines": 11
     },
     {
