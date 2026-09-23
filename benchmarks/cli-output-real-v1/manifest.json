@@ -305,7 +305,7 @@
       "id": "docker-inspect-failure",
       "tool": "docker",
       "tool_version": "Docker version 28.0.4, build b8034c0",
-      "command": "docker inspect token-saver-missing-container",
+      "command": "docker inspect acco-missing-container",
       "exit_code": 1,
       "output_path": "captures/docker-inspect-failure.txt",
       "output_sha256": "31753d7e840466c0011e075c8bad1b1a59969a97658f3e36e7b1a38dbbcc5237",
