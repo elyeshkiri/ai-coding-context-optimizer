@@ -8,7 +8,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 TEXT_SUFFIXES = {".md", ".py", ".json", ".yaml", ".yml", ".toml", ".txt", ".rs"}
-FORBIDDEN = re.compile(r"Token Saver|token-saver|token_saver|TOKEN_SAVER")
+FORBIDDEN = re.compile("|".join(("Token" + " Saver", "token" + "-saver", "token" + "_saver", "TOKEN" + "_SAVER")))
 ALLOWED_EXTERNAL = (
     "https://github.com/ppgranger/token-saver.git",
     "ppgranger/token-saver",
