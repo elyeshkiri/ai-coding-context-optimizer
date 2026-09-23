@@ -8,17 +8,17 @@
   the ACCO identity.
 - **Renamed the PyPI distribution to `acco`.** Installation is now
   `pip install acco`; the import package and CLI are also `acco`.
-- **Renamed canonical code folders and executables.** `src/token_saver` is now
-  `src/acco`, `rust/token_saver_fast` is now `rust/acco_fast`, and the
+- **Renamed canonical code folders and executables.** `src/acco` is now
+  `src/acco`, `rust/acco_fast` is now `rust/acco_fast`, and the
   optional native module is `_acco_fast`.
 - **Preserved frozen historical evidence.** Existing benchmark manifests keep
-  their original Token Saver identifiers and hashes; ACCO normalizes those
+  their original ACCO identifiers and hashes; ACCO normalizes those
   legacy identifiers only when reading or replaying the frozen suites.
 
 # 1.14.0 - 2026-09-22
 
 - **Expanded managed setup/doctor/uninstall support from three to eight coding-agent hosts.**
-  Token Saver now manages Claude Code, Cursor, Codex, OpenCode, OpenClaw,
+  ACCO now manages Claude Code, Cursor, Codex, OpenCode, OpenClaw,
   Hermes Agent, GitHub Copilot CLI / VS Code, and Google Antigravity through
   host-specific adapters instead of assuming one universal MCP config shape.
 - **Added host-native configuration paths where available.** OpenClaw uses
@@ -28,14 +28,14 @@
 - **Preserved unrelated host configuration and added fail-closed ownership checks.**
   OpenCode refuses ambiguous sibling JSON/JSONC project configs, Hermes refuses
   unowned or structurally ambiguous `mcp_servers` entries, and Copilot CLI
-  refuses to replace a user-owned `token-saver` server definition.
+  refuses to replace a user-owned `acco` server definition.
 - **Made multi-host setup safer on mixed developer machines.** `--host all`
-  now means all detected supported hosts rather than every product Token Saver
+  now means all detected supported hosts rather than every product ACCO
   knows about. Copilot detection distinguishes its CLI/extension/MCP surfaces
   from a generic VS Code installation.
 - **Extended capability reporting and documentation for the larger host matrix.**
   MCP support is declared explicitly per host while proprietary lifecycle hooks
-  remain conditional/unknown unless Token Saver can actually guarantee them.
+  remain conditional/unknown unless ACCO can actually guarantee them.
 - **Kept regression evidence unchanged.** The complete Python 3.10/3.12/3.13
   matrix, Rust/Python parity, semantic HNSW parity, ranking regression, frozen
   holdout, real CLI corpus capture, and both frozen CLI comparator suites pass
@@ -65,7 +65,7 @@
 - **Added focused browser-context compression for captured HTML/AX-like text.**
   Query-neighborhood evidence and an interactive skeleton can replace large
   captured payloads only when the result is smaller and the full original is
-  recoverable. Token Saver does not fetch arbitrary URLs for this feature.
+  recoverable. ACCO does not fetch arbitrary URLs for this feature.
 
 - **Expanded durable knowledge into progressive persistent project memory.**
   Typed decisions, bugfixes, conventions, guardrails, architecture notes, facts,
@@ -105,7 +105,7 @@
   input evidence, and routing profiles are documented as conservative product
   policy rather than benchmark rankings of model quality.
 - **Added quality-gated routing calibration.** Frozen paired experiments can now
-  assign different models per randomized arm while keeping Token Saver/config
+  assign different models per randomized arm while keeping ACCO/config
   treatment identical, and record transcript-confirmed actual model ids.
   `model-route-calibrate` admits a cheaper lower-capability model only for an
   exact task/complexity/risk bucket after >=10 pairs across >=5 tasks, >=80%
@@ -121,7 +121,7 @@
 - **Added a centralized, packaged Claude pricing registry.** Current first-party
   standard/global rates are stored once with explicit source, verification date,
   freshness limit, canonical model ids, aliases, and cache-write/read columns.
-  `token-saver pricing` exposes the registry and its provenance; operational
+  `acco pricing` exposes the registry and its provenance; operational
   `cost-advisor --rates builtin` fails closed when the registry is stale.
 - **Added pricing-drift CI without making normal PRs depend on the network.**
   Deterministic CI validates schema and freshness on relevant changes, while a
@@ -133,10 +133,10 @@
 - **Added a measured Cost Intelligence / Efficiency Advisor.** The new
   `cost-advisor` command combines real always-on context measurements, Claude
   transcript usage/cache counters, output-budget telemetry, continuity/waste
-  signals, and observed Token Saver tool-context reductions into a transparent
+  signals, and observed ACCO tool-context reductions into a transparent
   local efficiency score with explicit evidence coverage and prioritized next
   actions.
-- **Kept dollars and savings evidence strict.** Token Saver prices usage only
+- **Kept dollars and savings evidence strict.** ACCO prices usage only
   from a user-supplied exact-model rate file, refuses to allocate mixed-model
   turns or unknown cache-write TTLs, and exposes partial pricing as partial.
   Estimated tool-context savings can be shown under a clearly labeled
@@ -171,7 +171,7 @@
   identity match on its representative fixtures.
 - **Added provenance-backed real CLI compression evidence.** Three successively
   fresh corpora were captured and frozen before comparison/tuning. On untouched
-  Git-focused corpus v3, Token Saver measured 50.50% weighted estimated output
+  Git-focused corpus v3, ACCO measured 50.50% weighted estimated output
   reduction with 100% mechanically detected critical-line survival versus
   51.25% / 80% for the pinned ppgranger comparator. Git status led 62.90% to
   61.75%; Git log was within 1.42 percentage points. These controlled CLI
@@ -185,7 +185,7 @@
 - **Added an opt-in Smart Tool Proxy for large Claude Code Reads.** Eligible
   unbounded source Reads can now pass through PreToolUse and be replaced at
   PostToolUse with a bounded evidence packet. A local/free Ollama model selects
-  candidate line ranges, but Token Saver validates the ranges and rehydrates
+  candidate line ranges, but ACCO validates the ranges and rehydrates
   exact code from the original file. Selector-generated prose is never
   forwarded to Claude.
 - **Added deterministic failure fallback and exact-read recovery.** Missing,
@@ -209,7 +209,7 @@
   retrieval into broad transitive graph traversal.
 - **Recorded the evidence boundary from semantic holdout #13.** Its one fresh
   run (GitHub Actions `35537362040`) measured 50.00% hybrid-semantic file
-  recall vs 45.45% Token Saver lexical/structural and 40.91% trivial lexical
+  recall vs 45.45% ACCO lexical/structural and 40.91% trivial lexical
   across 22 eligible no-identifier tasks, with one semantic recovery and zero
   semantic regressions. That suite is now burned and is not used to tune or
   score the changes above; a future fresh #14 is required for a new
@@ -221,10 +221,10 @@
   target-file/fix lookup. A post-freeze leakage audit conservatively excludes
   two identifier-bearing tasks without rewriting them, leaving 22 eligible
   natural-language tasks. The final harness compares lexical/structural Token
-  Saver, hybrid semantic Token Saver, and a trivial distinct-term-overlap
+  Saver, hybrid semantic ACCO, and a trivial distinct-term-overlap
   baseline under identical retrieval limits.
 - **Made semantic evidence reproducible by model weights, not model name
-  alone.** `TOKEN_SAVER_SEMANTIC_MODEL_REVISION` now participates in vector
+  alone.** `ACCO_SEMANTIC_MODEL_REVISION` now participates in vector
   index paths, persisted metadata, and query-vector cache identity. Holdout #13
   pins `all-MiniLM-L6-v2` revision
   `bc57282bc374d33e0d6c4de27f12dc1c2a87f37a` and forces exact cosine for the
@@ -269,7 +269,7 @@
 # 1.9.0 - 2026-09-20
 
 - **Added safe opt-in pre-model prompt ingress staging.** Claude Code cannot
-  replace a submitted prompt from `UserPromptSubmit`, so Token Saver never
+  replace a submitted prompt from `UserPromptSubmit`, so ACCO never
   pretends to do so. When `ingress.enabled` is explicitly enabled and a
   prompt crosses the configured token threshold, the hook blocks it before
   model processing, stores the exact original in private local state, and
@@ -290,10 +290,10 @@
   reruns pack/retrieval/context-quality checks with the native backend required.
 - **Added Claude Code marketplace packaging.** The repository now exposes a
   command-source marketplace entry and a `claude-plugin-path` renderer that
-  creates a complete plugin directory containing Token Saver hooks, MCP config,
+  creates a complete plugin directory containing ACCO hooks, MCP config,
   and an ingress-resume skill. Generated commands use
-  `python -m token_saver.entry` so the plugin does not depend on the console
-  script being present on `PATH`. Existing pip + `token-saver setup`
+  `python -m acco.entry` so the plugin does not depend on the console
+  script being present on `PATH`. Existing pip + `acco setup`
   remains the multi-host installation path.
 
 
@@ -323,7 +323,7 @@
   changed/missing source automatically quarantines stale findings; explicit
   supersession and exact-identity deduplication prevent obsolete conclusions
   from silently accumulating.
-- **Added progressive MCP schema profiles.** `TOKEN_SAVER_MCP_PROFILE` can
+- **Added progressive MCP schema profiles.** `ACCO_MCP_PROFILE` can
   advertise `minimal`, `context`, or the backward-compatible `full` tool
   surface. Unknown profiles fail closed. This reduces recurring MCP tool-schema
   context for hosts that only need repository context + durable knowledge
@@ -339,19 +339,19 @@
 - **Added a frozen causal holdout for the session-efficiency bundle.** The new
   `session-efficiency-swebench-24.frozen.json` reuses the existing 24 frozen
   SWE-bench Verified tasks at the same revisions/hidden tests and runs three
-  randomized trials per task. Both arms install the same current Token Saver
+  randomized trials per task. Both arms install the same current ACCO
   binary; the control disables only continuity/dedup/waste switches while the
   treatment enables them, avoiding version/retrieval/output-processor
   confounding.
 - **Made continuity exposure deterministic.** Every benchmark arm now runs an
   investigation-only Claude phase, verifies that phase did not modify
-  repository state, invokes the real `SessionStart:resume` Token Saver hook,
+  repository state, invokes the real `SessionStart:resume` ACCO hook,
   then starts a fresh Claude implementation session. This gives both arms the
   same two-session cost while only the treatment receives structured
   continuity context.
 - **Added independent session metrics and a strict publication gate.** Raw
   transcripts independently measure total tool calls, input tokens, repeated
-  Bash commands, identical-failure retries, and duplicate Reads. Token Saver's
+  Bash commands, identical-failure retries, and duplicate Reads. ACCO's
   local efficiency ledger is used only for feature-activation evidence. The
   evaluator reports task-cluster bootstrap intervals and refuses a publishable
   claim unless success/quality are preserved, control contamination is zero,
@@ -372,7 +372,7 @@
   bounded structured working checkpoint across resume/compaction, including task
   class, working file paths, recent redacted command labels, failures, and
   validation status. The checkpoint deliberately stores no raw user prompt,
-  assistant response, or tool output and is exposed through `token-saver
+  assistant response, or tool output and is exposed through `acco
   continuity`.
 - **Added exact cross-turn deduplication and behavioral waste guards.** Repeated
   identical Bash output for the same command can collapse to a recoverable
@@ -388,7 +388,7 @@
   pass through conservatively and registry-wide critical-line recovery remains
   the final safety layer.
 - **Added local savings dashboards and frozen output-quality evidence.**
-  `token-saver dashboard` exposes terminal/JSON reporting and can write a
+  `acco dashboard` exposes terminal/JSON reporting and can write a
   dependency-free local HTML dashboard. Estimated tool-context savings,
   continuity restores, behavioral signals, and exact transcript usage stay
   explicitly separated; the dashboard is not a cost-per-success claim. CI now
@@ -413,7 +413,7 @@
   explicit `RUN_144` confirmation. No new savings percentage is claimed until
   that paid workflow actually completes and passes.
 - **Closed benchmark plumbing gaps exposed by the end-to-end pipeline.** Docker
-  agent runs now persist Token Saver telemetry through an explicit mounted state
+  agent runs now persist ACCO telemetry through an explicit mounted state
   directory; shard merging preserves grader/evidence metadata; the grader treats
   responses as untrusted data and runs with shell/filesystem/web tools denied.
 
@@ -421,7 +421,7 @@
   condition gap.** Paired experiments now embed exact transcript usage
   (fresh input, cache creation split by 5-minute/1-hour/unknown TTL, cache
   read, output, model calls, tool calls) for every run
-  and isolate enabled-arm Token Saver state per artifact. When Claude hook
+  and isolate enabled-arm ACCO state per artifact. When Claude hook
   telemetry is available, enabled runs also embed selected output task/mode/
   budget plus a telemetry-vs-transcript integrity check. New
   `output-effectiveness` joins those measurements with independently verified
@@ -432,7 +432,7 @@
   a positive cost-per-success reduction, and a task-cluster 95% confidence
   interval whose lower bound remains above zero. `agent-evaluate`, `cost-report`, and
   `output-calibrate` now accept the experiment-native `enabled` condition as
-  an alias for `token-saver`, so raw experiment artifacts no longer require
+  an alias for `acco`, so raw experiment artifacts no longer require
   manual condition rewriting.
 
 - **Added automatic content-free output-budget telemetry.** Claude Code setup now
@@ -446,13 +446,13 @@
   signals; it does not equate a completed turn with task success or quality.
   Storage is project-scoped, private, and bounded to the newest 2,000 records
   after the telemetry log exceeds 4 MiB. Set `output.telemetry = false` or
-  `TOKEN_SAVER_OUTPUT_TELEMETRY=0` to disable capture.
+  `ACCO_OUTPUT_TELEMETRY=0` to disable capture.
 
 - **Added adaptive, quality-calibrated generation budgets.** Automatic output
   policy now scales task/mode bases using deterministic prompt complexity
   signals while preserving hard mode bounds and stable budgets across vague
   follow-ups. New `output.adaptive`, min/max clamp, and calibration-file
-  settings are available with environment overrides. `token-saver
+  settings are available with environment overrides. `acco
   output-calibrate` learns task/mode base budgets only from blinded paired runs
   where both arms succeed and correctness, safety, weighted quality, and blocker
   constraints remain at parity; at least three valid samples spanning three distinct task IDs are required.
@@ -514,18 +514,18 @@
   the newest artifact per PR, isolates frozen ground-truth cohorts, and reports
   empirical rank-drop/disappearance distributions without inventing a blocking
   threshold.
-- **Productized host onboarding and lifecycle management.** Added `token-saver
+- **Productized host onboarding and lifecycle management.** Added `acco
   setup`, `doctor`, `uninstall`, `commands`, and shell `completion`.
   Setup auto-detects Claude Code, Cursor, and Codex, merges only Token
-  Saver-owned MCP/hook entries, creates project `.token-saver.toml`, and is
+  Saver-owned MCP/hook entries, creates project `.acco.toml`, and is
   idempotent so rerunning it after upgrades repairs managed configuration.
   Uninstall removes only managed entries and preserves modified/unrelated host
   configuration.
 - **Added project-scoped runtime configuration.** The Claude hook and large-read
-  guard now resolve the nearest `.token-saver.toml` for guard/read/output/Delta
-  settings while keeping `TOKEN_SAVER_*` environment variables as higher-
+  guard now resolve the nearest `.acco.toml` for guard/read/output/Delta
+  settings while keeping `ACCO_*` environment variables as higher-
   priority overrides. Guard allowlists now support repository-relative globs.
-- **Added consolidated integration health checks.** `token-saver doctor`
+- **Added consolidated integration health checks.** `acco doctor`
   reports package/CLI availability, project config, detected/configured hosts,
   repository-index health, and available Claude transcript evidence in one
   human- or JSON-readable result.
@@ -548,12 +548,12 @@
 - **Added registry-wide critical-diagnostic recovery and replayable quality
   contracts.** A shared recovery pass can restore omitted error, traceback,
   assertion, and source-location lines after processor compression.
-  `token-saver output-replay` evaluates captured output against exact
+  `acco output-replay` evaluates captured output against exact
   `must_preserve` strings, optional token budgets, and minimum reduction
-  requirements, returning nonzero on contract failure. `token-saver
+  requirements, returning nonzero on contract failure. `acco
   output-explain` exposes processor and failure-routing decisions.
 - **Added opt-in graph-aware diagnostic Delta for repeated pytest and Ruff runs.**
-  With `TOKEN_SAVER_DELTA=1`, repeated diagnostics are classified as NEW,
+  With `ACCO_DELTA=1`, repeated diagnostics are classified as NEW,
   CHANGED, UNCHANGED, or RESOLVED. New/changed diagnostics are mapped through the
   repository index to the containing symbol and nearby dependency/call-graph
   edges when possible. Delta stores only a bounded structured diagnostic
@@ -574,10 +574,10 @@
 - **The large-file guard now covers `cat` through Bash.** A lone `cat <large source
   file>` was a full dump that bypassed the Read guard (seen in a paired Sonnet 5 run,
   +$0.04 per run). It is now denied with the same outline; pipes, redirects, chains,
-  globs and other commands are untouched. `token-saver install` registers the
+  globs and other commands are untouched. `acco install` registers the
   PreToolUse hook for `Read|Bash`, so re-run it to pick this up.
 - **Added a large-output demo** (`examples/large_output_demo/`): a generated project
-  whose verbose test run and large module trigger both Token Saver savings paths
+  whose verbose test run and large module trigger both ACCO savings paths
   (98% and 86% fewer tokens, checked deterministically), plus a paired Claude Code
   runner and an honest 3-trial write-up in which the saving depends on the model
   running the noisy command untruncated.
@@ -608,10 +608,10 @@
   concurrent release attempts, creates the version tag before publishing, and
   publishes to PyPI before creating the GitHub release. A retry after a partial
   failure is safe through the pinned tag plus PyPI's `skip-existing` behavior.
-- **Renamed the PyPI distribution to `claude-token-saver`.** PyPI rejects
-  `token-saver` as too similar to the unrelated existing `tokensaver`
-  project. The Python import remains `token_saver` and both CLI entry points
-  remain `token-saver` / `token-saver-pack`.
+- **Renamed the PyPI distribution to `acco`.** PyPI rejects
+  `acco` as too similar to the unrelated existing `tokensaver`
+  project. The Python import remains `acco` and both CLI entry points
+  remain `acco` / `acco-pack`.
 - **Hardened CI and ranking maintainability after 1.3.0.** The ranking core was
   decomposed into addressable scoring stages without retuning, correctness-
   focused Ruff and actionlint gates were added, and the historical external
@@ -681,7 +681,7 @@
   The published `tree-sitter-c-sharp 0.23.x` grammar predates
   `extension_declaration`, so modern source shaped as
   `extension(Receiver receiver) { ... }` could preserve the outer class while
-  dropping every inner method from Token Saver's callable index. Token Saver
+  dropping every inner method from ACCO's callable index. ACCO
   now performs a narrow balanced-source recovery pass for those blocks: it
   masks comments and string/character/raw literals, finds only top-level
   extension members, preserves the enclosing class as the qualified parent,
@@ -926,7 +926,7 @@
   fixtures and another untouched suite for fresh generalization evidence.
 
 - **Added a deterministic Output Saver benchmark harness.**
-  `token-saver output-benchmark manifest.json` runs compaction over inline or
+  `acco output-benchmark manifest.json` runs compaction over inline or
   file-backed responses and reports weighted/mean output-token reduction,
   exact fenced-code preservation, required-content preservation, removed
   units, and budget-overflow rate. The harness intentionally does not claim
@@ -934,8 +934,8 @@
   invoice effects belong in paired agent runs measured by `cost-report`.
 
 - **Added paired cost-per-success reporting for real agent runs.**
-  `token-saver cost-report baseline.json optimized.json` compares identical
-  task IDs across baseline and Token Saver runs using success outcomes,
+  `acco cost-report baseline.json optimized.json` compares identical
+  task IDs across baseline and ACCO runs using success outcomes,
   input/output/cache tokens, model/tool calls, latency, and cost. It reports
   total token and invoice reductions, success-rate change, improved/regressed
   tasks, and the primary commercial metric: **cost per successful task**.
@@ -944,14 +944,14 @@
   rejected by default so savings cannot be inflated by comparing different
   task sets. The command also accepts the existing single-file
   `agent-evaluate` paired manifest format (`task` +
-  `condition=baseline|token-saver`), so quality parity and economics can be
+  `condition=baseline|acco`), so quality parity and economics can be
   computed from the same experiment record rather than duplicated data.
 
 - **Built and first-ran a fifth frozen external holdout after the multi-language
   parser work.** `benchmarks/holdout-external-5.json` contains **30
   source-grounded tasks across 6 previously-unused repositories**: chi and zap
   (Go), clap and tower (Rust), Guava (Java), and Serilog (C#). Ground truth and
-  exact repository revisions were frozen before Token Saver saw any selected
+  exact repository revisions were frozen before ACCO saw any selected
   repository at SHA
   `9f2d7b6df3971aee95f906a1a85da4fde3c26226d10f3cecc2bafb6ce1c4fca3`.
 
@@ -1047,7 +1047,7 @@
   keeps fuzzy matching subordinate to BM25/graph/structural evidence rather
   than turning it into a new global retrieval strategy.
 
-  Added `token-saver browse` with ranked files, reasons, source-backed selected
+  Added `acco browse` with ranked files, reasons, source-backed selected
   symbols, redacted previews, estimated preview tokens, and visible fuzzy
   corrections. `--show N` prints a detailed candidate and `--interactive`
   provides a small terminal inspection loop (`list`, `show N`, `quit`).
@@ -1074,7 +1074,7 @@
   [socketio/socket.io](https://github.com/socketio/socket.io) (server
   package). Ground truth authored the same way as the second suite: by
   isolated agents reading each repository's actual source, before
-  token-saver was ever run against it, then frozen via
+  acco was ever run against it, then frozen via
   `--print-ground-truth-hash`. This suite exists because both prior
   suites are now heavily reused for diagnosing and validating fixes --
   a third, untouched suite is needed to check those fixes generalize
@@ -1404,10 +1404,10 @@
   [expressjs/express](https://github.com/expressjs/express), and
   [lodash/lodash](https://github.com/lodash/lodash). Ground truth for
   each repository was authored independently (by isolated agents with no
-  access to token-saver's own source or the tool's known weaknesses'
+  access to acco's own source or the tool's known weaknesses'
   specifics beyond "include some large-file-correct and some
   terse-file-correct cases if the repo naturally supports them"), from
-  reading the actual source, before token-saver was ever run against it,
+  reading the actual source, before acco was ever run against it,
   then frozen via `--print-ground-truth-hash` exactly as the first
   holdout suite was. This suite exists specifically because the first
   6-task httpx/zod suite was explicitly disclosed as "burned" for further
@@ -1527,7 +1527,7 @@ bias documented below is still the live, unfixed root cause.
   exact value it imports via a `semantic-ref` edge. `build_context_pack`'s
   budget-reservation search window for that same signal was independently
   too narrow for the same reason. Fixed with `closure.authoritative_providers`
-  (`src/token_saver/closure.py`): a separate, cheap, non-transitive one-hop
+  (`src/acco/closure.py`): a separate, cheap, non-transitive one-hop
   scan over every relevant candidate (not just the seed set) for
   `semantic-ref` edges specifically -- cheap because that edge kind never
   expands further regardless of how many sources it's checked from, unlike
@@ -1735,7 +1735,7 @@ Note: PR #1 (`feat/index-backed-retrieval`) and PR #2
 adding index-backed retrieval performance, stronger JS/TS module semantics,
 adaptive retrieval budgeting, provider-aware exact token counting,
 multi-repository/frozen-holdout evaluation, a TypeScript-compiler semantic
-overlay, and `token-saver host-check` -- without their own version bump or
+overlay, and `acco host-check` -- without their own version bump or
 CHANGELOG entry. Not re-documented here in detail; see the PR descriptions.
 This entry covers only the validation work below, done against that merged
 state.
@@ -1770,19 +1770,19 @@ state.
 - **Fixed a real bug found while validating `host-check` against an actual
   live host** (not a simulated payload): spawned a genuinely separate
   `claude -p --debug-file` session (2.1.274) against a scratch project with
-  Token Saver's hooks installed, and inspected its real debug log. It
-  proved genuine acceptance (`Hook PostToolUse (token-saver hook) replaced
+  ACCO's hooks installed, and inspected its real debug log. It
+  proved genuine acceptance (`Hook PostToolUse (acco hook) replaced
   tool output`), but `_host_evidence()`'s exact-string check
-  (`"token-saver: filtered output"`) still reported no acceptance, because
+  (`"acco: filtered output"`) still reported no acceptance, because
   the host's own debug-log redaction independently rewrote "filtered" to
-  "[REDACTED]" inside the marker text (confirmed unrelated to Token Saver:
+  "[REDACTED]" inside the marker text (confirmed unrelated to ACCO:
   invoking the hook directly produces the unmangled note). Fixed by
   checking for the recovery command's generated hex id instead of exact
-  prose, since nothing but Token Saver produces
-  `token-saver output <32-hex-chars>` and generic redaction of the
+  prose, since nothing but ACCO produces
+  `acco output <32-hex-chars>` and generic redaction of the
   surrounding sentence doesn't remove it.
 - **Paired coding-agent trials against real bug-fix tasks**, same model/
-  prompt/revision, full-context baseline vs. Token Saver's hooks installed,
+  prompt/revision, full-context baseline vs. ACCO's hooks installed,
   independently verified by running the target tests directly (not by
   trusting either agent's self-report). Two trials against
   [encode/httpx](https://github.com/encode/httpx):
@@ -1793,11 +1793,11 @@ state.
   **Both trials: both conditions produced the byte-for-byte identical,
   correct fix**, verified by independently running the target tests
   (`tests/test_utils.py`'s `test_get_environment_proxies`, 12/12;
-  `tests/client/test_redirects.py`, 31/31) -- Token Saver's hooks do not
-  change *what* gets fixed. On cost: trial 1 showed Token Saver 27% more
+  `tests/client/test_redirects.py`, 31/31) -- ACCO's hooks do not
+  change *what* gets fixed. On cost: trial 1 showed ACCO 27% more
   expensive; trial 2 showed it 56% cheaper. Inspecting the actual hook
   debug logs (not inferring from cost alone) shows why neither number
-  should be trusted as a real effect: **Token Saver's filtering/guard
+  should be trusted as a real effect: **ACCO's filtering/guard
   mechanism never actually activated in either trial** -- `hook.py`'s
   `main()` only writes output when there is something to filter, and in
   both trials every Read/Bash call stayed under the size thresholds that
@@ -1809,7 +1809,7 @@ state.
   after the fix, not a demonstrated effect of the tool.
 
   This is a genuine, disciplined finding, not a null result to paper over:
-  across the validation done this session, Token Saver's clearest,
+  across the validation done this session, ACCO's clearest,
   best-evidenced value is in the pre-compiled context path (`pack`/
   `pack-diff` curating context up front, as in the external holdout
   benchmark and the earlier pikivo review validation) rather than the
@@ -1915,7 +1915,7 @@ repository the original diff came from.
   parent classes, and per-symbol calls with automatic v1 cache invalidation.
 - Added exact symbol-body context packing through `--target-symbol`, structured
   JSON output, selected-symbol metadata, and high-confidence secret redaction.
-- Added `token-saver impact` for explainable file/symbol blast-radius analysis
+- Added `acco impact` for explainable file/symbol blast-radius analysis
   across imports, callers, and related tests.
 - Added bounded local relevance feedback and a ground-truth context evaluator
   measuring file recall, symbol recall, and token reduction.
@@ -1942,8 +1942,8 @@ repository the original diff came from.
 
 # 0.7.0
 
-- Added task-aware context packing with `token-saver pack` and the standalone
-  `token-saver-pack` entry point.
+- Added task-aware context packing with `acco pack` and the standalone
+  `acco-pack` entry point.
 - Added dependency-free BM25-style source ranking with stronger path and symbol
   weights, Git working-tree/staged-file boosts, and structural-priority fallback.
 - Context packs combine compact outlines with exact line-numbered source windows
@@ -1958,7 +1958,7 @@ repository the original diff came from.
 - Kept all 0.6 lifecycle, audit, recovery, source-read, and benchmark behavior;
   the new top-level dispatcher isolates `pack` from the mature legacy CLI.
 
-Token Saver still does not claim a universal end-to-end savings percentage.
+ACCO still does not claim a universal end-to-end savings percentage.
 Task success and paired-run measurements remain the standard for savings claims.
 
 # 0.6.0
