@@ -23,8 +23,7 @@ python -m pip install --upgrade acco
 ```
 
 The GitHub repository remains `elyeshkiri/ai-coding-context-optimizer`.
-Frozen historical benchmark artifacts retain their original Token Saver
-identifiers so their recorded hashes and provenance stay valid.
+Checked-in benchmark identifiers use the canonical ACCO namespace.
 
 ## 1.14 expanded coding-agent integration matrix
 
