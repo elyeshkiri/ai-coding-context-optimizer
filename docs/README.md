@@ -29,7 +29,7 @@ Use this page as the documentation map for the current ACCO release.
 ## Recommended user journey
 
 ```text
-pip install ai-coding-context-optimizer
+pip install acco
         ↓
 acco setup
         ↓
