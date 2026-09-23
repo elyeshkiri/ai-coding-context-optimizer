@@ -51,7 +51,7 @@ def _contains_hook(value: Any) -> bool:
 
 
 def user_acco_hook_configured() -> bool:
-    """Handle user token saver hook configured."""
+    """Return whether the user-level ACCO hook is configured."""
     path = user_settings_path()
     if not path.is_file():
         return False
