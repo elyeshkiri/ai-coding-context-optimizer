@@ -2,6 +2,30 @@
 
 ACCO treats setup as an idempotent repair/migration operation.
 
+## 1.15 ACCO package identity
+
+Version 1.15 completes the product rename to **ACCO — AI Coding Context Optimizer**.
+
+Canonical identifiers are now:
+
+- PyPI distribution: `acco`
+- Python package/import: `acco`
+- CLI: `acco` and `acco-pack`
+- project config: `.acco.toml`
+- environment namespace: `ACCO_*`
+- source package: `src/acco`
+- optional Rust package/module: `acco-fast` / `_acco_fast`
+
+Install or upgrade with:
+
+```bash
+python -m pip install --upgrade acco
+```
+
+The GitHub repository remains `elyeshkiri/ai-coding-context-optimizer`.
+Frozen historical benchmark artifacts retain their original Token Saver
+identifiers so their recorded hashes and provenance stay valid.
+
 ## 1.14 expanded coding-agent integration matrix
 
 Version 1.14 extends managed setup, doctor, and uninstall support across Claude
@@ -153,7 +177,7 @@ new publishable output-cost evidence should use the full frozen/graded pipeline.
 ## Standard upgrade
 
 ```bash
-python -m pip install --upgrade ai-coding-context-optimizer
+python -m pip install --upgrade acco
 cd /path/to/project
 acco setup .
 acco doctor .
@@ -219,7 +243,7 @@ doctor/uninstall lifecycle.
 Example:
 
 ```bash
-python -m pip install "ai-coding-context-optimizer==1.4.0"
+python -m pip install "acco==1.15.0"
 ```
 
 If that version predates unified setup, follow its release documentation and
@@ -229,7 +253,7 @@ use the legacy installer where required.
 
 ```bash
 acco uninstall . --host all
-python -m pip install --force-reinstall ai-coding-context-optimizer
+python -m pip install --force-reinstall acco
 acco setup .
 acco doctor .
 ```
