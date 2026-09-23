@@ -1,6 +1,6 @@
 # Frozen real CLI output corpus v1
 
-This directory contains raw stdout/stderr captured from real CLI executions on GitHub Actions before tuning Token Saver against these outputs.
+This directory contains raw stdout/stderr captured from real CLI executions on GitHub Actions before tuning ACCO against these outputs.
 
 - Source run: 35579266837
 - Captured: 30 / 31 attempted executions
