@@ -16,6 +16,6 @@ artifact before evaluation.
 - source artifact: 10630834204
 - capture-definition SHA-256: `0866719efa899c3d1d81fc2aa70eabe116ceb4401148ced000d854571581baae`
 
-No Token Saver or ppgranger comparison was run before the capture artifact was
+No ACCO or ppgranger comparison was run before the capture artifact was
 frozen and its raw files were verified. Any tuning informed by v3 is burned and
 requires a later fresh corpus for new proof.
