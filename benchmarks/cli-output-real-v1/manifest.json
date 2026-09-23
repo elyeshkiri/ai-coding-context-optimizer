@@ -9,7 +9,7 @@
     "source_artifact_sha256": "fcd3505426e3a1586db66b8b4df2fdd3058f2c2bc27c2afab41ec4c23b39a384",
     "source_head_sha": "4f03e94eb23ea317724f3e20751689158d24ae95",
     "claim_boundary": "Real CLI executions on a GitHub-hosted Ubuntu runner; not production-user logs and not end-to-end API-cost evidence.",
-    "freeze_sha256": "aa9653c288514465f2dba3a0c7c036733f1f77a6d8f61f883ce4fd93b8376323"
+    "freeze_sha256": "70cdffa01f77df37ff6b74d701b05b179914b775997a0b3a91900bf7dbe2defc"
   },
   "environment": {
     "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
@@ -23,7 +23,7 @@
     "attempted": 31,
     "captured": 30,
     "skipped": 1,
-    "raw_bytes": 9308
+    "raw_bytes": 9429
   },
   "captures": [
     {
@@ -176,8 +176,8 @@
       "command": "eslint lint.js",
       "exit_code": 1,
       "output_path": "captures/eslint-failure.txt",
-      "output_sha256": "1ee161c88f9768dd132f1f19217b52bdc665fe17e379d6405934ce8fd71c5495",
-      "output_bytes": 346,
+      "output_sha256": "4f3d9ec36cc6b31487aaeb5dbe4bc28d90ad84a666a3617bb8b884bde36f12d4",
+      "output_bytes": 378,
       "output_lines": 8
     },
     {
@@ -187,8 +187,8 @@
       "command": "cargo build",
       "exit_code": 101,
       "output_path": "captures/cargo-build-failure.txt",
-      "output_sha256": "6d6c9c15eb8451bd2daf477f32f455c786103d65fc16aac62237a6b003aa31f4",
-      "output_bytes": 1004,
+      "output_sha256": "5440b04ad4d68548c448d36891ce39348071780e84fe5155e57867bc8e9733ad",
+      "output_bytes": 1036,
       "output_lines": 17
     },
     {
@@ -198,8 +198,8 @@
       "command": "cargo clippy",
       "exit_code": 101,
       "output_path": "captures/cargo-clippy-failure.txt",
-      "output_sha256": "32b449f32c5c54c76e402821158593db905ff1668c7b1c89a235e2ce02a147e4",
-      "output_bytes": 1017,
+      "output_sha256": "cec345a114bd734a36b92548918f3cec711b04e79ec04b8e9777cba50b6c6365",
+      "output_bytes": 1049,
       "output_lines": 17
     },
     {
@@ -209,8 +209,8 @@
       "command": "cargo test",
       "exit_code": 101,
       "output_path": "captures/cargo-test-failure.txt",
-      "output_sha256": "ae0ec7de5dd03193bb48e922ad28dda2923a793b001cee3d74c11233f5b2f18e",
-      "output_bytes": 752,
+      "output_sha256": "658d5adf5bed5f7a3e3453809771025aab156d60ef4347ea392a763c0b140f5c",
+      "output_bytes": 784,
       "output_lines": 24
     },
     {
@@ -308,8 +308,8 @@
       "command": "docker inspect acco-missing-container",
       "exit_code": 1,
       "output_path": "captures/docker-inspect-failure.txt",
-      "output_sha256": "31753d7e840466c0011e075c8bad1b1a59969a97658f3e36e7b1a38dbbcc5237",
-      "output_bytes": 56,
+      "output_sha256": "b67296be0d97ef854deaec9ff55bc412c6ac80786da821d8798035856868e148",
+      "output_bytes": 49,
       "output_lines": 2
     },
     {
