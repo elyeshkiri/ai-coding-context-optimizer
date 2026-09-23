@@ -18,7 +18,7 @@
         "AssertionError: expected 200, got 401"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -35,7 +35,7 @@
         "Received: 401"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -50,7 +50,7 @@
         "f4240 commit message 0"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.45
     },
@@ -67,7 +67,7 @@
         "new_file.py"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -83,7 +83,7 @@
         "src/file_049.py:50:needle"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.2
     },
@@ -99,7 +99,7 @@
         "needless borrow"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -115,7 +115,7 @@
         "Type of \"user\" is unknown"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -132,7 +132,7 @@
         "Passed: 41"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -149,7 +149,7 @@
         "BUILD FAILED"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -165,7 +165,7 @@
         "audited 429 packages"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -181,7 +181,7 @@
         "worker event 139"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.25
     },
@@ -197,7 +197,7 @@
         "generic verbose line 139"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.2
     },
@@ -214,7 +214,7 @@
         "@@ -1,3 +1,3 @@"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -231,7 +231,7 @@
         "+after"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -247,7 +247,7 @@
         "feature/branch-79"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.2
     },
@@ -263,7 +263,7 @@
         "main -> main"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -279,7 +279,7 @@
         "failed to solve"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -295,7 +295,7 @@
         "container79"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.2
     },
@@ -311,7 +311,7 @@
         "worker-1  | service Running"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -327,7 +327,7 @@
         "\"Field89\": \"value89\""
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.15
     },
@@ -343,7 +343,7 @@
         "ns-79 pod-79"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.2
     },
@@ -360,7 +360,7 @@
         "Warning  FailedScheduling"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -376,7 +376,7 @@
         "event-99"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.15
     },
@@ -392,7 +392,7 @@
         "Plan: 0 to add, 1 to change, 0 to destroy."
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -408,7 +408,7 @@
         "Apply complete!"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -425,7 +425,7 @@
         "REVISION: 12"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -442,7 +442,7 @@
         "Outputs:"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -459,7 +459,7 @@
         "could not compile `app`"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -475,7 +475,7 @@
         "src/lib.rs:42:5"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -491,7 +491,7 @@
         "test result: FAILED"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.65
     },
@@ -507,7 +507,7 @@
         "undefined: session"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -523,7 +523,7 @@
         "FAIL example/auth"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -540,7 +540,7 @@
         "BUILD FAILURE"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -557,7 +557,7 @@
         "BUILD FAILED"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -573,7 +573,7 @@
         "F821 Undefined name"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -590,7 +590,7 @@
         "no-undef"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -607,7 +607,7 @@
         "rated at 8.50/10"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -623,7 +623,7 @@
         "src/app.ts(10,4)"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -639,7 +639,7 @@
         "Incompatible return value type"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.7
     },
@@ -655,7 +655,7 @@
         "{\"id\":99,\"name\":\"item-99\"}"
       ],
       "must_not_contain": [
-        "FABRICATED_TOKEN_SAVER_DIAGNOSTIC"
+        "FABRICATED_ACCO_DIAGNOSTIC"
       ],
       "min_reduction": 0.15
     }
