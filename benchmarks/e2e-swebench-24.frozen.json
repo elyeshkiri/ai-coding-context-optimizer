@@ -8,7 +8,8 @@
     "hidden_tests_after_agent": true,
     "development_excluded": true,
     "frozen_at": "2026-09-19T14:35:00+02:00",
-    "task_definition_sha256": "8486359b1f3bea306e53f6e3d40f19dc0cc26b4a986776ee6792ef981d5f4ad4"
+    "task_definition_sha256": "04fe8e64387515d71dd6562cc9858d781277765efb95b3a243cee1b4e2bedb3e",
+    "branding_migrated_to": "ACCO"
   },
   "design": {
     "trials_per_task": 3,
@@ -48,7 +49,7 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.claude_docker",
+      "acco.claude_docker",
       "--worktree",
       "{worktree}",
       "--transcript",
@@ -60,11 +61,11 @@
       "--condition",
       "{condition}",
       "--image",
-      "token-saver-e2e-agent:2.1.276"
+      "acco-e2e-agent:2.1.276"
     ],
     "model": "claude-sonnet-5",
     "claude_code_version": "2.1.276",
-    "agent_image": "token-saver-e2e-agent:2.1.276",
+    "agent_image": "acco-e2e-agent:2.1.276",
     "transcript_mode": "path",
     "timeout_seconds": 1800,
     "container_user_mode": "host-uid-gid",
@@ -659,11 +660,11 @@
     "command": [
       "python3",
       "-m",
-      "token_saver.claude_grader",
+      "acco.claude_grader",
       "--model",
       "{judge}",
       "--image",
-      "token-saver-e2e-agent:2.1.276"
+      "acco-e2e-agent:2.1.276"
     ],
     "judge": "claude-sonnet-5",
     "assignment_seed": 20260920,
