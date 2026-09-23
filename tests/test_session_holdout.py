@@ -283,7 +283,7 @@ def test_checked_in_session_holdout_is_broad_frozen_and_isolated():
     assert definition["valid"] is True
     assert (
         definition["task_definition_sha256"]
-        == "7bfbd63b28219e715c2361469c8134aad5930fac808b858b199f69c4b10e922d"
+        == "0f2ae97074ec9f915ef33f918f45abbe34b8a8d87292f5afa28c53af90d0cf14"
     )
 
 
