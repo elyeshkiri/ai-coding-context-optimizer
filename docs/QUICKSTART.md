@@ -8,10 +8,10 @@ about five minutes.
 ACCO supports Python 3.10+.
 
 ```bash
-python -m pip install --upgrade ai-coding-context-optimizer
+python -m pip install --upgrade acco
 ```
 
-The PyPI distribution is `ai-coding-context-optimizer`; the executable remains
+The PyPI distribution is `acco`; the executable remains
 `acco`.
 
 Verify the executable and discover the complete command surface:

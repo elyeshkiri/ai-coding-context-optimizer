@@ -13,8 +13,8 @@ Then use the symptom-specific checks below.
 Check the Python environment:
 
 ```bash
-python -m pip show ai-coding-context-optimizer
-python -m pip install --upgrade ai-coding-context-optimizer
+python -m pip show acco
+python -m pip install --upgrade acco
 python -m pip --version
 ```
 
@@ -372,7 +372,7 @@ Collect:
 acco doctor . --json
 acco commands
 python --version
-python -m pip show ai-coding-context-optimizer
+python -m pip show acco
 ```
 
 When reporting a bug, include the failing command, exit code, traceback/error
