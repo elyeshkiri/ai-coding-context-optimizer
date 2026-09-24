@@ -1,5 +1,10 @@
 # Unreleased
 
+- **Recorded a negative result for semantic symbol matching.** The optional
+  `all-MiniLM-L6-v2` embeddings, fused with lexical symbol scoring, fixed 19
+  expected symbols but broke 45 across 488 holdout cases, so no semantic
+  symbol ranker was built. See `VALIDATION.md`.
+
 - **Compact fitting for clipped sections.** When a file's section must be
   clipped to its budget, a compact form showing the head of every selected or
   credited symbol is tried and used only when it shows strictly more symbol
