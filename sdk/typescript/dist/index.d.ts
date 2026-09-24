@@ -6,6 +6,11 @@ export interface AccoClientOptions {
   fetchImpl?: typeof fetch;
 }
 
+export interface ProviderFetchOptions {
+  fetchImpl?: typeof fetch;
+  failOpen?: boolean;
+}
+
 export interface ProviderOptimization {
   schema: number;
   body: JsonObject;
@@ -109,5 +114,9 @@ export declare class AccoClient {
     options?: JsonObject,
   ): Promise<ModelRouteDecision>;
   recover(handle: string): Promise<RecoveryResult>;
+  interceptFetch(
+    provider: string,
+    options?: ProviderFetchOptions,
+  ): typeof fetch;
   middleware(provider: string): AccoMiddleware;
 }

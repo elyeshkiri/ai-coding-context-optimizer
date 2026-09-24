@@ -6,12 +6,18 @@ from copy import deepcopy
 from dataclasses import dataclass
 import json
 from pathlib import Path
-import re
 from typing import Any
 
 from .context_router import route_context
 from .estimate import estimate_tokens
 from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
+from .provider_boundary import (
+    ProviderRequestProfile,
+    detect_provider_request,
+    gemini_function_responses,
+    iter_gemini_function_response_strings,
+    latest_user_text,
+)
 from .recovery import RecoveryCapacityError, RecoveryStore
 from .tool_schema import compress_tool_catalog
 
@@ -27,6 +33,8 @@ class ProviderTransformResult:
     recovery_handles: tuple[str, ...]
     schema_recovery_handle: str | None
     prefix: PrefixPlan
+    profile: ProviderRequestProfile
+    transformed_segments: int = 0
 
     def metadata(self) -> dict:
         """Return request transformation metadata without request content."""
@@ -41,42 +49,15 @@ class ProviderTransformResult:
             "recovery_handles": list(self.recovery_handles),
             "schema_recovery_handle": self.schema_recovery_handle,
             "prefix": self.prefix.to_dict(),
+            "request": self.profile.to_dict(),
+            "transformed_segments": self.transformed_segments,
+            "policy": "retrieval-first-historical-only",
         }
 
 
 def _json_tokens(value: Any) -> int:
     """Estimate tokens in compact JSON serialization."""
     return estimate_tokens(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
-
-
-def _latest_user_text(body: dict) -> str:
-    """Extract bounded query text from the latest user request item."""
-    candidates = body.get("messages")
-    if not isinstance(candidates, list):
-        candidates = body.get("input")
-    if not isinstance(candidates, list):
-        return ""
-    for item in reversed(candidates):
-        if not isinstance(item, dict) or item.get("role") != "user":
-            continue
-        content = item.get("content")
-        if isinstance(content, str):
-            return content[:2000]
-        if isinstance(content, list):
-            parts = []
-            for block in content:
-                if isinstance(block, dict) and isinstance(block.get("text"), str):
-                    parts.append(block["text"])
-            return " ".join(parts)[:2000]
-    return ""
-
-
-def _looks_browser_payload(text: str) -> bool:
-    """Return whether captured tool text appears to be HTML/browser context."""
-    return bool(
-        re.search(r"<(?:html|body|div|table|form|button|a)\b", text, re.I)
-        or re.search(r"(?m)^\s*(?:role=|button\s+\[|link\s+\[|textbox\s+\[)", text)
-    )
 
 
 def _compress_tool_text(
@@ -86,7 +67,7 @@ def _compress_tool_text(
     recovery: RecoveryStore,
     min_tokens: int,
 ) -> tuple[str, str | None]:
-    """Route one large tool-result string through recoverable context transforms."""
+    """Route one large historical tool-result string through exact recovery."""
     if estimate_tokens(text) < min_tokens:
         return text, None
     result = route_context(
@@ -102,6 +83,7 @@ def _compress_tool_text(
         result.recovery_handle if result.changed else None,
     )
 
+
 def _transform_content_blocks(
     blocks: list,
     *,
@@ -109,9 +91,10 @@ def _transform_content_blocks(
     recovery: RecoveryStore,
     min_tokens: int,
     handles: list[str],
-) -> list:
-    """Transform Anthropic-style tool-result content blocks."""
+) -> tuple[list, int]:
+    """Transform Anthropic-style historical tool-result content blocks."""
     out = []
+    changed = 0
     for block in blocks:
         if not isinstance(block, dict) or block.get("type") != "tool_result":
             out.append(block)
@@ -128,10 +111,15 @@ def _transform_content_blocks(
             updated["content"] = transformed
             if handle:
                 handles.append(handle)
+                changed += 1
         elif isinstance(content, list):
             new_content = []
             for item in content:
-                if isinstance(item, dict) and item.get("type") == "text" and isinstance(item.get("text"), str):
+                if (
+                    isinstance(item, dict)
+                    and item.get("type") == "text"
+                    and isinstance(item.get("text"), str)
+                ):
                     transformed, handle = _compress_tool_text(
                         item["text"],
                         query=query,
@@ -142,10 +130,131 @@ def _transform_content_blocks(
                     item["text"] = transformed
                     if handle:
                         handles.append(handle)
+                        changed += 1
                 new_content.append(item)
             updated["content"] = new_content
         out.append(updated)
-    return out
+    return out, changed
+
+
+def _transform_messages(
+    transformed: dict,
+    *,
+    query: str,
+    recovery: RecoveryStore,
+    min_tokens: int,
+    handles: list[str],
+) -> int:
+    """Transform only explicit historical tool outputs in message APIs."""
+    messages = transformed.get("messages")
+    if not isinstance(messages, list):
+        return 0
+    changed = 0
+    new_messages = []
+    for message in messages:
+        if not isinstance(message, dict):
+            new_messages.append(message)
+            continue
+        updated = dict(message)
+        content = updated.get("content")
+        if isinstance(content, list):
+            updated["content"], count = _transform_content_blocks(
+                content,
+                query=query,
+                recovery=recovery,
+                min_tokens=min_tokens,
+                handles=handles,
+            )
+            changed += count
+        if updated.get("role") == "tool" and isinstance(content, str):
+            updated["content"], handle = _compress_tool_text(
+                content,
+                query=query,
+                recovery=recovery,
+                min_tokens=min_tokens,
+            )
+            if handle:
+                handles.append(handle)
+                changed += 1
+        new_messages.append(updated)
+    transformed["messages"] = new_messages
+    return changed
+
+
+def _transform_openai_input(
+    transformed: dict,
+    *,
+    query: str,
+    recovery: RecoveryStore,
+    min_tokens: int,
+    handles: list[str],
+) -> int:
+    """Transform OpenAI Responses historical function/tool outputs only."""
+    input_items = transformed.get("input")
+    if not isinstance(input_items, list):
+        return 0
+    changed = 0
+    new_input = []
+    for item in input_items:
+        if (
+            isinstance(item, dict)
+            and item.get("type") in {"function_call_output", "tool_result"}
+            and isinstance(item.get("output"), str)
+        ):
+            item = dict(item)
+            item["output"], handle = _compress_tool_text(
+                item["output"],
+                query=query,
+                recovery=recovery,
+                min_tokens=min_tokens,
+            )
+            if handle:
+                handles.append(handle)
+                changed += 1
+        new_input.append(item)
+    transformed["input"] = new_input
+    return changed
+
+
+def _transform_gemini(
+    transformed: dict,
+    *,
+    query: str,
+    recovery: RecoveryStore,
+    min_tokens: int,
+    handles: list[str],
+) -> int:
+    """Transform long string leaves inside Gemini functionResponse payloads."""
+    changed = 0
+    for parent, key in gemini_function_responses(transformed):
+        response = parent[key]
+        if isinstance(response, str):
+            candidate, handle = _compress_tool_text(
+                response,
+                query=query,
+                recovery=recovery,
+                min_tokens=min_tokens,
+            )
+            parent[key] = candidate
+            if handle:
+                handles.append(handle)
+                changed += 1
+            continue
+        if not isinstance(response, (dict, list)):
+            continue
+        for leaf_parent, leaf_key in iter_gemini_function_response_strings(response):
+            value = leaf_parent[leaf_key]
+            candidate, handle = _compress_tool_text(
+                value,
+                query=query,
+                recovery=recovery,
+                min_tokens=min_tokens,
+            )
+            leaf_parent[leaf_key] = candidate
+            if handle:
+                handles.append(handle)
+                changed += 1
+    return changed
 
 
 def transform_provider_request(
@@ -153,20 +262,23 @@ def transform_provider_request(
     provider: str,
     body: dict,
     *,
+    request_path: str = "",
     compress_schemas: bool = True,
     compress_tool_results: bool = True,
     tool_result_min_tokens: int = 800,
     recovery_capacity_bytes: int = 512 * 1024 * 1024,
     prefix_tracking: bool = True,
 ) -> ProviderTransformResult:
-    """Optimize a provider JSON request while retaining exact transformed source."""
+    """Optimize historical provider context while leaving current task/source intact."""
     if not isinstance(body, dict):
         raise ValueError("provider request body must be a JSON object")
+    profile = detect_provider_request(provider, body, path=request_path)
     original_tokens = _json_tokens(body)
     transformed = deepcopy(body)
     recovery = RecoveryStore(root, capacity_bytes=recovery_capacity_bytes)
     handles: list[str] = []
     schema_handle = None
+    transformed_segments = 0
 
     try:
         if compress_schemas and isinstance(transformed.get("tools"), list):
@@ -180,60 +292,34 @@ def transform_provider_request(
                 schema_handle = schema.recovery_handle
 
         if compress_tool_results:
-            query = _latest_user_text(transformed)
-            messages = transformed.get("messages")
-            if isinstance(messages, list):
-                new_messages = []
-                for message in messages:
-                    if not isinstance(message, dict):
-                        new_messages.append(message)
-                        continue
-                    updated = dict(message)
-                    content = updated.get("content")
-                    if isinstance(content, list):
-                        updated["content"] = _transform_content_blocks(
-                            content,
-                            query=query,
-                            recovery=recovery,
-                            min_tokens=tool_result_min_tokens,
-                            handles=handles,
-                        )
-                    if updated.get("role") == "tool" and isinstance(content, str):
-                        updated["content"], handle = _compress_tool_text(
-                            content,
-                            query=query,
-                            recovery=recovery,
-                            min_tokens=tool_result_min_tokens,
-                        )
-                        if handle:
-                            handles.append(handle)
-                    new_messages.append(updated)
-                transformed["messages"] = new_messages
-
-            input_items = transformed.get("input")
-            if isinstance(input_items, list):
-                new_input = []
-                for item in input_items:
-                    if (
-                        isinstance(item, dict)
-                        and item.get("type") in {"function_call_output", "tool_result"}
-                        and isinstance(item.get("output"), str)
-                    ):
-                        item = dict(item)
-                        item["output"], handle = _compress_tool_text(
-                            item["output"],
-                            query=query,
-                            recovery=recovery,
-                            min_tokens=tool_result_min_tokens,
-                        )
-                        if handle:
-                            handles.append(handle)
-                    new_input.append(item)
-                transformed["input"] = new_input
+            query = latest_user_text(transformed, profile)
+            transformed_segments += _transform_messages(
+                transformed,
+                query=query,
+                recovery=recovery,
+                min_tokens=tool_result_min_tokens,
+                handles=handles,
+            )
+            transformed_segments += _transform_openai_input(
+                transformed,
+                query=query,
+                recovery=recovery,
+                min_tokens=tool_result_min_tokens,
+                handles=handles,
+            )
+            if profile.provider == "gemini":
+                transformed_segments += _transform_gemini(
+                    transformed,
+                    query=query,
+                    recovery=recovery,
+                    min_tokens=tool_result_min_tokens,
+                    handles=handles,
+                )
     except RecoveryCapacityError:
         transformed = deepcopy(body)
         handles = []
         schema_handle = None
+        transformed_segments = 0
 
     output_tokens = _json_tokens(transformed)
     changed = transformed != body and output_tokens < original_tokens
@@ -241,10 +327,12 @@ def transform_provider_request(
         transformed = deepcopy(body)
         handles = []
         schema_handle = None
+        transformed_segments = 0
         output_tokens = original_tokens
 
+    prefix_provider = profile.provider
     if prefix_tracking:
-        prefix = observe_prefix(root, provider, transformed)
+        prefix = observe_prefix(root, prefix_provider, transformed)
     else:
         fingerprint, tokens, size, components = stable_prefix_fingerprint(
             transformed
@@ -265,4 +353,6 @@ def transform_provider_request(
         recovery_handles=tuple(dict.fromkeys(handles)),
         schema_recovery_handle=schema_handle,
         prefix=prefix,
+        profile=profile,
+        transformed_segments=transformed_segments,
     )

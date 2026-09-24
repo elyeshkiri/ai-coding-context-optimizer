@@ -86,3 +86,110 @@ test("non-2xx responses preserve structured SDK error", async () => {
     );
   });
 });
+
+
+test("provider fetch interceptor optimizes JSON and fails open by default", async () => {
+  await withServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (req.url === "/v1/provider/optimize") {
+      assert.equal(body.provider, "openai");
+      const optimized = structuredClone(body.body);
+      optimized.marker = "optimized";
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({
+        schema: 1,
+        body: optimized,
+        metadata: { changed: true },
+      }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  }, async (baseUrl) => {
+    const seen = [];
+    const upstream = async (input, init) => {
+      seen.push({
+        url: String(input),
+        body: init?.body ?? null,
+      });
+      return new Response("ok", { status: 200 });
+    };
+    const client = new AccoClient({ baseUrl });
+    const intercepted = client.interceptFetch("openai", { fetchImpl: upstream });
+    await intercepted("https://api.openai.test/v1/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: "hello" }),
+    });
+    assert.equal(JSON.parse(seen[0].body).marker, "optimized");
+  });
+
+  const failingClient = new AccoClient({
+    baseUrl: "http://127.0.0.1:1",
+    timeoutMs: 50,
+  });
+  const seen = [];
+  const upstream = async (input, init) => {
+    seen.push(init?.body ?? null);
+    return new Response("ok", { status: 200 });
+  };
+  const intercepted = failingClient.interceptFetch("anthropic", {
+    fetchImpl: upstream,
+  });
+  const original = JSON.stringify({ messages: [{ role: "user", content: "hello" }] });
+  await intercepted("https://api.anthropic.test/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: original,
+  });
+  assert.equal(seen[0], original);
+});
+
+test("provider fetch interceptor preserves original JSON bytes on ACCO no-op", async () => {
+  await withServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      schema: 1,
+      body: body.body,
+      metadata: { changed: false },
+    }));
+  }, async (baseUrl) => {
+    const seen = [];
+    const upstream = async (_input, init) => {
+      seen.push(init?.body ?? null);
+      return new Response("ok", { status: 200 });
+    };
+    const client = new AccoClient({ baseUrl });
+    const intercepted = client.interceptFetch("openai", { fetchImpl: upstream });
+    const original = '{ "input": "hello", "temperature": 0 }';
+    await intercepted("https://api.openai.test/v1/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: original,
+    });
+    assert.equal(seen[0], original);
+  });
+});
+
+test("provider fetch interceptor can fail closed when explicitly requested", async () => {
+  const client = new AccoClient({
+    baseUrl: "http://127.0.0.1:1",
+    timeoutMs: 50,
+  });
+  const intercepted = client.interceptFetch("openai", {
+    fetchImpl: async () => new Response("unexpected"),
+    failOpen: false,
+  });
+  await assert.rejects(
+    () => intercepted("https://api.openai.test/v1/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: "hello" }),
+    }),
+  );
+});

@@ -270,6 +270,15 @@ def dashboard_main(argv: list[str]) -> int:
     print(f"  cache creation     {_tokens(usage.get('cache_creation_input_tokens')):>8}")
     print(f"  cache read         {_tokens(usage.get('cache_read_input_tokens')):>8}")
     print(f"  output             {_tokens(usage.get('output_tokens')):>8}")
+    provider_usage = report.get("provider_usage", {})
+    if provider_usage.get("calls"):
+        print("provider boundary observed (separate; not merged above):")
+        print(f"  calls              {provider_usage.get('calls', 0):>8}")
+        print(f"  input              {_tokens(provider_usage.get('input_tokens')):>8}")
+        print(f"  cache read         {_tokens(provider_usage.get('cache_read_input_tokens')):>8}")
+        print(f"  output             {_tokens(provider_usage.get('output_tokens')):>8}")
+        for provider, count in provider_usage.get("by_provider", {}).items():
+            print(f"  {provider:<18} {count:>8} call(s)")
     print("note: local savings are operational estimates, not a cost/success claim")
     if args.html:
         print(f"html: {Path(args.html).expanduser().resolve()}")

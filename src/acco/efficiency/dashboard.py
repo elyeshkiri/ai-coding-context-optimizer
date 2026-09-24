@@ -43,6 +43,8 @@ def render_dashboard_html(report: dict) -> str:
     input_tokens = usage.get("input_tokens", 0)
     cache_read = usage.get("cache_read_input_tokens", 0)
     behavior_events = behavior.get("events", 0)
+    provider_usage = report.get("provider_usage", {})
+    provider_calls = provider_usage.get("calls", 0)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -82,6 +84,8 @@ td:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
     <div class="value">{escape(_number(output_tokens))}</div><div>tokens</div></div>
   <div class="card"><div>Behavior signals</div>
     <div class="value">{escape(_number(behavior_events))}</div><div>events</div></div>
+  <div class="card"><div>Provider-boundary calls</div>
+    <div class="value">{escape(_number(provider_calls))}</div><div>observed</div></div>
   <div class="card"><div>Continuity restores</div>
     <div class="value">{escape(_number(continuity.get("restores", 0)))}</div>
     <div>events</div></div>
@@ -99,6 +103,15 @@ td:last-child {{ text-align: right; font-variant-numeric: tabular-nums; }}
     "output": usage.get("output_tokens", 0),
     "model_calls": usage.get("model_calls", 0),
 })}</table></section>
+<section><h2>Provider boundary usage</h2>
+<table>{_rows({
+    "calls": provider_usage.get("calls", 0),
+    "input": provider_usage.get("input_tokens", 0),
+    "cache_read": provider_usage.get("cache_read_input_tokens", 0),
+    "output": provider_usage.get("output_tokens", 0),
+})}</table>
+<div class="muted">Separate from transcript usage to avoid double counting.</div>
+</section>
 <section><h2>Continuity</h2>
 <table>{_rows({
     "restores": continuity.get("restores", 0),

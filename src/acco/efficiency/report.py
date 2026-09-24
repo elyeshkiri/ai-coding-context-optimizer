@@ -33,6 +33,28 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
         if event.get("kind") == "waste"
     )
     continuity = sum(event.get("kind") == "continuity" for event in events)
+    provider_events = [
+        event for event in events if event.get("kind") == "provider_usage"
+    ]
+    provider_totals: dict[str, int] = defaultdict(int)
+    provider_calls: Counter[str] = Counter()
+    provider_models: Counter[str] = Counter()
+    for event in provider_events:
+        provider = str(event.get("provider") or "unknown")
+        provider_calls[provider] += 1
+        model = event.get("model")
+        if isinstance(model, str) and model:
+            provider_models[model] += 1
+        for field in (
+            "input_tokens",
+            "output_tokens",
+            "cache_creation_input_tokens",
+            "cache_read_input_tokens",
+            "total_tokens",
+        ):
+            value = event.get(field)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                provider_totals[field] += value
     telemetry = output_telemetry_report(root, since=since)
     snapshot = load_snapshot(root)
     sessions = snapshot.get("sessions")
@@ -59,9 +81,21 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
             "events": sum(waste.values()),
         },
         "billed_usage": telemetry["summary"],
+        "provider_usage": {
+            "calls": len(provider_events),
+            **dict(provider_totals),
+            "by_provider": dict(sorted(provider_calls.items())),
+            "models": dict(sorted(provider_models.items())),
+            "source": "provider-reported counters observed at the local boundary",
+            "merged_with_billed_usage": False,
+        },
         "model_routing": telemetry["routing"],
         "evidence": {
             "billed_usage_source": "Claude transcript usage counters",
+            "provider_usage_source": (
+                "separate provider-boundary response counters; never silently "
+                "merged with transcript usage"
+            ),
             "savings_source": "local observed tool transformations",
             "task_success": False,
             "quality_verified": False,
