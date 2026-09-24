@@ -84,7 +84,9 @@ def normalize_provider_usage(provider: str, payload: object) -> dict[str, Any]:
             if value is not None:
                 result[target] = value
 
-    model = payload.get("model")
+    model = source.get("model")
+    if not isinstance(model, str):
+        model = payload.get("model")
     if not isinstance(model, str):
         model = payload.get("modelVersion")
     if isinstance(model, str) and model.strip():
