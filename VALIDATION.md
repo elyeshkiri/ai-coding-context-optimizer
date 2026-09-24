@@ -1,4 +1,45 @@
-# Validation for 1.15.0
+# Validation for 1.16.0
+
+## 1.16 custom-agent, provider-boundary, and browser-context mechanics
+
+Version 1.16 expands ACCO beyond coding-CLI-only integration while preserving
+the existing retrieval-first authority and exact-recovery contract.
+
+Mechanical validation covers:
+
+- `acco trial` generation/execution boundaries: committed-HEAD isolation,
+  paired baseline/enabled runs, independent verifier commands, transcript
+  accounting, and an explicit non-publishable evidence label for local trials;
+- `acco learn` session analysis from local Claude transcript evidence without
+  promoting estimated opportunity sizes into measured savings claims;
+- the in-process Python `AccoEngine`, framework-neutral middleware, loopback
+  SDK bridge, and typed TypeScript client sharing the same Python
+  optimization/recovery implementation rather than duplicating policy;
+- provider-shape detection for Anthropic Messages, OpenAI Chat Completions /
+  Responses, and Gemini generateContent/streamGenerateContent, with transforms
+  restricted to tool schemas and explicit historical tool/function outputs;
+- byte-preserving provider request passthrough when no ACCO transform is
+  accepted, byte-for-byte provider response forwarding, and optional
+  content-free provider usage counters kept separate from transcript usage to
+  avoid silent double counting;
+- caller-supplied HTML, accessibility/ARIA snapshots, and browser-shaped JSON
+  focusing with rarity-weighted query relevance, bounded structural/actionable
+  context, hidden/noise suppression, exact `tsr_...` recovery, and
+  minimum-size/unprofitable-transform fail-open behavior;
+- ordinary JSON remaining on the general context router and browser
+  specialization never gaining navigation, arbitrary URL-fetch, page-code
+  execution, OCR, or screenshot-analysis authority.
+
+The release also keeps the 1.15-to-1.16 retrieval changes under the existing
+external regression discipline: the self-benchmark is 100% for file, symbol,
+and scoped-symbol recall, the documented 471-task external comparisons report
+only observed non-regressing improvements, and semantic holdout #15 remains
+frozen but unevaluated.
+
+These checks establish implementation/safety invariants and retrieval
+regression control. They do **not** establish a new universal provider-token,
+API-dollar, task-success, or cost-per-success improvement. The unresolved
+publication-grade paired-agent evidence requirements below remain in force.
 
 ## 1.15 ACCO identity and packaging mechanics
 
