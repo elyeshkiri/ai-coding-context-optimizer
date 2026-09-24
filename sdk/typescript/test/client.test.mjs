@@ -147,6 +147,35 @@ test("provider fetch interceptor optimizes JSON and fails open by default", asyn
   assert.equal(seen[0], original);
 });
 
+test("provider fetch interceptor preserves original JSON bytes on ACCO no-op", async () => {
+  await withServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      schema: 1,
+      body: body.body,
+      metadata: { changed: false },
+    }));
+  }, async (baseUrl) => {
+    const seen = [];
+    const upstream = async (_input, init) => {
+      seen.push(init?.body ?? null);
+      return new Response("ok", { status: 200 });
+    };
+    const client = new AccoClient({ baseUrl });
+    const intercepted = client.interceptFetch("openai", { fetchImpl: upstream });
+    const original = '{ "input": "hello", "temperature": 0 }';
+    await intercepted("https://api.openai.test/v1/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: original,
+    });
+    assert.equal(seen[0], original);
+  });
+});
+
 test("provider fetch interceptor can fail closed when explicitly requested", async () => {
   const client = new AccoClient({
     baseUrl: "http://127.0.0.1:1",
