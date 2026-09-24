@@ -172,3 +172,33 @@ def test_embedding_mode_has_actionable_missing_dependency_error(tmp_path, monkey
         assert "acco[embeddings]" in str(exc)
     else:
         raise AssertionError("expected missing optional dependency error")
+
+
+def test_python_outline_leads_with_module_summary(tmp_path):
+    (tmp_path / "tool.py").write_text(
+        '"""Paired end-to-end task evaluation.\n\nMore detail.\n"""\n\ndef evaluate():\n    pass\n',
+        encoding="utf-8",
+    )
+    outline = build_index(tmp_path, persist=False).records["tool.py"].outline
+    assert outline.splitlines()[0].endswith("# Paired end-to-end task evaluation.")
+    assert "More detail" not in outline
+
+
+def test_argparse_flags_count_for_relevance_but_stay_out_of_outline(tmp_path):
+    (tmp_path / "cli.py").write_text(
+        "import argparse\n\n"
+        "def main():\n"
+        "    parser = argparse.ArgumentParser()\n"
+        "    parser.add_argument('--target-symbol')\n"
+        "    parser.add_argument(\"--json\", action='store_true')\n",
+        encoding="utf-8",
+    )
+    from acco.lexical import document_counts
+
+    text = (tmp_path / "cli.py").read_text(encoding="utf-8")
+    record = build_index(tmp_path, persist=False).records["cli.py"]
+    without_flags = document_counts(text, record.outline, "cli.py")
+
+    assert "--target-symbol" not in record.outline
+    for term in ("target", "symbol", "json"):
+        assert record.term_counts[term] > without_flags.get(term, 0)

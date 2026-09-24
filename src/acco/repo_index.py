@@ -22,7 +22,7 @@ from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, STRUCTURED_EXTRA, structured_imports, symbols as syntax_symbols
 
-INDEX_VERSION = 11
+INDEX_VERSION = 12
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
     r"|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?:=|:)"
@@ -487,12 +487,39 @@ def _extract(
     return sorted(symbols), sorted(imports), sorted(calls), tokens, definitions
 
 
+_PY_MODULE_SUMMARY_RE = re.compile(
+    r'\s*(?:[rubRUB]{0,2})("""|\'\'\')\s*(.*?)(?:\n|\1)', re.S
+)
+_ARGPARSE_FLAG_RE = re.compile(r"add_argument\(\s*[\"'](--?[A-Za-z][\w-]*)")
+
+
+def _python_module_summary(text: str) -> str:
+    """First line of a Python module docstring, or an empty string."""
+    match = _PY_MODULE_SUMMARY_RE.match(text)
+    return match.group(2).strip() if match else ""
+
+
+def _argparse_flags(text: str) -> str:
+    """Declared argparse option names, in order, without duplicates."""
+    return " ".join(dict.fromkeys(_ARGPARSE_FLAG_RE.findall(text)))
+
+
 def _outline(text: str, suffix: str) -> str:
-    """Handle outline."""
+    """Structural outline, led by the module summary for Python files.
+
+    The docstring summary is the module's own statement of what it is for. A
+    thin module (a CLI entry point, a facade) otherwise has an outline of one
+    or two signatures and no navigational description at all.
+    """
     try:
-        return skeletonize(text, suffix, line_numbers=True)
+        outline = skeletonize(text, suffix, line_numbers=True)
     except (SyntaxError, ValueError, RecursionError):
         return ""
+    if suffix == ".py":
+        summary = _python_module_summary(text)
+        if summary:
+            outline = f"   |# {summary}\n{outline}"
+    return outline
 
 
 def _default_cache(root: Path) -> Path:
@@ -562,10 +589,20 @@ def _record(rel: str, text: str, suffix: str, *, size: int, mtime_ns: int) -> Fi
     """Record the requested value."""
     symbols, imports, calls, tokens, definitions = _extract(text, suffix, rel)
     outline = _outline(text, suffix)
+    # A command-line module's interface is its declared options, which live in
+    # string literals the outline never shows. Weight them like outline terms
+    # for relevance, but keep them out of the stored outline: they are not
+    # symbols, and adding them to the symbol boost let every CLI handler that
+    # declares --model/--output outrank the module a query was actually about.
+    counted_outline = outline
+    if suffix == ".py":
+        flags = _argparse_flags(text)
+        if flags:
+            counted_outline = f"{outline}\n# options: {flags}"
     return FileRecord(
         rel, _digest(text), size, symbols, imports, calls, tokens, definitions,
         mtime_ns=mtime_ns, outline=outline,
-        term_counts=document_counts(text, outline, rel),
+        term_counts=document_counts(text, counted_outline, rel),
         semantic_refs=extract_module_refs(text) if suffix.lower() in JS_TS else [],
     )
 

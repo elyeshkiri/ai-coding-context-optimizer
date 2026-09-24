@@ -102,6 +102,15 @@ from .packing.symbol_windows import (
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
 
+# Fraction (numerator, denominator) of the remaining budget one candidate may
+# use while more candidates and slots remain. A file that structurally defines
+# the callable the query names keeps the larger share because its window has
+# to hold that body; other files mostly need room for an outline, and a smaller
+# share lets more ranked candidates fit. A uniform 2/5 share was measured to
+# truncate defining files and drop their target symbols on external holdouts.
+_AUTHORITY_SHARE = (3, 5)
+_ORDINARY_SHARE = (2, 5)
+
 
 def _changed_files(root: Path) -> set[str]:
     """Compatibility seam for changed-file discovery and monkeypatching."""
@@ -349,7 +358,13 @@ def build_context_pack(
             # kicks in while more candidates and slots remain to benefit
             # from the reserved room; the true last usable candidate still
             # gets whatever's left rather than wasting it unused.
-            remaining = min(remaining, max(remaining * 3 // 5, 300))
+            has_authority = any(
+                reason.startswith("structural-symbol:") for reason in item.reasons
+            )
+            share_num, share_den = (
+                _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
+            )
+            remaining = min(remaining, max(remaining * share_num // share_den, 300))
 
         section_budget = remaining
         if (

@@ -201,3 +201,21 @@ def test_action_verbs_score_lower_than_specific_identifiers():
 
     assert "build" in _ACTION_TERMS
     assert action_only < specific_only
+
+
+def test_directory_terms_do_not_earn_path_credit():
+    """A term shared by every file under a directory cannot tell them apart."""
+    scope = _scope(q_terms=["pack"], index=_FakeIndex())
+
+    in_directory: list[str] = []
+    in_directory_score = _apply_file_boosts(
+        scope, "src/packing/symbol_windows.py", "", 0.0, in_directory,
+    )
+    in_filename: list[str] = []
+    in_filename_score = _apply_file_boosts(
+        scope, "src/pack_cli.py", "", 0.0, in_filename,
+    )
+
+    assert not any(reason.startswith("path:") for reason in in_directory)
+    assert "path:1" in in_filename
+    assert in_filename_score > in_directory_score

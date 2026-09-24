@@ -1,5 +1,17 @@
 # Unreleased
 
+- **Restored the self-benchmark to 100% file, symbol, and scoped symbol
+  recall** (from 72% / 88% / 80% at 1.15.0) without regressing external
+  holdouts. Three ranking changes: the `path` boost now counts only the file's
+  own name, not shared directory terms; Python outlines lead with the module
+  docstring summary and argparse option names count toward relevance; and
+  ordinary files get 2/5 of the remaining pack budget (authoritative files keep
+  3/5) so more ranked files fit. `INDEX_VERSION` is now 12, so cached indexes
+  rebuild. Four benchmark tasks whose target code moved behind compatibility
+  facades were repointed to its current home, which changes the manifest's
+  ground-truth hash. `VALIDATION.md` records the 471-task external comparison
+  and every rejected candidate.
+
 # 1.15.0 - 2026-09-23
 
 - **Rebranded the project as ACCO — AI Coding Context Optimizer.** The canonical
