@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -187,7 +188,7 @@ def test_sdk_application_exposes_browser_optimization(
             ],
         }
     }
-    text = __import__("json").dumps(payload)
+    text = json.dumps(payload)
 
     status, result = app.dispatch(
         "POST",
