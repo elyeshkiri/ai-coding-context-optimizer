@@ -112,6 +112,16 @@ class SdkApplication:
                 **self._options(body),
             )
 
+        if path == "/v1/browser/optimize":
+            text = body.get("text")
+            if not isinstance(text, str):
+                raise ValueError("text must be a string")
+            return 200, self.engine.optimize_browser_context(
+                text,
+                query=str(body.get("query") or ""),
+                **self._options(body),
+            )
+
         if path == "/v1/output/optimize":
             text = body.get("text")
             if not isinstance(text, str):
