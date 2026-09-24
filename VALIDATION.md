@@ -429,6 +429,22 @@ verification -> grading -> cost-per-success -> calibration pipeline.
   needed. The remaining misses are dominated by requests that describe
   behavior without naming the target (40 of the 52 window-selection cases),
   which lexical scoring cannot close.
+- **Compact fitting for clipped sections.** Budget fitting clips a section
+  from the end, so a long early window could push the declaration of a later
+  selected symbol out of the pack (`clap` `subcommand` behind an 85-line
+  `_build_subcommand` body), and credited members that are only visible
+  through the outline were lost when the outline was clipped. When a section
+  must be clipped, a compact form (a short head window per labeled symbol,
+  then the usual lexical windows and outline) is fitted as well and used only
+  if it shows a strict superset of the clipped section's symbol labels and
+  identities in no more tokens; otherwise the clipped section is kept
+  unchanged. External result against the change above (471 tasks): file
+  97.88% (unchanged), symbol 91.72% -> 92.04%, scoped symbol 89.17% -> 89.49%;
+  2 tasks improved (`flask-exception-to-response`, `clap-command-subcommand`),
+  0 regressed. Tasks with any miss: 57 -> 55. Four other truncation misses
+  (`fastapi-validation-error-response`, `scrapy-scheduler-next-request`,
+  `tornado-exception-to-error-response`, `rich-console-init`) are unchanged:
+  their compact form did not strictly improve on the clipped section.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from ..estimate import estimate_tokens
 from ..lexical import terms
 from ..repo_index import RepositoryIndex
 from ..security import redact_secrets
 from .contracts import RankedFile
+from .render import _fit_section, _visible_symbol_labels
 from .symbol_scoring import (
     _SymbolScope,
     _apply_parent_credit,
@@ -344,4 +346,79 @@ def _file_section(
     return section, symbol_labels, symbol_identities, redactions
 
 
+def _label_line(label: str) -> int | None:
+    """Declaration line encoded in a ``path:name@line`` evidence label."""
+    try:
+        return int(label.rsplit("@", 1)[1])
+    except (IndexError, ValueError):
+        return None
 
+
+def _compact_file_section(
+    item: RankedFile, query_terms: set[str], context_lines: int,
+    labels: list[str],
+) -> str:
+    """A section that shows the head of every labeled symbol instead of bodies.
+
+    Used only when the ordinary section must be clipped. Prefix clipping keeps
+    whole early windows and drops later declarations entirely, including
+    credited members that are only visible through the (often clipped)
+    outline. Here each labeled declaration gets a short head window, in label
+    order, followed by the usual lexical windows and outline.
+    """
+    lines = item.text.splitlines()
+    radius = max(1, context_lines)
+    heads = []
+    for label in labels:
+        line = _label_line(label)
+        if line is not None:
+            heads.append((max(1, line - 1), line + radius))
+    hit_lines = _hit_lines(item.text, query_terms)
+    lexical = _merge_windows(
+        [n for n, _ in hit_lines[:4]], len(lines), max(0, context_lines),
+    )
+    windows = _prioritized_ranges(heads, lexical, len(lines))
+    pieces = [f"## {item.rel}"]
+    if windows:
+        pieces.append("### exact source windows")
+        pieces.extend(_source_window(item.text, start, end).rstrip() for start, end in windows)
+    pieces.extend([
+        f"# relevance={item.score:.2f} ({', '.join(item.reasons)})",
+        "### outline",
+        item.outline.rstrip(),
+    ])
+    section, _ = redact_secrets("\n".join(pieces).rstrip() + "\n")
+    return section
+
+
+def _fit_file_section(
+    item, q_terms, context_lines, section, section_budget, symbols, identities,
+):
+    """Fit a section to its budget and return it with its visible evidence.
+
+    When ``section`` had to be clipped, a compact form is tried as well. It is
+    used only if it shows every label the clipped section showed plus at least
+    one more, in no more tokens. Otherwise the clipped section is kept
+    unchanged, so this can add evidence to a file but never remove any.
+    """
+    fitted = _fit_section(section, section_budget)
+    if not fitted:
+        return fitted, [], []
+    visible = _visible_symbol_labels(fitted, symbols)
+    visible_identities = _visible_symbol_labels(fitted, identities)
+    if estimate_tokens(section) <= section_budget:
+        return fitted, visible, visible_identities
+    compact = _fit_section(
+        _compact_file_section(item, q_terms, context_lines, symbols),
+        section_budget,
+    )
+    if not compact or estimate_tokens(compact) > estimate_tokens(fitted):
+        return fitted, visible, visible_identities
+    compact_visible = _visible_symbol_labels(compact, symbols)
+    compact_identities = _visible_symbol_labels(compact, identities)
+    if (
+        set(compact_visible) > set(visible)
+        and set(compact_identities) >= set(visible_identities)
+    ):
+        return compact, compact_visible, compact_identities
+    return fitted, visible, visible_identities

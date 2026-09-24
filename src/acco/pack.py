@@ -88,6 +88,7 @@ from .packing.symbol_scoring import (
 )
 from .packing.symbol_windows import (
     _LARGE_CONTAINER_LINES as _LARGE_CONTAINER_LINES,
+    _fit_file_section as _fit_file_section,
     _container_windows as _container_windows,
     _file_section as _file_section,
     _hit_lines as _hit_lines,
@@ -396,13 +397,15 @@ def build_context_pack(
         fingerprint = _fingerprint(section)
         if fingerprint in seen:
             continue
-        fitted = _fit_section(section, section_budget)
+        fitted, visible, visible_identities = _fit_file_section(
+            item, q_terms, plan.context_lines, section, section_budget, symbols, identities,
+        )
         if not fitted:
             continue
         blocks.append(fitted)
         selected.append(item.rel)
-        selected_symbols.extend(_visible_symbol_labels(fitted, symbols))
-        selected_symbol_identities.extend(_visible_symbol_labels(fitted, identities))
+        selected_symbols.extend(visible)
+        selected_symbol_identities.extend(visible_identities)
         redactions.update(section_redactions)
         seen.add(fingerprint)
         if record is not None:

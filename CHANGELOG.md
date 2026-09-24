@@ -1,5 +1,11 @@
 # Unreleased
 
+- **Compact fitting for clipped sections.** When a file's section must be
+  clipped to its budget, a compact form showing the head of every selected or
+  credited symbol is tried and used only when it shows strictly more symbol
+  evidence in no more tokens. External holdouts: scoped symbol recall
+  89.17% -> 89.49%, 2 tasks improved, 0 regressed.
+
 - **Backfill a wasted symbol slot without displacing evidence.** When one of a
   file's two symbol windows only repeats a child its container already renders,
   the next distinct definition is added as an `### additional source windows`
