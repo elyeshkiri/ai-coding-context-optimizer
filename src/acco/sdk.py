@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .browser_context import compress_browser_payload
 from .context_router import route_context
 from .estimate import estimate_tokens
 from .model_routing import route_task
@@ -107,6 +108,28 @@ class AccoEngine:
             command=command,
             max_lines=max_lines,
             min_reduction=min_reduction,
+        )
+        return {"schema": 1, **result.to_dict()}
+
+    def optimize_browser_context(
+        self,
+        text: str,
+        *,
+        query: str = "",
+        max_lines: int = 120,
+        min_tokens: int = 400,
+        format_hint: str = "auto",
+    ) -> dict[str, Any]:
+        """Optimize caller-supplied browser/DOM/AX context with exact recovery."""
+        if not isinstance(text, str):
+            raise ValueError("text must be a string")
+        result = compress_browser_payload(
+            text,
+            query=query,
+            max_lines=max_lines,
+            min_tokens=min_tokens,
+            format_hint=format_hint,
+            recovery=self.recovery,
         )
         return {"schema": 1, **result.to_dict()}
 
@@ -261,6 +284,24 @@ class AccoMiddleware:
             command=command,
             max_lines=max_lines,
             min_reduction=min_reduction,
+        )
+
+    def after_browser_result(
+        self,
+        text: str,
+        *,
+        query: str = "",
+        max_lines: int = 120,
+        min_tokens: int = 400,
+        format_hint: str = "auto",
+    ) -> dict[str, Any]:
+        """Optimize browser/DOM/AX tool context before the next model call."""
+        return self.engine.optimize_browser_context(
+            text,
+            query=query,
+            max_lines=max_lines,
+            min_tokens=min_tokens,
+            format_hint=format_hint,
         )
 
     def route(self, prompt: str, **options: Any) -> dict[str, Any]:
