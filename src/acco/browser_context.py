@@ -283,6 +283,18 @@ def _browser_json_score(value: Any, *, limit: int = 240) -> int:
             lowered = {str(key).lower() for key in item}
             if lowered & _BROWSER_HINT_KEYS:
                 score += 3
+                for key, nested in item.items():
+                    if (
+                        str(key).lower() in _BROWSER_HINT_KEYS
+                        and isinstance(nested, str)
+                        and sum(
+                            bool(_AX_ROLE.search(line))
+                            for line in nested.splitlines()[:160]
+                        )
+                        >= 2
+                    ):
+                        score += 3
+                        break
             if "role" in lowered and ("name" in lowered or "children" in lowered):
                 score += 2
             if len(lowered & _BROWSER_NODE_KEYS) >= 3:
