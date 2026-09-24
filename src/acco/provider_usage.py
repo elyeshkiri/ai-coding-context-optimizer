@@ -42,8 +42,8 @@ def normalize_provider_usage(provider: str, payload: object) -> dict[str, Any]:
             "cache_creation_input_tokens": "cache_creation_input_tokens",
             "cache_read_input_tokens": "cache_read_input_tokens",
         }
-        for target, source in mapping.items():
-            value = _int(usage.get(source))
+        for target, source_key in mapping.items():
+            value = _int(usage.get(source_key))
             if value is not None:
                 result[target] = value
     elif provider == "openai":
@@ -74,8 +74,8 @@ def normalize_provider_usage(provider: str, payload: object) -> dict[str, Any]:
             "cache_read_input_tokens": "cachedContentTokenCount",
             "total_tokens": "totalTokenCount",
         }
-        for target, source in mapping.items():
-            value = _int(usage.get(source))
+        for target, source_key in mapping.items():
+            value = _int(usage.get(source_key))
             if value is not None:
                 result[target] = value
     else:
