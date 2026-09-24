@@ -172,6 +172,19 @@ def test_dashboard_separates_savings_continuity_and_behavior(
     )
     append_event(root, {"kind": "waste", "feature": "retry_loop"})
     append_event(root, {"kind": "continuity", "feature": "checkpoint_restore"})
+    append_event(
+        root,
+        {
+            "kind": "provider_usage",
+            "feature": "provider_boundary",
+            "provider": "openai",
+            "model": "gpt-test",
+            "input_tokens": 500,
+            "output_tokens": 50,
+            "cache_read_input_tokens": 200,
+            "streaming": True,
+        },
+    )
 
     report = dashboard_report(root, days=7)
 
@@ -179,6 +192,12 @@ def test_dashboard_separates_savings_continuity_and_behavior(
     assert report["savings"]["by_feature"]["output_compression"] == 120
     assert report["behavior"]["signals"] == {"retry_loop": 1}
     assert report["continuity"]["restores"] == 1
+    assert report["provider_usage"]["calls"] == 1
+    assert report["provider_usage"]["input_tokens"] == 500
+    assert report["provider_usage"]["output_tokens"] == 50
+    assert report["provider_usage"]["by_provider"] == {"openai": 1}
+    assert report["provider_usage"]["models"] == {"gpt-test": 1}
+    assert report["provider_usage"]["merged_with_billed_usage"] is False
     assert report["evidence"]["task_success"] is False
     assert "not an API invoice" in report["savings"]["trust"]
 
