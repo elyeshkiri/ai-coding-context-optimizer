@@ -93,6 +93,69 @@ export class AccoClient {
     return this.request("POST", "/v1/recover", { handle });
   }
 
+  interceptFetch(provider, options = {}) {
+    if (!provider.trim()) throw new TypeError("provider must be nonempty");
+    const upstream = options.fetchImpl ?? fetch;
+    const failOpen = options.failOpen ?? true;
+    const client = this;
+
+    return async function accoProviderFetch(input, init) {
+      const request = input instanceof Request ? input : null;
+      const method = String(init?.method ?? request?.method ?? "GET").toUpperCase();
+      if (method === "GET" || method === "HEAD") {
+        return upstream(input, init);
+      }
+
+      const headers = new Headers(request?.headers);
+      if (init?.headers) {
+        new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+      }
+      const contentType = headers.get("content-type") ?? "";
+      if (!contentType.toLowerCase().includes("json")) {
+        return upstream(input, init);
+      }
+
+      let raw = null;
+      if (typeof init?.body === "string") {
+        raw = init.body;
+      } else if (init?.body != null) {
+        return upstream(input, init);
+      } else if (request) {
+        try {
+          raw = await request.clone().text();
+        } catch {
+          return upstream(input, init);
+        }
+      }
+      if (!raw) return upstream(input, init);
+
+      let body;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        return upstream(input, init);
+      }
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return upstream(input, init);
+      }
+
+      let optimized;
+      try {
+        optimized = await client.optimizeRequest(provider, body);
+      } catch (error) {
+        if (failOpen) return upstream(input, init);
+        throw error;
+      }
+
+      headers.delete("content-length");
+      const encoded = JSON.stringify(optimized.body);
+      if (request && init?.body == null) {
+        return upstream(new Request(request, { body: encoded, headers }));
+      }
+      return upstream(input, { ...init, headers, body: encoded });
+    };
+  }
+
   middleware(provider) {
     if (!provider.trim()) throw new TypeError("provider must be nonempty");
     return {
