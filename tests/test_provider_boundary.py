@@ -236,6 +236,30 @@ def test_proxy_transform_auto_detects_provider_from_request_path(
     assert result.metadata["request"]["shape"] == "openai-responses"
 
 
+def test_proxy_noop_preserves_exact_json_request_bytes(tmp_path, monkeypatch):
+    """No accepted transform means the upstream receives the original bytes."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    config = ProviderProxyConfig(
+        root=root,
+        upstream="https://api.openai.example",
+        provider="auto",
+        prefix_tracking=False,
+    )
+    raw = b'{\n  "messages": [{"role": "user", "content": "hello"}],\n  "temperature": 0\n}\n'
+
+    result = transform_request_bytes(
+        config,
+        raw,
+        content_type="application/json",
+        request_path="/v1/chat/completions",
+    )
+
+    assert result.metadata["changed"] is False
+    assert result.body == raw
+
+
 def test_provider_usage_normalization_covers_all_three_providers():
     """Provider-specific counters should map into one content-free schema."""
     assert normalize_provider_usage(
@@ -304,8 +328,8 @@ def test_streaming_usage_observer_forwards_no_content_into_event_store(
         b'data: {"type":"response.output_text.delta","delta":"SECRET RESPONSE"}\n'
     )
     observer.feed(
-        b'data: {"model":"gpt-test","usage":{"input_tokens":120,'
-        b'"output_tokens":30,"total_tokens":150}}\n\n'
+        b'data: {"type":"response.completed","response":{"model":"gpt-test",'
+        b'"usage":{"input_tokens":120,"output_tokens":30,"total_tokens":150}}}\n\n'
     )
     event = observer.finish()
 
