@@ -93,6 +93,40 @@ def _prioritized_ranges(
     return result
 
 
+def _append_uncovered(
+    windows: list[tuple[int, int]],
+    extra: list[tuple[int, int]],
+    total: int,
+) -> list[tuple[int, int]]:
+    """Append only the lines of ``extra`` that no existing window covers.
+
+    Unlike _prioritized_ranges this never widens an earlier window in place:
+    merging a low-priority range into a high-priority one moved its source
+    ahead of later windows and got those clipped instead.
+    """
+    covered = [(max(1, start), min(total, end)) for start, end in windows]
+    result = list(windows)
+    for start, end in extra:
+        start, end = max(1, start), min(total, end)
+        pieces = [(start, end)]
+        for c_start, c_end in covered:
+            next_pieces = []
+            for p_start, p_end in pieces:
+                if p_end < c_start or p_start > c_end:
+                    next_pieces.append((p_start, p_end))
+                    continue
+                if p_start < c_start:
+                    next_pieces.append((p_start, c_start - 1))
+                if p_end > c_end:
+                    next_pieces.append((c_end + 1, p_end))
+            pieces = next_pieces
+        for piece in pieces:
+            if piece[0] <= piece[1]:
+                result.append(piece)
+                covered.append(piece)
+    return result
+
+
 def _container_windows(symbol, child) -> list[tuple[int, int]]:
     """Source windows for one selected symbol.
 
@@ -167,19 +201,51 @@ def _render_symbol_windows(
     return windows, labels, identities
 
 
-def _symbol_windows(
+_EMPTY_WINDOWS: tuple[list, list, list] = ([], [], [])
+
+
+def _backfill_candidate(matches: list, selected: list, best_child_symbol: dict):
+    """Next distinct definition when a selected slot only repeats rendered source.
+
+    A selected container inherits its best child's score, and its window always
+    renders that child. When the child also takes a slot, that slot adds no new
+    source. Return the next-best definition not already selected or rendered,
+    or None when every selected slot showed something new.
+    """
+    covered = set()
+    for symbol in selected:
+        child = best_child_symbol.get(_symbol_key(symbol))
+        if (
+            child is not None
+            and child.start_line >= symbol.start_line
+            and child.end_line <= symbol.end_line
+        ):
+            covered.add(_symbol_key(child))
+    if not any(_symbol_key(symbol) in covered for symbol in selected):
+        return None
+    taken = {_symbol_key(symbol) for symbol in selected} | covered
+    for _, symbol in matches:
+        if _symbol_key(symbol) not in taken:
+            return symbol
+    return None
+
+
+def _symbol_window_plan(
     item: RankedFile, index: RepositoryIndex, query_terms: set[str],
     target_symbol: str | None, symbol_query_text: str | None = None,
-) -> tuple[list[tuple[int, int]], list[str], list[str]]:
-    """Select, score, and render the best symbol windows for one file.
+) -> tuple[tuple[list, list, list], tuple[list, list, list]]:
+    """Primary symbol windows plus an optional lower-priority backfill window.
 
     Pipeline: build the per-file term scope, score every definition, promote
     containers to their best contained member, then render the top two as
-    exact source windows with their evidence labels.
+    exact source windows with their evidence labels. When one of those two
+    only repeats source its container already renders, the next distinct
+    definition is returned separately as a backfill. Callers place it after
+    lexical navigation windows so it only ever uses budget nothing else needed.
     """
     record = index.records.get(item.rel)
     if record is None:
-        return [], [], []
+        return _EMPTY_WINDOWS, _EMPTY_WINDOWS
     wanted = (target_symbol or "").lower()
     scope = _build_symbol_scope(
         item, record, query_terms, target_symbol, symbol_query_text,
@@ -206,9 +272,27 @@ def _symbol_windows(
         _contained_children_by_parent(matches, containers_by_qualified)
         if not wanted else {}
     )
-    return _render_symbol_windows(
+    primary = _render_symbol_windows(
         scope, selected, best_child_symbol, relevant_children_by_parent,
     )
+    backfill_symbol = _backfill_candidate(matches, selected, best_child_symbol)
+    if backfill_symbol is None:
+        return primary, _EMPTY_WINDOWS
+    backfill = _render_symbol_windows(
+        scope, [backfill_symbol], best_child_symbol, relevant_children_by_parent,
+    )
+    return primary, backfill
+
+
+def _symbol_windows(
+    item: RankedFile, index: RepositoryIndex, query_terms: set[str],
+    target_symbol: str | None, symbol_query_text: str | None = None,
+) -> tuple[list[tuple[int, int]], list[str], list[str]]:
+    """Select, score, and render the best symbol windows for one file."""
+    primary, _ = _symbol_window_plan(
+        item, index, query_terms, target_symbol, symbol_query_text,
+    )
+    return primary
 
 
 def _file_section(
@@ -218,9 +302,11 @@ def _file_section(
 ) -> tuple[str, list[str], list[str], list[str]]:
     """Handle file section."""
     lines = item.text.splitlines()
-    symbol_windows, symbol_labels, symbol_identities = _symbol_windows(
+    primary_plan, backfill_plan = _symbol_window_plan(
         item, index, query_terms, target_symbol, symbol_query_text
     )
+    symbol_windows, symbol_labels, symbol_identities = primary_plan
+    backfill_windows, backfill_labels, backfill_identities = backfill_plan
     hit_lines = _hit_lines(item.text, query_terms)
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
@@ -231,6 +317,13 @@ def _file_section(
         else [*semantic, *symbol_windows]
     )
     windows = _prioritized_ranges(primary, lexical, len(lines))
+    # Backfill is the lowest-priority evidence in the section, so it is
+    # rendered after the outline: section fitting clips from the end, and the
+    # outline's numbered lines are themselves visible evidence for credited
+    # members. Only source no other window already shows is added.
+    backfill = _append_uncovered(windows, backfill_windows, len(lines))[len(windows):]
+    symbol_labels = [*symbol_labels, *backfill_labels]
+    symbol_identities = [*symbol_identities, *backfill_identities]
     # Exact implementation evidence is the primary payload. Put it before the
     # navigation outline so a tight per-file budget clips optional structure
     # rather than silently dropping the symbol source that caused the file to
@@ -244,6 +337,9 @@ def _file_section(
         "### outline",
         item.outline.rstrip(),
     ])
+    if backfill:
+        pieces.append("### additional source windows")
+        pieces.extend(_source_window(item.text, start, end).rstrip() for start, end in backfill)
     section, redactions = redact_secrets("\n".join(pieces).rstrip() + "\n")
     return section, symbol_labels, symbol_identities, redactions
 
