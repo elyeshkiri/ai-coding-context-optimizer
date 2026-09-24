@@ -445,6 +445,27 @@ verification -> grading -> cost-per-success -> calibration pipeline.
   (`fastapi-validation-error-response`, `scrapy-scheduler-next-request`,
   `tornado-exception-to-error-response`, `rich-console-init`) are unchanged:
   their compact form did not strictly improve on the clipped section.
+- **Semantic symbol matching: measured, not built.** Most remaining misses
+  are requests that describe behavior without naming the target, which lexical
+  scoring cannot close. Before building anything, the optional `semantic`
+  extra (`all-MiniLM-L6-v2`) was measured as a within-file symbol ranker on
+  every holdout task whose expected file is packed (488 expected symbols,
+  suites 1-12). Top-2 placement of the expected symbol:
+
+  | Ranking | Top-2 | Misses fixed | Current hits broken |
+  |---|---:|---:|---:|
+  | Lexical (current) | 426 | - | - |
+  | Embedding similarity alone | 320 | 13 | 119 |
+  | Reciprocal-rank fusion, k=60, untuned | 400 | 19 | 45 |
+
+  Fusion fixes the intended cases (15 of its 19 gains are targets the request
+  never names) but breaks 45 current hits, 20 of them named verbatim in the
+  request: a general sentence model dilutes exact identifier evidence. Making
+  it net-positive would require fitting a fusion weight or confidence gate on
+  these burned suites, so it was not pursued. Top-2 placement is a proxy, not
+  a full pack evaluation. Any future semantic approach (a lexical-confidence
+  gate designed in advance, or a code-specific embedding model) should be
+  judged on a fresh frozen holdout.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
