@@ -217,11 +217,31 @@ the same 80.0% lexical recall with zero regressions, but it is not fresh
 generalization evidence and must not replace the 82.5% first-run result in
 public claims.
 
-Holdout #15 currently has only its 24 natural-language queries and six pinned
-repository revisions frozen in
-`benchmarks/semantic-holdout-15.query-freeze.json`. Ground truth and a first
-evaluation have not yet been completed, so #15 contributes **no retrieval result
-yet**.
+Holdout #15's 24 natural-language queries and six pinned repository revisions
+were frozen first in `benchmarks/semantic-holdout-15.query-freeze.json`. Ground
+truth is now frozen in `benchmarks/semantic-holdout-15.frozen.json` (ground-truth
+SHA-256 `54df820439ab107e22ce5375b7ce5d4f170e93f15180633ea86c1808abeb2b1f`),
+with the queries unchanged. Expected files come mechanically from each issue's
+merged upstream fix: its non-test, non-documentation source files that exist at
+the pinned revision, dropping files changed by two lines or fewer when the same
+fix has a larger change. 13 tasks are eligible for the semantic headline; 8 are
+excluded from it as identifier-bearing because the frozen issue wording contains
+an answer file stem or type name under the project's substring leakage check
+(they keep ground truth and are reported separately); 3 are excluded because no
+source target could be established (no merged fix, or a broad design change that
+does not touch the component the query describes). A first evaluation has not
+been run, so #15 contributes **no retrieval result yet**.
+
+**Independence disclosure.** The ground truth was collected by the same agent
+that developed ranking changes #106-#109 in the same session. ACCO was not run on
+these repositories before the freeze. Four of the six repositories (chi, gson,
+Polly, express) are pinned at the same revisions as external holdouts #5, #6, #8
+and #2, which served as regression guards during that development, and one
+change (the CommonJS alias exclusion in #107) was motivated by an express
+regression. Results on those four repositories are therefore not fully
+independent of the changes being measured; werkzeug and axum use revisions not
+used before. The eligible headline is 11 tasks from those four repositories and
+2 from werkzeug, so the cleaner subset is small.
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
