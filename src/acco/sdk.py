@@ -22,7 +22,7 @@ class AccoSdkConfig:
     root: Path
     recovery_capacity_bytes: int = DEFAULT_CAPACITY_BYTES
 
-    def validate(self) -> "AccoSdkConfig":
+    def validate(self) -> AccoSdkConfig:
         """Validate and normalize the SDK configuration."""
         root = Path(self.root).expanduser().resolve()
         if not root.is_dir():
@@ -220,7 +220,7 @@ class AccoEngine:
             "access_count": record.access_count,
         }
 
-    def middleware(self, provider: str) -> "AccoMiddleware":
+    def middleware(self, provider: str) -> AccoMiddleware:
         """Create a provider-bound middleware facade for a custom agent."""
         return AccoMiddleware(self, provider=provider)
 
