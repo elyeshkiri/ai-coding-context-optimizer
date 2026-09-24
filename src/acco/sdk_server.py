@@ -26,7 +26,7 @@ class SdkServerConfig:
     allow_non_loopback: bool = False
     recovery_capacity_bytes: int = 512 * 1024 * 1024
 
-    def validate(self) -> "SdkServerConfig":
+    def validate(self) -> SdkServerConfig:
         """Reject unsafe network exposure and invalid capacity/port values."""
         if not 1 <= int(self.port) <= 65535:
             raise ValueError("SDK server port must be in 1..65535")
