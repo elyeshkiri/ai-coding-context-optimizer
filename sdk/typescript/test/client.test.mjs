@@ -88,6 +88,48 @@ test("non-2xx responses preserve structured SDK error", async () => {
 });
 
 
+test("browser optimizer uses the specialized SDK endpoint", async () => {
+  await withServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    assert.equal(req.url, "/v1/browser/optimize");
+    assert.equal(body.query, "Save order");
+    assert.equal(body.options.format_hint, "ax");
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      schema: 1,
+      text: '- button "Save order"',
+      changed: true,
+      original_tokens: 900,
+      output_tokens: 20,
+      recovery_handle: "tsr_test",
+      matched_terms: ["save", "order"],
+      kind: "ax",
+      source_items: 200,
+      shown_items: 10,
+      interactive_items: 4,
+    }));
+  }, async (baseUrl) => {
+    const client = new AccoClient({ baseUrl });
+    const result = await client.optimizeBrowser(
+      '- button "Save order"',
+      "Save order",
+      { format_hint: "ax" },
+    );
+    assert.equal(result.kind, "ax");
+    assert.equal(result.interactive_items, 4);
+
+    const middleware = client.middleware("openai");
+    const viaMiddleware = await middleware.afterBrowserResult({
+      text: '- button "Save order"',
+      query: "Save order",
+      options: { format_hint: "ax" },
+    });
+    assert.equal(viaMiddleware.kind, "ax");
+  });
+});
+
 test("provider fetch interceptor optimizes JSON and fails open by default", async () => {
   await withServer(async (req, res) => {
     const chunks = [];
