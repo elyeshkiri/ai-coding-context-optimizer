@@ -447,7 +447,7 @@ def _focused_lines(
     interactive: set[int],
     structural: set[int],
 ) -> tuple[list[str], tuple[str, ...], int]:
-    """Select query neighborhoods, landmarks, controls, and bounded fallback context."""
+    """Select rare query matches first, then landmarks and actionable controls."""
     if max_lines <= 0:
         raise ValueError("browser max_lines must be positive")
     if not lines:
@@ -456,20 +456,43 @@ def _focused_lines(
     query_terms = _terms(query)
     selected: set[int] = set()
     matched: set[str] = set()
+    skeleton_budget = max(4, min(max_lines // 3, 24))
+    focus_limit = max(1, max_lines - skeleton_budget)
 
     if query_terms:
+        frequencies = {
+            term: sum(term in line.lower() for line in lines)
+            for term in query_terms
+        }
+        scored: list[tuple[float, int, set[str]]] = []
         for index, line in enumerate(lines):
             lowered = line.lower()
             hits = {term for term in query_terms if term in lowered}
             if not hits:
                 continue
             matched.update(hits)
+            score = sum(
+                1.0 / max(1, frequencies.get(term, 1))
+                for term in hits
+            )
+            # Exact multi-term evidence should outrank a line matching only a
+            # ubiquitous role/label token.
+            score += max(0, len(hits) - 1)
+            scored.append((score, index, hits))
+
+        for _score, index, _hits in sorted(
+            scored,
+            key=lambda item: (-item[0], item[1]),
+        ):
             for candidate in range(max(0, index - 1), min(len(lines), index + 2)):
                 selected.add(candidate)
+                if len(selected) >= focus_limit:
+                    break
+            if len(selected) >= focus_limit:
+                break
 
     # Preserve high-value page structure and actionable controls, but do not let
     # a huge navigation/menu skeleton crowd out focused evidence.
-    skeleton_budget = max(4, min(max_lines // 3, 24))
     for index in sorted(structural):
         if len(selected) >= max_lines or skeleton_budget <= 0:
             break
@@ -489,12 +512,17 @@ def _focused_lines(
             if len(selected) >= max_lines:
                 break
     elif len(selected) < max_lines:
-        for index in range(min(len(lines), max(6, max_lines // 6))):
+        # A tiny page lead helps retain title/navigation orientation without
+        # displacing the already-selected high-relevance evidence.
+        lead_budget = min(6, max_lines - len(selected))
+        for index in range(min(len(lines), lead_budget)):
             selected.add(index)
-            if len(selected) >= max_lines:
-                break
 
-    ordered_indices = sorted(selected)[:max_lines]
+    ordered_indices = sorted(selected)
+    if len(ordered_indices) > max_lines:
+        # Retain the highest relevance set rather than falling back to the first
+        # max_lines DOM nodes. This branch is defensive for overlapping windows.
+        ordered_indices = ordered_indices[:max_lines]
     shown_interactive = sum(index in interactive for index in ordered_indices)
     return [lines[index] for index in ordered_indices], tuple(sorted(matched)), shown_interactive
 
