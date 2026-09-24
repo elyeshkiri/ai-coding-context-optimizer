@@ -80,6 +80,7 @@ from .command_handlers.output import (
 )
 from .command_handlers.patch import pack_diff_main, review_main
 from .command_handlers.pricing import pricing_main
+from .command_handlers.sdk import sdk_serve_main
 from .pack_cli import main as pack_main
 
 CommandHandler = Callable[[list[str]], int]
@@ -181,6 +182,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("output-save", output_save_main),
         CommandSpec("output-telemetry", output_telemetry_main),
         CommandSpec("serve", serve_main),
+        CommandSpec("sdk-serve", sdk_serve_main),
         CommandSpec("pack-diff", pack_diff_main),
         CommandSpec("review", review_main),
     ]
