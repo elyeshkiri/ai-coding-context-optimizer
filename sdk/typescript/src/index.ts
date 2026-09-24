@@ -267,11 +267,15 @@ export class AccoClient {
         throw error;
       }
 
+      if (optimized.metadata.changed !== true) {
+        return upstream(input, init);
+      }
       headers.delete("content-length");
       const encoded = JSON.stringify(optimized.body);
       if (request && init?.body == null) {
         return upstream(
           new Request(request, {
+            ...init,
             body: encoded,
             headers,
           }),
