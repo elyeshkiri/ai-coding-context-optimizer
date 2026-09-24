@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   semantic-holdout:
@@ -214,3 +215,117 @@ jobs:
           if-no-files-found: error
 
 # First-run trigger branch; remove after the suite is burned.
+
+  merge-canonical-first-run:
+    name: Merge canonical semantic holdout 15 artifacts
+    if: >-
+      github.event_name == 'push' &&
+      contains(github.event.head_commit.message, '[merge-semantic-15]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO
+        run: python -m pip install -e .
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-15.frozen.json \
+            --validate-only
+
+      - name: Download canonical first-run shards
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 36041192049
+          pattern: semantic-holdout-15-*
+          path: partial-results
+          merge-multiple: true
+
+      - name: Merge canonical repository shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find partial-results -type f -name '*.json' | sort)
+          if [ "${#files[@]}" -ne 6 ]; then
+            echo "Expected 6 canonical repository result shards, found ${#files[@]}." >&2
+            exit 2
+          fi
+          args=()
+          for file in "${files[@]}"; do
+            args+=(--merge-input "$file")
+          done
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-15.frozen.json \
+            "${args[@]}" \
+            --output benchmarks/semantic-holdout-15.result.json
+
+      - name: Verify canonical headline
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("benchmarks/semantic-holdout-15.result.json").read_text()
+          )
+          summary = result["summary"]
+          assert summary["task_count"] == 13
+          assert abs(summary["lexical_file_recall"] - 0.8205128205128205) < 1e-12
+          assert abs(summary["semantic_file_recall"] - 0.717948717948718) < 1e-12
+          assert abs(summary["trivial_lexical_file_recall"] - 0.5) < 1e-12
+          assert summary["semantic_recovered_tasks"] == 0
+          assert summary["semantic_regressed_tasks"] == 1
+          PY
+
+      - name: Publish canonical benchmark summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("benchmarks/semantic-holdout-15.result.json").read_text()
+          )
+          summary = result["summary"]
+          print("# Semantic holdout 15 — canonical first run")
+          print()
+          print("- evaluation run: 36041192049")
+          print(f"- eligible tasks: {summary['task_count']}")
+          print(f"- lexical file recall: {summary['lexical_file_recall']:.2%}")
+          print(f"- hybrid semantic file recall: {summary['semantic_file_recall']:.2%}")
+          print(
+              "- trivial lexical file recall: "
+              f"{summary['trivial_lexical_file_recall']:.2%}"
+          )
+          print(
+              "- semantic recall delta vs ACCO lexical: "
+              f"{summary['semantic_file_recall_delta']:+.2%}"
+          )
+          print(
+              "- strict semantic recovered/regressed tasks: "
+              f"{summary['semantic_recovered_tasks']}/"
+              f"{summary['semantic_regressed_tasks']}"
+          )
+          print(f"- lexical mean reduction: {summary['lexical_mean_token_reduction']:.2%}")
+          print(f"- semantic mean reduction: {summary['semantic_mean_token_reduction']:.2%}")
+          print()
+          print(
+              "The six semantic evaluations came from run 36041192049. "
+              "This job only repairs the merge of those immutable artifacts."
+          )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-15-canonical-first-run
+          path: benchmarks/semantic-holdout-15.result.json
+          retention-days: 90
+          if-no-files-found: error
