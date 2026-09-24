@@ -62,10 +62,19 @@ The proxy:
 - disables automatic upstream redirect following, preventing provider
   authorization headers from being silently replayed to a redirect origin;
 - transforms only supported JSON request bodies within a bounded size;
-- forwards provider response bytes without semantic rewriting.
+- limits provider-boundary request reduction to tool schemas and explicit
+  historical tool/function-result surfaces; current user text and fresh source
+  context are not provider-boundary compression targets;
+- forwards provider response bytes without semantic rewriting, including
+  streaming responses;
+- optionally observes provider-reported token/model usage while forwarding and
+  stores only content-free counters/labels in the local efficiency ledger.
 
 Prefix telemetry stores only canonical SHA-256 fingerprints, component labels,
-estimated sizes, and hit/miss counters. It does not copy provider request text.
+estimated sizes, and hit/miss counters. Provider usage telemetry stores provider,
+request shape, streaming flag, bounded model id, and token/cache counters. It
+does not copy provider request or response text. Disable provider usage
+observation with `--no-usage-telemetry`.
 Browser-context optimization consumes caller-supplied captured HTML/text and
 does not fetch arbitrary web URLs itself.
 
