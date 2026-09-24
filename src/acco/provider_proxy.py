@@ -13,7 +13,9 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from .provider_boundary import SUPPORTED_PROVIDERS
 from .provider_transform import ProviderTransformResult, transform_provider_request
+from .provider_usage import ProviderUsageObserver
 
 _HOP_BY_HOP = {
     "connection",
@@ -34,7 +36,7 @@ class ProviderProxyConfig:
 
     root: Path
     upstream: str
-    provider: str = "generic"
+    provider: str = "auto"
     bind: str = "127.0.0.1"
     port: int = 8765
     compress_schemas: bool = True
@@ -48,6 +50,11 @@ class ProviderProxyConfig:
         """Reject unsafe binding/upstream combinations before serving."""
         if not 1 <= int(self.port) <= 65535:
             raise ValueError("proxy port must be in 1..65535")
+        if self.provider.strip().lower() not in SUPPORTED_PROVIDERS:
+            raise ValueError(
+                "proxy provider must be one of: "
+                + ", ".join(SUPPORTED_PROVIDERS)
+            )
         try:
             bind_ip = ipaddress.ip_address(self.bind)
         except ValueError as exc:
@@ -88,6 +95,7 @@ def transform_request_bytes(
     raw: bytes,
     *,
     content_type: str,
+    request_path: str = "",
 ) -> TransformedRequest:
     """Transform a JSON request body or pass unsupported payloads through."""
     if len(raw) > _MAX_REQUEST_BYTES:
@@ -117,6 +125,7 @@ def transform_request_bytes(
         config.root,
         config.provider,
         body,
+        request_path=request_path,
         compress_schemas=config.compress_schemas,
         compress_tool_results=config.compress_tool_results,
         tool_result_min_tokens=config.tool_result_min_tokens,
@@ -164,7 +173,7 @@ def _handler_factory(
     class Handler(BaseHTTPRequestHandler):
         """Forward one client connection through the fixed proxy configuration."""
 
-        server_version = "TokenSaverProviderProxy/1"
+        server_version = "AccoProviderProxy/2"
 
         def log_message(self, format: str, *args) -> None:
             """Keep access logs terse and free of headers/request content."""
@@ -193,6 +202,7 @@ def _handler_factory(
                 config,
                 raw,
                 content_type=self.headers.get("Content-Type", ""),
+                request_path=self.path,
             ) if raw else TransformedRequest(raw, {"changed": False})
 
             target = _upstream_url(config.upstream, self.path)
@@ -225,12 +235,44 @@ def _handler_factory(
                     continue
                 self.send_header(key, value)
             self.end_headers()
+
+            request_meta = transformed.metadata.get("request", {})
+            provider = (
+                str(request_meta.get("provider") or config.provider)
+                if isinstance(request_meta, dict)
+                else config.provider
+            )
+            request_shape = (
+                str(request_meta.get("shape") or "unknown")
+                if isinstance(request_meta, dict)
+                else "unknown"
+            )
+            streaming = bool(
+                request_meta.get("streaming")
+                if isinstance(request_meta, dict)
+                else False
+            )
+            observer = ProviderUsageObserver(
+                config.root,
+                provider=provider,
+                request_shape=request_shape,
+                streaming=streaming,
+                content_type=response.headers.get("Content-Type", ""),
+            )
             while True:
                 chunk = response.read(64 * 1024)
                 if not chunk:
                     break
                 self.wfile.write(chunk)
+                observer.feed(chunk)
             response.close()
+            try:
+                observer.finish()
+            except OSError as exc:
+                print(
+                    f"acco proxy usage telemetry unavailable: {type(exc).__name__}",
+                    file=sys.stderr,
+                )
 
             meta = transformed.metadata
             if meta.get("changed"):
