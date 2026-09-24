@@ -45,6 +45,7 @@ class ProviderProxyConfig:
     timeout_seconds: float = 120.0
     allow_non_loopback: bool = False
     prefix_tracking: bool = True
+    usage_telemetry: bool = True
 
     def validate(self) -> ProviderProxyConfig:
         """Reject unsafe binding/upstream combinations before serving."""
@@ -252,27 +253,34 @@ def _handler_factory(
                 if isinstance(request_meta, dict)
                 else False
             )
-            observer = ProviderUsageObserver(
-                config.root,
-                provider=provider,
-                request_shape=request_shape,
-                streaming=streaming,
-                content_type=response.headers.get("Content-Type", ""),
+            observer = (
+                ProviderUsageObserver(
+                    config.root,
+                    provider=provider,
+                    request_shape=request_shape,
+                    streaming=streaming,
+                    content_type=response.headers.get("Content-Type", ""),
+                )
+                if config.usage_telemetry
+                else None
             )
             while True:
                 chunk = response.read(64 * 1024)
                 if not chunk:
                     break
                 self.wfile.write(chunk)
-                observer.feed(chunk)
+                if observer is not None:
+                    observer.feed(chunk)
             response.close()
-            try:
-                observer.finish()
-            except OSError as exc:
-                print(
-                    f"acco proxy usage telemetry unavailable: {type(exc).__name__}",
-                    file=sys.stderr,
-                )
+            if observer is not None:
+                try:
+                    observer.finish()
+                except OSError as exc:
+                    print(
+                        "acco proxy usage telemetry unavailable: "
+                        f"{type(exc).__name__}",
+                        file=sys.stderr,
+                    )
 
             meta = transformed.metadata
             if meta.get("changed"):
