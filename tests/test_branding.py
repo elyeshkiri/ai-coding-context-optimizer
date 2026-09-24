@@ -14,13 +14,18 @@ ALLOWED_EXTERNAL = (
     "ppgranger/token-saver",
     "/tmp/ppgranger-token-saver",
 )
+# Local environments and build/tool caches are not repository text.
+EXCLUDED_DIRS = {".git", ".venv", "venv", ".pytest_cache", ".ruff_cache", "build", "dist", "target", "node_modules"}
 
 
 def test_legacy_brand_name_is_absent_from_repository_text():
     """Only the literal external ppgranger repository reference may use the old slug."""
     violations: list[str] = []
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or path.suffix.lower() not in TEXT_SUFFIXES:
+        parts = path.relative_to(ROOT).parts
+        if any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in parts):
+            continue
+        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
         try:
             text = path.read_text(encoding="utf-8")

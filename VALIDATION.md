@@ -423,7 +423,7 @@ executable was absent. Every raw capture is committed under
 code, byte/line counts, and SHA-256 in the frozen manifest. The original Actions
 artifact SHA-256 is also recorded.
 
-The first same-input comparison pins `ppgranger/acco` at
+The first same-input comparison pins `ppgranger/token-saver` at
 `19d47b2cc19457c865f2414ad78f8efa80204b43`. Both engines receive the exact
 same 30 raw outputs and are scored with the same ACCO token estimator and
 critical-line survival predicate:
@@ -431,7 +431,7 @@ critical-line survival predicate:
 | Engine | weighted estimated token reduction | critical-line survival | changed cases |
 | --- | ---: | ---: | ---: |
 | elyeshkiri/ai-coding-context-optimizer | **23.72%** | **100.00%** | 8/30 |
-| ppgranger/acco @ 19d47b2c | **23.95%** | **81.25%** | 21/30 |
+| ppgranger/token-saver @ 19d47b2c | **23.95%** | **81.25%** | 21/30 |
 
 The reduction difference is **6 estimated output tokens across the full
 corpus** (2,016 versus 2,010). The largest peer reduction advantages occur on
@@ -476,7 +476,7 @@ On this untouched v2 proof set:
 | Engine | weighted estimated token reduction | critical-line survival | estimated output tokens |
 | --- | ---: | ---: | ---: |
 | elyeshkiri/ai-coding-context-optimizer | **30.80%** | **100.00%** | **1,777** |
-| ppgranger/acco @ 19d47b2c | **28.23%** | **76.92%** | 1,843 |
+| ppgranger/token-saver @ 19d47b2c | **28.23%** | **76.92%** | 1,843 |
 
 That is a **2.57 percentage-point overall reduction advantage** and 66 fewer
 estimated output tokens for the candidate on the same 27 raw outputs, while all
@@ -527,7 +527,7 @@ On this untouched v3 proof set:
 | Engine | weighted estimated token reduction | critical-line survival |
 | --- | ---: | ---: |
 | elyeshkiri/ai-coding-context-optimizer | 50.50% | **100.00%** |
-| ppgranger/acco @ 19d47b2c | **51.25%** | 80.00% |
+| ppgranger/token-saver @ 19d47b2c | **51.25%** | 80.00% |
 
 The overall compression difference is only **0.75 percentage points** on the
 same 29 raw outputs, while the candidate preserves every mechanically detected
