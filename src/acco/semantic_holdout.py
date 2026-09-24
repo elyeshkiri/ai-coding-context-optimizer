@@ -526,6 +526,12 @@ def merge_semantic_holdout_results(
         if isinstance(task, dict)
     }
 
+    repository_by_task_id = {
+        task.get("id"): task.get("repository")
+        for task in payload.get("tasks", [])
+        if isinstance(task, dict)
+    }
+
     tasks_by_id: dict[object, dict[str, Any]] = {}
     excluded_by_id: dict[object, dict[str, Any]] = {}
     seen_repositories: set[str] = set()
@@ -547,6 +553,8 @@ def merge_semantic_holdout_results(
                 if not isinstance(item, dict):
                     continue
                 alias = item.get("repository")
+                if not isinstance(alias, str) or not alias:
+                    alias = repository_by_task_id.get(item.get("id"))
                 if isinstance(alias, str) and alias:
                     part_repositories.add(alias)
         overlap = seen_repositories & part_repositories
