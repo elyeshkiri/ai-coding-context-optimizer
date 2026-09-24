@@ -23,7 +23,12 @@ def normalize_provider_usage(provider: str, payload: object) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return {}
     provider = provider.strip().lower()
-    usage: object = payload.get("usage")
+    source = payload
+    if provider == "anthropic" and isinstance(payload.get("message"), dict):
+        source = payload["message"]
+    elif provider == "openai" and isinstance(payload.get("response"), dict):
+        source = payload["response"]
+    usage: object = source.get("usage")
     if provider == "gemini":
         usage = payload.get("usageMetadata")
     if not isinstance(usage, dict):
