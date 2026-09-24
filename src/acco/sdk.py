@@ -12,7 +12,7 @@ from .estimate import estimate_tokens
 from .model_routing import route_task
 from .output import OutputPolicy, OutputPipeline
 from .provider_transform import transform_provider_request
-from .recovery import DEFAULT_CAPACITY_BYTES, RecoveryStore
+from .recovery import DEFAULT_CAPACITY_BYTES, RecoveryCapacityError, RecoveryStore
 
 
 @dataclass(frozen=True)
@@ -149,17 +149,11 @@ class AccoEngine:
                     metadata={
                         "transform": "sdk-output",
                         "processor": result.processor,
-                        "command": command[:160],
                     },
                 )
-            except Exception as exc:
-                from .recovery import RecoveryCapacityError
-
-                if isinstance(exc, RecoveryCapacityError):
-                    candidate = text
-                    recovery_handle = None
-                else:
-                    raise
+            except RecoveryCapacityError:
+                candidate = text
+                recovery_handle = None
         changed = candidate != text
         output_tokens = estimate_tokens(candidate)
         return {
