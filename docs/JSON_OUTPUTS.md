@@ -438,6 +438,55 @@ When `--markdown` is not selected:
 Without `--ground-truth-sha`, the report uses a `cohorts` array instead of a
 single `calibration` object.
 
+## `trial --json`
+
+```json
+{
+  "schema": 1,
+  "root": "/project",
+  "revision": "<git-head-sha>",
+  "suite": "/private/acco/trials/...suite.json",
+  "manifest": "/private/acco/trials/...json",
+  "dirty_worktree_ignored": false,
+  "trial": {},
+  "summary": {
+    "conditions": {
+      "baseline": {
+        "runs": 1,
+        "successes": 1,
+        "input_tokens": 12000,
+        "output_tokens": 900,
+        "total_tokens_per_success": 12900.0
+      },
+      "enabled": {
+        "runs": 1,
+        "successes": 1,
+        "input_tokens": 8000,
+        "output_tokens": 700,
+        "total_tokens_per_success": 8700.0
+      }
+    },
+    "comparison": {
+      "input_tokens_per_success_reduction": 0.3333,
+      "total_tokens_per_success_reduction": 0.3256
+    },
+    "evidence": {
+      "independent_task_verifier": true,
+      "blind_response_quality": false,
+      "frozen_broad_suite": false,
+      "publishable": false,
+      "claim_allowed": false
+    }
+  }
+}
+```
+
+Dry-run output keeps `manifest` null and omits `summary`; `trial` contains
+the validated paired schedule. A completed local trial always marks its
+evidence non-publishable because it does not satisfy the broad frozen-suite and
+blind-quality publication gates. `--require-both-success` can turn verifier
+failure into exit `1` without changing the report.
+
 ## `experiment` (always JSON)
 
 The experiment command writes/checkpoints the run artifact at `--out` and also
@@ -802,6 +851,54 @@ never promoted to guaranteed support.
 `signature` is a privacy-reduced command family, not the raw shell command. The
 coverage ratio is an observed transcript-output ratio; it is not an API bill share
 or a guaranteed savings percentage.
+
+## `learn --json`
+
+```json
+{
+  "schema": 1,
+  "root": "/project",
+  "window_days": 30,
+  "sessions": 4,
+  "transcripts": 4,
+  "turns": 96,
+  "usage": {
+    "input_tokens": 12000,
+    "cache_creation_input_tokens": 80000,
+    "cache_read_input_tokens": 450000,
+    "output_tokens": 24000,
+    "cache_hit_rate": 0.82
+  },
+  "tool_results": {
+    "estimated_tokens": 180000,
+    "by_tool": [],
+    "largest": []
+  },
+  "behavior": {},
+  "duplicate_reads": {"estimated_tokens": 9000, "rows": []},
+  "outline": {
+    "source_read_tokens": 50000,
+    "outline_tokens": 12000,
+    "estimated_reduction": 38000,
+    "rows": []
+  },
+  "cache_recreation": {"suspected_tokens": 0, "turns": 0},
+  "always_on": {"tokens": 1800, "counter": "≈est"},
+  "opportunities": [],
+  "evidence": {
+    "provider_usage_measured": true,
+    "tool_result_sizes_estimated": true,
+    "task_success_verified": false,
+    "quality_verified": false,
+    "savings_claim": false
+  }
+}
+```
+
+Provider usage fields come from available Claude transcript counters.
+Tool-result size, outline reduction, and token-at-stake values are local
+estimates. Cache recreation is heuristic. The command does not reinterpret
+these measurements as verified avoidable cost or task-success-adjusted savings.
 
 ## `cost-advisor --json`
 
