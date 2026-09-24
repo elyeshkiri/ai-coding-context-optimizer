@@ -91,10 +91,12 @@ class SdkApplication:
         if path == "/v1/provider/optimize":
             provider = body.get("provider")
             request_body = body.get("body")
+            if not isinstance(provider, str) or not provider.strip():
+                raise ValueError("provider must be a nonempty string")
             if not isinstance(request_body, dict):
                 raise ValueError("body must be a JSON object")
             return 200, self.engine.optimize_provider_request(
-                str(provider or ""),
+                provider,
                 request_body,
                 **self._options(body),
             )
