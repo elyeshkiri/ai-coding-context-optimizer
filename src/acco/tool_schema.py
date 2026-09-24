@@ -110,6 +110,13 @@ def _compress_tool(value: Any) -> Any:
     for key in ("inputSchema", "input_schema", "parameters", "schema"):
         if key in out:
             out[key] = _compress_schema(out[key])
+    if isinstance(out.get("function"), dict):
+        out["function"] = _compress_tool(out["function"])
+    declarations = out.get("functionDeclarations")
+    if isinstance(declarations, list):
+        out["functionDeclarations"] = [
+            _compress_tool(item) for item in declarations
+        ]
     return out
 
 
