@@ -22,7 +22,7 @@ from .semantic_ts import extract_module_refs, resolve_module_path
 from .skeleton import skeletonize, walk_repo
 from .syntax import JS_TS, STRUCTURED_EXTRA, structured_imports, symbols as syntax_symbols
 
-INDEX_VERSION = 12
+INDEX_VERSION = 13
 _DECL = re.compile(
     r"\b(?:class|interface|type|enum|struct|trait|def|function|func|fn)\s+([A-Za-z_$][\w$]*)"
     r"|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?:=|:)"
@@ -310,6 +310,36 @@ def _extract_python(text: str) -> tuple[set[str], set[str], set[str], list[Symbo
                 calls.add(target.id)
             elif isinstance(target, ast.Attribute):
                 calls.add(target.attr)
+    # Public module-level names bound to a constructed object are API surface
+    # too: `current_app = LocalProxy(...)`, `app = Flask(__name__)`. They were
+    # invisible because only def/class were recorded. Plain literal constants
+    # stay out so configuration values do not flood symbol selection.
+    lines = text.splitlines()
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets, value = [node.target], node.value
+        else:
+            continue
+        if not isinstance(value, ast.Call):
+            continue
+        for target in targets:
+            if not isinstance(target, ast.Name) or target.id.startswith("_"):
+                continue
+            start = int(node.lineno)
+            end = int(getattr(node, "end_lineno", start))
+            symbols.add(target.id)
+            definitions.append(SymbolRecord(
+                name=target.id,
+                kind="variable",
+                start_line=start,
+                end_line=end,
+                signature=lines[start - 1].strip()[:300] if start <= len(lines) else target.id,
+                calls=sorted(filter(None, [_python_name(value.func)])),
+                qualified=target.id,
+                identity_line=start,
+            ))
     return symbols, imports, calls, definitions
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 import math
+import re
 
 from ..lexical import fuzzy_symbol_terms, identifier_terms, symbol_terms, terms
 from .contracts import RankedFile
@@ -52,6 +53,7 @@ class _SymbolScope:
     array_preference: bool | None
     desired_parameter_count: int | None
     declaration_preference: str | None
+    exact_mentions: frozenset = frozenset()
 
     def key(self, symbol) -> tuple[str, int]:
         """Return key for symbol scope."""
@@ -202,6 +204,7 @@ def _build_symbol_scope(
         array_preference=_query_array_preference(query_text),
         desired_parameter_count=_query_parameter_count(query_text),
         declaration_preference=_query_declaration_preference(query_text),
+        exact_mentions=_query_code_mentions(query_text),
     )
     if not (target_symbol or "").lower() and definitions:
         scope.term_weight = _corpus_term_weights(scope)
@@ -228,6 +231,64 @@ def _lexical_symbol_score(
         + 8 * sum(weight.get(t, 1.0) for t in signature_hits)
         + 3 * sum(weight.get(t, 1.0) for t in body_hits)
     )
+
+
+_CODE_TOKEN_RE = re.compile(
+    r"`([A-Za-z_$][\w$]*)`"
+    r"|(?<![\w$.])([A-Za-z_$][\w$]*)(?=\s*\(\s*\))"
+    r"|(?<![\w$])([A-Za-z_$][\w$]*)(?![\w$])"
+)
+
+
+def _query_code_mentions(query: str) -> frozenset[str]:
+    """Identifiers the request spells out exactly, in code form.
+
+    A token counts when it is backticked, written as a call (``get()``), or is
+    itself code-shaped: it contains an uppercase letter, an underscore, or a
+    digit. Plain lowercase words ("option", "build", "run") are left out
+    because in a natural-language request they are almost always prose.
+    """
+    mentions: set[str] = set()
+    for quoted, called, bare in _CODE_TOKEN_RE.findall(query):
+        if quoted or called:
+            mentions.add(quoted or called)
+        elif any(ch.isupper() or ch.isdigit() or ch == "_" for ch in bare):
+            mentions.add(bare)
+    return frozenset(mentions)
+
+
+def _exact_mention_bonus(scope: _SymbolScope, symbol) -> float:
+    """Credit a symbol whose full name the request spells out exactly.
+
+    Without this, a longer identifier that merely contains the requested one
+    (ShouldBindBodyWithJSON for ShouldBindJSON, VarWithValueCtx for Var) wins
+    on raw term overlap even when the request names the target verbatim. The
+    weight matches the explicit Container-member bonus: both are literal,
+    case-exact evidence of which definition the request means.
+
+    Only callables and variables qualify. Crediting a named type let it, and
+    through parent credit its window, take the slots of the member the request
+    was actually about ("how does BytesMut allocate with a requested capacity"
+    means with_capacity, not the BytesMut struct).
+    """
+    if symbol.name not in scope.exact_mentions:
+        return 0.0
+    if symbol.kind not in _EXACT_MENTION_KINDS or scope.is_container(symbol):
+        return 0.0
+    # `func (g *Group) Group(...)`: when a member shares its name with a type
+    # in the same file, the mention is ambiguous and, as above, a type named
+    # in a request is treated as context.
+    if any(
+        name.rsplit(".", 1)[-1] == symbol.name for name in scope.container_names
+    ):
+        return 0.0
+    return 120.0
+
+
+# Types (and constructors, which share their type's name) are left out: a type
+# named in a request is as often the context as the answer, and the two cannot
+# be told apart lexically.
+_EXACT_MENTION_KINDS = frozenset({"function", "method", "variable"})
 
 
 def _explicit_member_bonus(scope: _SymbolScope, symbol) -> float:
@@ -408,6 +469,7 @@ def _score_symbol(scope: _SymbolScope, symbol, wanted: str) -> float:
     family_size = scope.family_sizes.get(scope.family_of(symbol), 1)
 
     score += _explicit_member_bonus(scope, symbol)
+    score += _exact_mention_bonus(scope, symbol)
     score += _family_signature_bonus(scope, symbol, signature_hits, family_size)
     score += _generic_arity_delta(scope, symbol, family_size)
     if family_size > 1:

@@ -1,5 +1,16 @@
 # Unreleased
 
+- **Exact identifier mentions and assignment-bound definitions.** A request that
+  spells a function, method, or variable name in code form (`Get`, `get()`,
+  `should_bind_json`) now credits that definition like an explicit
+  `Container member` mention, so longer names containing it no longer win.
+  Types, constructors, and members named like a type in the same file are
+  excluded. The index also records Python module-level names bound to a call,
+  CommonJS exports with a real value (not aliases), and named function
+  expressions that are an export's value. `INDEX_VERSION` is now 13, so cached
+  indexes rebuild. External holdouts: scoped symbol recall 87.26% -> 88.75%,
+  8 tasks improved, 0 regressed.
+
 - **Restored the self-benchmark to 100% file, symbol, and scoped symbol
   recall** (from 72% / 88% / 80% at 1.15.0) without regressing external
   holdouts. Three ranking changes: the `path` boost now counts only the file's
