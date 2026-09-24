@@ -260,29 +260,66 @@ public claims.
 
 Holdout #15's 24 natural-language queries and six pinned repository revisions
 were frozen first in `benchmarks/semantic-holdout-15.query-freeze.json`. Ground
-truth is now frozen in `benchmarks/semantic-holdout-15.frozen.json` (ground-truth
+truth is frozen in `benchmarks/semantic-holdout-15.frozen.json` (ground-truth
 SHA-256 `54df820439ab107e22ce5375b7ce5d4f170e93f15180633ea86c1808abeb2b1f`),
 with the queries unchanged. Expected files come mechanically from each issue's
 merged upstream fix: its non-test, non-documentation source files that exist at
 the pinned revision, dropping files changed by two lines or fewer when the same
-fix has a larger change. 13 tasks are eligible for the semantic headline; 8 are
-excluded from it as identifier-bearing because the frozen issue wording contains
-an answer file stem or type name under the project's substring leakage check
-(they keep ground truth and are reported separately); 3 are excluded because no
-source target could be established (no merged fix, or a broad design change that
-does not touch the component the query describes). A first evaluation has not
-been run, so #15 contributes **no retrieval result yet**.
+fix has a larger change.
+
+The canonical first evaluation was GitHub Actions **36041192049**, using pinned
+`all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a` with exact cosine and no HNSW.
+Of 24 frozen tasks, 13 are eligible for the no-identifier-leakage headline, 8
+are excluded as identifier-bearing, and 3 are excluded because no source target
+could be established.
+
+| Arm | File recall |
+| --- | ---: |
+| ACCO lexical/structural | **82.05%** |
+| ACCO hybrid semantic | **71.79%** |
+| Trivial distinct-term lexical | **50.00%** |
+
+Semantic was **10.26 percentage points below** ACCO lexical/structural on this
+fresh cohort. It produced **0 semantic-recovered tasks** and **1 strict semantic
+regression** under the existing headline flag
+(`gson-wildcard-runtime-subclass`, 100% -> 0% file recall). Per-task recall
+also decreased on `polly-timeout-caller-token` (66.67% -> 33.33%), which is
+not counted by the strict regression flag because lexical recall was already
+partial. No eligible task had higher semantic file recall than lexical.
+
+Mean estimated context reduction was effectively unchanged:
+**97.7220% lexical vs 97.7233% semantic**. The result therefore does not support
+a broad claim that the current semantic layer improves retrieval over ACCO's
+lexical/structural ranker. Holdout #15 is now **burned** and must not be used to
+tune and then rescore a fresh-generalization claim.
+
+The six repository shards from run 36041192049 all completed successfully.
+Its original merge-only step exposed a harness bug: axum has zero eligible
+headline tasks, so its valid shard contains only excluded tasks and an empty
+repository summary; the merger incorrectly treated that as missing repository
+coverage. The merger was fixed to infer excluded-only shard identity from the
+frozen manifest. A merge-only recovery run, **36042684955**, downloaded and
+merged the six immutable artifacts from 36041192049 without rerunning retrieval
+or embeddings and verified the literal headline above.
+
+**Duplicate-run disclosure.** A second run (**36041240323**) was accidentally
+triggered while checking whether GitHub had registered the newly created
+workflow. It started before any result from 36041192049 had been observed and
+used no changed retrieval code or frozen data. It is ignored for all headline
+evidence; 36041192049 is the canonical first-triggered evaluation.
 
 **Independence disclosure.** The ground truth was collected by the same agent
-that developed ranking changes #106-#109 in the same session. ACCO was not run on
-these repositories before the freeze. Four of the six repositories (chi, gson,
-Polly, express) are pinned at the same revisions as external holdouts #5, #6, #8
-and #2, which served as regression guards during that development, and one
-change (the CommonJS alias exclusion in #107) was motivated by an express
+that developed ranking changes #106-#109 in the same session. ACCO was not run
+on these repositories before the freeze. Four of the six repositories (chi,
+gson, Polly, express) are pinned at the same revisions as external holdouts #5,
+#6, #8 and #2, which served as regression guards during that development, and
+one change (the CommonJS alias exclusion in #107) was motivated by an express
 regression. Results on those four repositories are therefore not fully
 independent of the changes being measured; werkzeug and axum use revisions not
-used before. The eligible headline is 11 tasks from those four repositories and
-2 from werkzeug, so the cleaner subset is small.
+used before. The eligible headline contains 11 tasks from those four
+regression-guard repositories and 2 from werkzeug; axum contributes no eligible
+headline task, so the cleaner independent subset remains small.
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
