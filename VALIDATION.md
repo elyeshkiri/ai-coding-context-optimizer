@@ -410,14 +410,25 @@ verification -> grading -> cost-per-success -> calibration pipeline.
   but they were holdout-motivated, so only a fresh frozen holdout can show they
   generalize.
 
-  **Not shipped.** Skipping the second symbol window when it duplicates a
-  child already rendered inside the selected container fixed 5 more tasks but
-  regressed `tornado-schedule-callback` and `serilog-message-template-parse`:
-  the freed slot spends budget that a lexical window containing the answer
-  (`call_later`, `Parse`) had been using. It needs a budget-aware version.
-  The remaining misses are dominated by requests that describe behavior
-  without naming the target (40 of the 52 window-selection cases), which
-  lexical scoring cannot close.
+  **Duplicate child slot, budget-aware (shipped separately).** When one of a
+  file's two symbol windows only repeats a child its selected container
+  already renders, the next distinct definition is rendered as a backfill.
+  A first version gave the backfill the freed slot's priority and regressed
+  `tornado-schedule-callback` and `serilog-message-template-parse`: its source
+  displaced lexical windows, and in tornado it clipped the outline, whose
+  numbered lines are themselves visible evidence for a credited member
+  (`call_later@598`). The shipped version keeps the primary selection exactly
+  as before and renders the backfill after the outline, adding only lines no
+  other window covers, so section fitting clips it before anything else.
+  External result against the change above (471 tasks): file 97.88%
+  (unchanged), symbol 91.30% -> 91.72%, scoped symbol 88.75% -> 89.17%;
+  3 tasks improved (`scrapy-duplicate-request-filter`,
+  `jackson-writer-write-string`, `pydantic-email-validation`), 0 regressed.
+  Tasks with any miss: 59 -> 57. It recovers fewer tasks than the first
+  version (2 scoped instead of 5) because it only spends budget nothing else
+  needed. The remaining misses are dominated by requests that describe
+  behavior without naming the target (40 of the 52 window-selection cases),
+  which lexical scoring cannot close.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.

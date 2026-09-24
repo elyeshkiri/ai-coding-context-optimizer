@@ -1,5 +1,12 @@
 # Unreleased
 
+- **Backfill a wasted symbol slot without displacing evidence.** When one of a
+  file's two symbol windows only repeats a child its container already renders,
+  the next distinct definition is added as an `### additional source windows`
+  block after the outline, so budget fitting clips it first. The primary
+  selection is unchanged. External holdouts: scoped symbol recall
+  88.75% -> 89.17%, 3 tasks improved, 0 regressed.
+
 - **Exact identifier mentions and assignment-bound definitions.** A request that
   spells a function, method, or variable name in code form (`Get`, `get()`,
   `should_bind_json`) now credits that definition like an explicit

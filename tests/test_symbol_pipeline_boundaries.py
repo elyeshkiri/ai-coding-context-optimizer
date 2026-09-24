@@ -105,6 +105,49 @@ def test_extracted_windows_select_expected_symbol_and_source(tmp_path):
         for identity in identities
     )
     assert "def refresh_session(self, token):" in section
-    assert section_labels == labels
-    assert section_identities == identities
+    # The section may append a lower-priority backfill symbol after the
+    # primary selection, but never reorders or drops it.
+    assert section_labels[:len(labels)] == labels
+    assert section_identities[:len(identities)] == identities
     assert redactions == []
+
+
+def test_duplicate_child_slot_backfills_after_outline(tmp_path):
+    """A slot that only repeats a container's rendered child gets backfilled.
+
+    The backfill is lowest priority: it is rendered after the outline, so
+    section fitting clips it before any primary, lexical, or outline evidence.
+    """
+    text = textwrap.dedent(
+        """
+        class Scheduler:
+            def next_request(self):
+                return self.queue.pop()
+
+        class Queue:
+            def push(self, request):
+                self.items.append(request)
+
+        def schedule_request(scheduler, request):
+            return scheduler.queue_request(request)
+        """
+    )
+    path = tmp_path / "scheduler.py"
+    path.write_text(text, encoding="utf-8")
+    index = build_index(tmp_path, persist=False)
+    record = index.records["scheduler.py"]
+    item = RankedFile(
+        path=path, rel="scheduler.py", text=text, outline=record.outline,
+        score=10.0, reasons=["test"], term_hits=1, changed=False,
+    )
+    query = "which scheduler returns the next request"
+
+    _, labels, _ = symbol_windows._symbol_windows(item, index, set(), None, query)
+    section, section_labels, _, _ = symbol_windows._file_section(
+        item, set(), 2, index, symbol_query_text=query,
+    )
+
+    assert section_labels[:len(labels)] == labels
+    extra = section_labels[len(labels):]
+    assert extra, "expected a backfilled symbol"
+    assert section.index("### outline") < section.index("### additional source windows")
