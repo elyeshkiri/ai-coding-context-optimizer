@@ -29,6 +29,25 @@ def _language(suffix):
     import tree_sitter_javascript as grammar
     return Language(grammar.language())
 
+def _is_commonjs_exports(node, source: bytes) -> bool:
+    """Whether ``node`` is ``exports`` or ``module.exports``."""
+    if node is None:
+        return False
+    text = source[node.start_byte:node.end_byte].decode()
+    return text in {"exports", "module.exports"}
+
+
+_EXPORT_PASSTHROUGH = {"binary_expression", "parenthesized_expression", "ternary_expression"}
+
+
+def _is_exported_expression(node) -> bool:
+    """Whether an expression node is (part of) an export statement's value."""
+    parent = node.parent
+    while parent is not None and parent.type in _EXPORT_PASSTHROUGH:
+        parent = parent.parent
+    return parent is not None and parent.type == "export_statement"
+
+
 def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
     """Handle symbols js ts."""
     from tree_sitter import Parser
@@ -102,6 +121,26 @@ def _symbols_js_ts(text: str, suffix: str) -> list[Symbol]:
                         prototype_owner = source[obj_base.start_byte:obj_base.end_byte].decode()
             value = right
             is_function = right is not None and right.type in {"arrow_function", "function_expression", "generator_function"}
+            # `exports.etag = createETagGenerator(...)` is the CommonJS form of
+            # an exported constant, so it follows the same rule as ES exports
+            # below regardless of what the value is.
+            # `exports.request = req` merely re-exports an object defined
+            # elsewhere; an alias is not a definition.
+            if (
+                not is_function and left is not None
+                and left.type == "member_expression"
+                and _is_commonjs_exports(left.child_by_field_name("object"), source)
+                and right is not None
+                and right.type not in {"identifier", "member_expression"}
+            ):
+                is_exported_variable = True
+        # `export default ready && function httpAdapter(config) {...}`: a named
+        # function expression that is itself the exported value. Named inner
+        # callbacks stay excluded; only an expression chain that ends at the
+        # export statement qualifies.
+        if node.type == "function_expression" and name and _is_exported_expression(node):
+            is_function = True
+            value = node
         # Exported constants are public API symbols too, even when their value
         # is data (regex/schema/config) rather than a function. Local variables
         # remain excluded so implementation temporaries do not flood the index.

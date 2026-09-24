@@ -377,6 +377,47 @@ verification -> grading -> cost-per-success -> calibration pipeline.
   `retrofit-builder-build`, broke `serilog-logger-information` on an
   identically shaped query); argparse flags added to the stored outline
   (displaced `pricing`).
+- **Symbol selection and index coverage (follow-up).** After the change above,
+  65 of the 471 reproducible external holdout tasks still missed. Classifying
+  them (no ranking change) found 46 symbol-window-selection misses, 10
+  file-ranking misses, 6 budget truncations, and 3 missing definitions. Two
+  general fixes shipped:
+  1. A request that spells a callable or variable's full name in code form
+     (`Get`, `get()`, `` `run` ``, `should_bind_json`) credits that definition
+     like an explicit `Container member` mention (+120), so a longer name that
+     merely contains it (`ShouldBindBodyWithJSON` for `ShouldBindJSON`) no
+     longer wins on term overlap. Lowercase prose words, types, constructors,
+     and members that share a name with a type in the same file are excluded:
+     a type named in a request is as often context as the answer.
+  2. The index now records public Python module-level names bound to a call
+     (`current_app = LocalProxy(...)`), CommonJS exports with a real value
+     (`exports.etag = createETagGenerator(...)`, but not the alias
+     `exports.request = req`), and a named function expression that is itself
+     an export's value (`export default ok && function httpAdapter(...)`).
+     `INDEX_VERSION` is now 13.
+
+  External result (471 tasks): file 97.88% (unchanged), symbol 90.45% ->
+  91.30%, scoped symbol 87.26% -> 88.75%; 8 tasks improved, 0 regressed
+  (`axios-follow-redirects`, `express-generate-etag`, `lodash-get-path`,
+  `flask-current-app-proxy`, `gin-json-response`, `viper-global-get`,
+  `ct-function-instance-instance-impl`, `logrus-package-print`). Tasks with any
+  miss: 65 -> 59. Self-benchmark stays at 100% / 100% / 100%.
+
+  **Disclosure.** The first version of the exact-mention credit (all symbol
+  kinds) was +7 / -6, and the first version of the index change also indexed
+  `exports.request`-style aliases; the type exclusions and the alias rule were
+  added after studying those regressions on these burned suites. Each rests on a stated mechanism rather than a score,
+  but they were holdout-motivated, so only a fresh frozen holdout can show they
+  generalize.
+
+  **Not shipped.** Skipping the second symbol window when it duplicates a
+  child already rendered inside the selected container fixed 5 more tasks but
+  regressed `tornado-schedule-callback` and `serilog-message-template-parse`:
+  the freed slot spends budget that a lexical window containing the answer
+  (`call_later`, `Parse`) had been using. It needs a budget-aware version.
+  The remaining misses are dominated by requests that describe behavior
+  without naming the target (40 of the 52 window-selection cases), which
+  lexical scoring cannot close.
 - This repository-local benchmark is a diagnostic signal, not the main
   generalization claim and not the frozen release floor. The external holdout
   program below is the stronger retrieval-regression evidence.
