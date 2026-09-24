@@ -62,6 +62,26 @@ jobs:
       - run: python -m pytest -q
       - run: acco evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 
+  typescript-sdk:
+    name: TypeScript SDK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pinned typechecker
+        run: npm install --ignore-scripts
+      - name: Typecheck public TypeScript source
+        run: npm run typecheck
+      - name: Test published JavaScript runtime
+        run: npm test
+      - name: Verify package contents
+        run: npm run pack:check
+
   holdout:
     # The 25-task self-benchmark above is saturated at 100% and cannot detect
     # a ranking regression. This runs a real frozen external holdout against
