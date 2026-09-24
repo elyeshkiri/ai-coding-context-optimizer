@@ -148,8 +148,8 @@ def provider_proxy_main(argv: list[str]) -> int:
     parser.add_argument("--upstream", required=True)
     parser.add_argument(
         "--provider",
-        default="generic",
-        choices=["generic", "anthropic", "openai", "gemini"],
+        default="auto",
+        choices=["auto", "generic", "anthropic", "openai", "gemini"],
     )
     parser.add_argument("--bind", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
@@ -159,6 +159,7 @@ def provider_proxy_main(argv: list[str]) -> int:
     parser.add_argument("--no-tool-result-compression", action="store_true")
     parser.add_argument("--allow-non-loopback", action="store_true")
     parser.add_argument("--no-prefix-tracking", action="store_true")
+    parser.add_argument("--no-usage-telemetry", action="store_true")
     args = parser.parse_args(argv)
     root = Path(args.path).resolve()
     settings = settings_for(root)
@@ -177,6 +178,7 @@ def provider_proxy_main(argv: list[str]) -> int:
             prefix_tracking=(
                 settings.prefix_tracking and not args.no_prefix_tracking
             ),
+            usage_telemetry=not args.no_usage_telemetry,
         ).validate()
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
