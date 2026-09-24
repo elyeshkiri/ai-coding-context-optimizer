@@ -16,7 +16,7 @@ acco browser-context INPUT [--path PROJECT] [--query TEXT] [--max-lines N] [--js
 - `--max-lines N` — maximum focused lines; default 120.
 - `--json` — emit transformation metadata and compressed text.
 
-This command never fetches a URL.
+`auto` recognizes HTML, accessibility/ARIA snapshots, and browser-shaped JSON such as role/name/children trees or embedded AX snapshots. It keeps query neighborhoods plus a bounded structural/actionable skeleton, strips hidden/script/style HTML noise, and preserves useful control state such as labels, values, checked/selected/expanded state, headings, landmarks, links, and buttons. Ordinary JSON is not treated as browser JSON.\n\nThis command never fetches a URL, executes page JavaScript, or takes screenshots.
 
 ## Exit codes
 

@@ -75,8 +75,13 @@ estimated sizes, and hit/miss counters. Provider usage telemetry stores provider
 request shape, streaming flag, bounded model id, and token/cache counters. It
 does not copy provider request or response text. Disable provider usage
 observation with `--no-usage-telemetry`.
-Browser-context optimization consumes caller-supplied captured HTML/text and
-does not fetch arbitrary web URLs itself.
+Browser-context optimization consumes only caller-supplied textual payloads:
+HTML, accessibility/ARIA snapshots, or structured browser JSON. It does not
+fetch arbitrary web URLs, execute page JavaScript, control a browser, or inspect
+screenshot/image pixels. Accepted lossy transforms store the exact original
+locally under the same recovery contract; recovery-capacity failure preserves
+the original payload. Hidden/script/style HTML content is excluded from the
+focused representation but remains available through exact recovery.
 
 ## Oversized-prompt ingress state
 

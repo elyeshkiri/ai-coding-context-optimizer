@@ -9,7 +9,7 @@ import json
 import re
 from typing import Any
 
-from .browser_context import compress_browser_payload
+from .browser_context import compress_browser_payload, detect_browser_payload_kind
 from .estimate import estimate_tokens
 from .output.pipeline import process_output
 from .recovery import RecoveryCapacityError, RecoveryStore
@@ -59,8 +59,13 @@ def detect_context_kind(text: str) -> str:
     stripped = text.lstrip()
     if not stripped:
         return "plain"
-    if _HTML_HINT.search(text):
+    browser_kind = detect_browser_payload_kind(text)
+    if browser_kind == "html":
         return "html"
+    if browser_kind == "ax":
+        return "browser-ax"
+    if browser_kind == "json":
+        return "browser-json"
     if stripped[:1] in "[{":
         try:
             json.loads(stripped)
@@ -272,18 +277,33 @@ def route_context(
     if not text:
         return ContextRouteResult(text, kind, False, 0, 0, None, {})
 
-    if kind == "html":
+    if kind in {"html", "browser-ax", "browser-json"}:
+        format_hint = {
+            "html": "html",
+            "browser-ax": "ax",
+            "browser-json": "json",
+        }[kind]
         browser = compress_browser_payload(
-            text, query=query, max_lines=max_lines, recovery=recovery
+            text,
+            query=query,
+            max_lines=max_lines,
+            recovery=recovery,
+            format_hint=format_hint,
         )
         return ContextRouteResult(
             browser.text,
-            "html",
+            kind,
             browser.changed,
             browser.original_tokens,
             browser.output_tokens,
             browser.recovery_handle,
-            {"matched_terms": list(browser.matched_terms)},
+            {
+                "matched_terms": list(browser.matched_terms),
+                "browser_kind": browser.kind,
+                "source_items": browser.source_items,
+                "shown_items": browser.shown_items,
+                "interactive_items": browser.interactive_items,
+            },
         )
     if kind == "json":
         candidate, metadata = _compress_json(text, query)

@@ -52,6 +52,16 @@ establishes exact source availability. Capacity exhaustion fails closed: the
 caller keeps the original representation instead of evicting an older recovery
 record and creating a dangling handle.
 
+Browser/context payload optimization is another explicit edge, not a second
+retrieval system. `browser_context.py` recognizes caller-supplied HTML,
+accessibility/ARIA text snapshots, and browser-shaped JSON trees. It focuses
+query neighborhoods plus bounded structural/actionable anchors and writes exact
+source bytes to `RecoveryStore` before accepting a lossy result.
+`context_router.py` selects this specialization only for recognized browser
+shapes; ordinary JSON/log/table/search output continues through the general
+router. The SDK bridge exposes the same implementation at
+`/v1/browser/optimize`.
+
 Provider interception is kept at an explicit edge.
 `provider_boundary.py` classifies Anthropic/OpenAI/Gemini request shapes and
 identifies only historical tool/function-result surfaces. `provider_transform.py`

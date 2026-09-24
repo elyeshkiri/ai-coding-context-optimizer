@@ -39,6 +39,11 @@ Python callers can also use the engine directly:
 ```python
 acco.optimize_provider_request("openai", body)
 acco.optimize_context(text, query=prompt, command="rg auth")
+acco.optimize_browser_context(
+    browser_snapshot,
+    query=prompt,
+    format_hint="auto",
+)
 acco.optimize_output(stdout, command="pytest -q", exit_code=1)
 acco.route_model(prompt, current_model="claude-sonnet-5")
 acco.recover("tsr_...")
@@ -51,6 +56,7 @@ acco.recover("tsr_...")
 - `before_request(body, **options)` optimizes one provider-bound request;
 - `after_tool_result(text, ...)` prepares large tool context before the next
   model call;
+- `after_browser_result(text, ...)` explicitly focuses captured HTML, AX, or browser-JSON payloads when the host already knows a result came from a browser tool;
 - `route(prompt, **options)` returns a deterministic model-routing decision
   for orchestrators that can choose a model;
 - `recover(handle)` returns the exact source bytes represented by an accepted
@@ -92,6 +98,12 @@ const tool = await middleware.afterToolResult({
   command: "pytest -q",
 });
 
+const browser = await middleware.afterBrowserResult({
+  text: rawAccessibilitySnapshot,
+  query: userPrompt,
+  options: { format_hint: "auto", min_tokens: 400 },
+});
+
 const route = await middleware.route(userPrompt, {
   current_model: "claude-sonnet-5",
 });
@@ -129,7 +141,7 @@ The bridge exposes only versioned JSON endpoints:
 | `GET` | `/v1/health` | health/version/project identity |
 | `POST` | `/v1/provider/optimize` | optimize provider request JSON |
 | `POST` | `/v1/context/optimize` | recoverable arbitrary/tool context |
-| `POST` | `/v1/output/optimize` | command-aware output optimization |
+| `POST` | `/v1/browser/optimize` | focused HTML / AX / browser-JSON context |\n| `POST` | `/v1/output/optimize` | command-aware output optimization |
 | `POST` | `/v1/route` | deterministic model-routing decision |
 | `POST` | `/v1/recover` | exact recovery by `tsr_...` handle |
 
@@ -144,9 +156,9 @@ The SDK does not weaken ACCO's existing transformation rules:
 2. Lossy context/provider transformations require exact local recovery first.
 3. SDK output compression with `recoverable=true` also fails open to the
    original text if the recovery store has insufficient capacity.
-4. Model routing is the existing deterministic ACCO policy. A route decision is
+4. Browser optimization is local and caller-supplied only: it does not navigate, fetch URLs, execute page code, or process screenshot pixels. Ordinary JSON stays on the general context path.\n5. Model routing is the existing deterministic ACCO policy. A route decision is
    not an independent benchmark of model quality.
-5. The TypeScript bridge binds to `127.0.0.1` by default.
+6. The TypeScript bridge binds to `127.0.0.1` by default.
 
 The bridge has no built-in remote authentication because it is designed as a
 local process boundary. `--allow-non-loopback` is explicit and should only be

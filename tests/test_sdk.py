@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -146,6 +147,67 @@ def test_sdk_application_dispatches_health_context_and_recovery(
     )
     assert status == 200
     assert recovered["payload"] == original
+
+
+def test_python_sdk_browser_context_specializes_ax_payload(
+    tmp_path, monkeypatch
+):
+    """Custom Python agents should get browser-specific context focusing."""
+    engine = _engine(tmp_path, monkeypatch)
+    snapshot = "\n".join(
+        f'- link "Product {index}" [ref=e{index}]'
+        for index in range(150)
+    )
+
+    result = engine.optimize_browser_context(
+        snapshot,
+        query="Product 123",
+        max_lines=24,
+        min_tokens=0,
+    )
+
+    assert result["kind"] == "ax"
+    assert result["changed"] is True
+    assert "Product 123" in result["text"]
+    assert engine.recover(result["recovery_handle"])["payload"] == snapshot
+
+
+def test_sdk_application_exposes_browser_optimization(
+    tmp_path, monkeypatch
+):
+    """The local SDK bridge should expose browser specialization explicitly."""
+    engine = _engine(tmp_path, monkeypatch)
+    app = SdkApplication(engine)
+    payload = {
+        "snapshot": {
+            "role": "main",
+            "name": "Catalog",
+            "children": [
+                {"role": "button", "name": f"Buy {index}"}
+                for index in range(120)
+            ],
+        }
+    }
+    text = json.dumps(payload)
+
+    status, result = app.dispatch(
+        "POST",
+        "/v1/browser/optimize",
+        {
+            "text": text,
+            "query": "Buy 88",
+            "options": {
+                "max_lines": 20,
+                "min_tokens": 0,
+                "format_hint": "auto",
+            },
+        },
+    )
+
+    assert status == 200
+    assert result["kind"] == "json"
+    assert result["changed"] is True
+    assert "Buy 88" in result["text"]
 
 
 def test_sdk_application_rejects_unknown_or_missing_recovery(

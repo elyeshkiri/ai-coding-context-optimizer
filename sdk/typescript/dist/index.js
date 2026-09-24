@@ -79,6 +79,14 @@ export class AccoClient {
     });
   }
 
+  optimizeBrowser(text, query = "", options = {}) {
+    return this.request("POST", "/v1/browser/optimize", {
+      text,
+      query,
+      options,
+    });
+  }
+
   optimizeOutput(text, command = "", exitCode = null, options = {}) {
     const payload = { text, command, options };
     if (exitCode !== null) payload.exit_code = exitCode;
@@ -169,6 +177,12 @@ export class AccoClient {
           result.text,
           result.query ?? "",
           result.command ?? "",
+          result.options ?? {},
+        ),
+      afterBrowserResult: (result) =>
+        this.optimizeBrowser(
+          result.text,
+          result.query ?? "",
           result.options ?? {},
         ),
       route: (prompt, options = {}) => this.routeModel(prompt, options),

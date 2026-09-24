@@ -117,6 +117,13 @@ def browser_context_main(argv: list[str]) -> int:
     parser.add_argument("--path", default=".", help="project root for recovery")
     parser.add_argument("--query", default="")
     parser.add_argument("--max-lines", type=int, default=120)
+    parser.add_argument(
+        "--format",
+        dest="format_hint",
+        choices=("auto", "html", "ax", "json", "text"),
+        default="auto",
+    )
+    parser.add_argument("--min-tokens", type=int, default=0)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
@@ -130,6 +137,8 @@ def browser_context_main(argv: list[str]) -> int:
             query=args.query,
             max_lines=args.max_lines,
             recovery=RecoveryStore(Path(args.path)),
+            format_hint=args.format_hint,
+            min_tokens=args.min_tokens,
         )
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
