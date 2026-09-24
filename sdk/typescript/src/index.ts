@@ -49,7 +49,8 @@ export interface RecoveryResult {
   access_count: number;
 }
 
-export interface ModelRouteDecision extends JsonObject {
+export interface ModelRouteDecision {
+  [key: string]: unknown;
   selected_model: string | null;
   current_model: string | null;
   action: "recommend" | "keep" | "route" | "manual";
@@ -60,6 +61,19 @@ export interface ToolResultInput {
   query?: string;
   command?: string;
   options?: JsonObject;
+}
+
+export interface AccoMiddleware {
+  beforeRequest(
+    body: JsonObject,
+    options?: JsonObject,
+  ): Promise<ProviderOptimization>;
+  afterToolResult(result: ToolResultInput): Promise<ContextOptimization>;
+  route(
+    prompt: string,
+    options?: JsonObject,
+  ): Promise<ModelRouteDecision>;
+  recover(handle: string): Promise<RecoveryResult>;
 }
 
 export class AccoSdkError extends Error {
@@ -185,7 +199,7 @@ export class AccoClient {
     return this.request("POST", "/v1/recover", { handle });
   }
 
-  middleware(provider: string) {
+  middleware(provider: string): AccoMiddleware {
     if (!provider.trim()) throw new TypeError("provider must be nonempty");
     return {
       beforeRequest: (body: JsonObject, options: JsonObject = {}) =>
