@@ -151,3 +151,53 @@ def test_duplicate_child_slot_backfills_after_outline(tmp_path):
     extra = section_labels[len(labels):]
     assert extra, "expected a backfilled symbol"
     assert section.index("### outline") < section.index("### additional source windows")
+
+
+def _long_body_fixture(tmp_path):
+    """A long first definition followed by the short one the request names."""
+    body = "\n".join(f"    step_{n} = build_part({n})" for n in range(120))
+    text = (
+        "def build_subcommand_tree(parser):\n" + body + "\n    return parser\n\n\n"
+        "def subcommand(parser, name):\n    return parser.add(name)\n"
+    )
+    path = tmp_path / "command.py"
+    path.write_text(text, encoding="utf-8")
+    index = build_index(tmp_path, persist=False)
+    record = index.records["command.py"]
+    item = RankedFile(
+        path=path, rel="command.py", text=text, outline=record.outline,
+        score=10.0, reasons=["test"], term_hits=1, changed=False,
+    )
+    return item, index
+
+
+def test_clipped_section_prefers_compact_heads_when_strictly_better(tmp_path):
+    item, index = _long_body_fixture(tmp_path)
+    query = "how does subcommand build a subcommand tree for the parser"
+    section, labels, identities, _ = symbol_windows._file_section(
+        item, set(), 2, index, symbol_query_text=query,
+    )
+    assert any("subcommand@" in label for label in labels)
+
+    clipped_only = symbol_windows._fit_section(section, 160)
+    fitted, visible, _ = symbol_windows._fit_file_section(
+        item, set(), 2, section, 160, labels, identities,
+    )
+
+    plain_visible = symbol_windows._visible_symbol_labels(clipped_only, labels)
+    assert set(visible) > set(plain_visible)
+    assert any(label.startswith("command.py:subcommand@") for label in visible)
+
+
+def test_unclipped_section_is_returned_unchanged(tmp_path):
+    item, index = _long_body_fixture(tmp_path)
+    query = "how does subcommand build a subcommand tree for the parser"
+    section, labels, identities, _ = symbol_windows._file_section(
+        item, set(), 2, index, symbol_query_text=query,
+    )
+
+    fitted, _, _ = symbol_windows._fit_file_section(
+        item, set(), 2, section, 100_000, labels, identities,
+    )
+
+    assert fitted == section
