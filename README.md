@@ -94,6 +94,8 @@ Turn local ACCO evidence into a practical optimization report:
 ```bash
 acco cost-advisor .
 acco cost-advisor . --project-only --json
+acco learn . --days 30
+acco trial . --prompt-file task.md --verify "pytest -q"
 acco pricing --model claude-sonnet-5
 acco model-route "Debug this failing authentication handler" --json
 acco cost-advisor . \
@@ -103,7 +105,11 @@ acco cost-advisor . \
 The advisor scores only categories with enough evidence and reports score
 coverage separately. It combines measured always-on context, Claude transcript
 usage/cache counters, output-budget fit, continuity/waste signals, and observed
-before/after tool-context reductions.
+before/after tool-context reductions. `acco learn` turns historical project
+sessions into a ranked list of evidence-backed token/context opportunities,
+while `acco trial` runs a history-isolated baseline-vs-ACCO comparison on
+committed `HEAD` and requires an independent post-agent verifier. Local trial
+deltas remain workload evidence, not a general savings claim.
 
 Automatic model-routing intelligence is available through the CLI, MCP
 `route_task`, and the opt-in Claude prompt hook. Routing first applies a
