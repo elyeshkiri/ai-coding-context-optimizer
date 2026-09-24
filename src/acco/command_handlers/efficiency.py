@@ -148,6 +148,78 @@ def audit_main(argv: list[str]) -> int:
     return 0
 
 
+
+def learn_main(argv: list[str]) -> int:
+    """Rank token sinks and optimization opportunities from historical sessions."""
+    from ..learn import learn_report
+
+    parser = argparse.ArgumentParser(prog="acco learn")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--days", type=int, default=30)
+    parser.add_argument("--top", type=int, default=8)
+    parser.add_argument(
+        "--project-only",
+        action="store_true",
+        help="exclude user-scope Claude instructions from always-on context analysis",
+    )
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        report = learn_report(
+            Path(args.path),
+            days=args.days,
+            top=args.top,
+            user_scope=not args.project_only,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    usage = report["usage"]
+    print(f"ACCO LEARN — {report['window_days']} days")
+    print(
+        f"sessions: {report['sessions']}; turns: {report['turns']}; "
+        f"transcripts: {report['transcripts']}"
+    )
+    print("provider usage observed:")
+    print(f"  fresh input        {_tokens(usage['input_tokens'])}")
+    print(f"  cache creation     {_tokens(usage['cache_creation_input_tokens'])}")
+    print(f"  cache read         {_tokens(usage['cache_read_input_tokens'])}")
+    print(f"  output             {_tokens(usage['output_tokens'])}")
+    print(f"  cache hit rate     {usage['cache_hit_rate']:.1%}")
+
+    print("largest estimated tool-result sources:")
+    rows = report["tool_results"]["by_tool"]
+    if not rows:
+        print("  none")
+    for row in rows:
+        print(
+            f"  {row['tool']:<18} {_tokens(row['estimated_tokens']):>8} "
+            f"across {row['calls']} call(s)"
+        )
+
+    print("ranked opportunities:")
+    if not report["opportunities"]:
+        print("  none from current evidence")
+    for index, item in enumerate(report["opportunities"], start=1):
+        tokens = item["estimated_tokens_at_stake"]
+        stake = f" (~{_tokens(tokens)} tokens)" if tokens is not None else ""
+        print(f"  {index}. {item['title']}{stake}")
+        print(f"     evidence: {item['evidence']}")
+        print(f"     action:   {item['action']}")
+        print(f"     caution:  {item['caution']}")
+
+    print(
+        "evidence: provider counters are measured; tool-result and opportunity "
+        "sizes are estimates; no task-success or savings claim is made"
+    )
+    return 0
+
+
 def dashboard_main(argv: list[str]) -> int:
     """Show local operational savings, continuity, and waste telemetry."""
     parser = argparse.ArgumentParser(prog="acco dashboard")

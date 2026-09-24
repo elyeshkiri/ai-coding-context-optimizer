@@ -72,7 +72,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 - [`audit`](commands/audit.md) — consolidated context, retrieval, processor, recovery, host, and efficiency audit.
 - [`sessions`](commands/sessions.md) — analyze Claude transcript token/tool evidence.
-- [`dashboard`](commands/dashboard.md) — local savings, usage, continuity, and waste telemetry.
+- [`dashboard`](commands/dashboard.md) — local savings, usage, continuity, and waste telemetry.\n- [`learn`](commands/learn.md) — analyze historical sessions and rank evidence-backed token/context opportunities.
 - [`continuity`](commands/continuity.md) — inspect the structured resume/compaction checkpoint.
 - [`cache-economics`](commands/cache-economics.md) — compare context rewrites after prompt-cache costs.
 - [`budget`](commands/budget.md) — compare measured context with budget guidance.
@@ -96,7 +96,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 ## End-to-end experiments
 
-- [`experiment`](commands/experiment.md) — run randomized paired agent trials.
+- [`experiment`](commands/experiment.md) — run randomized paired agent trials.\n- [`trial`](commands/trial.md) — run a simple local baseline-vs-ACCO A/B on one independently verified task.
 - [`evidence-run`](commands/evidence-run.md) — run/resume experiment → blind grade → cost/success → calibration.
 - [`session-holdout`](commands/session-holdout.md) — run/resume the frozen v1.6-session-behavior vs v1.7-session-efficiency holdout.
 - [`session-holdout-evaluate`](commands/session-holdout-evaluate.md) — evaluate merged/blind-graded session holdout evidence.

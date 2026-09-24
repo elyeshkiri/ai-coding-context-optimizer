@@ -74,6 +74,158 @@ def experiment_main(argv: list[str]) -> int:
     return 0
 
 
+
+def trial_main(argv: list[str]) -> int:
+    """Run a simple local baseline-versus-ACCO trial on one real task."""
+    from ..trial import DEFAULT_MODEL, run_trial
+
+    parser = argparse.ArgumentParser(prog="acco trial")
+    parser.add_argument("path", nargs="?", default=".")
+    prompt_group = parser.add_mutually_exclusive_group(required=True)
+    prompt_group.add_argument("--prompt")
+    prompt_group.add_argument("--prompt-file")
+    parser.add_argument(
+        "--verify",
+        action="append",
+        required=True,
+        help="independent verifier command run after the agent; repeat as needed",
+    )
+    parser.add_argument(
+        "--setup",
+        action="append",
+        help="setup command run inside each isolated snapshot before the agent",
+    )
+    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--trials", type=int, default=1)
+    parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument("--out")
+    parser.add_argument(
+        "--runner",
+        help=(
+            "custom shell-like runner argv; supports {prompt}, {prompt_file}, "
+            "{worktree}, {transcript}, {model}, and {condition}"
+        ),
+    )
+    parser.add_argument(
+        "--transcript-mode",
+        choices=("claude-project", "path"),
+        default="claude-project",
+        help="where the runner leaves usage evidence",
+    )
+    parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="benchmark committed HEAD even when uncommitted changes exist",
+    )
+    parser.add_argument(
+        "--allow-user-hook",
+        action="store_true",
+        help="allow an existing user-level ACCO hook (can contaminate the baseline)",
+    )
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--require-both-success",
+        action="store_true",
+        help="return 1 unless every baseline and enabled run passes the verifier",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        if args.prompt_file:
+            prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+        else:
+            prompt = str(args.prompt or "")
+        result = run_trial(
+            Path(args.path),
+            prompt=prompt,
+            verifier_commands=list(args.verify),
+            model=args.model,
+            trials=args.trials,
+            timeout=args.timeout,
+            setup_commands=list(args.setup or []),
+            runner_command=args.runner,
+            transcript_mode=args.transcript_mode,
+            output_path=Path(args.out) if args.out else None,
+            allow_dirty=args.allow_dirty,
+            allow_user_hook=args.allow_user_hook,
+            dry_run=args.dry_run,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    elif args.dry_run:
+        trial = result["trial"]
+        print("ACCO TRIAL — DRY RUN")
+        print(f"revision: {result['revision']}")
+        print(
+            f"schedule: {trial['paired_trials']} paired trial(s), "
+            f"{trial['run_count']} agent run(s)"
+        )
+        for row in trial["schedule"]:
+            print(
+                f"  {row['task']} trial={row['trial']} "
+                f"condition={row['condition']}"
+            )
+        print(f"suite: {result['suite']}")
+    else:
+        summary = result["summary"]
+        baseline = summary["conditions"]["baseline"]
+        enabled = summary["conditions"]["enabled"]
+
+        def ratio(value: object) -> str:
+            """Render an optional fractional reduction."""
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                return "n/a"
+            return f"{float(value):+.1%}"
+
+        print("ACCO TRIAL")
+        print(f"revision: {result['revision']}")
+        print(
+            "baseline: "
+            f"{baseline['successes']}/{baseline['runs']} verified; "
+            f"input={baseline['input_tokens']:,}; "
+            f"output={baseline['output_tokens']:,}; "
+            f"tools={baseline['tool_calls']}"
+        )
+        print(
+            "enabled:  "
+            f"{enabled['successes']}/{enabled['runs']} verified; "
+            f"input={enabled['input_tokens']:,}; "
+            f"output={enabled['output_tokens']:,}; "
+            f"tools={enabled['tool_calls']}"
+        )
+        comparison = summary["comparison"]
+        print(
+            "input tokens/success reduction: "
+            + ratio(comparison["input_tokens_per_success_reduction"])
+        )
+        print(
+            "total tokens/success reduction: "
+            + ratio(comparison["total_tokens_per_success_reduction"])
+        )
+        print("evidence: " + summary["evidence"]["note"])
+        if result["dirty_worktree_ignored"]:
+            print(
+                "warning: uncommitted working-tree changes were ignored; "
+                "HEAD was tested"
+            )
+        print(f"manifest: {result['manifest']}")
+        print(f"suite:    {result['suite']}")
+
+    if args.require_both_success and not args.dry_run:
+        conditions = result["summary"]["conditions"]
+        if any(
+            item["runs"] == 0 or item["successes"] != item["runs"]
+            for item in conditions.values()
+        ):
+            return 1
+    return 0
+
+
 def evidence_run_main(argv: list[str]) -> int:
     """Run/resume the complete experiment -> grade -> evidence pipeline."""
     parser = argparse.ArgumentParser(prog="acco evidence-run")
