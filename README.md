@@ -106,6 +106,10 @@ tool = middleware.after_tool_result(
     query=user_prompt,
     command="pytest -q",
 )
+browser = middleware.after_browser_result(
+    raw_browser_snapshot,
+    query=user_prompt,
+)
 ```
 
 TypeScript/JavaScript agents use the typed, dependency-free client in
@@ -667,10 +671,17 @@ giving ACCO arbitrary browsing authority:
 
 ```bash
 acco browser-context page.html --query "ORD-0173 save"
+acco browser-context ax.txt --format ax --query "checkout save"
+acco browser-context snapshot.json --format json --query "buy product-42"
 ```
 
-This keeps matching neighborhoods plus a compact interactive skeleton and
-stores exact omitted bytes for recovery. It never fetches the URL itself.
+Auto mode recognizes HTML, accessibility/ARIA snapshots, and browser-shaped
+role/name/children JSON. It keeps query neighborhoods plus a bounded
+structural/actionable skeleton, ignores hidden/script/style HTML noise, and
+stores exact omitted bytes for recovery. Generic tool routing and the Python/TS
+middleware SDKs use the same specialization when a payload naturally matches
+these browser shapes. ACCO never fetches the URL, executes page JavaScript, or
+treats browser context as repository truth.
 
 These mechanisms have regression/safety coverage, but no new end-to-end savings
 percentage is claimed until a fresh paired-agent experiment verifies treatment
