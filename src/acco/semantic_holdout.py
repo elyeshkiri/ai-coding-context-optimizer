@@ -541,13 +541,21 @@ def merge_semantic_holdout_results(
         repositories = part.get("repositories", {})
         if not isinstance(repositories, dict):
             raise ValueError("semantic holdout partial repositories must be an object")
-        overlap = seen_repositories & set(repositories)
+        part_repositories = {str(alias) for alias in repositories}
+        for collection in ("tasks", "excluded_tasks"):
+            for item in part.get(collection, []):
+                if not isinstance(item, dict):
+                    continue
+                alias = item.get("repository")
+                if isinstance(alias, str) and alias:
+                    part_repositories.add(alias)
+        overlap = seen_repositories & part_repositories
         if overlap:
             raise ValueError(
                 "semantic holdout repository appears in multiple partials: "
                 + ", ".join(sorted(overlap))
             )
-        seen_repositories.update(str(alias) for alias in repositories)
+        seen_repositories.update(part_repositories)
 
         for item in part.get("tasks", []):
             task_id = item.get("id")
