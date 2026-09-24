@@ -104,6 +104,22 @@ if (tool.recovery_handle) {
 The TypeScript runtime has no third-party production dependencies. The package
 ships typed declarations and tests the published JavaScript runtime contract.
 
+For provider SDKs that accept a custom `fetch` implementation, ACCO can
+intercept the request boundary without changing the provider base URL:
+
+```ts
+const providerFetch = acco.interceptFetch("openai");
+
+// Example: pass providerFetch as the SDK/client fetch implementation.
+```
+
+The interceptor touches only JSON request bodies, routes them through
+`/v1/provider/optimize`, removes stale `content-length`, and then calls the
+original provider fetch. If the local ACCO bridge is unavailable it fails open
+to the untouched request by default; pass `{ failOpen: false }` when a caller
+prefers strict failure. Non-JSON, GET, HEAD, streaming response, authentication,
+retry, and provider transport semantics remain owned by the provider client.
+
 ## HTTP contract
 
 The bridge exposes only versioned JSON endpoints:
