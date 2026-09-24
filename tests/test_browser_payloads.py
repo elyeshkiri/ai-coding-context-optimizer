@@ -111,7 +111,7 @@ def test_hidden_html_noise_is_not_promoted_into_focused_context(
     """Hidden/script content should not beat visible actionable browser evidence."""
     root = _root(tmp_path, monkeypatch)
     html = (
-        "<html><body>"
+        "<html><head><meta charset='utf-8'><link rel='stylesheet' href='x.css'></head><body>"
         "<script>SECRET_SCRIPT_NOISE " + "x" * 5000 + "</script>"
         "<div hidden>HIDDEN_SECRET " + "y" * 3000 + "</div>"
         "<main><h1>Checkout</h1>"
