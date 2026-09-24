@@ -28,6 +28,26 @@ export interface ContextOptimization {
   metadata: JsonObject;
 }
 
+export interface BrowserOptimization {
+  schema: number;
+  text: string;
+  changed: boolean;
+  original_tokens: number;
+  output_tokens: number;
+  recovery_handle: string | null;
+  matched_terms: string[];
+  kind: "html" | "ax" | "json" | "text";
+  source_items: number;
+  shown_items: number;
+  interactive_items: number;
+}
+
+export interface BrowserResultInput {
+  text: string;
+  query?: string;
+  options?: JsonObject;
+}
+
 export interface OutputOptimization {
   schema: number;
   text: string;
@@ -74,6 +94,7 @@ export interface AccoMiddleware {
     options?: JsonObject,
   ): Promise<ProviderOptimization>;
   afterToolResult(result: ToolResultInput): Promise<ContextOptimization>;
+  afterBrowserResult(result: BrowserResultInput): Promise<BrowserOptimization>;
   route(
     prompt: string,
     options?: JsonObject,
@@ -103,6 +124,11 @@ export declare class AccoClient {
     command?: string,
     options?: JsonObject,
   ): Promise<ContextOptimization>;
+  optimizeBrowser(
+    text: string,
+    query?: string,
+    options?: JsonObject,
+  ): Promise<BrowserOptimization>;
   optimizeOutput(
     text: string,
     command?: string,
