@@ -635,16 +635,32 @@ For clients that can point at a custom provider base URL, the opt-in local
 reverse proxy moves request optimization closer to the actual API boundary:
 
 ```bash
-acco provider-proxy . \
-  --provider anthropic \
-  --upstream https://api.anthropic.com
+acco provider-proxy . --upstream https://api.anthropic.com
 ```
 
+Provider auto-detection recognizes Anthropic Messages, OpenAI Chat Completions /
+Responses, and Gemini generateContent/streamGenerateContent. The boundary keeps
+ACCO's retrieval-first design: current user instructions and fresh source
+evidence are never rewritten there; only tool schemas and historical
+tool/function outputs are eligible for recoverable reduction.
+
 The proxy is loopback-only by default, requires HTTPS for non-local upstreams,
-does not automatically follow upstream redirects, forwards provider responses
-unchanged, and composes recoverable tool-schema/tool-result compression with
-content-free stable-prefix reuse accounting. Inspect the latter with
-`acco prefix-status .`.
+does not automatically follow upstream redirects, and forwards provider
+responses byte-for-byte, including streaming responses. It can observe
+provider-reported input/output/cache token counters as content-free local
+telemetry. Disable that with `--no-usage-telemetry`. Inspect stable-prefix
+reuse with `acco prefix-status .`.
+
+TypeScript applications can intercept provider `fetch` calls without changing
+the provider base URL:
+
+```ts
+const providerFetch = acco.interceptFetch("openai");
+```
+
+The interceptor optimizes supported JSON request bodies through the local ACCO
+SDK bridge, then calls the original provider fetch. It fails open to the
+untouched request by default if the local ACCO bridge is unavailable.
 
 Large browser payloads captured by another tool can be focused locally without
 giving ACCO arbitrary browsing authority:
