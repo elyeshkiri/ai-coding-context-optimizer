@@ -52,12 +52,21 @@ establishes exact source availability. Capacity exhaustion fails closed: the
 caller keeps the original representation instead of evicting an older recovery
 record and creating a dangling handle.
 
-Provider interception is kept at an explicit edge. `provider_transform.py` is
-the pure-ish request composition layer: schema reduction, large historical
-tool-result reduction, browser focusing, and stable-prefix accounting.
+Provider interception is kept at an explicit edge.
+`provider_boundary.py` classifies Anthropic/OpenAI/Gemini request shapes and
+identifies only historical tool/function-result surfaces. `provider_transform.py`
+then applies schema reduction and recoverable historical-result reduction while
+leaving the current task, fresh repository/source evidence, and ordinary
+assistant content untouched. Retrieval/ranking remains the authority for deciding
+which source enters context.
+
 `provider_proxy.py` owns HTTP/network behavior and remains opt-in. It binds to
 loopback by default, forwards response bytes unchanged, and does not
-automatically follow upstream redirects.
+automatically follow upstream redirects. `provider_usage.py` passively observes
+JSON/SSE response bytes for provider-reported token/model counters and writes
+only content-free telemetry; it is not allowed to rewrite provider responses.
+The TypeScript SDK's `interceptFetch` is another thin edge adapter over the same
+Python transform rather than a second optimization implementation.
 
 Stable-prefix accounting stores hashes/sizes/counters through
 `prefix_cache.py`; it never becomes repository truth. The closed-loop
