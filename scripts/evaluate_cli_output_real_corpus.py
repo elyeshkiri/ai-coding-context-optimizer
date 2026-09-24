@@ -178,7 +178,7 @@ def _evaluate_peer(
     corpus: Path,
     peer_path: Path,
 ) -> dict:
-    """Evaluate a checked-out ppgranger/acco revision in isolation."""
+    """Evaluate a checked-out ppgranger/token-saver revision in isolation."""
     env = dict(os.environ)
     env["PYTHONPATH"] = str(peer_path)
     completed = subprocess.run(
