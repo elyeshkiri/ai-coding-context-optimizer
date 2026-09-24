@@ -32,3 +32,16 @@ if (optimizedTool.recovery_handle) {
 
 The service binds to loopback by default. Do not expose it on a network without
 your own authentication and transport controls.
+
+For clients that accept a custom `fetch`, intercept the provider boundary
+without changing its base URL:
+
+```ts
+const providerFetch = acco.interceptFetch("openai");
+```
+
+Only JSON model requests are eligible. Accepted transforms target provider tool
+schemas and historical tool/function results; current user/source context is not
+rewritten. If ACCO accepts no transform, the original request bytes are passed
+through. If the local bridge is unavailable, the interceptor fails open by
+default.
