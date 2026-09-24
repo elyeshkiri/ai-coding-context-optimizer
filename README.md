@@ -75,6 +75,7 @@ Start with the task-oriented docs instead of searching this README:
 - [Worked end-to-end example](docs/WORKED_EXAMPLE.md)
 - [CLI reference](docs/CLI_REFERENCE.md)
 - [Machine-readable CLI contracts](docs/JSON_OUTPUTS.md)
+- [Middleware SDKs for custom agents](docs/SDK.md)
 - [Configuration reference](docs/CONFIGURATION.md)
 - [Coding-agent integrations](INTEGRATIONS.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
@@ -86,6 +87,45 @@ Start with the task-oriented docs instead of searching this README:
 - [Contributing](CONTRIBUTING.md)
 
 The complete documentation map is [docs/README.md](docs/README.md).
+
+## Embed ACCO in custom agents
+
+ACCO's optimization engine is available outside coding CLIs.
+
+Python agents can call the engine directly:
+
+```python
+from acco.sdk import AccoEngine
+
+acco = AccoEngine(".")
+middleware = acco.middleware("anthropic")
+
+prepared = middleware.before_request(request_body)
+tool = middleware.after_tool_result(
+    raw_tool_output,
+    query=user_prompt,
+    command="pytest -q",
+)
+```
+
+TypeScript/JavaScript agents use the typed, dependency-free client in
+`sdk/typescript` against the same Python engine:
+
+```bash
+acco sdk-serve .
+```
+
+```ts
+import { AccoClient } from "@acco-ai/sdk";
+
+const middleware = new AccoClient().middleware("anthropic");
+const prepared = await middleware.beforeRequest(requestBody);
+```
+
+Both SDKs share the production provider transform, context router,
+command-output processors, deterministic model routing, and content-addressed
+exact recovery. The TypeScript path deliberately does not duplicate those
+algorithms in JavaScript. See [Middleware SDKs](docs/SDK.md).
 
 ## Cost intelligence and efficiency advisor
 
