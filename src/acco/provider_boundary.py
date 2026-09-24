@@ -40,7 +40,7 @@ def detect_provider_request(
     lowered_path = path.lower()
 
     inferred = configured
-    if configured in {"auto", "generic"}:
+    if configured == "auto":
         if "/messages" in lowered_path or "anthropic-version" in lowered_path:
             inferred = "anthropic"
         elif (
