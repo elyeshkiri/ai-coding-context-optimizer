@@ -267,7 +267,13 @@ def _apply_file_boosts(
     reasons: list[str], score_trace: list[RankingScoreEvent] | None = None,
 ) -> float:
     """Code-aware boosts layered on top of the BM25 base, in a fixed order."""
-    rel_terms = set(terms(rel))
+    # Only the file's own name is path evidence. A directory term (packing/,
+    # mcp_server/) is shared by every file beneath it, so it cannot tell those
+    # files apart, yet it used to give each of them the same flat +8 and let a
+    # directory full of topically named siblings crowd out the one file whose
+    # name and body actually match. Directory terms still reach BM25 through
+    # the indexed path terms.
+    rel_terms = set(terms(rel.rsplit("/", 1)[-1]))
     outline_terms = set(terms(outline))
     path_hits = sum(1 for term in scope.q_terms if term in rel_terms)
     symbol_hits = sum(1 for term in scope.q_terms if term in outline_terms)
