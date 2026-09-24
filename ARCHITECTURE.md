@@ -83,6 +83,7 @@ Command implementations are grouped vertically under
 - `host.py` — host setup/doctor/uninstall, validation, completion, and MCP serving;
 - `output.py` — output policy, compaction, replay, explain, and benchmarks;
 - `optimization.py` — recovery, provider proxy, browser focusing, prefix evidence, and closed-loop optimization;
+- `sdk.py` — loopback bridge lifecycle for non-Python agent SDK clients;
 - `patch.py` — diff-context packing and patch review.
 
 The registry imports these handlers directly. `acco.commands` is retained
@@ -108,6 +109,34 @@ uninstall removes only managed integration state.
 `doctor` composes host status with `RepositoryContextService.status()` and
 available Claude transcript evidence. It diagnoses integration health without
 moving host-specific policy into the repository application layer.
+
+## Agent SDK boundary
+
+Custom-agent integration has two layers that share the same application logic:
+
+```text
+Python agent
+  -> acco.sdk.AccoEngine
+      -> provider_transform / context_router / OutputPipeline / model_routing
+      -> RecoveryStore
+
+TypeScript/JS agent
+  -> @acco-ai/sdk
+      -> loopback /v1 SDK transport
+          -> acco.sdk_server.SdkApplication
+              -> the same AccoEngine
+```
+
+The TypeScript SDK is intentionally a typed transport client, not a second
+implementation of ACCO's optimizer. This prevents recovery, compression, and
+routing policy from diverging between languages. `sdk_server.py` owns only
+bounded JSON transport and loopback network behavior; `sdk.py` owns the
+framework-neutral application contract.
+
+The SDK bridge is not a provider proxy and does not hold provider credentials.
+Callers keep ownership of provider authentication, retries, streaming, and
+execution. The bridge binds to loopback by default and requires an explicit
+operator override for non-loopback exposure.
 
 ## Repository application boundary
 

@@ -26,6 +26,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 - [`host-check`](commands/host-check.md) — deeper Claude transport/live-host validation.
 - [`client-capabilities`](commands/client-capabilities.md) — inspect conservative per-host interception/integration guarantees.
 - [`serve`](commands/serve.md) — run the local MCP server.
+- [`sdk-serve`](commands/sdk-serve.md) — run the loopback SDK bridge for TypeScript and other custom agents.
 - [`install`](commands/install.md) — legacy/low-level Claude hook installer.
 
 ## Repository context and navigation

@@ -25,6 +25,7 @@ PUBLIC_DOCS = (
     ROOT / "docs" / "QUICKSTART.md",
     ROOT / "docs" / "CLI_REFERENCE.md",
     ROOT / "docs" / "JSON_OUTPUTS.md",
+    ROOT / "docs" / "SDK.md",
     ROOT / "docs" / "WORKED_EXAMPLE.md",
     ROOT / "docs" / "CONFIGURATION.md",
     ROOT / "docs" / "TROUBLESHOOTING.md",

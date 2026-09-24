@@ -1,0 +1,113 @@
+export type JsonObject = Record<string, unknown>;
+
+export interface AccoClientOptions {
+  baseUrl?: string;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+}
+
+export interface ProviderOptimization {
+  schema: number;
+  body: JsonObject;
+  metadata: JsonObject;
+}
+
+export interface ContextOptimization {
+  schema: number;
+  text: string;
+  kind: string;
+  changed: boolean;
+  original_tokens: number;
+  output_tokens: number;
+  recovery_handle: string | null;
+  metadata: JsonObject;
+}
+
+export interface OutputOptimization {
+  schema: number;
+  text: string;
+  processor: string;
+  changed: boolean;
+  compressed: boolean;
+  failed: boolean;
+  recovered_lines: string[];
+  original_tokens: number;
+  output_tokens: number;
+  recovery_handle: string | null;
+}
+
+export interface RecoveryResult {
+  schema: number;
+  handle: string;
+  content_type: string;
+  encoding: "utf-8" | "base64";
+  payload: string;
+  size_bytes: number;
+  metadata: JsonObject;
+  created_at: number;
+  last_accessed_at: number | null;
+  access_count: number;
+}
+
+export interface ModelRouteDecision {
+  [key: string]: unknown;
+  selected_model: string | null;
+  current_model: string | null;
+  action: "recommend" | "keep" | "route" | "manual";
+}
+
+export interface ToolResultInput {
+  text: string;
+  query?: string;
+  command?: string;
+  options?: JsonObject;
+}
+
+export interface AccoMiddleware {
+  beforeRequest(
+    body: JsonObject,
+    options?: JsonObject,
+  ): Promise<ProviderOptimization>;
+  afterToolResult(result: ToolResultInput): Promise<ContextOptimization>;
+  route(
+    prompt: string,
+    options?: JsonObject,
+  ): Promise<ModelRouteDecision>;
+  recover(handle: string): Promise<RecoveryResult>;
+}
+
+export declare class AccoSdkError extends Error {
+  readonly status: number;
+  readonly payload: unknown;
+  constructor(message: string, status: number, payload: unknown);
+}
+
+export declare class AccoClient {
+  readonly baseUrl: string;
+  readonly timeoutMs: number;
+  constructor(options?: AccoClientOptions);
+  health(): Promise<JsonObject>;
+  optimizeRequest(
+    provider: string,
+    body: JsonObject,
+    options?: JsonObject,
+  ): Promise<ProviderOptimization>;
+  optimizeContext(
+    text: string,
+    query?: string,
+    command?: string,
+    options?: JsonObject,
+  ): Promise<ContextOptimization>;
+  optimizeOutput(
+    text: string,
+    command?: string,
+    exitCode?: number | null,
+    options?: JsonObject,
+  ): Promise<OutputOptimization>;
+  routeModel(
+    prompt: string,
+    options?: JsonObject,
+  ): Promise<ModelRouteDecision>;
+  recover(handle: string): Promise<RecoveryResult>;
+  middleware(provider: string): AccoMiddleware;
+}
