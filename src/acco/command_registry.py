@@ -22,6 +22,7 @@ from .command_handlers.efficiency import (
     continuity_main,
     cost_advisor_main,
     dashboard_main,
+    learn_main,
 )
 from .command_handlers.evaluation import (
     agent_evaluate_main,
@@ -39,6 +40,7 @@ from .command_handlers.experiment import (
     knowledge_holdout_main,
     session_holdout_evaluate_main,
     session_holdout_main,
+    trial_main,
 )
 from .command_handlers.host import (
     claude_plugin_path_main,
@@ -136,6 +138,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("ranking-diff", ranking_diff_main),
         CommandSpec("ranking-calibrate", ranking_calibrate_main),
         CommandSpec("experiment", experiment_main),
+        CommandSpec("trial", trial_main),
         CommandSpec("evidence-run", evidence_run_main),
         CommandSpec("session-holdout", session_holdout_main),
         CommandSpec("knowledge-holdout", knowledge_holdout_main),
@@ -148,6 +151,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("model-route-calibrate", model_route_calibrate_main),
         CommandSpec("audit", audit_main),
         CommandSpec("dashboard", dashboard_main),
+        CommandSpec("learn", learn_main),
         CommandSpec("optimize", optimize_main),
         CommandSpec("recover", recover_main),
         CommandSpec("recovery-status", recovery_status_main),
