@@ -483,6 +483,7 @@ def evaluate_semantic_holdout(
         "excluded_tasks": [
             {
                 "id": task.get("id"),
+                "repository": task.get("repository"),
                 "reason": task.get("exclusion_reason"),
             }
             for task in payload["tasks"]
