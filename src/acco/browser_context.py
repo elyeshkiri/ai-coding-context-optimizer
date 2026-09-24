@@ -384,14 +384,20 @@ def _browser_json_lines(value: Any) -> tuple[list[str], set[int], set[int]]:
                 if key == "children":
                     continue
                 lowered = str(key).lower()
-                if lowered in {
-                    "nodes",
-                    "snapshot",
-                    "accessibility",
-                    "accessibilitytree",
-                    "ariasnapshot",
-                    "domsnapshot",
-                } and isinstance(nested, (dict, list)):
+                if (
+                    lowered in _BROWSER_HINT_KEYS
+                    and isinstance(nested, str)
+                    and any(_AX_ROLE.search(line) for line in nested.splitlines()[:160])
+                ):
+                    nested_lines, nested_interactive, nested_structural = _text_lines(
+                        nested,
+                        "ax",
+                    )
+                    offset = len(lines)
+                    lines.extend(nested_lines)
+                    interactive.update(offset + index for index in nested_interactive)
+                    structural.update(offset + index for index in nested_structural)
+                elif isinstance(nested, (dict, list)):
                     preferred.append(nested)
             stack.extend(preferred)
         elif isinstance(item, list):
