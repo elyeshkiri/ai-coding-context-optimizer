@@ -230,8 +230,10 @@ lexical). That first run burned #14.
 Any rerun after tuning against #14 is development evidence only. In particular,
 the later 87.5% semantic development result must not be reported as fresh
 generalization evidence. The next independent cohort is semantic holdout #15: its queries and
-pinned repository revisions are frozen, but ground truth and the first
-evaluation are still pending.
+pinned repository revisions were frozen first, and its ground truth is now
+frozen in `benchmarks/semantic-holdout-15.frozen.json` (13 eligible, 8
+identifier-bearing reported separately, 3 excluded; see `VALIDATION.md` for the
+rule and an independence disclosure). The first evaluation is still pending.
 
 These are retrieval benchmarks. File-recall improvement does not by itself
 establish lower API cost, coding-task success, or cost per successful task.

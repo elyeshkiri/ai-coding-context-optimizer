@@ -1,5 +1,13 @@
 # Unreleased
 
+- **Froze semantic holdout #15 ground truth.** Expected files come mechanically
+  from each issue's merged upstream fix; the 24 frozen queries are unchanged.
+  13 tasks are eligible, 8 are identifier-bearing and reported separately, and 3
+  have no establishable target. `VALIDATION.md` discloses that the ground truth
+  was collected by the agent that developed #106-#109 and that four of the six
+  repositories were used as regression guards during that work. No evaluation
+  has been run yet.
+
 - **Recorded a negative result for semantic symbol matching.** The optional
   `all-MiniLM-L6-v2` embeddings, fused with lexical symbol scoring, fixed 19
   expected symbols but broke 45 across 488 holdout cases, so no semantic
