@@ -1,5 +1,44 @@
 # Unreleased
 
+# 1.16.0 - 2026-09-24
+
+- **Added `acco trial` and `acco learn`.** `trial` runs a local,
+  history-isolated baseline-vs-ACCO comparison against committed `HEAD` with
+  independent verifier commands and explicit non-publishable evidence labels.
+  `learn` analyzes local Claude session evidence to rank concrete context,
+  output, duplicate-read, retry, cache, and always-on-context opportunities
+  without turning estimates into savings claims.
+- **Made ACCO embeddable in custom agents through Python and TypeScript SDKs.**
+  The in-process Python `AccoEngine` and framework-neutral middleware expose
+  provider-request optimization, recoverable context/output optimization,
+  deterministic model routing, exact recovery, and browser-context focusing.
+  The typed `@acco-ai/sdk` client talks to the same Python engine through the
+  loopback-only `acco sdk-serve` bridge instead of duplicating optimization
+  logic in JavaScript.
+- **Broadened provider-boundary interception while keeping retrieval first.**
+  ACCO now recognizes Anthropic Messages, OpenAI Chat Completions / Responses,
+  and Gemini generateContent/streamGenerateContent shapes; optimizes nested
+  provider tool schemas and explicit historical tool/function outputs only;
+  preserves current user instructions and fresh source context; forwards
+  provider responses byte-for-byte; and records optional content-free
+  provider-reported token/model usage separately from transcript billing
+  counters. TypeScript clients can opt into fail-open provider `fetch`
+  interception without changing provider base URLs.
+- **Expanded browser/context-payload optimization where it naturally fits.**
+  Captured HTML, accessibility/ARIA snapshots, browser-shaped JSON trees, and
+  embedded AX snapshots can be query-focused with rarity-weighted relevance,
+  bounded structural/actionable context, hidden/script/style-noise suppression,
+  exact `tsr_...` recovery, minimum-size gating, and automatic routing from
+  generic tool/provider contexts. Ordinary JSON remains on the generic context
+  path; ACCO still does not navigate, fetch URLs, execute page JavaScript, or
+  inspect screenshot pixels.
+- **Kept release evidence conservative.** The new SDK/provider/browser surfaces
+  are covered by the Python 3.10/3.12/3.13 matrix, TypeScript strict
+  typechecking/runtime/package checks, frozen retrieval holdout, ranking
+  regression, semantic HNSW parity, Rust fastpath parity, and frozen CLI corpus
+  gates. These mechanism tests do not create a new universal token- or
+  cost-per-success claim.
+
 - **Froze semantic holdout #15 ground truth.** Expected files come mechanically
   from each issue's merged upstream fix; the 24 frozen queries are unchanged.
   13 tasks are eligible, 8 are identifier-bearing and reported separately, and 3
