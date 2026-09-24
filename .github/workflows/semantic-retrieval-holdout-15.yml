@@ -212,3 +212,5 @@ jobs:
           path: benchmarks/semantic-holdout-15.result.json
           retention-days: 90
           if-no-files-found: error
+
+# First-run trigger branch; remove after the suite is burned.
