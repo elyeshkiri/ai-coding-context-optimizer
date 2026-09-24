@@ -132,11 +132,15 @@ def transform_request_bytes(
         tool_result_min_tokens=config.tool_result_min_tokens,
         prefix_tracking=config.prefix_tracking,
     )
-    encoded = json.dumps(
-        result.body,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    ).encode()
+    encoded = (
+        json.dumps(
+            result.body,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode()
+        if result.changed
+        else raw
+    )
     return TransformedRequest(encoded, result.metadata())
 
 
