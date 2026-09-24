@@ -44,6 +44,22 @@ _NOISE_TAGS = {
     "link",
     "template",
 }
+_VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
 _INTERACTIVE_ROLES = {
     "button",
     "link",
@@ -187,9 +203,12 @@ class _FocusedHTML(HTMLParser):
             or "display:none" in style
             or "visibility:hidden" in style
         )
-        self._skip_stack.append(hidden)
+        is_void = lowered in _VOID_TAGS
+        if not is_void:
+            self._skip_stack.append(hidden)
         if hidden:
-            self._skip_depth += 1
+            if not is_void:
+                self._skip_depth += 1
             return
         if self._skip_depth:
             return
@@ -227,9 +246,10 @@ class _FocusedHTML(HTMLParser):
         )
 
     def handle_startendtag(self, tag: str, attrs) -> None:
-        """Handle self-closing controls without leaving parser skip state behind."""
+        """Handle self-closing tags without disturbing surrounding parser state."""
         self.handle_starttag(tag, attrs)
-        self.handle_endtag(tag)
+        if tag.lower() not in _VOID_TAGS:
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
         """Leave the most recent hidden/noise subtree."""
