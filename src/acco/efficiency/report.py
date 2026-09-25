@@ -55,6 +55,26 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
             value = event.get(field)
             if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
                 provider_totals[field] += value
+    provider_route_events = [
+        event for event in events if event.get("kind") == "provider_model_route"
+    ]
+    provider_route_applied = sum(
+        event.get("applied") is True for event in provider_route_events
+    )
+    route_pairs = Counter(
+        (
+            str(event.get("from_model") or "unknown"),
+            str(event.get("to_model") or "unknown"),
+        )
+        for event in provider_route_events
+        if event.get("applied") is True
+    )
+    projected_route_savings = [
+        float(event["projected_savings_fraction"])
+        for event in provider_route_events
+        if isinstance(event.get("projected_savings_fraction"), (int, float))
+        and not isinstance(event.get("projected_savings_fraction"), bool)
+    ]
     telemetry = output_telemetry_report(root, since=since)
     snapshot = load_snapshot(root)
     sessions = snapshot.get("sessions")
@@ -90,13 +110,34 @@ def dashboard_report(root: Path, *, days: int = 7) -> dict:
             "merged_with_billed_usage": False,
         },
         "model_routing": telemetry["routing"],
+        "provider_model_routing": {
+            "decisions": len(provider_route_events),
+            "applied": provider_route_applied,
+            "observed_only": max(
+                0, len(provider_route_events) - provider_route_applied
+            ),
+            "applied_pairs": {
+                f"{source}->{target}": count
+                for (source, target), count in sorted(route_pairs.items())
+            },
+            "mean_projected_savings_fraction": (
+                sum(projected_route_savings) / len(projected_route_savings)
+                if projected_route_savings
+                else None
+            ),
+            "projected_savings_samples": len(projected_route_savings),
+            "trust": (
+                "Routing projections use configured price/capability policy; "
+                "applied routes require accepted quality-gated calibration."
+            ),
+        },
         "evidence": {
             "billed_usage_source": "Claude transcript usage counters",
             "provider_usage_source": (
                 "separate provider-boundary response counters; never silently "
                 "merged with transcript usage"
             ),
-            "savings_source": "local observed tool transformations",
+            "savings_source": "local observed tool/provider-context transformations",
             "task_success": False,
             "quality_verified": False,
             "note": (
