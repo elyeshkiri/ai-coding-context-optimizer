@@ -429,6 +429,14 @@ def test_provider_history_dedup_is_exact_recoverable_and_keeps_current_prompt(
     handle = result.recovery_handles[0]
     assert handle in duplicate
     assert RecoveryStore(root).get(handle).payload.decode() == repeated
+    saving = [
+        event
+        for event in load_events(root)
+        if event.get("kind") == "saving"
+        and event.get("feature") == "provider_history_dedup"
+    ]
+    assert saving[-1]["estimated_tokens_saved"] == result.estimated_duplicate_tokens_saved
+    assert saving[-1]["segments"] == 1
 
 
 def _safe_routing_calibration() -> dict:
