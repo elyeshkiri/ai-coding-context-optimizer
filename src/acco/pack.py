@@ -18,6 +18,10 @@ from .retrieval_cache import cache_key as retrieval_cache_key
 from .retrieval_cache import load as load_retrieval_cache
 from .retrieval_cache import store as store_retrieval_cache
 from .working_set import save_working_set
+from .packing.budget_allocation import (
+    coverage_target as _coverage_target,
+    ranked_candidate_budget as _ranked_candidate_budget,
+)
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
 from .packing.ranking import (
     _AUTHORITY_CALLABLE_KINDS as _AUTHORITY_CALLABLE_KINDS,
@@ -102,75 +106,6 @@ from .packing.symbol_windows import (
 
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
-
-# Fraction (numerator, denominator) of the remaining budget one candidate may
-# use while more candidates and slots remain. A file that structurally defines
-# the callable the query names keeps the larger share because its window has
-# to hold that body; other files mostly need room for an outline, and a smaller
-# share lets more ranked candidates fit. A uniform 2/5 share was measured to
-# truncate defining files and drop their target symbols on external holdouts.
-_AUTHORITY_SHARE = (3, 5)
-_ORDINARY_SHARE = (2, 5)
-
-# When the token budget can support multiple files, preserve breadth before
-# spending all remaining context on the earliest candidates. Each coverage slot
-# receives enough budget for a compact source/outline capsule; at most 3/5 of
-# the usable pack budget is precommitted this way, leaving the rest available
-# for deeper evidence in the strongest-ranked files.
-_COVERAGE_SLOT_TOKENS = 300
-_COVERAGE_RESERVE_SHARE = (3, 5)
-
-
-def _coverage_target(
-    usable_tokens: int,
-    *,
-    max_files: int,
-    candidate_count: int,
-) -> int:
-    """Return how many ranked files should retain a minimum evidence capsule.
-
-    Coverage is bounded by the caller's file limit, the available candidates,
-    and 3/5 of the usable token budget. Very tight budgets still allow the
-    normal first candidate rather than forcing an impossible reservation.
-    """
-    if usable_tokens <= 0 or max_files <= 0 or candidate_count <= 0:
-        return 0
-    reserve_num, reserve_den = _COVERAGE_RESERVE_SHARE
-    reservable = usable_tokens * reserve_num // reserve_den
-    by_budget = reservable // _COVERAGE_SLOT_TOKENS
-    return min(max_files, candidate_count, max(1, by_budget))
-
-
-def _coverage_aware_section_budget(
-    remaining: int,
-    *,
-    selected_count: int,
-    coverage_target: int,
-    has_authority: bool,
-) -> int:
-    """Budget one file while reserving compact slots for later ranked files.
-
-    Before the coverage target is reached, every not-yet-selected target slot
-    keeps a 300-token floor. The current candidate receives its own floor plus
-    a bounded share of the surplus: 3/5 for structural authority, 2/5
-    otherwise. Once coverage is satisfied, callers fall back to the historical
-    remaining-budget share logic.
-    """
-    slots = coverage_target - selected_count
-    if slots <= 0 or remaining <= 0:
-        return remaining
-    floor_total = slots * _COVERAGE_SLOT_TOKENS
-    if remaining <= floor_total:
-        return max(1, remaining // max(1, slots))
-    surplus = remaining - floor_total
-    share_num, share_den = (
-        _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
-    )
-    return min(
-        remaining,
-        _COVERAGE_SLOT_TOKENS + surplus * share_num // share_den,
-    )
-
 
 def _changed_files(root: Path) -> set[str]:
     """Compatibility seam for changed-file discovery and monkeypatching."""
@@ -420,33 +355,15 @@ def build_context_pack(
             if slots_left > 1:
                 remaining = min(remaining, max(remaining // slots_left, 200))
         elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
-            # Preserve breadth before depth. Earlier versions only capped each
-            # candidate to a fraction of the *remaining* budget. At 6k that
-            # geometric decay commonly rendered only five or six files even
-            # when the correctly ranked answer sat at rank 7-12. Reserve a
-            # compact evidence capsule for the rest of the coverage target,
-            # then let this candidate spend a bounded share of the surplus.
             has_authority = any(
                 reason.startswith("structural-symbol:") for reason in item.reasons
             )
-            if coverage_target > len(selected):
-                remaining = min(
-                    remaining,
-                    _coverage_aware_section_budget(
-                        remaining,
-                        selected_count=len(selected),
-                        coverage_target=coverage_target,
-                        has_authority=has_authority,
-                    ),
-                )
-            else:
-                share_num, share_den = (
-                    _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
-                )
-                remaining = min(
-                    remaining,
-                    max(remaining * share_num // share_den, _COVERAGE_SLOT_TOKENS),
-                )
+            remaining = _ranked_candidate_budget(
+                remaining,
+                selected_count=len(selected),
+                coverage_target_count=coverage_target,
+                has_authority=has_authority,
+            )
 
         section_budget = remaining
         if (
