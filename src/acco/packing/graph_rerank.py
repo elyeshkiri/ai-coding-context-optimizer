@@ -441,15 +441,20 @@ def _structural_authority_value(reasons: list[str]) -> float:
 
 def _lexical_confidence_key(
     item: RankedFile,
-) -> tuple[int, int, int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """Return a categorical pre-semantic evidence tier for safe promotion.
 
     The gate deliberately ignores BM25 magnitude and term-frequency counts.
     Those are useful for ordinary lexical ordering but can be inflated by long
-    prose or repetitive files. Confidence instead records independent evidence
-    channels that existed before embeddings: exact parser/provider authority,
-    implementation-source status, explicit path identity, explicit symbol
-    identity, graph corroboration, and any lexical overlap at all.
+    prose or repetitive files. Confidence records authority categories that
+    existed before embeddings: undiscounted parser/provider authority,
+    implementation-source status, graph corroboration, direct path-or-symbol
+    identity, and finally any lexical overlap.
+
+    Path and symbol matches deliberately share one direct-identity tier. Once
+    deterministic ranking has ordered two directly identified files, embeddings
+    are not allowed to declare one more authoritative merely because it matched
+    both the filename and an outline while the other matched only an outline.
     """
     authoritative = int(
         _structural_authority_value(item.reasons)
@@ -460,38 +465,39 @@ def _lexical_confidence_key(
         file_priority(item.rel) < 3
         and Path(item.rel).suffix.casefold() not in _PROSE_SUFFIXES
     )
-    path_identity = int(_reason_count(item.reasons, "path:") > 0)
-    symbol_identity = int(_reason_count(item.reasons, "symbols:") > 0)
     graph_corroboration = int(
         any(reason.startswith("graph:") for reason in item.reasons)
+    )
+    direct_identity = int(
+        _reason_count(item.reasons, "path:") > 0
+        or _reason_count(item.reasons, "symbols:") > 0
     )
     lexical_overlap = int(item.term_hits > 0)
     return (
         authoritative,
         implementation_source,
         graph_corroboration,
-        path_identity,
-        symbol_identity,
+        direct_identity,
         lexical_overlap,
     )
 
 
 def _direct_confidence(
-    value: tuple[int, int, int, int, int, int],
+    value: tuple[int, int, int, int, int],
 ) -> bool:
     """Return whether a confidence key contains direct non-topical evidence."""
-    authority, _source, graph, path, symbol, _lexical = value
-    return bool(authority or graph or path or symbol)
+    authority, _source, graph, direct, _lexical = value
+    return bool(authority or graph or direct)
 
 
 def _confidence_label(
-    value: tuple[int, int, int, int, int, int],
+    value: tuple[int, int, int, int, int],
 ) -> str:
     """Render compact content-free confidence evidence."""
-    authority, source, graph, path, symbol, lexical = value
+    authority, source, graph, direct, lexical = value
     return (
-        f"authority={authority},source={source},graph={graph},path={path},"
-        f"symbol={symbol},lexical={lexical}"
+        f"authority={authority},source={source},graph={graph},"
+        f"direct={direct},lexical={lexical}"
     )
 
 
@@ -499,7 +505,7 @@ def _apply_semantic_confidence_gate(
     ranked: list[RankedFile],
     baseline_order: list[RankedFile],
     baseline_scores: dict[str, float],
-    baseline_confidence: dict[str, tuple[int, int, int, int, int, int]],
+    baseline_confidence: dict[str, tuple[int, int, int, int, int]],
 ) -> None:
     """Prevent semantic evidence from leapfrogging stronger baseline evidence.
 
