@@ -1,0 +1,122 @@
+name: Current Semantic Gate Validation
+
+on:
+  push:
+    branches:
+      - feature/semantic-confidence-gate
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: contains(github.event.head_commit.message, '[validate-current-semantic-gate]')
+    name: Current gate / ${{ matrix.suite }} / ${{ matrix.alias }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: "13"
+            alias: uvicorn
+            repository: Kludex/uvicorn
+            path: semantic-holdout-13/uvicorn
+            revision: a56c7cce64aaa37e5864f882a5cbce8aa1dac47a
+          - suite: "14"
+            alias: aspnetcore
+            repository: dotnet/aspnetcore
+            path: semantic-holdout-14/aspnetcore
+            revision: 9817792d3ba9aa6f6c9ac5804a672ce5954f3288
+          - suite: "15"
+            alias: gson
+            repository: google/gson
+            path: semantic-holdout-15/gson
+            revision: 854c8255b625cf1e13c701a83ea9ccb4caaa576a
+          - suite: "15"
+            alias: polly
+            repository: App-vNext/Polly
+            path: semantic-holdout-15/polly
+            revision: 9a81fdc7c1a89d6c45bba2fb7b062b8eeae39eee
+    env:
+      ACCO_STATE_DIR: /tmp/acco-current-gate-${{ matrix.suite }}-${{ matrix.alias }}
+      ACCO_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/acco-current-gate-hf
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exact semantic dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+          python -m pip uninstall -y hnswlib || true
+          python - <<'PY'
+          from acco.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None
+          PY
+
+      - name: Validate frozen manifest
+        run: |
+          python scripts/run_semantic_holdout.py             "benchmarks/semantic-holdout-${{ matrix.suite }}.frozen.json"             --validate-only
+
+      - name: Clone pinned repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="benchmarks/${{ matrix.path }}"
+          mkdir -p "$(dirname "$path")"
+          git init -q "$path"
+          git -C "$path" remote add origin "https://github.com/${{ matrix.repository }}.git"
+          git -C "$path" fetch -q --depth 1 origin "${{ matrix.revision }}"
+          git -C "$path" checkout -q --detach "${{ matrix.revision }}"
+
+      - name: Download pinned embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+          SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["ACCO_SEMANTIC_MODEL_REVISION"],
+          )
+          PY
+
+      - name: Evaluate current candidate
+        run: |
+          python scripts/run_semantic_holdout.py             "benchmarks/semantic-holdout-${{ matrix.suite }}.frozen.json"             --repository "${{ matrix.alias }}"             --output "current-gate-${{ matrix.suite }}-${{ matrix.alias }}.json"
+
+      - name: Enforce no decisive regression
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          suite = "${{ matrix.suite }}"
+          alias = "${{ matrix.alias }}"
+          data = json.loads(Path(f"current-gate-{suite}-{alias}.json").read_text())
+          by_id = {row["id"]: row for row in data["tasks"]}
+          decisive = {
+              ("13", "uvicorn"): "uvicorn-websocket-denial-headers",
+              ("14", "aspnetcore"): "aspnetcore-cache-multivalue-vary",
+              ("15", "gson"): "gson-wildcard-runtime-subclass",
+              ("15", "polly"): "polly-timeout-caller-token",
+          }[(suite, alias)]
+          row = by_id[decisive]
+          assert row["semantic"]["file_recall"] >= row["lexical"]["file_recall"], row
+          print(json.dumps({
+              "task": decisive,
+              "lexical": row["lexical"]["file_recall"],
+              "semantic": row["semantic"]["file_recall"],
+              "semantic_selected": row["semantic"]["selected_files"],
+          }, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-gate-${{ matrix.suite }}-${{ matrix.alias }}
+          path: current-gate-${{ matrix.suite }}-${{ matrix.alias }}.json
+          retention-days: 30
+          if-no-files-found: error
