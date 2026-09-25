@@ -185,6 +185,17 @@ def test_dashboard_separates_savings_continuity_and_behavior(
             "streaming": True,
         },
     )
+    append_event(
+        root,
+        {
+            "kind": "provider_model_route",
+            "feature": "model_routing",
+            "applied": True,
+            "from_model": "claude-sonnet-5",
+            "to_model": "claude-haiku-4-5",
+            "projected_savings_fraction": 0.6,
+        },
+    )
 
     report = dashboard_report(root, days=7)
 
@@ -198,6 +209,12 @@ def test_dashboard_separates_savings_continuity_and_behavior(
     assert report["provider_usage"]["by_provider"] == {"openai": 1}
     assert report["provider_usage"]["models"] == {"gpt-test": 1}
     assert report["provider_usage"]["merged_with_billed_usage"] is False
+    assert report["provider_model_routing"]["decisions"] == 1
+    assert report["provider_model_routing"]["applied"] == 1
+    assert report["provider_model_routing"]["applied_pairs"] == {
+        "claude-sonnet-5->claude-haiku-4-5": 1
+    }
+    assert report["provider_model_routing"]["mean_projected_savings_fraction"] == 0.6
     assert report["evidence"]["task_success"] is False
     assert "not an API invoice" in report["savings"]["trust"]
 
