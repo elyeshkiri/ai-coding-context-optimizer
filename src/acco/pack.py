@@ -112,6 +112,12 @@ _DEFAULT_CONTEXT_LINES = 6
 _AUTHORITY_SHARE = (3, 5)
 _ORDINARY_SHARE = (2, 5)
 
+# Minimum budget for one compact exact-source file section. This was already
+# the packer's lower bound when sharing remaining budget; make it explicit so
+# ranked candidates can reserve enough room for later evidence instead of
+# letting the first ~5 files consume a 6k pack before ranks 7-12 are considered.
+_MIN_COVERAGE_SECTION_TOKENS = 300
+
 
 def _changed_files(root: Path) -> set[str]:
     """Compatibility seam for changed-file discovery and monkeypatching."""
@@ -337,43 +343,91 @@ def build_context_pack(
     authoritative_reserve = (
         min(900, max(240, max_tokens // 8)) if authoritative_rel else 0
     )
+    authoritative_index = next(
+        (
+            idx
+            for idx, candidate in enumerate(candidates)
+            if candidate.rel == authoritative_rel
+        ),
+        None,
+    )
+    # Explicit priority files intentionally keep their historical allocation
+    # semantics. Otherwise reserve one compact exact-source section for as many
+    # top-ranked candidates as the hard token budget can mechanically support.
+    # This turns good rank@K quality into actual pack coverage without changing
+    # rank scores or relaxing the final token cap.
+    coverage_target = 0
+    if not priority_files:
+        available_for_files = max(0, max_tokens - used)
+        coverage_target = min(
+            max_files,
+            len(candidates),
+            available_for_files // _MIN_COVERAGE_SECTION_TOKENS,
+        )
 
     for idx, item in enumerate(candidates):
         if len(selected) >= max_files:
             break
-        remaining = max_tokens - used
-        if remaining <= 20:
+        total_remaining = max_tokens - used
+        if total_remaining <= 20:
             break
+        section_budget = total_remaining
         if priority_files and item.rel in priority_files:
             priority_seen += 1
             slots_left = priority_total - priority_seen + 1
             if slots_left > 1:
-                remaining = min(remaining, max(remaining // slots_left, 200))
+                section_budget = min(
+                    section_budget,
+                    max(total_remaining // slots_left, 200),
+                )
         elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
             # Cap an ordinary candidate's share of what's left so one large,
-            # top-ranked file can't silently consume the whole budget before
-            # any other candidate is even considered -- found via the second
-            # frozen external holdout: a single oversized test file used
-            # 5993 of a 6000-token budget by itself, leaving the correctly
-            # ranked #4 implementation file with literally nothing. Only
-            # kicks in while more candidates and slots remain to benefit
-            # from the reserved room; the true last usable candidate still
-            # gets whatever's left rather than wasting it unused.
+            # top-ranked file cannot monopolize the pack. Structural authority
+            # may still use a larger share, but neither class may spend budget
+            # already reserved for compact evidence from later top-ranked files.
             has_authority = any(
                 reason.startswith("structural-symbol:") for reason in item.reasons
             )
             share_num, share_den = (
                 _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
             )
-            remaining = min(remaining, max(remaining * share_num // share_den, 300))
+            section_budget = min(
+                section_budget,
+                max(
+                    total_remaining * share_num // share_den,
+                    _MIN_COVERAGE_SECTION_TOKENS,
+                ),
+            )
 
-        section_budget = remaining
+        reserve = 0
+        if coverage_target and idx < coverage_target:
+            future_coverage_slots = max(0, coverage_target - idx - 1)
+            reserve += (
+                future_coverage_slots * _MIN_COVERAGE_SECTION_TOKENS
+            )
         if (
             authoritative_rel
             and authoritative_rel not in selected
             and item.rel != authoritative_rel
         ):
-            section_budget = max(0, remaining - authoritative_reserve)
+            authority_extra = authoritative_reserve
+            if (
+                authoritative_index is not None
+                and idx < authoritative_index < coverage_target
+            ):
+                # The coverage reserve already includes one minimum slot for
+                # this authoritative future file; only reserve its extra depth.
+                authority_extra = max(
+                    0,
+                    authoritative_reserve - _MIN_COVERAGE_SECTION_TOKENS,
+                )
+            reserve += authority_extra
+
+        if reserve:
+            section_budget = min(
+                section_budget,
+                max(0, total_remaining - reserve),
+            )
             if section_budget <= 20:
                 continue
 
