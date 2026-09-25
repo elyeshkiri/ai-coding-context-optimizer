@@ -16,6 +16,7 @@ from ..optimizer import (
     propose_optimizations,
 )
 from ..prefix_cache import prefix_status
+from ..provider_cost import PROVIDER_MODEL_ROUTING_MODES
 from ..provider_proxy import ProviderProxyConfig, run_provider_proxy
 from ..recovery import RecoveryStore
 from ..runtime_config import settings_for
@@ -166,6 +167,28 @@ def provider_proxy_main(argv: list[str]) -> int:
     parser.add_argument("--timeout-seconds", type=float, default=120.0)
     parser.add_argument("--no-schema-compression", action="store_true")
     parser.add_argument("--no-tool-result-compression", action="store_true")
+    parser.add_argument(
+        "--no-history-dedup",
+        action="store_true",
+        help="disable exact duplicate historical tool-result suppression",
+    )
+    parser.add_argument(
+        "--model-routing",
+        choices=PROVIDER_MODEL_ROUTING_MODES,
+        help=(
+            "provider model routing: off, observe, or calibrated; "
+            "calibrated only applies quality-gated downgrade buckets"
+        ),
+    )
+    parser.add_argument(
+        "--routing-calibration-file",
+        help="quality-gated routing artifact used by calibrated provider routing",
+    )
+    parser.add_argument(
+        "--routing-min-savings",
+        type=float,
+        help="minimum projected one-turn savings fraction before a route is useful",
+    )
     parser.add_argument("--allow-non-loopback", action="store_true")
     parser.add_argument("--no-prefix-tracking", action="store_true")
     parser.add_argument("--no-usage-telemetry", action="store_true")
@@ -181,6 +204,9 @@ def provider_proxy_main(argv: list[str]) -> int:
             port=args.port,
             compress_schemas=not args.no_schema_compression,
             compress_tool_results=not args.no_tool_result_compression,
+            deduplicate_history=(
+                settings.provider_history_dedup and not args.no_history_dedup
+            ),
             tool_result_min_tokens=args.tool_result_min_tokens,
             timeout_seconds=args.timeout_seconds,
             allow_non_loopback=args.allow_non_loopback,
@@ -188,13 +214,26 @@ def provider_proxy_main(argv: list[str]) -> int:
                 settings.prefix_tracking and not args.no_prefix_tracking
             ),
             usage_telemetry=not args.no_usage_telemetry,
+            model_routing_mode=(
+                args.model_routing or settings.provider_model_routing_mode
+            ),
+            model_routing_calibration_file=(
+                args.routing_calibration_file
+                or settings.provider_model_routing_calibration_file
+            ),
+            model_routing_min_savings=(
+                args.routing_min_savings
+                if args.routing_min_savings is not None
+                else settings.provider_model_routing_min_savings
+            ),
         ).validate()
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
     print(
         f"acco provider proxy: http://{config.bind}:{config.port} "
-        f"-> {config.upstream}",
+        f"-> {config.upstream}; history-dedup={config.deduplicate_history}; "
+        f"model-routing={config.model_routing_mode}",
         file=sys.stderr,
     )
     try:
