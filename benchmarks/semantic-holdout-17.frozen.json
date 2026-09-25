@@ -1,0 +1,425 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "max_files": 12,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "semantic_natural_language": true,
+    "query_frozen_before_ground_truth": true,
+    "no_identifier_leakage": true,
+    "frozen_at": "2026-09-25T12:05:00Z",
+    "query_freeze_file": "semantic-holdout-17.query-freeze.json",
+    "query_freeze_commit": "84aa439284cb47d1befcce88df58f8bf3c45408e",
+    "query_freeze_sha256": "661361e6c55a24dbd6128898dcf92867ac644d4629a764a2493d20bed6736d95",
+    "ground_truth_sha256": "fe479ff78a43c14de108262242706fedf1324194d8be31be0f78827f2ab849a0",
+    "baseline": "distinct-term-overlap@12",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_model_revision": "bc57282bc374d33e0d6c4de27f12dc1c2a87f37a",
+    "first_run_burns_suite": true,
+    "ground_truth_rule": "Expected files are all non-test, non-documentation source files changed by the merged upstream fix that exist at the pinned revision. Small source changes are retained rather than dropped so multi-file fixes are not reduced by change-size heuristics.",
+    "disclosure": "All six repositories are new to ACCO's checked-in semantic and external retrieval holdouts. Repository revisions and issue-derived natural-language queries were frozen in commit 84aa439284cb47d1befcce88df58f8bf3c45408e before fix-file ground truth was collected and before ACCO retrieval was run on this cohort. Ground truth uses merged upstream fixes only, excludes tests and documentation, and retains every qualifying source file."
+  },
+  "repositories": {
+    "pytest": {
+      "repository": "pytest-dev/pytest",
+      "path": "semantic-holdout-17/pytest",
+      "revision": "8721173580390a9d297e5af06cac3f0b6841f425"
+    },
+    "black": {
+      "repository": "psf/black",
+      "path": "semantic-holdout-17/black",
+      "revision": "8d5a2d9f49378d7abe2eb632df1601818de8c24e"
+    },
+    "starlette": {
+      "repository": "Kludex/starlette",
+      "path": "semantic-holdout-17/starlette",
+      "revision": "fada3631d80274e0f1d552490a83ca877d58ed04"
+    },
+    "attrs": {
+      "repository": "python-attrs/attrs",
+      "path": "semantic-holdout-17/attrs",
+      "revision": "8f767776326faaed11e6c2974798787f6e19b343"
+    },
+    "resty": {
+      "repository": "go-resty/resty",
+      "path": "semantic-holdout-17/resty",
+      "revision": "3da7d0987ff4ba931fe55ce8a7f71cb4193fd971"
+    },
+    "anyhow": {
+      "repository": "dtolnay/anyhow",
+      "path": "semantic-holdout-17/anyhow",
+      "revision": "c63b279f3f4af2b02ca6267d9eb47d6d10497f69"
+    }
+  },
+  "tasks": [
+    {
+      "id": "pytest-cache-write-close-warning",
+      "repository": "pytest",
+      "source_issue": {
+        "number": 15043,
+        "url": "https://github.com/pytest-dev/pytest/issues/15043"
+      },
+      "query": "A test-cache write should downgrade operating-system failures raised while writing or closing a buffered cache file to the same warning used for open failures, rather than failing the test.",
+      "files": [
+        "src/_pytest/cacheprovider.py"
+      ],
+      "forbidden_identifiers": [
+        "cacheprovider.py",
+        "cacheprovider"
+      ],
+      "ground_truth_source": [
+        "https://github.com/pytest-dev/pytest/pull/15044"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "pytest-monkeypatch-failed-mutation-undo",
+      "repository": "pytest",
+      "source_issue": {
+        "number": 14909,
+        "url": "https://github.com/pytest-dev/pytest/issues/14909"
+      },
+      "query": "When a temporary mutation helper cannot delete an attribute or modify a read-only mapping, it must not record an undo operation for a change that never succeeded, otherwise fixture teardown can raise a second spurious error.",
+      "files": [
+        "src/_pytest/monkeypatch.py"
+      ],
+      "forbidden_identifiers": [
+        "monkeypatch.py",
+        "monkeypatch"
+      ],
+      "ground_truth_source": [
+        "https://github.com/pytest-dev/pytest/pull/14910"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "pytest-recollection-fixture-identity",
+      "repository": "pytest",
+      "source_issue": {
+        "number": 14635,
+        "url": "https://github.com/pytest-dev/pytest/issues/14635"
+      },
+      "query": "Collecting a parent directory more than once in one command should not create distinct directory identities that make previously registered fixtures disappear from a later test's fixture closure.",
+      "files": [
+        "src/_pytest/main.py"
+      ],
+      "forbidden_identifiers": [
+        "main.py"
+      ],
+      "ground_truth_source": [
+        "https://github.com/pytest-dev/pytest/pull/14645"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "black-paired-skip-compound-header",
+      "repository": "black",
+      "source_issue": {
+        "number": 5397,
+        "url": "https://github.com/psf/black/issues/5397"
+      },
+      "query": "Formatting valid Python with skip directives on both ends of a parenthesized compound-statement header should preserve a parseable header instead of separating the closing parenthesis from its structural colon.",
+      "files": [
+        "src/black/comments.py"
+      ],
+      "forbidden_identifiers": [
+        "comments.py",
+        "comments"
+      ],
+      "ground_truth_source": [
+        "https://github.com/psf/black/pull/5401"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "black-trailing-comment-parentheses",
+      "repository": "black",
+      "source_issue": {
+        "number": 3741,
+        "url": "https://github.com/psf/black/issues/3741"
+      },
+      "query": "An inline comment following the closing parenthesis of an expression that also contains own-line comments must remain after the closing parenthesis instead of being moved inside the expression.",
+      "files": [
+        "src/black/lines.py"
+      ],
+      "forbidden_identifiers": [
+        "lines.py"
+      ],
+      "ground_truth_source": [
+        "https://github.com/psf/black/pull/5395"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "black-stringified-return-annotation-split",
+      "repository": "black",
+      "source_issue": {
+        "number": 3926,
+        "url": "https://github.com/psf/black/issues/3926"
+      },
+      "query": "A long quoted return annotation should be split to respect the configured line length even when the function has parameters, matching the formatting already used for the same annotation on a parameterless function.",
+      "files": [
+        "src/black/linegen.py",
+        "src/black/trans.py"
+      ],
+      "forbidden_identifiers": [
+        "linegen.py",
+        "linegen",
+        "trans.py"
+      ],
+      "ground_truth_source": [
+        "https://github.com/psf/black/pull/5427"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "starlette-testclient-anyio-deprecation",
+      "repository": "starlette",
+      "source_issue": {
+        "number": 3497,
+        "url": "https://github.com/Kludex/starlette/issues/3497"
+      },
+      "query": "Importing the test client with current AnyIO should not emit a deprecation warning because it references an obsolete blocking-portal alias; the supported portal type should be used consistently.",
+      "files": [
+        "starlette/testclient.py"
+      ],
+      "forbidden_identifiers": [
+        "testclient.py",
+        "testclient"
+      ],
+      "ground_truth_source": [
+        "https://github.com/Kludex/starlette/pull/3498"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "starlette-template-response-positional-indexing",
+      "repository": "starlette",
+      "source_issue": {
+        "number": 2906,
+        "url": "https://github.com/Kludex/starlette/issues/2906"
+      },
+      "query": "The backward-compatible positional form of a template response should read optional headers, media type, and background arguments from their own positions rather than reusing one index and mis-parsing or raising on valid calls.",
+      "files": [
+        "starlette/templating.py"
+      ],
+      "forbidden_identifiers": [
+        "templating.py",
+        "templating"
+      ],
+      "ground_truth_source": [
+        "https://github.com/Kludex/starlette/pull/2909"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "starlette-multipart-configurable-part-limit",
+      "repository": "starlette",
+      "source_issue": {
+        "number": 2785,
+        "url": "https://github.com/Kludex/starlette/issues/2785"
+      },
+      "query": "The per-part size limit used while parsing multipart form data should be configurable by callers so an application can intentionally accept an individual part larger than the built-in default.",
+      "files": [
+        "starlette/formparsers.py",
+        "starlette/requests.py"
+      ],
+      "forbidden_identifiers": [
+        "formparsers.py",
+        "formparsers",
+        "requests.py"
+      ],
+      "ground_truth_source": [
+        "https://github.com/Kludex/starlette/pull/2815"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "attrs-classvar-forward-reference",
+      "repository": "attrs",
+      "source_issue": {
+        "number": 1575,
+        "url": "https://github.com/python-attrs/attrs/issues/1575"
+      },
+      "query": "On Python 3.14, a class-variable annotation represented as a forward reference because its import only occurs during type checking should still be recognized as a class variable and excluded from the generated initializer.",
+      "files": [
+        "src/attr/_make.py"
+      ],
+      "forbidden_identifiers": [
+        "_make.py",
+        "_make"
+      ],
+      "ground_truth_source": [
+        "https://github.com/python-attrs/attrs/pull/1593"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "attrs-alias-before-transformer",
+      "repository": "attrs",
+      "source_issue": {
+        "number": 1479,
+        "url": "https://github.com/python-attrs/attrs/issues/1479"
+      },
+      "query": "A field-transformation callback should receive attributes whose default aliases have already been resolved, including automatically stripping a leading underscore, rather than seeing missing aliases that appear only after class creation.",
+      "files": [
+        "src/attr/_make.py"
+      ],
+      "forbidden_identifiers": [
+        "_make.py",
+        "_make"
+      ],
+      "ground_truth_source": [
+        "https://github.com/python-attrs/attrs/pull/1509"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "attrs-generator-field-transformer",
+      "repository": "attrs",
+      "source_issue": {
+        "number": 1416,
+        "url": "https://github.com/python-attrs/attrs/issues/1416"
+      },
+      "query": "A field transformer implemented as a generator should have its yielded field changes applied just like a list-returning transformer, so subclasses retain the intended initializer keyword behavior.",
+      "files": [
+        "src/attr/_make.py"
+      ],
+      "forbidden_identifiers": [
+        "_make.py",
+        "_make"
+      ],
+      "ground_truth_source": [
+        "https://github.com/python-attrs/attrs/pull/1417"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "resty-base-url-trailing-slash",
+      "repository": "resty",
+      "source_issue": {
+        "number": 1061,
+        "url": "https://github.com/go-resty/resty/issues/1061"
+      },
+      "query": "Setting a base URL with an explicit trailing slash must preserve that slash, so an empty relative request does not silently target the slashless URL.",
+      "files": [
+        "client.go",
+        "middleware.go"
+      ],
+      "forbidden_identifiers": [
+        "client.go",
+        "middleware.go",
+        "middleware"
+      ],
+      "ground_truth_source": [
+        "https://github.com/go-resty/resty/pull/1191"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "resty-multipart-early-response",
+      "repository": "resty",
+      "source_issue": {
+        "number": 1186,
+        "url": "https://github.com/go-resty/resty/issues/1186"
+      },
+      "query": "A streaming multipart upload must not race on cancellation state or hang waiting for its producer after the server has already returned a response; a closable source should be interrupted safely during shutdown.",
+      "files": [
+        "client.go",
+        "middleware.go",
+        "request.go",
+        "util.go"
+      ],
+      "forbidden_identifiers": [
+        "client.go",
+        "middleware.go",
+        "middleware",
+        "request.go",
+        "util.go"
+      ],
+      "ground_truth_source": [
+        "https://github.com/go-resty/resty/pull/1188"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "resty-zero-retry-backoff",
+      "repository": "resty",
+      "source_issue": {
+        "number": 992,
+        "url": "https://github.com/go-resty/resty/issues/992"
+      },
+      "query": "Explicitly configuring both the minimum and maximum retry wait to zero should represent a constant zero delay instead of silently replacing those values with the library defaults.",
+      "files": [
+        "retry.go"
+      ],
+      "forbidden_identifiers": [
+        "retry.go"
+      ],
+      "ground_truth_source": [
+        "https://github.com/go-resty/resty/pull/1162"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "anyhow-mutable-downcast-aliasing",
+      "repository": "anyhow",
+      "source_issue": {
+        "number": 451,
+        "url": "https://github.com/dtolnay/anyhow/issues/451"
+      },
+      "query": "Mutably downcasting an error through a context chain must not create a mutable reference by passing through a shared reference, because that violates Rust aliasing rules and is rejected by Miri.",
+      "files": [
+        "src/error.rs"
+      ],
+      "forbidden_identifiers": [
+        "error.rs"
+      ],
+      "ground_truth_source": [
+        "https://github.com/dtolnay/anyhow/pull/452"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "anyhow-ensure-minus-expression",
+      "repository": "anyhow",
+      "source_issue": {
+        "number": 372,
+        "url": "https://github.com/dtolnay/anyhow/issues/372"
+      },
+      "query": "An error-checking macro should compile a boolean expression containing an unparenthesized subtraction after a logical OR exactly as it compiles the equivalent expression with explicit parentheses.",
+      "files": [
+        "src/ensure.rs"
+      ],
+      "forbidden_identifiers": [
+        "ensure.rs",
+        "ensure"
+      ],
+      "ground_truth_source": [
+        "https://github.com/dtolnay/anyhow/pull/373"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "anyhow-expression-temporary-lifetime",
+      "repository": "anyhow",
+      "source_issue": {
+        "number": 186,
+        "url": "https://github.com/dtolnay/anyhow/issues/186"
+      },
+      "query": "Temporaries created inside an error-construction expression should be dropped before a following await point so they do not make an otherwise shareable future fail the Sync bound.",
+      "files": [
+        "src/macros.rs"
+      ],
+      "forbidden_identifiers": [
+        "macros.rs",
+        "macros"
+      ],
+      "ground_truth_source": [
+        "https://github.com/dtolnay/anyhow/pull/187"
+      ],
+      "eligible": true
+    }
+  ]
+}
