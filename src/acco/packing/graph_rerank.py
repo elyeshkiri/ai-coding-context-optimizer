@@ -377,7 +377,7 @@ def _apply_semantic_peer_expansion(
             if len(shared) < 2:
                 continue
             query_shared = shared & query_terms
-            if not query_shared and len(shared) < 3:
+            if not query_shared:
                 continue
             score = (len(shared), len(query_shared), seed, shared)
             if best is None or score[:2] > best[:2]:
@@ -423,14 +423,17 @@ def _reason_count(reasons: list[str], prefix: str) -> int:
 _PROSE_SUFFIXES = frozenset({".md", ".markdown", ".rst", ".txt"})
 
 
-def _lexical_confidence_key(item: RankedFile) -> tuple[int, int, int, int, int]:
-    """Return an ordinal pre-semantic evidence tier for safe promotion.
+def _lexical_confidence_key(
+    item: RankedFile,
+) -> tuple[int, int, int, int, int, int]:
+    """Return a categorical pre-semantic evidence tier for safe promotion.
 
-    The key intentionally uses only evidence that existed before embeddings:
-    parser-backed symbol/provider authority, implementation-vs-low-value source
-    class, matched lexical terms, explicit path/symbol matches, and graph
-    corroboration. Raw lexical score is deliberately excluded so semantic
-    evidence can still reorder candidates with comparable confidence.
+    The gate deliberately ignores BM25 magnitude and term-frequency counts.
+    Those are useful for ordinary lexical ordering but can be inflated by long
+    prose or repetitive files. Confidence instead records independent evidence
+    channels that existed before embeddings: exact parser/provider authority,
+    implementation-source status, explicit path identity, explicit symbol
+    identity, graph corroboration, and any lexical overlap at all.
     """
     authoritative = int(
         any(reason.startswith("structural-symbol:") for reason in item.reasons)
@@ -440,28 +443,38 @@ def _lexical_confidence_key(item: RankedFile) -> tuple[int, int, int, int, int]:
         file_priority(item.rel) < 3
         and Path(item.rel).suffix.casefold() not in _PROSE_SUFFIXES
     )
-    named_hits = (
-        _reason_count(item.reasons, "path:")
-        + _reason_count(item.reasons, "symbols:")
-    )
+    path_identity = int(_reason_count(item.reasons, "path:") > 0)
+    symbol_identity = int(_reason_count(item.reasons, "symbols:") > 0)
     graph_corroboration = int(
         any(reason.startswith("graph:") for reason in item.reasons)
     )
+    lexical_overlap = int(item.term_hits > 0)
     return (
         authoritative,
         implementation_source,
-        max(0, item.term_hits),
-        named_hits,
+        path_identity,
+        symbol_identity,
         graph_corroboration,
+        lexical_overlap,
     )
 
 
-def _confidence_label(value: tuple[int, int, int, int, int]) -> str:
+def _direct_confidence(
+    value: tuple[int, int, int, int, int, int],
+) -> bool:
+    """Return whether a confidence key contains direct non-topical evidence."""
+    authority, _source, path, symbol, graph, _lexical = value
+    return bool(authority or path or symbol or graph)
+
+
+def _confidence_label(
+    value: tuple[int, int, int, int, int, int],
+) -> str:
     """Render compact content-free confidence evidence."""
-    authority, source, terms_hit, named, graph = value
+    authority, source, path, symbol, graph, lexical = value
     return (
-        f"authority={authority},source={source},"
-        f"terms={terms_hit},named={named},graph={graph}"
+        f"authority={authority},source={source},path={path},"
+        f"symbol={symbol},graph={graph},lexical={lexical}"
     )
 
 
@@ -469,7 +482,7 @@ def _apply_semantic_confidence_gate(
     ranked: list[RankedFile],
     baseline_order: list[RankedFile],
     baseline_scores: dict[str, float],
-    baseline_confidence: dict[str, tuple[int, int, int, int, int]],
+    baseline_confidence: dict[str, tuple[int, int, int, int, int, int]],
 ) -> None:
     """Prevent semantic evidence from leapfrogging stronger baseline evidence.
 
@@ -495,14 +508,18 @@ def _apply_semantic_confidence_gate(
             continue
 
         confidence = baseline_confidence[candidate.rel]
-        barriers = [
-            current[item.rel]
-            for item in preceding
-            if (
-                item.rel in current
-                and baseline_confidence[item.rel] > confidence
+        barriers = []
+        for item in preceding:
+            if item.rel not in current:
+                continue
+            predecessor_confidence = baseline_confidence[item.rel]
+            stronger = predecessor_confidence > confidence
+            tied_direct = (
+                predecessor_confidence == confidence
+                and _direct_confidence(confidence)
             )
-        ]
+            if stronger or tied_direct:
+                barriers.append(current[item.rel])
         if not barriers:
             preceding.append(baseline_item)
             continue
