@@ -429,6 +429,62 @@ These figures are **not fresh generalization evidence**. They justify the
 mechanism and regression tests; a separately frozen holdout #17 is required
 before claiming that the allocation change generalizes.
 
+Semantic holdout #17 is that separately frozen generalization test for the
+coverage-aware allocator. Its issue-derived natural-language queries and six
+previously unused repository revisions were frozen first at commit
+`84aa439284cb47d1befcce88df58f8bf3c45408e`, with query-freeze SHA-256
+`661361e6c55a24dbd6128898dcf92867ac644d4629a764a2493d20bed6736d95`.
+Only after that commit was immutable ground truth collected from the merged
+upstream fixes and sealed with SHA-256
+`fe479ff78a43c14de108262242706fedf1324194d8be31be0f78827f2ab849a0`.
+
+The suite contains **18 eligible tasks across six repositories absent from
+ACCO's checked-in semantic/external retrieval holdouts**: pytest, Black,
+Starlette, attrs, Resty, and anyhow. The canonical first evaluation is GitHub
+Actions run **36131559625** at main commit
+`801e8d9c0b89fdea87b07f72c9a4894f6146fe85`. All six repository shards and
+the merge job completed successfully with pinned revisions, pinned
+`all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a`, exact cosine, and no HNSW.
+
+Holdout #17 records ranking and bounded-pack realization separately so the
+rank-to-pack confound exposed by #16 cannot recur:
+
+| Arm / surface | Fresh file recall |
+| --- | ---: |
+| Trivial distinct-term lexical | **80.56%** |
+| ACCO lexical/structural rank@12 | **91.67%** |
+| ACCO lexical/structural 6k pack | **91.67%** |
+| ACCO gated hybrid semantic rank@12 | **91.67%** |
+| ACCO gated hybrid semantic 6k pack | **91.67%** |
+
+The coverage-aware allocator therefore generalized on this untouched cohort:
+it selected **12.0 files per task on average** and incurred **0.00 percentage
+points of rank-to-pack recall loss**. ACCO lexical/structural retrieval is
+**11.11 percentage points above** the trivial distinct-term baseline while the
+6,000-token pack preserves the complete measured rank@12 recall. Mean estimated
+context reduction is **96.4954%** for lexical and **96.5043%** for semantic.
+
+Semantic retrieval adds no measured value on #17: it produced **0 improved
+tasks, 0 worsened tasks, 0 strict recoveries, and 0 strict regressions**, for a
+net recall delta of **0.00 percentage points** versus ACCO lexical/structural.
+This cleanly preserves the lexical result, but it does not provide fresh
+evidence that embeddings improve retrieval. Semantic remains an optional
+augmentation whose incremental benefit still needs independent evidence.
+
+The two remaining retrieval misses are visible rather than hidden. The anyhow
+temporary-lifetime task misses `src/macros.rs` in all three retrieval arms,
+while Resty's multipart early-response task reaches **50%** recall on a
+four-source-file ground truth in all three arms. The other 16 tasks reach full
+ACCO lexical pack recall.
+
+Holdout #17 is now **burned for tuning**. Later reruns are development evidence
+only and must not replace run 36131559625 as the canonical fresh result. This
+suite validates file retrieval and bounded packing, not model task success or
+production-dollar savings. With packing generalization now demonstrated, the
+largest remaining evidence gap is the paired end-to-end **cost-per-success**
+experiment rather than another #17-driven ranking or packing retune.
+
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
