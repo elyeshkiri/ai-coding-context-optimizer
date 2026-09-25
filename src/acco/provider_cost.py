@@ -32,6 +32,14 @@ from .recovery import RecoveryStore
 PROVIDER_MODEL_ROUTING_MODES = ("off", "observe", "calibrated")
 
 
+def _safe_append_event(root: Path, event: dict) -> None:
+    """Record optional cost telemetry without breaking provider requests."""
+    try:
+        append_event(root, event)
+    except OSError:
+        pass
+
+
 @dataclass(frozen=True)
 class HistoryDedupResult:
     """Summarize exact duplicate historical tool-result suppression."""
@@ -220,7 +228,7 @@ def apply_calibrated_provider_route(
         )
     except (OSError, ValueError) as exc:
         metadata["reason"] = f"routing_unavailable:{type(exc).__name__}"
-        append_event(
+        _safe_append_event(
             root,
             {
                 "kind": "provider_model_route",
@@ -254,7 +262,7 @@ def apply_calibrated_provider_route(
     else:
         metadata["reason"] = "observe_only" if normalized == "observe" else "keep"
 
-    append_event(
+    _safe_append_event(
         root,
         {
             "kind": "provider_model_route",
