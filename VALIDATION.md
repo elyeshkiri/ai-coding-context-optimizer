@@ -322,8 +322,8 @@ regression-guard repositories and 2 from werkzeug; axum contributes no eligible
 headline task, so the cleaner independent subset remains small.
 
 
-Semantic holdout #16 is the fresh post-confidence-gate generalization suite.
-Its query layer was frozen **before ground-truth collection** at commit
+Semantic holdout #16 is the first fresh post-confidence-gate generalization
+suite. Its query layer was frozen **before ground-truth collection** at commit
 `90bd16be19f85c6234c3a020d2c805db7722d208`, with query-freeze SHA-256
 `f485dac4cef84caeefadc477e932b28734e0d13111671f119f9b70dad387f958`.
 Ground truth was then derived mechanically from merged upstream fixes and sealed
@@ -333,23 +333,50 @@ with SHA-256
 The suite contains **18 headline-eligible tasks across six repositories not
 present in ACCO's checked-in prior semantic/external holdout evidence**:
 HTTPX, Requests, serde_json, Jackson Databind, Pydantic, and Trio. The cohort
-spans Python, Rust, and Java, with repository revisions pinned in
-`benchmarks/semantic-holdout-16.query-freeze.json`. The same
-case-insensitive answer-identifier audit used by earlier semantic suites finds
-**zero literal identifier leaks** across all 18 queries.
+spans Python, Rust, and Java. The same case-insensitive answer-identifier audit
+used by earlier semantic suites found **zero literal identifier leaks** across
+all 18 queries.
+
+The canonical first evaluation is GitHub Actions run **36122836318**, executed
+from throwaway branch `bench/run-semantic-holdout-16` whose only code change
+was adding a one-shot push trigger to the already-frozen workflow because the
+available GitHub connector did not expose `workflow_dispatch`. Frozen queries,
+ground truth, repository revisions, embedding revision, and ACCO retrieval code
+were unchanged from `main`.
+
+| Arm | File recall |
+| --- | ---: |
+| ACCO lexical/structural | **62.96%** |
+| ACCO gated hybrid semantic | **56.02%** |
+| Trivial distinct-term lexical | **71.76%** |
+
+Semantic finished **6.94 percentage points below** ACCO lexical/structural and
+**15.74 points below** the trivial lexical baseline on this fresh cohort. It
+produced **0 semantic-recovered tasks** and **1 strict semantic regression**.
+
+The strict regression is `httpx-head-empty-zstd`: lexical selected
+`httpx/_decoders.py` for **100% recall**, while gated semantic displaced it and
+fell to **0%**. One additional partial-recall degradation occurred on
+`jackson-decimal-biginteger-scale`: lexical recalled 1 of 4 expected files
+(**25%**) while semantic recalled none (**0%**). No eligible task had higher
+semantic file recall than lexical.
+
+Mean estimated context reduction was effectively unchanged:
+**97.9636% lexical vs 97.9646% semantic**. The result therefore does not support
+a claim that the current semantic confidence gate makes semantic retrieval
+generally superior to ACCO's lexical/structural ranker.
 
 The expected-file rule is unchanged from holdout #15: non-test,
 non-documentation source files changed by the merged upstream fix and present at
 the pinned revision are retained, while source edits of two lines or fewer are
 dropped when the same fix contains a larger source edit. Two Requests tasks use
-the merged pull request's problem statement because no separate issue was
-selected; this weaker independence is frozen in the manifest disclosure rather
-than hidden after results are known.
+merged pull-request problem statements because no separate issue was selected;
+that weaker independence was frozen before results were known.
 
-**Holdout #16 has not been evaluated.** Its workflow is manual-only and requires
-the exact confirmation string `RUN_SEMANTIC_HOLDOUT_16`. The first completed
-evaluation will permanently burn the suite. Until then, ACCO must not claim any
-fresh post-confidence-gate semantic-generalization result from #16.
+**Holdout #16 is now burned.** It may be used diagnostically or as development
+regression evidence, but not tuned against and then rescored as a fresh
+generalization claim. Any future semantic-ranking change needs a new frozen
+holdout before claiming fresh generalization.
 
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
