@@ -1,0 +1,200 @@
+{
+  "suite_version": 1,
+  "frozen_at": "2026-09-25T11:45:00Z",
+  "repositories": {
+    "pytest": {
+      "repository": "pytest-dev/pytest",
+      "path": "semantic-holdout-17/pytest",
+      "revision": "8721173580390a9d297e5af06cac3f0b6841f425"
+    },
+    "black": {
+      "repository": "psf/black",
+      "path": "semantic-holdout-17/black",
+      "revision": "8d5a2d9f49378d7abe2eb632df1601818de8c24e"
+    },
+    "starlette": {
+      "repository": "Kludex/starlette",
+      "path": "semantic-holdout-17/starlette",
+      "revision": "fada3631d80274e0f1d552490a83ca877d58ed04"
+    },
+    "attrs": {
+      "repository": "python-attrs/attrs",
+      "path": "semantic-holdout-17/attrs",
+      "revision": "8f767776326faaed11e6c2974798787f6e19b343"
+    },
+    "resty": {
+      "repository": "go-resty/resty",
+      "path": "semantic-holdout-17/resty",
+      "revision": "3da7d0987ff4ba931fe55ce8a7f71cb4193fd971"
+    },
+    "anyhow": {
+      "repository": "dtolnay/anyhow",
+      "path": "semantic-holdout-17/anyhow",
+      "revision": "c63b279f3f4af2b02ca6267d9eb47d6d10497f69"
+    }
+  },
+  "tasks": [
+    {
+      "id": "pytest-cache-write-close-warning",
+      "repository": "pytest",
+      "source_issue": {
+        "number": 15043,
+        "url": "https://github.com/pytest-dev/pytest/issues/15043"
+      },
+      "query": "A test-cache write should downgrade operating-system failures raised while writing or closing a buffered cache file to the same warning used for open failures, rather than failing the test."
+    },
+    {
+      "id": "pytest-monkeypatch-failed-mutation-undo",
+      "repository": "pytest",
+      "source_issue": {
+        "number": 14909,
+        "url": "https://github.com/pytest-dev/pytest/issues/14909"
+      },
+      "query": "When a temporary mutation helper cannot delete an attribute or modify a read-only mapping, it must not record an undo operation for a change that never succeeded, otherwise fixture teardown can raise a second spurious error."
+    },
+    {
+      "id": "pytest-recollection-fixture-identity",
+      "repository": "pytest",
+      "source_issue": {
+        "number": 14635,
+        "url": "https://github.com/pytest-dev/pytest/issues/14635"
+      },
+      "query": "Collecting a parent directory more than once in one command should not create distinct directory identities that make previously registered fixtures disappear from a later test's fixture closure."
+    },
+    {
+      "id": "black-paired-skip-compound-header",
+      "repository": "black",
+      "source_issue": {
+        "number": 5397,
+        "url": "https://github.com/psf/black/issues/5397"
+      },
+      "query": "Formatting valid Python with skip directives on both ends of a parenthesized compound-statement header should preserve a parseable header instead of separating the closing parenthesis from its structural colon."
+    },
+    {
+      "id": "black-trailing-comment-parentheses",
+      "repository": "black",
+      "source_issue": {
+        "number": 3741,
+        "url": "https://github.com/psf/black/issues/3741"
+      },
+      "query": "An inline comment following the closing parenthesis of an expression that also contains own-line comments must remain after the closing parenthesis instead of being moved inside the expression."
+    },
+    {
+      "id": "black-stringified-return-annotation-split",
+      "repository": "black",
+      "source_issue": {
+        "number": 3926,
+        "url": "https://github.com/psf/black/issues/3926"
+      },
+      "query": "A long quoted return annotation should be split to respect the configured line length even when the function has parameters, matching the formatting already used for the same annotation on a parameterless function."
+    },
+    {
+      "id": "starlette-testclient-anyio-deprecation",
+      "repository": "starlette",
+      "source_issue": {
+        "number": 3497,
+        "url": "https://github.com/Kludex/starlette/issues/3497"
+      },
+      "query": "Importing the test client with current AnyIO should not emit a deprecation warning because it references an obsolete blocking-portal alias; the supported portal type should be used consistently."
+    },
+    {
+      "id": "starlette-template-response-positional-indexing",
+      "repository": "starlette",
+      "source_issue": {
+        "number": 2906,
+        "url": "https://github.com/Kludex/starlette/issues/2906"
+      },
+      "query": "The backward-compatible positional form of a template response should read optional headers, media type, and background arguments from their own positions rather than reusing one index and mis-parsing or raising on valid calls."
+    },
+    {
+      "id": "starlette-multipart-configurable-part-limit",
+      "repository": "starlette",
+      "source_issue": {
+        "number": 2785,
+        "url": "https://github.com/Kludex/starlette/issues/2785"
+      },
+      "query": "The per-part size limit used while parsing multipart form data should be configurable by callers so an application can intentionally accept an individual part larger than the built-in default."
+    },
+    {
+      "id": "attrs-classvar-forward-reference",
+      "repository": "attrs",
+      "source_issue": {
+        "number": 1575,
+        "url": "https://github.com/python-attrs/attrs/issues/1575"
+      },
+      "query": "On Python 3.14, a class-variable annotation represented as a forward reference because its import only occurs during type checking should still be recognized as a class variable and excluded from the generated initializer."
+    },
+    {
+      "id": "attrs-alias-before-transformer",
+      "repository": "attrs",
+      "source_issue": {
+        "number": 1479,
+        "url": "https://github.com/python-attrs/attrs/issues/1479"
+      },
+      "query": "A field-transformation callback should receive attributes whose default aliases have already been resolved, including automatically stripping a leading underscore, rather than seeing missing aliases that appear only after class creation."
+    },
+    {
+      "id": "attrs-generator-field-transformer",
+      "repository": "attrs",
+      "source_issue": {
+        "number": 1416,
+        "url": "https://github.com/python-attrs/attrs/issues/1416"
+      },
+      "query": "A field transformer implemented as a generator should have its yielded field changes applied just like a list-returning transformer, so subclasses retain the intended initializer keyword behavior."
+    },
+    {
+      "id": "resty-base-url-trailing-slash",
+      "repository": "resty",
+      "source_issue": {
+        "number": 1061,
+        "url": "https://github.com/go-resty/resty/issues/1061"
+      },
+      "query": "Setting a base URL with an explicit trailing slash must preserve that slash, so an empty relative request does not silently target the slashless URL."
+    },
+    {
+      "id": "resty-multipart-early-response",
+      "repository": "resty",
+      "source_issue": {
+        "number": 1186,
+        "url": "https://github.com/go-resty/resty/issues/1186"
+      },
+      "query": "A streaming multipart upload must not race on cancellation state or hang waiting for its producer after the server has already returned a response; a closable source should be interrupted safely during shutdown."
+    },
+    {
+      "id": "resty-zero-retry-backoff",
+      "repository": "resty",
+      "source_issue": {
+        "number": 992,
+        "url": "https://github.com/go-resty/resty/issues/992"
+      },
+      "query": "Explicitly configuring both the minimum and maximum retry wait to zero should represent a constant zero delay instead of silently replacing those values with the library defaults."
+    },
+    {
+      "id": "anyhow-mutable-downcast-aliasing",
+      "repository": "anyhow",
+      "source_issue": {
+        "number": 451,
+        "url": "https://github.com/dtolnay/anyhow/issues/451"
+      },
+      "query": "Mutably downcasting an error through a context chain must not create a mutable reference by passing through a shared reference, because that violates Rust aliasing rules and is rejected by Miri."
+    },
+    {
+      "id": "anyhow-ensure-minus-expression",
+      "repository": "anyhow",
+      "source_issue": {
+        "number": 372,
+        "url": "https://github.com/dtolnay/anyhow/issues/372"
+      },
+      "query": "An error-checking macro should compile a boolean expression containing an unparenthesized subtraction after a logical OR exactly as it compiles the equivalent expression with explicit parentheses."
+    },
+    {
+      "id": "anyhow-expression-temporary-lifetime",
+      "repository": "anyhow",
+      "source_issue": {
+        "number": 186,
+        "url": "https://github.com/dtolnay/anyhow/issues/186"
+      },
+      "query": "Temporaries created inside an error-construction expression should be dropped before a following await point so they do not make an otherwise shareable future fail the Sync bound."
+    }
+  ]
+}
