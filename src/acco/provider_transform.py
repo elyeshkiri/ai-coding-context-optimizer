@@ -397,16 +397,19 @@ def transform_provider_request(
         duplicate_tokens_saved = 0
         output_tokens = original_tokens
     elif duplicate_tokens_saved > 0:
-        append_event(
-            root,
-            {
-                "kind": "saving",
-                "feature": "provider_history_dedup",
-                "estimated_tokens_saved": duplicate_tokens_saved,
-                "segments": deduplicated_segments,
-                "provider": profile.provider,
-            },
-        )
+        try:
+            append_event(
+                root,
+                {
+                    "kind": "saving",
+                    "feature": "provider_history_dedup",
+                    "estimated_tokens_saved": duplicate_tokens_saved,
+                    "segments": deduplicated_segments,
+                    "provider": profile.provider,
+                },
+            )
+        except OSError:
+            pass
 
     prefix_provider = profile.provider
     if prefix_tracking:
