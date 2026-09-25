@@ -498,6 +498,50 @@ def test_semantic_gate_allows_reorder_inside_equal_confidence_tier():
     )
 
 
+def test_semantic_gate_blocks_equal_direct_identity_leapfrog():
+    """Embeddings must not break a tie between equally direct baseline identities."""
+    expected = _gate_fixture(
+        "src/expected.py",
+        20.0,
+        5,
+        ["term-hits:5", "path:1", "symbols:3"],
+    )
+    distractor = _gate_fixture(
+        "src/distractor.py",
+        12.0,
+        20,
+        ["term-hits:20", "path:1", "symbols:8"],
+    )
+
+    _run_gate([expected, distractor], {"src/distractor.py": 44.0})
+
+    assert distractor.score < expected.score
+    assert any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in distractor.reasons
+    )
+
+
+def test_semantic_gate_treats_discounted_structural_signal_as_weak():
+    """Parent-mismatch structural credit must not outrank graph-corroborated source."""
+    expected = _gate_fixture(
+        "src/strategy.py",
+        30.0,
+        5,
+        ["term-hits:5", "path:1", "symbols:2", "graph:calls-symbol@1"],
+    )
+    distractor = _gate_fixture(
+        "src/syntax.py",
+        15.0,
+        20,
+        ["term-hits:20", "path:1", "symbols:2", "structural-symbol:20.7"],
+    )
+
+    _run_gate([expected, distractor], {"src/syntax.py": 60.0})
+
+    assert distractor.score < expected.score
+
+
 def test_semantic_gate_respects_low_value_source_dampening():
     """Semantic boosts must not undo an already-ahead implementation-vs-doc signal."""
     source = _gate_fixture("src/runtime.py", 15.0, 2)
@@ -908,6 +952,36 @@ def test_semantic_peer_expansion_promotes_parallel_provider_family(tmp_path):
     assert peer.score > 15.0
     assert unrelated.score == 10.0
     assert any(reason.startswith("semantic-peer:") for reason in peer.reasons)
+
+
+def test_semantic_peer_expansion_requires_query_corroboration_for_family():
+    """Three shared filename terms alone must not manufacture query relevance."""
+    ranked = [
+        RankedFile(
+            Path("src/ReflectiveTypeAdapterFactory.java"),
+            "src/ReflectiveTypeAdapterFactory.java",
+            "",
+            "",
+            30.0,
+        ),
+        RankedFile(
+            Path("extras/RuntimeTypeAdapterFactory.java"),
+            "extras/RuntimeTypeAdapterFactory.java",
+            "",
+            "",
+            10.0,
+        ),
+    ]
+
+    _apply_semantic_peer_expansion(
+        ranked,
+        "preserve runtime subclass fields while serializing a wildcard collection",
+        ["src/ReflectiveTypeAdapterFactory.java"],
+    )
+
+    candidate = ranked[1]
+    assert candidate.score == 10.0
+    assert not any(reason.startswith("semantic-peer:") for reason in candidate.reasons)
 
 
 def test_semantic_peer_expansion_rejects_single_generic_name_overlap(tmp_path):
