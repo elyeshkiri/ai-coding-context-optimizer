@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .context_router import route_context
+from .efficiency.store import append_event
 from .estimate import estimate_tokens
 from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
 from .provider_cost import (
@@ -395,6 +396,17 @@ def transform_provider_request(
         deduplicated_segments = 0
         duplicate_tokens_saved = 0
         output_tokens = original_tokens
+    elif duplicate_tokens_saved > 0:
+        append_event(
+            root,
+            {
+                "kind": "saving",
+                "feature": "provider_history_dedup",
+                "estimated_tokens_saved": duplicate_tokens_saved,
+                "segments": deduplicated_segments,
+                "provider": profile.provider,
+            },
+        )
 
     prefix_provider = profile.provider
     if prefix_tracking:
