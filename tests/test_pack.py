@@ -160,13 +160,17 @@ def test_context_pack_reserves_budget_for_later_ranked_candidates(tmp_path):
     """A bounded pack should preserve breadth after ranking, not only top-file depth."""
     src = tmp_path / "src"
     src.mkdir()
-    body = "\n".join(
-        f"    value = validate_refresh_session_configuration(value)  # step {i}"
-        for i in range(80)
+    labels = (
+        "alpha", "bravo", "charlie", "delta", "echo",
+        "foxtrot", "golf", "hotel", "india", "juliet",
     )
-    for n in range(10):
+    for n, label in enumerate(labels):
+        body = "\n".join(
+            f"    {label}_evidence_{i} = value  # {label} step {i}"
+            for i in range(80)
+        )
         (src / f"worker_{n:02d}.py").write_text(
-            "def validate_refresh_session_configuration(value):\n"
+            f"def validate_refresh_session_configuration_{label}(value):\n"
             + body
             + "\n    return value\n",
             encoding="utf-8",
