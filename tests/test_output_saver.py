@@ -27,6 +27,8 @@ def test_output_policy_never_budgets_away_verification():
         policy.instructions
     )
     assert "a passing reproduction alone is not sufficient" in policy.instructions
+    assert "smallest existing test, lint, typecheck, or build target" in policy.instructions
+    assert "Do not rerun an unchanged failing command" in policy.instructions
 
 
 def test_output_policy_accepts_explicit_budget():

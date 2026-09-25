@@ -186,8 +186,11 @@ def build_output_policy(
         "When evidence is incomplete, state the uncertainty briefly instead of manufacturing a confident explanation.",
         # A passing reproduction is not acceptance: agents that stopped there
         # shipped fixes that regressed existing tests.
+        "For verification, start with the smallest existing test, lint, typecheck, or build target "
+        "that directly covers the code you touched; expand when failures, risk, or project policy require it.",
         "Before finishing a code change, run the project's existing tests for the code you touched "
         "and fix any regressions; a passing reproduction alone is not sufficient.",
+        "Do not rerun an unchanged failing command without new evidence or a meaningful code/config change.",
         "Stop once the acceptance criteria are satisfied and the relevant tests pass.",
     ])
     return OutputPolicy(normalized, budget, instructions, task_normalized)

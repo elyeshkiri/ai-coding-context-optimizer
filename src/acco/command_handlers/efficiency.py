@@ -270,6 +270,20 @@ def dashboard_main(argv: list[str]) -> int:
     print(f"  cache creation     {_tokens(usage.get('cache_creation_input_tokens')):>8}")
     print(f"  cache read         {_tokens(usage.get('cache_read_input_tokens')):>8}")
     print(f"  output             {_tokens(usage.get('output_tokens')):>8}")
+    provider_routes = report.get("provider_model_routing", {})
+    if provider_routes.get("decisions"):
+        projected = provider_routes.get("mean_projected_savings_fraction")
+        projected_text = (
+            f"; mean projected switch savings {float(projected):.1%}"
+            if isinstance(projected, (int, float)) and not isinstance(projected, bool)
+            else ""
+        )
+        print(
+            "provider model routing: "
+            f"{provider_routes.get('applied', 0)} applied / "
+            f"{provider_routes.get('decisions', 0)} decision(s)"
+            f"{projected_text}"
+        )
     provider_usage = report.get("provider_usage", {})
     if provider_usage.get("calls"):
         print("provider boundary observed (separate; not merged above):")

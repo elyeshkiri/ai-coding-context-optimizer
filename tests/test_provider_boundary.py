@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from acco.efficiency.store import load_events
+from acco.prefix_cache import observe_prefix
 from acco.provider_boundary import detect_provider_request
 from acco.provider_proxy import ProviderProxyConfig, transform_request_bytes
 from acco.provider_transform import transform_provider_request
@@ -375,3 +376,200 @@ def test_json_usage_observer_handles_gemini_array_response(tmp_path, monkeypatch
     assert event["output_tokens"] == 12
     assert event["total_tokens"] == 102
     assert event["model"] == "gemini-test"
+
+
+def test_provider_history_dedup_is_exact_recoverable_and_keeps_current_prompt(
+    tmp_path, monkeypatch
+):
+    """Repeated historical tool bytes should be sent once, never summarized twice."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    repeated = _noise("pytest", rows=220)
+    current = "Fix the failing parser without changing public behavior."
+    body = {
+        "model": "gpt-test",
+        "input": [
+            {
+                "type": "function_call_output",
+                "call_id": "c1",
+                "output": repeated,
+            },
+            {
+                "type": "function_call_output",
+                "call_id": "c2",
+                "output": repeated,
+            },
+            {
+                "role": "user",
+                "content": [{"type": "input_text", "text": current}],
+            },
+        ],
+    }
+
+    result = transform_provider_request(
+        root,
+        "auto",
+        body,
+        request_path="/v1/responses",
+        compress_schemas=False,
+        compress_tool_results=False,
+        deduplicate_history=True,
+        tool_result_min_tokens=100,
+        prefix_tracking=False,
+    )
+
+    assert result.changed is True
+    assert result.deduplicated_segments == 1
+    assert result.estimated_duplicate_tokens_saved > 0
+    assert result.body["input"][0]["output"] == repeated
+    duplicate = result.body["input"][1]["output"]
+    assert "exact duplicate tool result omitted" in duplicate
+    assert result.body["input"][2] == body["input"][2]
+    handle = result.recovery_handles[0]
+    assert handle in duplicate
+    assert RecoveryStore(root).get(handle).payload.decode() == repeated
+    saving = [
+        event
+        for event in load_events(root)
+        if event.get("kind") == "saving"
+        and event.get("feature") == "provider_history_dedup"
+    ]
+    assert saving[-1]["estimated_tokens_saved"] == result.estimated_duplicate_tokens_saved
+    assert saving[-1]["segments"] == 1
+
+
+def _safe_routing_calibration() -> dict:
+    """Return one runtime-valid exact bucket for Sonnet -> Haiku debugging."""
+    return {
+        "schema": 1,
+        "source_sha256": "test-calibration",
+        "recommendations": [
+            {
+                "task": "debugging",
+                "complexity_tier": "simple",
+                "risk_level": "normal",
+                "baseline_model": "claude-sonnet-5",
+                "candidate_model": "claude-haiku-4-5",
+                "pairs": 10,
+                "tasks": 5,
+                "baseline_success_rate": 1.0,
+                "candidate_success_rate": 1.0,
+                "regressions": 0,
+                "success_preserved": True,
+                "quality_preserved": True,
+                "actual_models_verified": True,
+                "blinded_quality": True,
+                "independent_verification": True,
+                "baseline_matches_static_policy": True,
+                "candidate_strictly_cheaper": True,
+                "mean_weighted_quality_delta": 0.0,
+                "mean_correctness_delta": 0.0,
+                "mean_safety_delta": 0.0,
+            }
+        ],
+    }
+
+
+def test_provider_model_downgrade_requires_quality_gated_calibration(
+    tmp_path, monkeypatch
+):
+    """Calibrated provider mode may apply an admitted cheaper exact bucket."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    calibration = root / ".acco.routing-calibration.json"
+    calibration.write_text(json.dumps(_safe_routing_calibration()), encoding="utf-8")
+    prompt = "Debug the failing request handler case 101."
+    body = {
+        "model": "claude-sonnet-5",
+        "max_tokens": 800,
+        "system": "You are a coding agent.",
+        "messages": [{"role": "user", "content": prompt}],
+    }
+
+    result = transform_provider_request(
+        root,
+        "auto",
+        body,
+        request_path="/v1/messages",
+        compress_schemas=False,
+        compress_tool_results=False,
+        deduplicate_history=False,
+        prefix_tracking=False,
+        model_routing_mode="calibrated",
+    )
+
+    assert result.changed is True
+    assert result.body["model"] == "claude-haiku-4-5"
+    assert result.model_routing["applied"] is True
+    assert result.model_routing["calibration_applied"] is True
+    assert result.model_routing["from_model"] == "claude-sonnet-5"
+    assert result.model_routing["to_model"] == "claude-haiku-4-5"
+
+
+def test_provider_model_downgrade_never_applies_static_heuristic_alone(
+    tmp_path, monkeypatch
+):
+    """Missing calibration must leave the caller's model unchanged."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    prompt = "Debug the failing request handler case 102."
+    body = {
+        "model": "claude-sonnet-5",
+        "max_tokens": 800,
+        "system": "You are a coding agent.",
+        "messages": [{"role": "user", "content": prompt}],
+    }
+
+    result = transform_provider_request(
+        root,
+        "auto",
+        body,
+        request_path="/v1/messages",
+        compress_schemas=False,
+        compress_tool_results=False,
+        deduplicate_history=False,
+        prefix_tracking=False,
+        model_routing_mode="calibrated",
+    )
+
+    assert result.body["model"] == "claude-sonnet-5"
+    assert result.model_routing["applied"] is False
+    assert result.model_routing["calibration_applied"] is False
+
+
+def test_prefix_tracking_recognizes_append_only_conversation_extension(
+    tmp_path, monkeypatch
+):
+    """Appending turns should preserve cache-prefix reuse without storing content."""
+    monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
+    root = tmp_path / "repo"
+    root.mkdir()
+    first = {
+        "system": "stable",
+        "messages": [
+            {"role": "user", "content": "one"},
+            {"role": "assistant", "content": "answer one"},
+            {"role": "user", "content": "two"},
+        ],
+    }
+    second = {
+        "system": "stable",
+        "messages": [
+            {"role": "user", "content": "one"},
+            {"role": "assistant", "content": "answer one"},
+            {"role": "user", "content": "two"},
+            {"role": "assistant", "content": "answer two"},
+            {"role": "user", "content": "three"},
+        ],
+    }
+
+    initial = observe_prefix(root, "anthropic", first)
+    extended = observe_prefix(root, "anthropic", second)
+
+    assert initial.reused is False
+    assert extended.reused is True
+    assert extended.reuse_mode == "extended"
+    assert extended.element_count > initial.element_count

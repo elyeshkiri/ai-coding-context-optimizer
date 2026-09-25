@@ -1,5 +1,25 @@
 # Unreleased
 
+- **Added everyday provider cost controls without weakening task quality.**
+  The opt-in provider proxy can now suppress repeated byte-identical historical
+  tool results with exact local recovery and can observe model-routing
+  opportunities. Automatic model downgrades are disabled by default and, in
+  `calibrated` mode, require an accepted quality-gated routing bucket; static
+  heuristics alone never change the caller's model.
+- **Made provider cache telemetry understand normal conversation growth.**
+  Stable-prefix accounting now distinguishes exact reuse from append-only
+  history extension using content-free element hashes, instead of treating
+  every newly appended assistant/tool turn as a cache-prefix miss.
+- **Made verification cheaper without making it optional.** Coding guidance now
+  starts with the smallest existing test/lint/typecheck/build target that
+  directly covers touched code, expands when failures/risk/project policy
+  require it, and discourages unchanged blind retries. The #128 requirement to
+  run relevant existing tests before finishing remains intact.
+- **Kept cost evidence boundaries explicit.** Duplicate-history token estimates,
+  prefix-reuse observations, and projected routing savings are operational
+  signals, not general API-savings or cost-per-success claims. End-to-end
+  savings still require paired verified evaluation.
+
 - **Stopped the generation policy from cutting verification short.** The
   injected policy said "Stop once the acceptance criteria are satisfied" and
   gave an unscoped output budget; in paired SWE-bench runs agents treated a
