@@ -14,8 +14,12 @@ ALLOWED_EXTERNAL = (
     "ppgranger/token-saver",
     "/tmp/ppgranger-token-saver",
 )
-# Local environments and build/tool caches are not repository text.
-EXCLUDED_DIRS = {".git", ".venv", "venv", ".pytest_cache", ".ruff_cache", "build", "dist", "target", "node_modules"}
+# Local environments, build/tool caches and the gitignored bench-local scratch
+# area are not repository text.
+EXCLUDED_DIRS = {
+    ".git", ".venv", "venv", ".pytest_cache", ".ruff_cache", "build", "dist", "target",
+    "node_modules", "bench-local",
+}
 
 
 def test_legacy_brand_name_is_absent_from_repository_text():

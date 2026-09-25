@@ -1,5 +1,33 @@
 # Unreleased
 
+- **Stopped the generation policy from cutting verification short.** The
+  injected policy said "Stop once the acceptance criteria are satisfied" and
+  gave an unscoped output budget; in paired SWE-bench runs agents treated a
+  passing reproduction as done and skipped the test suite, failing
+  `psf__requests-2931` in 3/4 runs versus 0/4 for plain Claude Code. The budget
+  now limits the final prose only, and code changes must run the touched
+  code's existing tests before stopping. With the fix, ACCO solved the task
+  3/3.
+- **Ran benchmark agents in the grader's environment.** `acco.claude_docker`
+  gains `--task-image` (suite placeholder `{task_image}`): the agent runs
+  inside the SWE-bench task image with the snapshot mounted at `/testbed`, the
+  image's environment commit as its base and its build products excluded, so
+  it can run the same tests the grader does. Subscription auth (`--auth
+  subscription`), root-host sandboxing, `ACCO_OUTPUT_POLICY` forwarding and
+  clean retry state are also supported.
+- **Made history-isolated snapshots equal the task revision.** Snapshots now
+  force-add tracked files that match `.gitignore` and undo `export-subst`
+  rewrites; previously agent edits to such files were silently dropped from
+  the graded patch.
+- **Added a log-heavy stress fixture and a limit-tolerant runner.**
+  `benchmarks/stress/generate_ledgerkit.py` builds a deterministic repository
+  with a ~1 MB CI log and a 2,400-line module; `scripts/run_resilient_experiment.py`
+  resumes experiments across subscription usage limits and token expiry.
+  Development evidence only: on 10 paired trials of this single synthetic
+  task, ACCO reduced cost per success by 24.5% (trial bootstrap 95% CI 7.1% to
+  37.5%, 10/10 success in both arms); small SWE-bench samples showed no
+  significant difference. No general savings figure is claimed.
+
 # 1.17.0 - 2026-09-25
 
 - **Made bounded context packing coverage-aware.** ACCO now reserves compact

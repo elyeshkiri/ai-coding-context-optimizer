@@ -26,6 +26,9 @@ from .session_metrics import efficiency_event_metrics, transcript_session_metric
 from .sessions import analyze, transcript_paths
 
 CONDITIONS = ("baseline", "enabled")
+# "hooks" installs only the Claude hooks (the frozen protocol); "setup" applies
+# the full `acco setup --host claude` configuration a real user gets.
+INSTRUMENTATION_MODES = ("hooks", "setup")
 
 
 def prompt_sha256(prompt: str) -> str:
@@ -128,6 +131,13 @@ def validate_suite(
                     "runner.condition_profiles."
                     + condition
                     + ".install_acco must be boolean"
+                )
+            instrumentation = profile.get("instrumentation", "hooks")
+            if instrumentation not in INSTRUMENTATION_MODES:
+                raise ValueError(
+                    "runner.condition_profiles."
+                    + condition
+                    + ".instrumentation must be hooks or setup"
                 )
             label = profile.get("label")
             if label is not None and (
@@ -312,6 +322,44 @@ def _validate_repository(source: Path, revision: str) -> str:
     return resolved
 
 
+def _index_entries(listing: str, *, tree: bool) -> dict[str, tuple[str, str]]:
+    """Parse NUL-separated ls-tree/ls-files output into path -> (mode, blob)."""
+    entries = {}
+    for record in filter(None, listing.split("\0")):
+        meta, path = record.split("\t", 1)
+        fields = meta.split()
+        mode, sha = (fields[0], fields[2]) if tree else (fields[0], fields[1])
+        entries[path] = (mode, sha)
+    return entries
+
+
+def _restore_archive_attribute_changes(
+    source: Path, revision: str, destination: Path
+) -> bool:
+    """Undo export-subst/export-ignore so the snapshot equals the revision tree."""
+    expected = _index_entries(
+        _git(source, "ls-tree", "-r", "-z", revision, strip=False), tree=True
+    )
+    actual = _index_entries(
+        _git(destination, "ls-files", "-s", "-z", strip=False), tree=False
+    )
+    changed = False
+    for path, (mode, sha) in expected.items():
+        if mode not in {"100644", "100755"} or actual.get(path) == (mode, sha):
+            continue
+        blob = subprocess.run(
+            ["git", "-C", str(source), "cat-file", "blob", sha],
+            capture_output=True,
+            check=True,
+        ).stdout
+        target = destination / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(blob)
+        target.chmod(0o755 if mode == "100755" else 0o644)
+        changed = True
+    return changed
+
+
 def _export_history_isolated_snapshot(
     source: Path,
     revision: str,
@@ -341,7 +389,11 @@ def _export_history_isolated_snapshot(
     subprocess.run(["git", "init", "-q", str(destination)], check=True)
     _git(destination, "config", "user.email", "acco-benchmark@example.invalid")
     _git(destination, "config", "user.name", "ACCO Benchmark")
-    _git(destination, "add", "-A")
+    # --force: the archive holds exactly the revision's tracked files, some of
+    # which may match .gitignore (e.g. generated C sources committed upstream).
+    _git(destination, "add", "-A", "--force")
+    if _restore_archive_attribute_changes(source, revision, destination):
+        _git(destination, "add", "-A", "--force")
     proc = subprocess.run(
         [
             "git", "-C", str(destination), "commit", "-q", "--no-gpg-sign",
@@ -357,6 +409,62 @@ def _export_history_isolated_snapshot(
         )
 
 
+def _changed_paths(worktree: Path) -> set[str]:
+    """Return modified, untracked and ignored paths relative to the snapshot."""
+    raw = _git(
+        worktree, "status", "--porcelain=v1", "-uall", "--ignored", "-z", strip=False
+    )
+    return {entry[3:] for entry in raw.split("\0") if len(entry) > 3}
+
+
+def _instrument(worktree: Path, mode: str) -> list[str]:
+    """Apply ACCO to a snapshot and return every path the instrumentation touched."""
+    before = _changed_paths(worktree)
+    if mode == "setup":
+        from .integration_setup import setup_integrations
+
+        home = worktree.parent / "setup-home"
+        home.mkdir(exist_ok=True)
+        setup_integrations(worktree, ("claude",), home=home)
+        mcp = worktree / ".mcp.json"
+        if mcp.is_file():
+            # The agent may run in a container where the worktree has another
+            # absolute path; the MCP server is launched from the project root.
+            payload = json.loads(mcp.read_text(encoding="utf-8"))
+            payload["mcpServers"]["acco"]["args"] = ["serve", "."]
+            mcp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        # Stand-in for the one-time interactive approval a real user gives to
+        # the project MCP server; headless runs cannot prompt for it.
+        local = worktree / ".claude" / "settings.local.json"
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_text(
+            json.dumps({"enableAllProjectMcpServers": True}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    else:
+        install(worktree)
+    return sorted(_changed_paths(worktree) - before)
+
+
+def _remove_instrumentation(worktree: Path, paths: list[str]) -> None:
+    """Restore instrumented paths to the snapshot so they never reach the patch."""
+    tracked = set(_git(worktree, "ls-files", "-z", strip=False).split("\0"))
+    for relative in paths:
+        target = worktree / relative
+        if relative in tracked:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            _git(worktree, "checkout", "HEAD", "--", relative)
+            continue
+        target.unlink(missing_ok=True)
+        parent = target.parent
+        while parent != worktree:
+            try:
+                parent.rmdir()
+            except OSError:
+                break
+            parent = parent.parent
+
+
 def _condition_profile(runner: dict, condition: str) -> dict:
     """Return one normalized experimental condition profile."""
     profiles = runner.get("condition_profiles")
@@ -367,6 +475,7 @@ def _condition_profile(runner: dict, condition: str) -> dict:
         return {
             "label": str(raw.get("label") or condition),
             "install_acco": bool(install_value),
+            "instrumentation": str(raw.get("instrumentation", "hooks")),
             "env": env,
             "model": (
                 str(raw["model"]).strip()
@@ -377,6 +486,7 @@ def _condition_profile(runner: dict, condition: str) -> dict:
     return {
         "label": condition,
         "install_acco": condition == "enabled",
+        "instrumentation": "hooks",
         "env": {},
         "model": str(runner["model"]),
     }
@@ -391,9 +501,11 @@ def _expand_command(
     prompt_file: Path,
     model: str,
     condition: str,
+    task_image: str = "",
 ) -> list[str]:
     """Expand command."""
     values = {
+        "task_image": task_image,
         "worktree": str(worktree),
         "transcript": str(transcript),
         "prompt": prompt,
@@ -784,11 +896,6 @@ def run_experiment(
                             + setup_proc.stderr[-2000:]
                         )
 
-                settings_path = worktree / ".claude" / "settings.json"
-                original_settings = (
-                    settings_path.read_bytes() if settings_path.is_file() else None
-                )
-
                 env = os.environ.copy()
                 env.update(extra_env)
                 env["ACCO_BENCHMARK_CONDITION"] = item["condition"]
@@ -800,9 +907,12 @@ def run_experiment(
                 env.update(profile["env"])
                 instrumented = profile["install_acco"]
                 run_model = profile["model"]
+                instrumentation_paths: list[str] = []
                 if instrumented:
                     env.pop("ACCO_DISABLED", None)
-                    install(worktree)
+                    instrumentation_paths = _instrument(
+                        worktree, profile["instrumentation"]
+                    )
                 else:
                     env["ACCO_DISABLED"] = "1"
 
@@ -815,6 +925,7 @@ def run_experiment(
                     prompt_file=prompt_file,
                     model=run_model,
                     condition=item["condition"],
+                    task_image=str((task.get("swebench") or {}).get("image", "")),
                 )
                 agent_rc, seconds = _run_command(
                     command,
@@ -870,19 +981,11 @@ def run_experiment(
                 )
 
                 # Remove benchmark instrumentation before capturing the solution.
-                # The enabled arm creates .claude/settings.json so its hook can run,
-                # but that file is not part of the agent's solution and must never
-                # be sent to the independent grader.
+                # Hooks, settings, lock files, MCP config and skills written for
+                # the enabled arm are not part of the agent's solution and must
+                # never be sent to the independent grader.
                 if instrumented:
-                    if original_settings is None:
-                        settings_path.unlink(missing_ok=True)
-                        try:
-                            settings_path.parent.rmdir()
-                        except OSError:
-                            pass
-                    else:
-                        settings_path.parent.mkdir(parents=True, exist_ok=True)
-                        settings_path.write_bytes(original_settings)
+                    _remove_instrumentation(worktree, instrumentation_paths)
 
                 # Stage the complete working tree so new/deleted files are included
                 # in the patch as well as modifications to tracked files.

@@ -20,3 +20,4 @@ benchmarks/zod/
 benchmarks/external-e2e/
 benchmarks/*-runs.json
 benchmarks/*-runs.artifacts/
+bench-local/
