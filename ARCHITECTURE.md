@@ -313,8 +313,10 @@ secondary semantic evidence.
 
 Before semantic scoring starts, ACCO snapshots an ordinal confidence key from
 evidence that already exists: undiscounted parser/provider authority,
-implementation-vs-low-value source class, graph corroboration, exact path
-identity, exact symbol identity, and finally whether any lexical overlap exists.
+implementation-vs-low-value source class, graph corroboration, direct
+path-or-symbol identity, and finally whether any lexical overlap exists. Path
+and symbol matches intentionally share one tier so embeddings cannot reinterpret
+one kind of deterministic identity as inherently stronger than the other.
 Term-frequency magnitude and BM25 score are deliberately excluded from that
 key, so long/repetitive files cannot manufacture authority.
 
