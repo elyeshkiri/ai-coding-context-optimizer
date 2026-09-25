@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type RUN_SEMANTIC_HOLDOUT_16 to burn the frozen fresh suite"
+        description: "Type RUN_SEMANTIC_HOLDOUT_16 to rerun the burned suite as development evidence"
         required: true
         type: string
 
@@ -48,7 +48,7 @@ jobs:
       - name: Require explicit burn confirmation
         run: |
           if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_16" ]; then
-            echo "Refusing to burn semantic holdout 16 without exact confirmation." >&2
+            echo "Refusing to rerun semantic holdout 16 without exact confirmation." >&2
             exit 2
           fi
 
@@ -195,14 +195,15 @@ jobs:
           print(f"- semantic mean reduction: {summary['semantic_mean_token_reduction']:.2%}")
           print()
           print(
-              "This first completed run permanently burns holdout 16. "
-              "No API-cost or task-success claim is implied."
+              "Holdout 16 was burned by canonical run 36122836318. "
+              "This rerun is development evidence only; no API-cost or "
+              "task-success claim is implied."
           )
           PY
 
       - uses: actions/upload-artifact@v4
         with:
-          name: semantic-holdout-16-first-run
+          name: semantic-holdout-16-rerun
           path: benchmarks/semantic-holdout-16.result.json
           retention-days: 90
           if-no-files-found: error
