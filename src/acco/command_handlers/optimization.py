@@ -105,7 +105,10 @@ def prefix_status_main(argv: list[str]) -> int:
         rate_text = "n/a" if rate is None else f"{rate:.1%}"
         print(
             f"{provider}: reuse={rate_text} "
-            f"hits={item['hits']} misses={item['misses']} "
+            f"hits={item['hits']} "
+            f"(exact={item.get('exact_hits', 0)}, "
+            f"extended={item.get('extension_hits', 0)}) "
+            f"misses={item['misses']} "
             f"stable={item['stable_tokens']} tokens"
         )
     return 0
