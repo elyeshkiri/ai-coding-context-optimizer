@@ -447,7 +447,7 @@ def _safe_routing_calibration() -> dict:
         "recommendations": [
             {
                 "task": "debugging",
-                "complexity_tier": "standard",
+                "complexity_tier": "simple",
                 "risk_level": "normal",
                 "baseline_model": "claude-sonnet-5",
                 "candidate_model": "claude-haiku-4-5",
