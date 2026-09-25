@@ -388,32 +388,46 @@ regression evidence only and must not replace run 36122836318 as the fresh
 headline. Any fix motivated by #16 needs a newly frozen suite before ACCO can
 claim fresh generalization.
 
+A post-run **burned diagnostic** separated ranking quality from context-packing
+coverage before the next fresh suite was defined. On the unchanged #16 tasks:
 
-A post-hoc **development-only rank-vs-pack decomposition** then separated file
-ordering from the hard 6,000-token assembly budget. The original ACCO pack
-rendered only **5.61 files on average**, while the trivial comparator always
-received up to 12 file identities without a token-budgeted rendering step.
-Against the same top-12 breadth, ACCO lexical/structural ranking reached
-**83.80% file recall**, versus **71.76%** for trivial distinct-term lexical.
-At the same per-task file count actually rendered by ACCO, the trivial baseline
-reached only **43.98%**, versus ACCO's **62.96%**. On all 18 tasks the original
-pack selected exactly the first N ranked ACCO files until the token budget was
-exhausted, so the apparent trivial advantage was primarily a rank-to-pack
-coverage effect, not evidence that the trivial ordering was globally better.
+- ACCO lexical rank@12 recall is **83.80%**, versus **71.76%** for the trivial
+  distinct-term rank@12 baseline;
+- the canonical 6k ACCO pack rendered only **5.61 files on average**, reducing
+  that stronger ranking to the **62.96%** fresh pack headline;
+- when the trivial baseline is truncated to the same per-task file count as the
+  ACCO pack, its recall is only **43.98%**.
 
-Four of the five tasks where trivial@12 beat the original ACCO pack were
-budget-only misses: their expected files were already inside ACCO's top 12.
-The remaining case, Jackson explicit-view deserialization, contains a genuine
-ranking gap: one expected file ranked 23rd and another 41st.
+This shows that the apparent +8.8-point trivial advantage in the fresh headline
+was primarily a **rank-to-pack allocation confound**, not evidence that
+distinct-term ordering was stronger.
 
-The general correction developed from that diagnosis leaves ranking weights
-unchanged and reserves the packer's existing 300-token compact exact-source
-minimum for as many top-ranked candidates as the hard budget can support.
-On burned #16 this **coverage-aware packing** candidate raised lexical pack
-recall from **62.96% to 83.80%**, exactly matching ACCO rank@12, while all
-18 packs stayed below 6,000 tokens. Average rendered-file coverage increased
-from **5.61 to 12.0**. This rerun is development evidence only and does not
-replace the canonical fresh #16 headline.
+The coverage-aware allocation candidate in PR #123 was then replayed on burned
+#16 as development evidence only. It preserves a compact evidence budget for
+later high-ranked files before spending surplus on depth. With the same 6k hard
+cap it reaches **82.41% pack file recall**, selects **11.56 files on average**,
+and uses **5995.5 tokens on average**, versus **5993.7 tokens** before the
+change. Five tasks improve and none regress. This nearly realizes the existing
+83.80% rank@12 recall without increasing the configured token budget.
+
+
+PR #122 independently developed a stricter rank-preserving allocator on the
+same burned diagnosis. After resolving its overlap with #123 against current
+`main`, the #122 policy reserves the packer's existing **300-token compact
+exact-source minimum** for every leading candidate that the hard budget can
+support, while retaining extra allowance for structural authority, explicit
+priority-file behavior, and the one-hop authoritative-provider reserve.
+
+Its burned #16 development replay reaches **83.80% lexical pack recall**,
+matching ACCO lexical rank@12, and renders **12.0 files on average** while
+remaining below the same 6,000-token hard cap. This is stronger development
+coverage than the earlier #123 candidate's 82.41% / 11.56-file result, but it is
+still burned-suite evidence only and does not replace #16's canonical fresh
+62.96% lexical-pack headline.
+
+These figures are **not fresh generalization evidence**. They justify the
+mechanism and regression tests; a separately frozen holdout #17 is required
+before claiming that the allocation change generalizes.
 
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:

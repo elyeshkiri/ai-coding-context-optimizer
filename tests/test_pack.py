@@ -156,6 +156,83 @@ def test_context_pack_does_not_let_one_large_file_monopolize_the_budget(tmp_path
     assert "src/target_provider.py" in pack.selected_files
 
 
+def test_context_pack_reserves_budget_for_ranked_file_coverage(tmp_path):
+    """A 6k pack should preserve broad top-ranked coverage before extra depth."""
+    src = tmp_path / "src"
+    src.mkdir()
+    for n in range(12):
+        unique = " ".join(f"unique_{n}_{i}" for i in range(40))
+        lines = [
+            f"def ranked_candidate_{n}(payload):",
+            "    # refresh session configuration request handling",
+            f"    marker = {unique!r}",
+        ]
+        lines.extend(
+            f"    step_{n}_{i} = payload  # refresh session request"
+            for i in range(180)
+        )
+        lines.append("    return payload")
+        (src / f"candidate_{n:02d}.py").write_text(
+            "\n".join(lines) + "\n",
+            encoding="utf-8",
+        )
+
+    pack = build_context_pack(
+        tmp_path,
+        "refresh session configuration request",
+        max_tokens=6000,
+        max_files=12,
+        changed_boost=False,
+        duplicate_threshold=1.0,
+    )
+
+    assert pack.estimated_tokens <= 6000
+    assert len(pack.selected_files) == 12
+
+
+def test_coverage_reserve_keeps_structural_authority_source(tmp_path):
+    """Breadth reservation must not clip exact high-authority implementation."""
+    src = tmp_path / "src"
+    src.mkdir()
+    authority_lines = [
+        "def rotate_refresh_session(token, request):",
+        "    prepared = request.prepare(token)",
+        "    validated = validate_refresh_token(prepared)",
+        "    return commit_refresh_session(validated)",
+        "",
+    ]
+    authority_lines.extend(
+        f"def unrelated_authority_helper_{i}(value):\n    return value + {i}"
+        for i in range(220)
+    )
+    (src / "authority.py").write_text(
+        "\n".join(authority_lines) + "\n",
+        encoding="utf-8",
+    )
+    for n in range(11):
+        body = "\n".join(
+            f"    step_{n}_{i} = request  # refresh session token"
+            for i in range(160)
+        )
+        (src / f"peer_{n:02d}.py").write_text(
+            f"def peer_{n}(request):\n{body}\n    return request\n",
+            encoding="utf-8",
+        )
+
+    pack = build_context_pack(
+        tmp_path,
+        "rotate refresh session token request",
+        max_tokens=6000,
+        max_files=12,
+        changed_boost=False,
+        duplicate_threshold=1.0,
+    )
+
+    assert "return commit_refresh_session(validated)" in pack.text
+    assert "src/authority.py" in pack.selected_files
+    assert len(pack.selected_files) >= 10
+
+
 def test_context_pack_reserves_budget_for_later_ranked_candidates(tmp_path):
     """A bounded pack should preserve breadth after ranking, not only top-file depth."""
     src = tmp_path / "src"
