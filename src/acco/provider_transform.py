@@ -11,6 +11,11 @@ from typing import Any
 from .context_router import route_context
 from .estimate import estimate_tokens
 from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
+from .provider_cost import (
+    PROVIDER_MODEL_ROUTING_MODES,
+    apply_calibrated_provider_route,
+    deduplicate_provider_history,
+)
 from .provider_boundary import (
     ProviderRequestProfile,
     detect_provider_request,
@@ -35,6 +40,9 @@ class ProviderTransformResult:
     prefix: PrefixPlan
     profile: ProviderRequestProfile
     transformed_segments: int = 0
+    deduplicated_segments: int = 0
+    estimated_duplicate_tokens_saved: int = 0
+    model_routing: dict[str, Any] | None = None
 
     def metadata(self) -> dict:
         """Return request transformation metadata without request content."""
@@ -51,6 +59,13 @@ class ProviderTransformResult:
             "prefix": self.prefix.to_dict(),
             "request": self.profile.to_dict(),
             "transformed_segments": self.transformed_segments,
+            "deduplicated_segments": self.deduplicated_segments,
+            "estimated_duplicate_tokens_saved": self.estimated_duplicate_tokens_saved,
+            "model_routing": self.model_routing or {
+                "mode": "off",
+                "evaluated": False,
+                "applied": False,
+            },
             "policy": "retrieval-first-historical-only",
         }
 
@@ -265,9 +280,13 @@ def transform_provider_request(
     request_path: str = "",
     compress_schemas: bool = True,
     compress_tool_results: bool = True,
+    deduplicate_history: bool = True,
     tool_result_min_tokens: int = 800,
     recovery_capacity_bytes: int = 512 * 1024 * 1024,
     prefix_tracking: bool = True,
+    model_routing_mode: str = "off",
+    model_routing_calibration_file: str = ".acco.routing-calibration.json",
+    model_routing_min_savings: float = 0.05,
 ) -> ProviderTransformResult:
     """Optimize historical provider context while leaving current task/source intact."""
     if not isinstance(body, dict):
@@ -279,8 +298,36 @@ def transform_provider_request(
     handles: list[str] = []
     schema_handle = None
     transformed_segments = 0
+    deduplicated_segments = 0
+    duplicate_tokens_saved = 0
+    routing_metadata: dict[str, Any] = {
+        "mode": str(model_routing_mode or "off").strip().lower(),
+        "evaluated": False,
+        "applied": False,
+    }
+
+    normalized_routing_mode = str(model_routing_mode or "off").strip().lower()
+    if normalized_routing_mode not in PROVIDER_MODEL_ROUTING_MODES:
+        raise ValueError(
+            "provider model routing mode must be one of: "
+            + ", ".join(PROVIDER_MODEL_ROUTING_MODES)
+        )
+    if not 0 <= model_routing_min_savings <= 1:
+        raise ValueError("model_routing_min_savings must be between 0 and 1")
 
     try:
+        history = deduplicate_provider_history(
+            transformed,
+            profile,
+            recovery=recovery,
+            min_tokens=tool_result_min_tokens,
+            enabled=deduplicate_history,
+        )
+        if history.segments:
+            handles.extend(history.recovery_handles)
+            deduplicated_segments = history.segments
+            duplicate_tokens_saved = history.estimated_tokens_saved
+
         if compress_schemas and isinstance(transformed.get("tools"), list):
             schema = compress_tool_catalog(
                 transformed["tools"],
@@ -320,14 +367,33 @@ def transform_provider_request(
         handles = []
         schema_handle = None
         transformed_segments = 0
+        deduplicated_segments = 0
+        duplicate_tokens_saved = 0
+
+    routing_metadata = apply_calibrated_provider_route(
+        root,
+        transformed,
+        profile,
+        prompt=latest_user_text(transformed, profile),
+        input_tokens=original_tokens,
+        mode=normalized_routing_mode,
+        calibration_file=model_routing_calibration_file,
+        min_savings=model_routing_min_savings,
+    )
 
     output_tokens = _json_tokens(transformed)
-    changed = transformed != body and output_tokens < original_tokens
+    routing_applied = bool(routing_metadata.get("applied"))
+    changed = (
+        transformed != body
+        and (output_tokens < original_tokens or routing_applied)
+    )
     if not changed:
         transformed = deepcopy(body)
         handles = []
         schema_handle = None
         transformed_segments = 0
+        deduplicated_segments = 0
+        duplicate_tokens_saved = 0
         output_tokens = original_tokens
 
     prefix_provider = profile.provider
@@ -355,4 +421,7 @@ def transform_provider_request(
         prefix=prefix,
         profile=profile,
         transformed_segments=transformed_segments,
+        deduplicated_segments=deduplicated_segments,
+        estimated_duplicate_tokens_saved=duplicate_tokens_saved,
+        model_routing=routing_metadata,
     )
