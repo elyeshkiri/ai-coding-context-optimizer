@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import textwrap
 
 import pytest
@@ -14,9 +15,11 @@ from acco.packing.contracts import RankedFile
 from acco.closure import ClosureItem
 from acco.packing.graph_rerank import (
     _apply_embedding_rerank_index,
+    _apply_semantic_confidence_gate,
     _apply_semantic_artifact_authority,
     _apply_semantic_graph_expansion,
     _apply_semantic_peer_expansion,
+    _lexical_confidence_key,
 )
 from acco.repo_index import RepositoryIndex, build_index, record_for_text
 from acco.semantic_retrieval import (
@@ -434,6 +437,176 @@ def test_semantic_boost_is_independent_of_lexical_rank(tmp_path, monkeypatch):
 
 
 
+def _gate_fixture(rel: str, score: float, term_hits: int, reasons=None):
+    """Create one ranked file for semantic confidence-gate tests."""
+    return RankedFile(
+        Path(rel),
+        rel,
+        "",
+        "",
+        score,
+        reasons=list(reasons or [f"term-hits:{term_hits}"]),
+        term_hits=term_hits,
+    )
+
+
+def _run_gate(items, semantic_scores):
+    """Apply the promotion gate after synthetic semantic score additions."""
+    baseline_order = list(items)
+    baseline_scores = {item.rel: item.score for item in items}
+    confidence = {
+        item.rel: _lexical_confidence_key(item)
+        for item in items
+    }
+    for item in items:
+        if item.rel in semantic_scores:
+            item.score = semantic_scores[item.rel]
+    _apply_semantic_confidence_gate(
+        items,
+        baseline_order,
+        baseline_scores,
+        confidence,
+    )
+    return items
+
+
+def test_semantic_gate_blocks_leapfrog_over_stronger_lexical_evidence():
+    """Weak semantic evidence must not displace a stronger lexical predecessor."""
+    strong = _gate_fixture(
+        "src/strong.py",
+        20.0,
+        4,
+        ["term-hits:4", "graph:imports@1"],
+    )
+    weak = _gate_fixture("src/weak.py", 5.0, 1)
+
+    _run_gate([strong, weak], {"src/weak.py": 40.0})
+
+    assert weak.score < strong.score
+    assert weak.score > 5.0
+    assert any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in weak.reasons
+    )
+
+
+def test_semantic_gate_allows_reorder_inside_equal_confidence_tier():
+    """Semantic rescue should remain possible among equally corroborated files."""
+    first = _gate_fixture("src/first.py", 20.0, 2)
+    target = _gate_fixture("src/target.py", 5.0, 2)
+
+    _run_gate([first, target], {"src/target.py": 40.0})
+
+    assert target.score == 40.0
+    assert not any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in target.reasons
+    )
+
+
+def test_semantic_gate_blocks_equal_direct_identity_leapfrog():
+    """Embeddings must not break a tie between equally direct baseline identities."""
+    expected = _gate_fixture(
+        "src/expected.py",
+        20.0,
+        5,
+        ["term-hits:5", "path:1", "symbols:3"],
+    )
+    distractor = _gate_fixture(
+        "src/distractor.py",
+        12.0,
+        20,
+        ["term-hits:20", "path:1", "symbols:8"],
+    )
+
+    _run_gate([expected, distractor], {"src/distractor.py": 44.0})
+
+    assert distractor.score < expected.score
+    assert any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in distractor.reasons
+    )
+
+
+def test_semantic_gate_does_not_rank_path_plus_symbol_above_symbol_identity():
+    """Direct identity is one tier; embeddings cannot reinterpret its subtypes."""
+    expected = _gate_fixture(
+        "src/websocket_impl.py",
+        24.0,
+        12,
+        ["term-hits:12", "symbols:6"],
+    )
+    distractor = _gate_fixture(
+        "src/proxy_headers.py",
+        15.0,
+        8,
+        ["term-hits:8", "path:2", "symbols:4"],
+    )
+
+    _run_gate([expected, distractor], {"src/proxy_headers.py": 50.0})
+
+    assert distractor.score < expected.score
+    assert any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in distractor.reasons
+    )
+
+
+def test_semantic_gate_treats_discounted_structural_signal_as_weak():
+    """Parent-mismatch structural credit must not outrank graph-corroborated source."""
+    expected = _gate_fixture(
+        "src/strategy.py",
+        30.0,
+        5,
+        ["term-hits:5", "path:1", "symbols:2", "graph:calls-symbol@1"],
+    )
+    distractor = _gate_fixture(
+        "src/syntax.py",
+        15.0,
+        20,
+        ["term-hits:20", "path:1", "symbols:2", "structural-symbol:20.7"],
+    )
+
+    _run_gate([expected, distractor], {"src/syntax.py": 60.0})
+
+    assert distractor.score < expected.score
+
+
+def test_semantic_gate_respects_low_value_source_dampening():
+    """Semantic boosts must not undo an already-ahead implementation-vs-doc signal."""
+    source = _gate_fixture("src/runtime.py", 15.0, 2)
+    doc = _gate_fixture("docs/runtime.md", 10.0, 8)
+
+    _run_gate([source, doc], {"docs/runtime.md": 44.0})
+
+    assert doc.score < source.score
+    assert any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in doc.reasons
+    )
+
+
+def test_semantic_gate_protects_parser_backed_structural_authority():
+    """Embedding similarity must not jump over explicit structural-symbol evidence."""
+    authoritative = _gate_fixture(
+        "src/handler.py",
+        30.0,
+        2,
+        ["term-hits:2", "structural-symbol:140.0"],
+    )
+    semantic_only = _gate_fixture("src/neighbor.py", 10.0, 6)
+
+    _run_gate(
+        [authoritative, semantic_only],
+        {"src/neighbor.py": 60.0},
+    )
+
+    assert semantic_only.score < authoritative.score
+    event = semantic_only.score_trace[-1]
+    assert event.stage == "semantic-confidence-gate"
+    assert event.delta < 0
+
+
 def test_semantic_witness_can_promote_one_hop_provider(tmp_path, monkeypatch):
     """A semantic caller/test witness should surface its bounded provider."""
     index = RepositoryIndex(root=tmp_path, records={})
@@ -809,6 +982,36 @@ def test_semantic_peer_expansion_promotes_parallel_provider_family(tmp_path):
     assert peer.score > 15.0
     assert unrelated.score == 10.0
     assert any(reason.startswith("semantic-peer:") for reason in peer.reasons)
+
+
+def test_semantic_peer_expansion_requires_query_corroboration_for_family():
+    """Three shared filename terms alone must not manufacture query relevance."""
+    ranked = [
+        RankedFile(
+            Path("src/ReflectiveTypeAdapterFactory.java"),
+            "src/ReflectiveTypeAdapterFactory.java",
+            "",
+            "",
+            30.0,
+        ),
+        RankedFile(
+            Path("extras/RuntimeTypeAdapterFactory.java"),
+            "extras/RuntimeTypeAdapterFactory.java",
+            "",
+            "",
+            10.0,
+        ),
+    ]
+
+    _apply_semantic_peer_expansion(
+        ranked,
+        "preserve runtime subclass fields while serializing a wildcard collection",
+        ["src/ReflectiveTypeAdapterFactory.java"],
+    )
+
+    candidate = ranked[1]
+    assert candidate.score == 10.0
+    assert not any(reason.startswith("semantic-peer:") for reason in candidate.reasons)
 
 
 def test_semantic_peer_expansion_rejects_single_generic_name_overlap(tmp_path):

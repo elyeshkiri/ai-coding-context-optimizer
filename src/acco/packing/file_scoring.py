@@ -24,6 +24,7 @@ _MAX_FILE_BYTES = 2_000_000
 # files is the answer to a query that happens to contain the same common word.
 _GENERIC_CALLABLE_MAX_FILES = 3
 _AUTHORITY_CALLABLE_KINDS = frozenset({"method", "function", "constructor"})
+_MIN_UNDISCOUNTED_STRUCTURAL_AUTHORITY = 38.0
 
 
 @lru_cache(maxsize=65536)
@@ -129,7 +130,11 @@ def _structural_file_authority(
         qualified_terms = _leaf_identifier_terms(symbol.qualified or symbol.name)
         parent_terms = qualified_terms - leaf_terms
         parent_hits = len(parent_terms & query_terms)
-        score = 38.0 + 8.0 * len(leaf_terms) + min(24.0, 8.0 * parent_hits)
+        score = (
+            _MIN_UNDISCOUNTED_STRUCTURAL_AUTHORITY
+            + 8.0 * len(leaf_terms)
+            + min(24.0, 8.0 * parent_hits)
+        )
         if parent_terms and not parent_hits:
             score *= 0.45
         best = max(best, score)

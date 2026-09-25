@@ -1,0 +1,222 @@
+name: Burned Semantic Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type RUN_BURNED_SEMANTIC_REGRESSION to run development-only suites 13-15"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    if: inputs.confirmation == 'RUN_BURNED_SEMANTIC_REGRESSION'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        name: Build frozen repository matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          include = []
+          for number in (13, 14, 15):
+              manifest = Path(f"benchmarks/semantic-holdout-{number}.frozen.json")
+              payload = json.loads(manifest.read_text())
+              for alias, spec in payload["repositories"].items():
+                  include.append({
+                      "suite": number,
+                      "manifest": str(manifest),
+                      "alias": alias,
+                      "path": str(Path("benchmarks") / spec["path"]),
+                      "url": f"https://github.com/{spec['repository']}.git",
+                      "revision": spec["revision"],
+                  })
+          print("value=" + json.dumps({"include": include}, separators=(",", ":")))
+          PY
+
+  evaluate:
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    name: Burned semantic ${{ matrix.suite }} / ${{ matrix.alias }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    env:
+      ACCO_STATE_DIR: /tmp/acco-burned-semantic-${{ matrix.suite }}-${{ matrix.alias }}
+      ACCO_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/acco-huggingface-burned-semantic
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO with exact-scan embeddings
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+          python -m pip uninstall -y hnswlib || true
+
+      - name: Require exact cosine
+        run: |
+          python - <<'PY'
+          from acco.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None
+          PY
+
+      - name: Validate frozen manifest
+        run: |
+          python scripts/run_semantic_holdout.py "${{ matrix.manifest }}" --validate-only
+
+      - name: Clone pinned repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="${{ matrix.path }}"
+          mkdir -p "$(dirname "$path")"
+          git init -q "$path"
+          git -C "$path" remote add origin "${{ matrix.url }}"
+          git -C "$path" fetch -q --depth 1 origin "${{ matrix.revision }}"
+          git -C "$path" checkout -q --detach "${{ matrix.revision }}"
+
+      - name: Download pinned embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+          SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["ACCO_SEMANTIC_MODEL_REVISION"],
+          )
+          PY
+
+      - name: Evaluate burned repository shard
+        run: |
+          python scripts/run_semantic_holdout.py \
+            "${{ matrix.manifest }}" \
+            --repository "${{ matrix.alias }}" \
+            --output "semantic-${{ matrix.suite }}-${{ matrix.alias }}.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: burned-semantic-${{ matrix.suite }}-${{ matrix.alias }}
+          path: semantic-${{ matrix.suite }}-${{ matrix.alias }}.json
+          retention-days: 30
+          if-no-files-found: error
+
+  summarize:
+    needs: evaluate
+    if: ${{ always() && needs.evaluate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: burned-semantic-*
+          path: partial-results
+          merge-multiple: true
+
+      - name: Aggregate burned-suite development evidence
+        run: |
+          python - <<'PY' | tee burned-semantic-regression-summary.json
+          import glob
+          import json
+          from pathlib import Path
+
+          canonical_semantic = {
+              13: 0.5,
+              14: 0.825,
+              15: 0.717948717948718,
+          }
+          grouped = {13: [], 14: [], 15: []}
+          for path in glob.glob("partial-results/semantic-*.json"):
+              data = json.loads(Path(path).read_text())
+              suite = int(data["suite"].rsplit("-", 1)[1])
+              grouped[suite].extend(data.get("tasks", []))
+
+          summary = {}
+          for suite, tasks in grouped.items():
+              if not tasks:
+                  raise SystemExit(f"no eligible tasks found for suite {suite}")
+              count = len(tasks)
+              lexical = sum(t["lexical"]["file_recall"] for t in tasks) / count
+              semantic = sum(t["semantic"]["file_recall"] for t in tasks) / count
+              trivial = sum(
+                  t["trivial_lexical"]["file_recall"] for t in tasks
+              ) / count
+              summary[str(suite)] = {
+                  "task_count": count,
+                  "lexical_file_recall": lexical,
+                  "semantic_file_recall": semantic,
+                  "trivial_lexical_file_recall": trivial,
+                  "semantic_delta": semantic - lexical,
+                  "semantic_recovered_tasks": sum(
+                      bool(t["semantic_recovered"]) for t in tasks
+                  ),
+                  "semantic_regressed_tasks": sum(
+                      bool(t["semantic_regressed"]) for t in tasks
+                  ),
+                  "tasks_improved": sum(
+                      t["semantic"]["file_recall"] > t["lexical"]["file_recall"]
+                      for t in tasks
+                  ),
+                  "tasks_worsened": sum(
+                      t["semantic"]["file_recall"] < t["lexical"]["file_recall"]
+                      for t in tasks
+                  ),
+                  "canonical_semantic_before_candidate": canonical_semantic[suite],
+                  "semantic_change_vs_canonical": (
+                      semantic - canonical_semantic[suite]
+                  ),
+              }
+
+          print(json.dumps({
+              "development_evidence_only": True,
+              "holdouts_are_burned": True,
+              "summary": summary,
+          }, indent=2))
+          PY
+
+      - name: Publish development comparison
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+
+          data = json.load(open("burned-semantic-regression-summary.json"))
+          print("# Burned semantic regression — development evidence only")
+          print()
+          print("| Suite | Lexical | Semantic candidate | Delta | vs prior semantic | Improved/Worsened |")
+          print("|---|---:|---:|---:|---:|---:|")
+          for suite, row in data["summary"].items():
+              print(
+                  f"| #{suite} | {row['lexical_file_recall']:.2%} | "
+                  f"{row['semantic_file_recall']:.2%} | "
+                  f"{row['semantic_delta']:+.2%} | "
+                  f"{row['semantic_change_vs_canonical']:+.2%} | "
+                  f"{row['tasks_improved']}/{row['tasks_worsened']} |"
+              )
+          print()
+          print(
+              "Suites #13-#15 are burned. These results are regression/"
+              "development evidence only; freeze a new suite before claiming "
+              "fresh semantic generalization."
+          )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: burned-semantic-regression-summary
+          path: burned-semantic-regression-summary.json
+          retention-days: 30
+          if-no-files-found: error

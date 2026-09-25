@@ -3,6 +3,9 @@ import textwrap
 from acco.estimate import estimate_tokens
 from acco.pack import build_context_pack, rank_files
 from acco.pack_cli import main as pack_main
+from acco.packing.contracts import RankedFile
+from acco.packing.symbol_windows import _file_section
+from acco.repo_index import build_index
 
 
 def _write_repo(root):
@@ -50,6 +53,55 @@ def test_context_pack_contains_exact_source_window(tmp_path):
     assert "### exact source windows" in pack.text
     assert "return self.rotate_session(account)" in pack.text
     assert "|" in pack.text, "source windows should carry exact line gutters"
+
+
+def test_structural_windows_precede_semantic_ranges_without_explicit_target(tmp_path):
+    """Tight fitting should encounter parser-backed source before embedding ranges."""
+    root = tmp_path
+    source = textwrap.dedent(
+        """
+        def target_behavior(record):
+            return record.authoritative_value
+
+        def helper_one():
+            return 1
+
+        def helper_two():
+            return 2
+
+        def semantic_distractor(record):
+            return record.related_but_secondary_value
+        """
+    )
+    path = root / "target.py"
+    path.write_text(source, encoding="utf-8")
+    index = build_index(root, persist=False)
+    record = index.records["target.py"]
+    item = RankedFile(
+        path=path,
+        rel="target.py",
+        text=source,
+        outline=record.outline,
+        score=10.0,
+        reasons=["term-hits:2"],
+        term_hits=2,
+        semantic_ranges=[(10, 11)],
+    )
+
+    section, labels, _identities, _redactions = _file_section(
+        item,
+        {"target", "behavior"},
+        1,
+        index,
+        symbol_query_text="target behavior",
+    )
+
+    assert labels
+    assert "def target_behavior" in section
+    assert "def semantic_distractor" in section
+    assert section.index("def target_behavior") < section.index(
+        "def semantic_distractor"
+    )
 
 
 def test_context_pack_respects_hard_token_budget(tmp_path):

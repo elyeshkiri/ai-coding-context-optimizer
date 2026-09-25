@@ -275,7 +275,9 @@ up to 3 non-overlapping hits per file
         ↓
 semantic-only file rank + bounded similarity/corroboration boost
         ↓
-bounded one-hop provider expansion from semantic witnesses
+bounded one-hop provider/peer/artifact expansion
+        ↓
+pre-semantic confidence gate
         ↓
 normal exact-source symbol/window rendering
 ```
@@ -303,16 +305,36 @@ signature, and exact implementation bytes; fallback windows preserve coverage
 for module-level behavior, prose/configuration, and parser gaps.
 
 At file level, up to three non-overlapping hits are retained with diminishing
-corroboration weight. Semantic rank is computed independently of lexical rank:
-BM25 has already influenced the base score, so adding lexical rank again would
-systematically weaken semantic rescue. The stage records `semantic-chunk:...`
-and `semantic-file-rank:...` evidence. A final bounded one-hop expansion can
-credit exact providers/callees reachable from the strongest semantic witness
-files, recorded as `semantic-graph:...`.
+corroboration weight. The *raw* semantic boost is computed independently of
+lexical rank so weak-overlap candidates can still be discovered. The stage
+records `semantic-chunk:...` and `semantic-file-rank:...` evidence. Bounded
+one-hop/provider, artifact-role, and implementation-family expansion can add
+secondary semantic evidence.
 
-Direct semantic and semantic-graph contributions remain far below explicit
-structural-symbol authority, so semantic discovery can rescue weak-lexical files
-without overriding a requested API/container/member identity.
+Before semantic scoring starts, ACCO snapshots an ordinal confidence key from
+evidence that already exists: undiscounted parser/provider authority,
+implementation-vs-low-value source class, graph corroboration, direct
+path-or-symbol identity, and finally whether any lexical overlap exists. Path
+and symbol matches intentionally share one tier so embeddings cannot reinterpret
+one kind of deterministic identity as inherently stronger than the other.
+Term-frequency magnitude and BM25 score are deliberately excluded from that
+key, so long/repetitive files cannot manufacture authority.
+
+After all semantic and semantic-derived boosts, the **semantic confidence gate**
+enforces a monotonic authority invariant. Pure topical candidates may reorder
+freely. Once a baseline predecessor has direct path/symbol/graph/parser evidence,
+a candidate with equal direct confidence may not jump over it, and a candidate
+with weaker confidence may not jump over any stronger predecessor. Discounted
+parent-mismatch structural credit is not treated as hard authority. A clamped
+promotion records `semantic-confidence-gate:...` in ranking evidence.
+
+This preserves semantic rescue as a discovery mechanism while making
+deterministic lexical/structural evidence the authority layer. The gate is
+ordinal and repository-agnostic: it contains no embedding-similarity threshold,
+holdout identifier, repository name, or task-specific exception. The same
+authority rule continues at rendering time: parser-backed symbol windows precede
+semantic ranges inside a file, so tight per-file fitting clips embedding ranges
+before exact structural source.
 
 ### Persistent retrieval-cache boundary
 

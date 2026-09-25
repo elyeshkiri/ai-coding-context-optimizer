@@ -286,7 +286,9 @@ exact cosine or optional HNSW
         ↓
 multi-hit semantic file ranking
         ↓
-bounded semantic → dependency-provider expansion
+bounded semantic → graph/peer/artifact expansion
+        ↓
+pre-semantic confidence gate
         ↓
 existing exact-source symbol/window selector
         ↓
@@ -313,13 +315,22 @@ stores vectors plus repository-relative path/line/symbol coordinates, **not
 source text**. If `hnswlib` is unavailable the same vectors use exact cosine
 scan instead of changing retrieval semantics.
 
-Semantic evidence is deliberately bounded below exact structural authority.
-The semantic stage aggregates up to three non-redundant chunks per file and its
-boost is independent of lexical rank, so a weak-lexical candidate is not
-penalized twice. Top semantic witnesses can also contribute a small one-hop
-dependency/provider boost, allowing a descriptive caller/test to surface a
-terse implementation. Exact requested API identity still carries much more
-weight than any semantic contribution.
+Semantic retrieval is a discovery layer, not the authority layer. ACCO snapshots
+pre-semantic evidence before embeddings run: undiscounted parser/provider
+authority, implementation-vs-low-value source class, graph corroboration,
+direct path-or-symbol identity, and lexical presence. Raw semantic boosts remain
+independent of lexical rank so genuinely weak-overlap candidates can still be
+found.
+
+After direct semantic and bounded graph/peer/artifact expansion, a monotonic
+confidence gate prevents semantic evidence from jumping over an equally direct
+or stronger pre-semantic predecessor. Pure topical candidates can still reorder
+freely. This specifically keeps source-quality and exact structural evidence
+from being undone by a later embedding boost without introducing
+repository-specific rules or a similarity threshold. Ranking explanations
+record any clamp as `semantic-confidence-gate:...`. Within a retained file,
+parser-backed exact symbol windows are also rendered before semantic ranges, so
+a tight per-file budget clips embedding evidence before structural source.
 
 ## Persistent retrieval cache and optional Rust fastpath
 

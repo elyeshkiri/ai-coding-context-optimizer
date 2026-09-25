@@ -313,11 +313,11 @@ def _file_section(
     top_numbers = [n for n, _ in hit_lines[:4]]
     lexical = _merge_windows(top_numbers, len(lines), max(0, context_lines))
     semantic = _merge_ranges(item.semantic_ranges, len(lines))
-    primary = (
-        [*symbol_windows, *semantic]
-        if target_symbol
-        else [*semantic, *symbol_windows]
-    )
+    # Embeddings may locate useful implementation ranges, but they are a
+    # discovery layer rather than source authority. Parser-backed symbol windows
+    # therefore remain first even without an explicit target_symbol; tight
+    # per-file budgets clip semantic evidence before exact structural evidence.
+    primary = [*symbol_windows, *semantic]
     windows = _prioritized_ranges(primary, lexical, len(lines))
     # Backfill is the lowest-priority evidence in the section, so it is
     # rendered after the outline: section fitting clips from the end, and the

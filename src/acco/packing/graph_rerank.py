@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 from ..closure import authoritative_providers, dependency_closure
@@ -9,8 +10,12 @@ from ..lexical import terms
 from ..repo_index import RepositoryIndex
 from ..retrieval_vnext import hybrid_file_boost
 from ..semantic_retrieval import SemanticVectorIndex
+from ..skeleton import file_priority
 from .contracts import RankedFile, RankingScoreEvent
-from .file_scoring import _FileRankingScope
+from .file_scoring import (
+    _FileRankingScope,
+    _MIN_UNDISCOUNTED_STRUCTURAL_AUTHORITY,
+)
 from .ranking_stages import RankingStageContext
 
 
@@ -375,7 +380,7 @@ def _apply_semantic_peer_expansion(
             if len(shared) < 2:
                 continue
             query_shared = shared & query_terms
-            if not query_shared and len(shared) < 3:
+            if not query_shared:
                 continue
             score = (len(shared), len(query_shared), seed, shared)
             if best is None or score[:2] > best[:2]:
@@ -404,6 +409,171 @@ def _apply_semantic_peer_expansion(
         )
 
 
+def _reason_count(reasons: list[str], prefix: str) -> int:
+    """Return the largest integer count encoded by one ranking reason prefix."""
+    best = 0
+    for reason in reasons:
+        if not reason.startswith(prefix):
+            continue
+        try:
+            value = int(reason[len(prefix):].split(":", 1)[0])
+        except ValueError:
+            continue
+        best = max(best, value)
+    return best
+
+
+_PROSE_SUFFIXES = frozenset({".md", ".markdown", ".rst", ".txt"})
+
+
+def _structural_authority_value(reasons: list[str]) -> float:
+    """Return the strongest parser-backed structural authority score."""
+    best = 0.0
+    for reason in reasons:
+        if not reason.startswith("structural-symbol:"):
+            continue
+        try:
+            best = max(best, float(reason.split(":", 1)[1]))
+        except ValueError:
+            continue
+    return best
+
+
+def _lexical_confidence_key(
+    item: RankedFile,
+) -> tuple[int, int, int, int, int]:
+    """Return a categorical pre-semantic evidence tier for safe promotion.
+
+    The gate deliberately ignores BM25 magnitude and term-frequency counts.
+    Those are useful for ordinary lexical ordering but can be inflated by long
+    prose or repetitive files. Confidence records authority categories that
+    existed before embeddings: undiscounted parser/provider authority,
+    implementation-source status, graph corroboration, direct path-or-symbol
+    identity, and finally any lexical overlap.
+
+    Path and symbol matches deliberately share one direct-identity tier. Once
+    deterministic ranking has ordered two directly identified files, embeddings
+    are not allowed to declare one more authoritative merely because it matched
+    both the filename and an outline while the other matched only an outline.
+    """
+    authoritative = int(
+        _structural_authority_value(item.reasons)
+        >= _MIN_UNDISCOUNTED_STRUCTURAL_AUTHORITY
+        or any(reason.startswith("graph:semantic-ref@1") for reason in item.reasons)
+    )
+    implementation_source = int(
+        file_priority(item.rel) < 3
+        and Path(item.rel).suffix.casefold() not in _PROSE_SUFFIXES
+    )
+    graph_corroboration = int(
+        any(reason.startswith("graph:") for reason in item.reasons)
+    )
+    direct_identity = int(
+        _reason_count(item.reasons, "path:") > 0
+        or _reason_count(item.reasons, "symbols:") > 0
+    )
+    lexical_overlap = int(item.term_hits > 0)
+    return (
+        authoritative,
+        implementation_source,
+        graph_corroboration,
+        direct_identity,
+        lexical_overlap,
+    )
+
+
+def _direct_confidence(
+    value: tuple[int, int, int, int, int],
+) -> bool:
+    """Return whether a confidence key contains direct non-topical evidence."""
+    authority, _source, graph, direct, _lexical = value
+    return bool(authority or graph or direct)
+
+
+def _confidence_label(
+    value: tuple[int, int, int, int, int],
+) -> str:
+    """Render compact content-free confidence evidence."""
+    authority, source, graph, direct, lexical = value
+    return (
+        f"authority={authority},source={source},graph={graph},"
+        f"direct={direct},lexical={lexical}"
+    )
+
+
+def _apply_semantic_confidence_gate(
+    ranked: list[RankedFile],
+    baseline_order: list[RankedFile],
+    baseline_scores: dict[str, float],
+    baseline_confidence: dict[str, tuple[int, int, int, int, int]],
+) -> None:
+    """Prevent semantic evidence from leapfrogging stronger baseline evidence.
+
+    Semantic ranking is an augmentation layer, not a replacement for exact
+    lexical/structural authority. A candidate may freely reorder among files
+    with equal or weaker pre-semantic confidence. It may not move above a file
+    that was already ahead and had a strictly stronger confidence key.
+
+    This is deliberately ordinal rather than tuned to one benchmark score:
+    there is no similarity threshold, repository-specific rule, or holdout
+    identifier in the gate.
+    """
+    current = {item.rel: item for item in ranked}
+    preceding: list[RankedFile] = []
+    for baseline_item in baseline_order:
+        candidate = current.get(baseline_item.rel)
+        if candidate is None:
+            preceding.append(baseline_item)
+            continue
+        base_score = baseline_scores.get(candidate.rel, candidate.score)
+        if candidate.score <= base_score:
+            preceding.append(baseline_item)
+            continue
+
+        confidence = baseline_confidence[candidate.rel]
+        barriers = []
+        for item in preceding:
+            if item.rel not in current:
+                continue
+            predecessor_confidence = baseline_confidence[item.rel]
+            stronger = predecessor_confidence > confidence
+            tied_direct = (
+                predecessor_confidence == confidence
+                and _direct_confidence(confidence)
+            )
+            if stronger or tied_direct:
+                barriers.append(current[item.rel])
+        if not barriers:
+            preceding.append(baseline_item)
+            continue
+
+        barrier = min(barriers, key=lambda item: (item.score, item.rel))
+        ceiling = math.nextafter(barrier.score, -math.inf)
+        allowed = max(base_score, ceiling)
+        if candidate.score > allowed:
+            before = candidate.score
+            candidate.score = allowed
+            evidence = (
+                "semantic-confidence-gate:"
+                f"barrier={barrier.rel}:"
+                f"candidate={_confidence_label(confidence)}:"
+                f"barrier-confidence="
+                f"{_confidence_label(baseline_confidence[barrier.rel])}:"
+                f"raw-delta={before - base_score:.3f}:"
+                f"allowed-delta={candidate.score - base_score:.3f}"
+            )
+            candidate.reasons.append(evidence)
+            candidate.score_trace.append(
+                RankingScoreEvent.from_scores(
+                    "semantic-confidence-gate",
+                    before,
+                    candidate.score,
+                    (evidence,),
+                )
+            )
+        preceding.append(baseline_item)
+
+
 def _apply_embedding_rerank_index(
     index: RepositoryIndex,
     query: str,
@@ -422,6 +592,16 @@ def _apply_embedding_rerank_index(
     """
     if not query.strip() or not ranked:
         return
+
+    baseline_order = sorted(
+        ranked,
+        key=lambda item: (-item.score, file_priority(item.rel), item.rel),
+    )
+    baseline_scores = {item.rel: item.score for item in ranked}
+    baseline_confidence = {
+        item.rel: _lexical_confidence_key(item)
+        for item in ranked
+    }
 
     semantic = SemanticVectorIndex(index.root, index)
     hits = semantic.query(
@@ -507,6 +687,12 @@ def _apply_embedding_rerank_index(
     _apply_semantic_graph_expansion(index, ranked, semantic_order)
     _apply_semantic_artifact_authority(index, ranked, query, semantic_order)
     _apply_semantic_peer_expansion(ranked, query, semantic_order)
+    _apply_semantic_confidence_gate(
+        ranked,
+        baseline_order,
+        baseline_scores,
+        baseline_confidence,
+    )
 
 
 def _apply_embedding_rerank(
