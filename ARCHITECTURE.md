@@ -451,6 +451,16 @@ The extraction is behavior-preserving: ranking policy and weights remain in the
 same order, and the frozen holdout remains the regression oracle for any future
 changes to these stages.
 
+
+Final pack assembly is **coverage-aware but rank-preserving**. After ranking,
+`build_context_pack` reserves the existing compact exact-source minimum for as
+many leading candidates as the hard token budget and `max_files` permit.
+Higher-confidence/authoritative files can still consume additional depth, and
+explicit `priority_files` keep their historical allocation semantics. The
+coverage reserve does not alter file scores or reorder candidates; it prevents
+early large sections from exhausting the context before later high-ranked files
+receive any exact-source evidence.
+
 ### File ranking stages
 
 File ranking now has a one-way dependency chain:
