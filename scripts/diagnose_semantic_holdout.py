@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Diagnose semantic reranking changes on an already-burned frozen holdout."""
+"""Diagnose semantic reranking changes on an already-burned frozen holdout.\n\nDevelopment evidence only; never use this mode to claim fresh generalization.\n"""
 
 from __future__ import annotations
 
