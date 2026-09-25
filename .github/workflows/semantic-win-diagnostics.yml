@@ -79,3 +79,5 @@ jobs:
           path: semantic-win-${{ matrix.suite }}-${{ matrix.alias }}.json
           retention-days: 30
           if-no-files-found: error
+
+# Diagnostic-only workflow; results are burned-suite development evidence.
