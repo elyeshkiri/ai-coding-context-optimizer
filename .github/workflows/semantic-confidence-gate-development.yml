@@ -1,0 +1,204 @@
+name: Semantic Confidence Gate Development Validation
+
+on:
+  push:
+    branches:
+      - feature/semantic-confidence-gate
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    if: contains(github.event.head_commit.message, '[validate-semantic-gate]')
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        name: Build burned-suite repository matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          include = []
+          for suite in (13, 14, 15):
+              manifest = Path(f"benchmarks/semantic-holdout-{suite}.frozen.json")
+              payload = json.loads(manifest.read_text())
+              for alias, spec in payload["repositories"].items():
+                  include.append({
+                      "suite": suite,
+                      "alias": alias,
+                      "repository": spec["repository"],
+                      "path": spec["path"],
+                      "revision": spec["revision"],
+                      "manifest": str(manifest),
+                  })
+          print("value=" + json.dumps({"include": include}, separators=(",", ":")))
+          PY
+
+  evaluate:
+    name: Burned semantic ${{ matrix.suite }} / ${{ matrix.alias }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      ACCO_STATE_DIR: /tmp/acco-semantic-gate-${{ matrix.suite }}-${{ matrix.alias }}
+      ACCO_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/acco-huggingface-semantic-gate
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO with exact-scan embeddings
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+          python -m pip uninstall -y hnswlib || true
+
+      - name: Require exact cosine evidence backend
+        run: |
+          python - <<'PY'
+          from acco.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None
+          PY
+
+      - name: Validate frozen suite
+        run: python scripts/run_semantic_holdout.py "${{ matrix.manifest }}" --validate-only
+
+      - name: Clone pinned repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="benchmarks/${{ matrix.path }}"
+          mkdir -p "$(dirname "$path")"
+          git init -q "$path"
+          git -C "$path" remote add origin "https://github.com/${{ matrix.repository }}.git"
+          git -C "$path" fetch -q --depth 1 origin "${{ matrix.revision }}"
+          git -C "$path" checkout -q --detach "${{ matrix.revision }}"
+
+      - name: Download pinned embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+          SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["ACCO_SEMANTIC_MODEL_REVISION"],
+          )
+          PY
+
+      - name: Run burned-suite shard with confidence gate
+        run: |
+          python scripts/run_semantic_holdout.py \
+            "${{ matrix.manifest }}" \
+            --repository "${{ matrix.alias }}" \
+            --progress \
+            --output "gate-${{ matrix.suite }}-${{ matrix.alias }}.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-gate-${{ matrix.suite }}-${{ matrix.alias }}
+          path: gate-${{ matrix.suite }}-${{ matrix.alias }}.json
+          retention-days: 30
+          if-no-files-found: error
+
+  summarize:
+    name: Summarize burned-suite gate evidence
+    needs: evaluate
+    if: ${{ always() && needs.evaluate.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: semantic-gate-*
+          path: results
+          merge-multiple: true
+
+      - name: Aggregate development evidence
+        run: |
+          python - <<'PY' | tee semantic-gate-development-summary.json
+          import glob
+          import json
+
+          canonical = {
+              13: {"lexical": 0.45454545454545453, "semantic": 0.5},
+              14: {"lexical": 0.8, "semantic": 0.825},
+              15: {"lexical": 0.8205128205128205, "semantic": 0.717948717948718},
+          }
+          grouped = {13: [], 14: [], 15: []}
+          for path in glob.glob("results/gate-*.json"):
+              data = json.load(open(path))
+              suite = int(data["suite"].rsplit("-", 1)[1])
+              grouped[suite].extend(data.get("tasks", []))
+
+          result = {}
+          for suite, tasks in grouped.items():
+              n = len(tasks)
+              lexical = sum(t["lexical"]["file_recall"] for t in tasks) / n
+              semantic = sum(t["semantic"]["file_recall"] for t in tasks) / n
+              trivial = sum(t["trivial_lexical"]["file_recall"] for t in tasks) / n
+              recovered = sum(bool(t["semantic_recovered"]) for t in tasks)
+              regressed = sum(bool(t["semantic_regressed"]) for t in tasks)
+              improved = sum(
+                  t["semantic"]["file_recall"] > t["lexical"]["file_recall"]
+                  for t in tasks
+              )
+              worsened = sum(
+                  t["semantic"]["file_recall"] < t["lexical"]["file_recall"]
+                  for t in tasks
+              )
+              result[str(suite)] = {
+                  "task_count": n,
+                  "lexical_file_recall": lexical,
+                  "semantic_file_recall": semantic,
+                  "trivial_lexical_file_recall": trivial,
+                  "semantic_delta": semantic - lexical,
+                  "semantic_recovered_tasks": recovered,
+                  "semantic_regressed_tasks": regressed,
+                  "tasks_improved": improved,
+                  "tasks_worsened": worsened,
+                  "canonical_semantic_before_gate": canonical[suite]["semantic"],
+                  "semantic_change_vs_canonical": semantic - canonical[suite]["semantic"],
+              }
+          print(json.dumps({
+              "development_evidence_only": True,
+              "holdouts_are_burned": True,
+              "summary": result,
+          }, indent=2))
+          PY
+
+      - name: Publish summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          data=json.load(open("semantic-gate-development-summary.json"))
+          print("# Semantic confidence gate — burned-suite development evidence")
+          print()
+          print("| Suite | Lexical | Semantic + gate | Delta | vs prior semantic | Improved/Worsened |")
+          print("| --- | ---: | ---: | ---: | ---: | ---: |")
+          for suite, row in data["summary"].items():
+              print(
+                  f"| #{suite} | {row['lexical_file_recall']:.2%} | "
+                  f"{row['semantic_file_recall']:.2%} | "
+                  f"{row['semantic_delta']:+.2%} | "
+                  f"{row['semantic_change_vs_canonical']:+.2%} | "
+                  f"{row['tasks_improved']}/{row['tasks_worsened']} |"
+              )
+          print()
+          print("These suites are burned and are development evidence only.")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-confidence-gate-development-summary
+          path: semantic-gate-development-summary.json
+          retention-days: 30
