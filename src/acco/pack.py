@@ -18,6 +18,10 @@ from .retrieval_cache import cache_key as retrieval_cache_key
 from .retrieval_cache import load as load_retrieval_cache
 from .retrieval_cache import store as store_retrieval_cache
 from .working_set import save_working_set
+from .packing.budget_allocation import (
+    coverage_target as _coverage_target,
+    ranked_candidate_budget as _ranked_candidate_budget,
+)
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
 from .packing.ranking import (
     _AUTHORITY_CALLABLE_KINDS as _AUTHORITY_CALLABLE_KINDS,
@@ -102,16 +106,6 @@ from .packing.symbol_windows import (
 
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
-
-# Fraction (numerator, denominator) of the remaining budget one candidate may
-# use while more candidates and slots remain. A file that structurally defines
-# the callable the query names keeps the larger share because its window has
-# to hold that body; other files mostly need room for an outline, and a smaller
-# share lets more ranked candidates fit. A uniform 2/5 share was measured to
-# truncate defining files and drop their target symbols on external holdouts.
-_AUTHORITY_SHARE = (3, 5)
-_ORDINARY_SHARE = (2, 5)
-
 
 def _changed_files(root: Path) -> set[str]:
     """Compatibility seam for changed-file discovery and monkeypatching."""
@@ -316,6 +310,17 @@ def build_context_pack(
     )
     priority_seen = 0
 
+    usable_tokens = max(0, max_tokens - used)
+    coverage_target = (
+        0
+        if priority_files
+        else _coverage_target(
+            usable_tokens,
+            max_files=max_files,
+            candidate_count=len(candidates),
+        )
+    )
+
     # Reserve a bounded slot for the highest-ranked exact one-hop value
     # provider among the candidates. This prevents a huge consumer outline
     # from monopolizing the whole context budget before its provider is
@@ -350,22 +355,15 @@ def build_context_pack(
             if slots_left > 1:
                 remaining = min(remaining, max(remaining // slots_left, 200))
         elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
-            # Cap an ordinary candidate's share of what's left so one large,
-            # top-ranked file can't silently consume the whole budget before
-            # any other candidate is even considered -- found via the second
-            # frozen external holdout: a single oversized test file used
-            # 5993 of a 6000-token budget by itself, leaving the correctly
-            # ranked #4 implementation file with literally nothing. Only
-            # kicks in while more candidates and slots remain to benefit
-            # from the reserved room; the true last usable candidate still
-            # gets whatever's left rather than wasting it unused.
             has_authority = any(
                 reason.startswith("structural-symbol:") for reason in item.reasons
             )
-            share_num, share_den = (
-                _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
+            remaining = _ranked_candidate_budget(
+                remaining,
+                selected_count=len(selected),
+                coverage_target_count=coverage_target,
+                has_authority=has_authority,
             )
-            remaining = min(remaining, max(remaining * share_num // share_den, 300))
 
         section_budget = remaining
         if (

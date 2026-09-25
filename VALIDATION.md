@@ -388,6 +388,32 @@ regression evidence only and must not replace run 36122836318 as the fresh
 headline. Any fix motivated by #16 needs a newly frozen suite before ACCO can
 claim fresh generalization.
 
+A post-run **burned diagnostic** separated ranking quality from context-packing
+coverage before the next fresh suite was defined. On the unchanged #16 tasks:
+
+- ACCO lexical rank@12 recall is **83.80%**, versus **71.76%** for the trivial
+  distinct-term rank@12 baseline;
+- the canonical 6k ACCO pack rendered only **5.61 files on average**, reducing
+  that stronger ranking to the **62.96%** fresh pack headline;
+- when the trivial baseline is truncated to the same per-task file count as the
+  ACCO pack, its recall is only **43.98%**.
+
+This shows that the apparent +8.8-point trivial advantage in the fresh headline
+was primarily a **rank-to-pack allocation confound**, not evidence that
+distinct-term ordering was stronger.
+
+The coverage-aware allocation candidate in PR #123 was then replayed on burned
+#16 as development evidence only. It preserves a compact evidence budget for
+later high-ranked files before spending surplus on depth. With the same 6k hard
+cap it reaches **82.41% pack file recall**, selects **11.56 files on average**,
+and uses **5995.5 tokens on average**, versus **5993.7 tokens** before the
+change. Five tasks improve and none regress. This nearly realizes the existing
+83.80% rank@12 recall without increasing the configured token budget.
+
+These figures are **not fresh generalization evidence**. They justify the
+mechanism and regression tests; a separately frozen holdout #17 is required
+before claiming that the allocation change generalizes.
+
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
