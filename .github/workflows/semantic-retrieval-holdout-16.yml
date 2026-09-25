@@ -173,7 +173,7 @@ jobs:
               Path("benchmarks/semantic-holdout-16.result.json").read_text()
           )
           summary = result["summary"]
-          print("# Semantic holdout 16 — first run")
+          print("# Semantic holdout 16 — burned-suite rerun")
           print()
           print(f"- eligible tasks: {summary['task_count']}")
           print(f"- lexical file recall: {summary['lexical_file_recall']:.2%}")

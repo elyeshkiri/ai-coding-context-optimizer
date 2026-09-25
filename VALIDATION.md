@@ -322,8 +322,8 @@ regression-guard repositories and 2 from werkzeug; axum contributes no eligible
 headline task, so the cleaner independent subset remains small.
 
 
-Semantic holdout #16 is the first fresh post-confidence-gate generalization
-suite. Its query layer was frozen **before ground-truth collection** at commit
+Semantic holdout #16 is the fresh post-confidence-gate generalization suite.
+Its query layer was frozen **before ground-truth collection** at commit
 `90bd16be19f85c6234c3a020d2c805db7722d208`, with query-freeze SHA-256
 `f485dac4cef84caeefadc477e932b28734e0d13111671f119f9b70dad387f958`.
 Ground truth was then derived mechanically from merged upstream fixes and sealed
@@ -333,50 +333,60 @@ with SHA-256
 The suite contains **18 headline-eligible tasks across six repositories not
 present in ACCO's checked-in prior semantic/external holdout evidence**:
 HTTPX, Requests, serde_json, Jackson Databind, Pydantic, and Trio. The cohort
-spans Python, Rust, and Java. The same case-insensitive answer-identifier audit
-used by earlier semantic suites found **zero literal identifier leaks** across
-all 18 queries.
-
-The canonical first evaluation is GitHub Actions run **36122836318**, executed
-from throwaway branch `bench/run-semantic-holdout-16` whose only code change
-was adding a one-shot push trigger to the already-frozen workflow because the
-available GitHub connector did not expose `workflow_dispatch`. Frozen queries,
-ground truth, repository revisions, embedding revision, and ACCO retrieval code
-were unchanged from `main`.
-
-| Arm | File recall |
-| --- | ---: |
-| ACCO lexical/structural | **62.96%** |
-| ACCO gated hybrid semantic | **56.02%** |
-| Trivial distinct-term lexical | **71.76%** |
-
-Semantic finished **6.94 percentage points below** ACCO lexical/structural and
-**15.74 points below** the trivial lexical baseline on this fresh cohort. It
-produced **0 semantic-recovered tasks** and **1 strict semantic regression**.
-
-The strict regression is `httpx-head-empty-zstd`: lexical selected
-`httpx/_decoders.py` for **100% recall**, while gated semantic displaced it and
-fell to **0%**. One additional partial-recall degradation occurred on
-`jackson-decimal-biginteger-scale`: lexical recalled 1 of 4 expected files
-(**25%**) while semantic recalled none (**0%**). No eligible task had higher
-semantic file recall than lexical.
-
-Mean estimated context reduction was effectively unchanged:
-**97.9636% lexical vs 97.9646% semantic**. The result therefore does not support
-a claim that the current semantic confidence gate makes semantic retrieval
-generally superior to ACCO's lexical/structural ranker.
+spans Python, Rust, and Java, with repository revisions pinned in
+`benchmarks/semantic-holdout-16.query-freeze.json`. The same
+case-insensitive answer-identifier audit used by earlier semantic suites finds
+**zero literal identifier leaks** across all 18 queries.
 
 The expected-file rule is unchanged from holdout #15: non-test,
 non-documentation source files changed by the merged upstream fix and present at
 the pinned revision are retained, while source edits of two lines or fewer are
 dropped when the same fix contains a larger source edit. Two Requests tasks use
-merged pull-request problem statements because no separate issue was selected;
-that weaker independence was frozen before results were known.
+the merged pull request's problem statement because no separate issue was
+selected; this weaker independence is frozen in the manifest disclosure rather
+than hidden after results are known.
 
-**Holdout #16 is now burned.** It may be used diagnostically or as development
-regression evidence, but not tuned against and then rescored as a fresh
-generalization claim. Any future semantic-ranking change needs a new frozen
-holdout before claiming fresh generalization.
+Holdout #16's **first and canonical fresh evaluation** is GitHub Actions run
+**36122836318**. All six repository shards and the merge job completed
+successfully using the frozen revisions, pinned
+`all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a`, exact cosine, and no HNSW.
+
+| Arm | Fresh file recall |
+| --- | ---: |
+| Trivial distinct-term lexical | **71.76%** |
+| ACCO lexical/structural | **62.96%** |
+| ACCO gated hybrid semantic | **56.02%** |
+
+The gated semantic arm is **6.94 percentage points below** ACCO
+lexical/structural and **15.74 points below** the trivial lexical baseline.
+It produced **0 strict semantic recoveries** and **1 strict semantic
+regression**. No eligible task had higher semantic file recall than lexical.
+
+The strict regression is `httpx-head-empty-zstd`, where the lexical arm
+recalled the expected decoder file at **100%** and the semantic arm fell to
+**0%**. There is also a partial-recall decrease on
+`jackson-decimal-biginteger-scale` (**25% -> 0%**), which is not counted by
+the suite's strict regression flag because lexical recall was already partial.
+Mean estimated context reduction was effectively unchanged:
+**97.9636% lexical vs 97.9646% semantic**.
+
+This is a meaningful negative generalization result. The confidence gate fixed
+the burned #15 regressions but did **not** establish a general semantic
+advantage on a fresh cohort. More broadly, ACCO's lexical/structural arm also
+underperformed the deliberately simple distinct-term baseline on #16, so the
+fresh evidence points to a wider retrieval-ranking gap rather than a
+semantic-only problem.
+
+Two Requests tasks use merged pull-request problem statements rather than
+separate issue text, as disclosed before evaluation. The headline above retains
+all 18 frozen eligible tasks exactly as defined; no task is removed or
+reweighted after seeing results.
+
+Holdout #16 is now **burned for tuning**. Later executions are development /
+regression evidence only and must not replace run 36122836318 as the fresh
+headline. Any fix motivated by #16 needs a newly frozen suite before ACCO can
+claim fresh generalization.
 
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
