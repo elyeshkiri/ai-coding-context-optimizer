@@ -112,6 +112,65 @@ _DEFAULT_CONTEXT_LINES = 6
 _AUTHORITY_SHARE = (3, 5)
 _ORDINARY_SHARE = (2, 5)
 
+# When the token budget can support multiple files, preserve breadth before
+# spending all remaining context on the earliest candidates. Each coverage slot
+# receives enough budget for a compact source/outline capsule; at most 3/5 of
+# the usable pack budget is precommitted this way, leaving the rest available
+# for deeper evidence in the strongest-ranked files.
+_COVERAGE_SLOT_TOKENS = 300
+_COVERAGE_RESERVE_SHARE = (3, 5)
+
+
+def _coverage_target(
+    usable_tokens: int,
+    *,
+    max_files: int,
+    candidate_count: int,
+) -> int:
+    """Return how many ranked files should retain a minimum evidence capsule.
+
+    Coverage is bounded by the caller's file limit, the available candidates,
+    and 3/5 of the usable token budget. Very tight budgets still allow the
+    normal first candidate rather than forcing an impossible reservation.
+    """
+    if usable_tokens <= 0 or max_files <= 0 or candidate_count <= 0:
+        return 0
+    reserve_num, reserve_den = _COVERAGE_RESERVE_SHARE
+    reservable = usable_tokens * reserve_num // reserve_den
+    by_budget = reservable // _COVERAGE_SLOT_TOKENS
+    return min(max_files, candidate_count, max(1, by_budget))
+
+
+def _coverage_aware_section_budget(
+    remaining: int,
+    *,
+    selected_count: int,
+    coverage_target: int,
+    has_authority: bool,
+) -> int:
+    """Budget one file while reserving compact slots for later ranked files.
+
+    Before the coverage target is reached, every not-yet-selected target slot
+    keeps a 300-token floor. The current candidate receives its own floor plus
+    a bounded share of the surplus: 3/5 for structural authority, 2/5
+    otherwise. Once coverage is satisfied, callers fall back to the historical
+    remaining-budget share logic.
+    """
+    slots = coverage_target - selected_count
+    if slots <= 0 or remaining <= 0:
+        return remaining
+    floor_total = slots * _COVERAGE_SLOT_TOKENS
+    if remaining <= floor_total:
+        return max(1, remaining // max(1, slots))
+    surplus = remaining - floor_total
+    share_num, share_den = (
+        _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
+    )
+    return min(
+        remaining,
+        _COVERAGE_SLOT_TOKENS + surplus * share_num // share_den,
+    )
+
 
 def _changed_files(root: Path) -> set[str]:
     """Compatibility seam for changed-file discovery and monkeypatching."""
@@ -316,6 +375,17 @@ def build_context_pack(
     )
     priority_seen = 0
 
+    usable_tokens = max(0, max_tokens - used)
+    coverage_target = (
+        0
+        if priority_files
+        else _coverage_target(
+            usable_tokens,
+            max_files=max_files,
+            candidate_count=len(candidates),
+        )
+    )
+
     # Reserve a bounded slot for the highest-ranked exact one-hop value
     # provider among the candidates. This prevents a huge consumer outline
     # from monopolizing the whole context budget before its provider is
@@ -350,22 +420,33 @@ def build_context_pack(
             if slots_left > 1:
                 remaining = min(remaining, max(remaining // slots_left, 200))
         elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
-            # Cap an ordinary candidate's share of what's left so one large,
-            # top-ranked file can't silently consume the whole budget before
-            # any other candidate is even considered -- found via the second
-            # frozen external holdout: a single oversized test file used
-            # 5993 of a 6000-token budget by itself, leaving the correctly
-            # ranked #4 implementation file with literally nothing. Only
-            # kicks in while more candidates and slots remain to benefit
-            # from the reserved room; the true last usable candidate still
-            # gets whatever's left rather than wasting it unused.
+            # Preserve breadth before depth. Earlier versions only capped each
+            # candidate to a fraction of the *remaining* budget. At 6k that
+            # geometric decay commonly rendered only five or six files even
+            # when the correctly ranked answer sat at rank 7-12. Reserve a
+            # compact evidence capsule for the rest of the coverage target,
+            # then let this candidate spend a bounded share of the surplus.
             has_authority = any(
                 reason.startswith("structural-symbol:") for reason in item.reasons
             )
-            share_num, share_den = (
-                _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
-            )
-            remaining = min(remaining, max(remaining * share_num // share_den, 300))
+            if coverage_target > len(selected):
+                remaining = min(
+                    remaining,
+                    _coverage_aware_section_budget(
+                        remaining,
+                        selected_count=len(selected),
+                        coverage_target=coverage_target,
+                        has_authority=has_authority,
+                    ),
+                )
+            else:
+                share_num, share_den = (
+                    _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
+                )
+                remaining = min(
+                    remaining,
+                    max(remaining * share_num // share_den, _COVERAGE_SLOT_TOKENS),
+                )
 
         section_budget = remaining
         if (
