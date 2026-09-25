@@ -1,0 +1,6 @@
+Semantic holdout 17 canonical first-run trigger.
+
+This marker exists only to fire the path-gated GitHub Actions workflow after
+the frozen suite and its instrumentation were merged to main. Do not edit this
+file to rerun the suite; any later run is development evidence and should use
+the workflow_dispatch confirmation gate.

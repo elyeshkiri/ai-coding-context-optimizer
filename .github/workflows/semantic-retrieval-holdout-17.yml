@@ -7,13 +7,18 @@ on:
         description: "Type RUN_SEMANTIC_HOLDOUT_17. The first successful run burns this fresh suite; reruns are development evidence only."
         required: true
         type: string
+  push:
+    branches:
+      - main
+    paths:
+      - benchmarks/semantic-holdout-17.run
 
 permissions:
   contents: read
 
 jobs:
   semantic-holdout:
-    if: ${{ inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_17' }}
+    if: ${{ github.event_name == 'push' || inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_17' }}
     name: Frozen semantic holdout 17 / ${{ matrix.alias }}
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -45,10 +50,15 @@ jobs:
       HF_HOME: /tmp/acco-huggingface-17
 
     steps:
-      - name: Require explicit burn confirmation
+      - name: Require explicit burn trigger
         run: |
-          if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_17" ]; then
-            echo "Refusing to run semantic holdout 17 without exact confirmation." >&2
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_17" ]; then
+              echo "Refusing to run semantic holdout 17 without exact confirmation." >&2
+              exit 2
+            fi
+          elif [ "${{ github.event_name }}" != "push" ]; then
+            echo "Unexpected trigger for semantic holdout 17." >&2
             exit 2
           fi
 
