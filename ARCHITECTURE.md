@@ -331,7 +331,10 @@ promotion records `semantic-confidence-gate:...` in ranking evidence.
 This preserves semantic rescue as a discovery mechanism while making
 deterministic lexical/structural evidence the authority layer. The gate is
 ordinal and repository-agnostic: it contains no embedding-similarity threshold,
-holdout identifier, repository name, or task-specific exception.
+holdout identifier, repository name, or task-specific exception. The same
+authority rule continues at rendering time: parser-backed symbol windows precede
+semantic ranges inside a file, so tight per-file fitting clips embedding ranges
+before exact structural source.
 
 ### Persistent retrieval-cache boundary
 
