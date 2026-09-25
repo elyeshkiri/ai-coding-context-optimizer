@@ -420,6 +420,9 @@ def _reason_count(reasons: list[str], prefix: str) -> int:
     return best
 
 
+_PROSE_SUFFIXES = frozenset({".md", ".markdown", ".rst", ".txt"})
+
+
 def _lexical_confidence_key(item: RankedFile) -> tuple[int, int, int, int, int]:
     """Return an ordinal pre-semantic evidence tier for safe promotion.
 
@@ -433,7 +436,10 @@ def _lexical_confidence_key(item: RankedFile) -> tuple[int, int, int, int, int]:
         any(reason.startswith("structural-symbol:") for reason in item.reasons)
         or any(reason.startswith("graph:semantic-ref@1") for reason in item.reasons)
     )
-    implementation_source = int(file_priority(item.rel) < 3)
+    implementation_source = int(
+        file_priority(item.rel) < 3
+        and Path(item.rel).suffix.casefold() not in _PROSE_SUFFIXES
+    )
     named_hits = (
         _reason_count(item.reasons, "path:")
         + _reason_count(item.reasons, "symbols:")
