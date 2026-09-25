@@ -67,6 +67,8 @@ def verify_swebench(
 
 _DIFF_HEADER = re.compile(r"^diff --git a/(\S+) b/(\S+)", re.M)
 _STATUS_LINE = re.compile(r"^(PASSED|FAILED|ERROR|XFAIL|XPASS|SKIPPED)[ \t]+(\S.*)$")
+# Some official images force colored pytest output (e.g. astropy's setup.cfg).
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 
 def _patch_blocks(patch: str) -> list[str]:
@@ -97,7 +99,7 @@ def strip_test_file_changes(agent_patch: str, test_patch: str) -> str:
 def parse_test_statuses(output: str) -> dict[str, str]:
     """Per-test outcome parsed from pytest ``-rA`` short-summary lines."""
     statuses: dict[str, str] = {}
-    for line in output.splitlines():
+    for line in _ANSI_ESCAPE.sub("", output).splitlines():
         match = _STATUS_LINE.match(line)
         if not match:
             continue

@@ -549,3 +549,100 @@ def test_condition_profile_rejects_empty_model_override(tmp_path):
 
     with pytest.raises(ValueError, match="baseline.model must be nonempty"):
         validate_suite(path, require_broad=False)
+
+
+def test_setup_instrumentation_is_visible_to_agent_but_not_in_patch(
+    tmp_path, monkeypatch
+):
+    """The realistic `acco setup` arm must never leak its config into the graded patch."""
+    path, _suite_payload = _suite(tmp_path, task_count=1, trials=1)
+    monkeypatch.setattr("acco.experiment.user_acco_hook_configured", lambda: False)
+    runner = tmp_path / "runner.py"
+    runner.write_text(
+        runner.read_text(encoding="utf-8")
+        + """
+seen = sorted(
+    str(p) for p in (".mcp.json", ".acco.toml", ".claude/settings.json",
+                     ".claude/settings.local.json")
+    if pathlib.Path(p).is_file()
+)
+(transcript.parent / "seen.json").write_text(json.dumps(seen), encoding="utf-8")
+""",
+        encoding="utf-8",
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"] = {
+        "baseline": {"install_acco": False},
+        "enabled": {"install_acco": True, "instrumentation": "setup"},
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    output = tmp_path / "runs.json"
+
+    result = run_experiment(path, output, allow_development=True)
+
+    for run in result["runs"]:
+        run_dir = (tmp_path / run["transcripts"][0]).parent
+        seen = json.loads((run_dir / "seen.json").read_text(encoding="utf-8"))
+        patch = (tmp_path / run["agent_patch"]).read_text(encoding="utf-8")
+        changed = [line.split(" b/")[-1] for line in patch.splitlines()
+                   if line.startswith("diff --git")]
+        assert changed == ["fixed.txt"]
+        if run["condition"] == "enabled":
+            assert seen == [
+                ".acco.toml",
+                ".claude/settings.json",
+                ".claude/settings.local.json",
+                ".mcp.json",
+            ]
+        else:
+            assert seen == []
+
+
+def test_unknown_instrumentation_mode_is_rejected(tmp_path):
+    path, _suite_payload = _suite(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["runner"]["condition_profiles"] = {
+        "baseline": {"install_acco": False},
+        "enabled": {"install_acco": True, "instrumentation": "plugin"},
+    }
+    payload["protocol"]["task_definition_sha256"] = task_definition_hash(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="instrumentation must be hooks or setup"):
+        validate_suite(path, require_broad=False)
+
+
+def test_snapshot_tree_equals_revision_despite_gitignore_and_export_subst(tmp_path):
+    from acco.experiment import _export_history_isolated_snapshot
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / ".gitignore").write_text("*.c\n", encoding="utf-8")
+    (source / ".gitattributes").write_text("archival.txt export-subst\n", encoding="utf-8")
+    (source / "archival.txt").write_text("node: $Format:%H$\n", encoding="utf-8")
+    (source / "gamma.c").write_text("int gamma;\n", encoding="utf-8")
+    (source / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    for args in (
+        ["init", "-q"],
+        ["config", "user.email", "t@example.invalid"],
+        ["config", "user.name", "T"],
+        ["add", "-A", "--force"],
+        ["commit", "-q", "-m", "upstream"],
+    ):
+        subprocess.run(["git", "-C", str(source), *args], check=True)
+    revision = subprocess.run(
+        ["git", "-C", str(source), "rev-parse", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+    snapshot = tmp_path / "snapshot"
+    _export_history_isolated_snapshot(source, revision, snapshot)
+
+    def tree(repo, rev):
+        return subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", f"{rev}^{{tree}}"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+
+    assert tree(snapshot, "HEAD") == tree(source, revision)

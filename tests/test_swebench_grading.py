@@ -63,6 +63,18 @@ def test_parse_test_statuses_reads_pytest_short_summary():
     assert passed_tests(out) == {"tests/a.py::test_ok[True]"}
 
 
+def test_parse_test_statuses_ignores_forced_color_output():
+    # astropy's official image runs pytest with --color=yes.
+    out = "\n".join([
+        "\x1b[32mPASSED\x1b[0m t.py::\x1b[1mtest_ok[a]\x1b[0m",
+        "\x1b[31mFAILED\x1b[0m t.py::\x1b[1mtest_bad\x1b[0m - IndexError: boom",
+    ])
+    assert parse_test_statuses(out) == {
+        "t.py::test_ok[a]": "PASSED",
+        "t.py::test_bad": "FAILED",
+    }
+
+
 def test_grade_ignores_preexisting_errors_but_catches_regressions():
     reference = {"t::keep", "t::other"}
     ok = grade_swebench(["t::target"], reference, {"t::target", "t::keep", "t::other"})
