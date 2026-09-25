@@ -156,6 +156,35 @@ def test_context_pack_does_not_let_one_large_file_monopolize_the_budget(tmp_path
     assert "src/target_provider.py" in pack.selected_files
 
 
+def test_context_pack_reserves_budget_for_later_ranked_candidates(tmp_path):
+    """A bounded pack should preserve breadth after ranking, not only top-file depth."""
+    src = tmp_path / "src"
+    src.mkdir()
+    body = "\n".join(
+        f"    value = validate_refresh_session_configuration(value)  # step {i}"
+        for i in range(80)
+    )
+    for n in range(10):
+        (src / f"worker_{n:02d}.py").write_text(
+            "def validate_refresh_session_configuration(value):\n"
+            + body
+            + "\n    return value\n",
+            encoding="utf-8",
+        )
+
+    pack = build_context_pack(
+        tmp_path,
+        "validate refresh session configuration",
+        max_tokens=3000,
+        max_files=10,
+        changed_boost=False,
+    )
+
+    assert pack.estimated_tokens <= 3000
+    assert len(pack.selected_files) >= 9
+    assert "src/worker_08.py" in pack.selected_files
+
+
 def test_symbol_window_matches_acronym_prefixed_class_name(tmp_path):
     # Found via the second frozen external holdout (psf/requests):
     # HTTPBasicAuth's own name previously tokenized as one fused word
