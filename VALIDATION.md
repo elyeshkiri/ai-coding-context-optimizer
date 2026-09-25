@@ -346,10 +346,47 @@ the merged pull request's problem statement because no separate issue was
 selected; this weaker independence is frozen in the manifest disclosure rather
 than hidden after results are known.
 
-**Holdout #16 has not been evaluated.** Its workflow is manual-only and requires
-the exact confirmation string `RUN_SEMANTIC_HOLDOUT_16`. The first completed
-evaluation will permanently burn the suite. Until then, ACCO must not claim any
-fresh post-confidence-gate semantic-generalization result from #16.
+Holdout #16's **first and canonical fresh evaluation** is GitHub Actions run
+**36122836318**. All six repository shards and the merge job completed
+successfully using the frozen revisions, pinned
+`all-MiniLM-L6-v2` revision
+`bc57282bc374d33e0d6c4de27f12dc1c2a87f37a`, exact cosine, and no HNSW.
+
+| Arm | Fresh file recall |
+| --- | ---: |
+| Trivial distinct-term lexical | **71.76%** |
+| ACCO lexical/structural | **62.96%** |
+| ACCO gated hybrid semantic | **56.02%** |
+
+The gated semantic arm is **6.94 percentage points below** ACCO
+lexical/structural and **15.74 points below** the trivial lexical baseline.
+It produced **0 strict semantic recoveries** and **1 strict semantic
+regression**. No eligible task had higher semantic file recall than lexical.
+
+The strict regression is `httpx-head-empty-zstd`, where the lexical arm
+recalled the expected decoder file at **100%** and the semantic arm fell to
+**0%**. There is also a partial-recall decrease on
+`jackson-decimal-biginteger-scale` (**25% -> 0%**), which is not counted by
+the suite's strict regression flag because lexical recall was already partial.
+Mean estimated context reduction was effectively unchanged:
+**97.9636% lexical vs 97.9646% semantic**.
+
+This is a meaningful negative generalization result. The confidence gate fixed
+the burned #15 regressions but did **not** establish a general semantic
+advantage on a fresh cohort. More broadly, ACCO's lexical/structural arm also
+underperformed the deliberately simple distinct-term baseline on #16, so the
+fresh evidence points to a wider retrieval-ranking gap rather than a
+semantic-only problem.
+
+Two Requests tasks use merged pull-request problem statements rather than
+separate issue text, as disclosed before evaluation. The headline above retains
+all 18 frozen eligible tasks exactly as defined; no task is removed or
+reweighted after seeing results.
+
+Holdout #16 is now **burned for tuning**. Later executions are development /
+regression evidence only and must not replace run 36122836318 as the fresh
+headline. Any fix motivated by #16 needs a newly frozen suite before ACCO can
+claim fresh generalization.
 
 
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
