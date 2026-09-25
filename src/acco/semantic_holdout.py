@@ -288,13 +288,22 @@ def _arm_result(
     expected_files: set[str],
     selected_files: list[str],
     *,
+    ranked_files: list[str] | None = None,
     tokens: int | None = None,
     source_tokens: int | None = None,
 ) -> dict[str, Any]:
-    """Return comparable per-arm file evidence."""
+    """Return rank-level and packed per-arm file evidence."""
+    ranked = selected_files if ranked_files is None else ranked_files
+    packed_recall = _recall(expected_files, set(selected_files))
+    rank_recall = _recall(expected_files, set(ranked))
     result: dict[str, Any] = {
         "selected_files": selected_files,
-        "file_recall": _recall(expected_files, set(selected_files)),
+        "file_recall": packed_recall,
+        "ranked_files": ranked,
+        "rank_file_recall": rank_recall,
+        "selected_file_count": len(selected_files),
+        "rank_file_count": len(ranked),
+        "rank_to_pack_recall_loss": max(0.0, rank_recall - packed_recall),
     }
     if tokens is not None:
         result["tokens"] = tokens
@@ -304,15 +313,23 @@ def _arm_result(
 
 
 def _summarize(items: list[dict[str, Any]]) -> dict[str, Any]:
-    """Aggregate three-arm file recall and semantic delta evidence."""
+    """Aggregate rank, packing, and semantic delta evidence."""
     if not items:
         return {
             "task_count": 0,
             "lexical_file_recall": 0.0,
             "semantic_file_recall": 0.0,
             "trivial_lexical_file_recall": 0.0,
+            "lexical_rank_file_recall": 0.0,
+            "semantic_rank_file_recall": 0.0,
+            "lexical_rank_to_pack_recall_loss": 0.0,
+            "semantic_rank_to_pack_recall_loss": 0.0,
+            "lexical_mean_selected_files": 0.0,
+            "semantic_mean_selected_files": 0.0,
             "semantic_recovered_tasks": 0,
             "semantic_regressed_tasks": 0,
+            "semantic_improved_tasks": 0,
+            "semantic_worsened_tasks": 0,
         }
     return {
         "task_count": len(items),
@@ -325,6 +342,24 @@ def _summarize(items: list[dict[str, Any]]) -> dict[str, Any]:
         "trivial_lexical_file_recall": sum(
             item["trivial_lexical"]["file_recall"] for item in items
         ) / len(items),
+        "lexical_rank_file_recall": sum(
+            item["lexical"]["rank_file_recall"] for item in items
+        ) / len(items),
+        "semantic_rank_file_recall": sum(
+            item["semantic"]["rank_file_recall"] for item in items
+        ) / len(items),
+        "lexical_rank_to_pack_recall_loss": sum(
+            item["lexical"]["rank_to_pack_recall_loss"] for item in items
+        ) / len(items),
+        "semantic_rank_to_pack_recall_loss": sum(
+            item["semantic"]["rank_to_pack_recall_loss"] for item in items
+        ) / len(items),
+        "lexical_mean_selected_files": sum(
+            item["lexical"]["selected_file_count"] for item in items
+        ) / len(items),
+        "semantic_mean_selected_files": sum(
+            item["semantic"]["selected_file_count"] for item in items
+        ) / len(items),
         "lexical_mean_token_reduction": sum(
             item["lexical"]["token_reduction"] for item in items
         ) / len(items),
@@ -333,6 +368,14 @@ def _summarize(items: list[dict[str, Any]]) -> dict[str, Any]:
         ) / len(items),
         "semantic_recovered_tasks": sum(bool(item["semantic_recovered"]) for item in items),
         "semantic_regressed_tasks": sum(bool(item["semantic_regressed"]) for item in items),
+        "semantic_improved_tasks": sum(
+            item["semantic"]["file_recall"] > item["lexical"]["file_recall"]
+            for item in items
+        ),
+        "semantic_worsened_tasks": sum(
+            item["semantic"]["file_recall"] < item["lexical"]["file_recall"]
+            for item in items
+        ),
         "semantic_file_recall_delta": sum(
             item["semantic"]["file_recall"] - item["lexical"]["file_recall"]
             for item in items
@@ -440,19 +483,31 @@ def evaluate_semantic_holdout(
             max_files=max_files,
         )
 
+        lexical_ranked_files = [
+            item.rel for item in lexical_pack.ranked[:max_files]
+        ]
+        semantic_ranked_files = [
+            item.rel for item in semantic_pack.ranked[:max_files]
+        ]
         lexical = _arm_result(
             expected_files,
             lexical_pack.selected_files,
+            ranked_files=lexical_ranked_files,
             tokens=lexical_pack.estimated_tokens,
             source_tokens=source_tokens[repo_root],
         )
         semantic = _arm_result(
             expected_files,
             semantic_pack.selected_files,
+            ranked_files=semantic_ranked_files,
             tokens=semantic_pack.estimated_tokens,
             source_tokens=source_tokens[repo_root],
         )
-        trivial = _arm_result(expected_files, trivial_files)
+        trivial = _arm_result(
+            expected_files,
+            trivial_files,
+            ranked_files=trivial_files,
+        )
         item = {
             "id": task.get("id", position),
             "repository": alias,
