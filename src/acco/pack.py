@@ -19,6 +19,10 @@ from .retrieval_cache import load as load_retrieval_cache
 from .retrieval_cache import store as store_retrieval_cache
 from .working_set import save_working_set
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
+from .packing.budget_allocation import (
+    candidate_section_budget,
+    coverage_target,
+)
 from .packing.ranking import (
     _AUTHORITY_CALLABLE_KINDS as _AUTHORITY_CALLABLE_KINDS,
     _FileRankingScope as _FileRankingScope,
@@ -102,22 +106,6 @@ from .packing.symbol_windows import (
 
 _DEFAULT_MAX_FILES = 12
 _DEFAULT_CONTEXT_LINES = 6
-
-# Fraction (numerator, denominator) of the remaining budget one candidate may
-# use while more candidates and slots remain. A file that structurally defines
-# the callable the query names keeps the larger share because its window has
-# to hold that body; other files mostly need room for an outline, and a smaller
-# share lets more ranked candidates fit. A uniform 2/5 share was measured to
-# truncate defining files and drop their target symbols on external holdouts.
-_AUTHORITY_SHARE = (3, 5)
-_ORDINARY_SHARE = (2, 5)
-
-# Minimum budget for one compact exact-source file section. This was already
-# the packer's lower bound when sharing remaining budget; make it explicit so
-# ranked candidates can reserve enough room for later evidence instead of
-# letting the first ~5 files consume a 6k pack before ranks 7-12 are considered.
-_MIN_COVERAGE_SECTION_TOKENS = 300
-
 
 def _changed_files(root: Path) -> set[str]:
     """Compatibility seam for changed-file discovery and monkeypatching."""
@@ -351,19 +339,12 @@ def build_context_pack(
         ),
         None,
     )
-    # Explicit priority files intentionally keep their historical allocation
-    # semantics. Otherwise reserve one compact exact-source section for as many
-    # top-ranked candidates as the hard token budget can mechanically support.
-    # This turns good rank@K quality into actual pack coverage without changing
-    # rank scores or relaxing the final token cap.
-    coverage_target = 0
-    if not priority_files:
-        available_for_files = max(0, max_tokens - used)
-        coverage_target = min(
-            max_files,
-            len(candidates),
-            available_for_files // _MIN_COVERAGE_SECTION_TOKENS,
-        )
+    coverage_slots = coverage_target(
+        available_tokens=max(0, max_tokens - used),
+        max_files=max_files,
+        candidate_count=len(candidates),
+        priority_mode=bool(priority_files),
+    )
 
     for idx, item in enumerate(candidates):
         if len(selected) >= max_files:
@@ -371,65 +352,36 @@ def build_context_pack(
         total_remaining = max_tokens - used
         if total_remaining <= 20:
             break
-        section_budget = total_remaining
-        if priority_files and item.rel in priority_files:
+        is_priority = bool(priority_files and item.rel in priority_files)
+        if is_priority:
             priority_seen += 1
-            slots_left = priority_total - priority_seen + 1
-            if slots_left > 1:
-                section_budget = min(
-                    section_budget,
-                    max(total_remaining // slots_left, 200),
-                )
-        elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
-            # Cap an ordinary candidate's share of what's left so one large,
-            # top-ranked file cannot monopolize the pack. Structural authority
-            # may still use a larger share, but neither class may spend budget
-            # already reserved for compact evidence from later top-ranked files.
-            has_authority = any(
-                reason.startswith("structural-symbol:") for reason in item.reasons
-            )
-            share_num, share_den = (
-                _AUTHORITY_SHARE if has_authority else _ORDINARY_SHARE
-            )
-            section_budget = min(
-                section_budget,
-                max(
-                    total_remaining * share_num // share_den,
-                    _MIN_COVERAGE_SECTION_TOKENS,
-                ),
-            )
-
-        reserve = 0
-        if coverage_target and idx < coverage_target:
-            future_coverage_slots = max(0, coverage_target - idx - 1)
-            reserve += (
-                future_coverage_slots * _MIN_COVERAGE_SECTION_TOKENS
-            )
-        if (
+        priority_slots_left = (
+            priority_total - priority_seen + 1 if is_priority else 0
+        )
+        has_authority = any(
+            reason.startswith("structural-symbol:") for reason in item.reasons
+        )
+        authoritative_pending = bool(
             authoritative_rel
             and authoritative_rel not in selected
             and item.rel != authoritative_rel
-        ):
-            authority_extra = authoritative_reserve
-            if (
-                authoritative_index is not None
-                and idx < authoritative_index < coverage_target
-            ):
-                # The coverage reserve already includes one minimum slot for
-                # this authoritative future file; only reserve its extra depth.
-                authority_extra = max(
-                    0,
-                    authoritative_reserve - _MIN_COVERAGE_SECTION_TOKENS,
-                )
-            reserve += authority_extra
-
-        if reserve:
-            section_budget = min(
-                section_budget,
-                max(0, total_remaining - reserve),
-            )
-            if section_budget <= 20:
-                continue
+        )
+        section_budget = candidate_section_budget(
+            total_remaining=total_remaining,
+            candidate_index=idx,
+            selected_count=len(selected),
+            max_files=max_files,
+            candidate_count=len(candidates),
+            is_priority=is_priority,
+            priority_slots_left=priority_slots_left,
+            has_authority=has_authority,
+            coverage_slots=coverage_slots,
+            authoritative_pending=authoritative_pending,
+            authoritative_index=authoritative_index,
+            authoritative_reserve=authoritative_reserve,
+        )
+        if section_budget <= 20:
+            continue
 
         if not item.text:
             item.text = _read_source(item.path) or ""
