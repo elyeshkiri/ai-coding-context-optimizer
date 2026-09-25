@@ -7,13 +7,22 @@ on:
         description: "Type RUN_SEMANTIC_HOLDOUT_16 to burn the frozen fresh suite"
         required: true
         type: string
+  push:
+    branches:
+      - bench/run-semantic-holdout-16
 
 permissions:
   contents: read
 
 jobs:
   semantic-holdout:
-    if: ${{ inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_16' }}
+    if: >-
+      ${{
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_16') ||
+        (github.event_name == 'push' &&
+         contains(github.event.head_commit.message, '[run-semantic-16]'))
+      }}
     name: Frozen semantic holdout 16 / ${{ matrix.alias }}
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -46,6 +55,7 @@ jobs:
 
     steps:
       - name: Require explicit burn confirmation
+        if: github.event_name == 'workflow_dispatch'
         run: |
           if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_16" ]; then
             echo "Refusing to burn semantic holdout 16 without exact confirmation." >&2
