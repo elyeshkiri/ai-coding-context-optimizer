@@ -321,6 +321,37 @@ used before. The eligible headline contains 11 tasks from those four
 regression-guard repositories and 2 from werkzeug; axum contributes no eligible
 headline task, so the cleaner independent subset remains small.
 
+
+Semantic holdout #16 is the fresh post-confidence-gate generalization suite.
+Its query layer was frozen **before ground-truth collection** at commit
+`90bd16be19f85c6234c3a020d2c805db7722d208`, with query-freeze SHA-256
+`f485dac4cef84caeefadc477e932b28734e0d13111671f119f9b70dad387f958`.
+Ground truth was then derived mechanically from merged upstream fixes and sealed
+with SHA-256
+`14fb1e24745a803482eebb3229c7f72bd1d26222f3a9cd3b09101b4f158352e9`.
+
+The suite contains **18 headline-eligible tasks across six repositories not
+present in ACCO's checked-in prior semantic/external holdout evidence**:
+HTTPX, Requests, serde_json, Jackson Databind, Pydantic, and Trio. The cohort
+spans Python, Rust, and Java, with repository revisions pinned in
+`benchmarks/semantic-holdout-16.query-freeze.json`. The same
+case-insensitive answer-identifier audit used by earlier semantic suites finds
+**zero literal identifier leaks** across all 18 queries.
+
+The expected-file rule is unchanged from holdout #15: non-test,
+non-documentation source files changed by the merged upstream fix and present at
+the pinned revision are retained, while source edits of two lines or fewer are
+dropped when the same fix contains a larger source edit. Two Requests tasks use
+the merged pull request's problem statement because no separate issue was
+selected; this weaker independence is frozen in the manifest disclosure rather
+than hidden after results are known.
+
+**Holdout #16 has not been evaluated.** Its workflow is manual-only and requires
+the exact confirmation string `RUN_SEMANTIC_HOLDOUT_16`. The first completed
+evaluation will permanently burn the suite. Until then, ACCO must not claim any
+fresh post-confidence-gate semantic-generalization result from #16.
+
+
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
 - the complete pytest suite on every supported Python version;

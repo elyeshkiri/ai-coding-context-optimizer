@@ -1,0 +1,199 @@
+{
+  "suite_version": 1,
+  "repositories": {
+    "httpx": {
+      "repository": "encode/httpx",
+      "path": "semantic-holdout-16/httpx",
+      "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254"
+    },
+    "requests": {
+      "repository": "psf/requests",
+      "path": "semantic-holdout-16/requests",
+      "revision": "611c6162cbc4ac2020a2f91c7cfa4f3abf9bbb60"
+    },
+    "serde_json": {
+      "repository": "serde-rs/json",
+      "path": "semantic-holdout-16/serde_json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e"
+    },
+    "jackson": {
+      "repository": "FasterXML/jackson-databind",
+      "path": "semantic-holdout-16/jackson",
+      "revision": "1da96ddfc6342b2b6fe2842977d51de66e255364"
+    },
+    "pydantic": {
+      "repository": "pydantic/pydantic",
+      "path": "semantic-holdout-16/pydantic",
+      "revision": "a9a0e1d1f7805a1b7cc5b5d42e862594a570cf74"
+    },
+    "trio": {
+      "repository": "python-trio/trio",
+      "path": "semantic-holdout-16/trio",
+      "revision": "0480602b48eda20f10283e7ac04ed01848d7acff"
+    }
+  },
+  "tasks": [
+    {
+      "id": "httpx-head-empty-zstd",
+      "repository": "httpx",
+      "source_issue": {
+        "number": 3411,
+        "url": "https://github.com/encode/httpx/issues/3411"
+      },
+      "query": "A HEAD response that advertises Zstandard content encoding but carries no body should complete normally instead of failing while the decoder is finalized because no compressed bytes reached end-of-frame."
+    },
+    {
+      "id": "httpx-client-cert-no-verify",
+      "repository": "httpx",
+      "source_issue": {
+        "number": 3441,
+        "url": "https://github.com/encode/httpx/issues/3441"
+      },
+      "query": "A request using a client-side TLS certificate should still negotiate successfully when server certificate verification is explicitly disabled, rather than failing with a certificate-required read error."
+    },
+    {
+      "id": "httpx-explicit-multipart-boundary",
+      "repository": "httpx",
+      "source_issue": {
+        "number": 2235,
+        "url": "https://github.com/encode/httpx/issues/2235"
+      },
+      "query": "When a caller supplies an explicit multipart boundary in the content-type header, the encoded multipart body should use that exact boundary instead of generating a different delimiter."
+    },
+    {
+      "id": "requests-redirect-stream-wrapper",
+      "repository": "requests",
+      "source_issue": {
+        "number": 7432,
+        "url": "https://github.com/psf/requests/issues/7432"
+      },
+      "query": "A file-like upload wrapper that exposes iteration dynamically should still be recognized as a rewindable stream so a 307 or 308 redirect can resend the body instead of sending an already-consumed empty upload."
+    },
+    {
+      "id": "requests-netrc-userinfo-host",
+      "repository": "requests",
+      "source_issue": {
+        "number": 6963,
+        "url": "https://github.com/psf/requests/pull/6963"
+      },
+      "query": "Credential lookup from a netrc file must use the actual URL hostname even when the URL contains user information, so credentials for an unintended host are never attached because of manual authority parsing."
+    },
+    {
+      "id": "requests-header-mapping-typing",
+      "repository": "requests",
+      "source_issue": {
+        "number": 7431,
+        "url": "https://github.com/psf/requests/pull/7431"
+      },
+      "query": "Ordinary dictionaries of string HTTP headers should remain accepted by the public request APIs under inline typing, without forcing callers to widen them to a mutable mapping that also permits byte values."
+    },
+    {
+      "id": "serde-enum-object-string-key",
+      "repository": "serde_json",
+      "source_issue": {
+        "number": 979,
+        "url": "https://github.com/serde-rs/json/issues/979"
+      },
+      "query": "Deserializing an enum from JSON object form must reject malformed object members whose key is not a JSON string instead of accepting a boolean-like key as the variant name."
+    },
+    {
+      "id": "serde-bool-map-key",
+      "repository": "serde_json",
+      "source_issue": {
+        "number": 1054,
+        "url": "https://github.com/serde-rs/json/issues/1054"
+      },
+      "query": "JSON object keys containing the strings true or false should deserialize into boolean map keys consistently with the existing coercion of stringified integer keys."
+    },
+    {
+      "id": "serde-feature-check-static-analysis",
+      "repository": "serde_json",
+      "source_issue": {
+        "number": 1123,
+        "url": "https://github.com/serde-rs/json/issues/1123"
+      },
+      "query": "The compile-time check for an invalid feature combination should report a normal compiler error without keeping intentionally unparsable Rust source in the crate, because that source breaks static-analysis tools."
+    },
+    {
+      "id": "jackson-decimal-biginteger-scale",
+      "repository": "jackson",
+      "source_issue": {
+        "number": 6214,
+        "url": "https://github.com/FasterXML/jackson-databind/issues/6214"
+      },
+      "query": "Converting a decimal tree value with an enormous exponent into an integer must enforce the configured scale safety guard before performing the expensive conversion, preventing a tiny input from causing extreme CPU or memory use."
+    },
+    {
+      "id": "jackson-throwable-explicit-view",
+      "repository": "jackson",
+      "source_issue": {
+        "number": 6190,
+        "url": "https://github.com/FasterXML/jackson-databind/issues/6190"
+      },
+      "query": "When a standard exception property is explicitly annotated for a serialization view, deserialization should honor that explicit view restriction instead of always exempting the property from view filtering."
+    },
+    {
+      "id": "jackson-throwable-naming-strategy",
+      "repository": "jackson",
+      "source_issue": {
+        "number": 6188,
+        "url": "https://github.com/FasterXML/jackson-databind/issues/6188"
+      },
+      "query": "Standard exception properties with multi-word names should deserialize correctly under snake-case or kebab-case property naming, rather than being matched only against hard-coded camel-case names."
+    },
+    {
+      "id": "pydantic-schema-stack-cleanup",
+      "repository": "pydantic",
+      "source_issue": {
+        "number": 13857,
+        "url": "https://github.com/pydantic/pydantic/issues/13857"
+      },
+      "query": "If schema generation fails inside a nested attempt and the caller catches that error to fall back, temporary field-name and model-type context must always be removed so later fields do not resolve against stale schema state."
+    },
+    {
+      "id": "pydantic-model-config-no-mutation",
+      "repository": "pydantic",
+      "source_issue": {
+        "number": 13786,
+        "url": "https://github.com/pydantic/pydantic/issues/13786"
+      },
+      "query": "Building a model should not mutate the class's user-provided configuration dictionary by inserting derived validation settings that were not present in the original configuration."
+    },
+    {
+      "id": "pydantic-rootmodel-core-metadata",
+      "repository": "pydantic",
+      "source_issue": {
+        "number": 13123,
+        "url": "https://github.com/pydantic/pydantic/issues/13123"
+      },
+      "query": "Specialized root models should preserve the core schema metadata attached to their wrapped type instead of dropping that metadata while constructing the model schema."
+    },
+    {
+      "id": "trio-android-event-wakeup",
+      "repository": "trio",
+      "source_issue": {
+        "number": 3493,
+        "url": "https://github.com/python-trio/trio/issues/3493"
+      },
+      "query": "On older Android versions, the runtime should avoid relying on an operating-system wakeup primitive that Python exposes even though the platform does not actually support it, so the event loop can start successfully."
+    },
+    {
+      "id": "trio-worker-context-leak",
+      "repository": "trio",
+      "source_issue": {
+        "number": 3472,
+        "url": "https://github.com/python-trio/trio/issues/3472"
+      },
+      "query": "Reusable worker threads must not retain the context variables of the task that originally spawned them on newer free-threaded Python builds; each submitted job should receive only its intended context."
+    },
+    {
+      "id": "trio-start-exception-context",
+      "repository": "trio",
+      "source_issue": {
+        "number": 3261,
+        "url": "https://github.com/python-trio/trio/issues/3261"
+      },
+      "query": "When a child task fails before signaling that startup completed, re-raising that failure from the parent startup call should preserve the original exception cause and context instead of discarding them while unwrapping an internal exception group."
+    }
+  ]
+}

@@ -1,0 +1,470 @@
+{
+  "suite_version": 1,
+  "max_tokens": 6000,
+  "max_files": 12,
+  "protocol": {
+    "ground_truth_frozen": true,
+    "development_excluded": true,
+    "semantic_natural_language": true,
+    "query_frozen_before_ground_truth": true,
+    "no_identifier_leakage": true,
+    "frozen_at": "2026-09-25T09:50:00Z",
+    "query_freeze_file": "semantic-holdout-16.query-freeze.json",
+    "query_freeze_commit": "90bd16be19f85c6234c3a020d2c805db7722d208",
+    "query_freeze_sha256": "f485dac4cef84caeefadc477e932b28734e0d13111671f119f9b70dad387f958",
+    "ground_truth_sha256": "14fb1e24745a803482eebb3229c7f72bd1d26222f3a9cd3b09101b4f158352e9",
+    "baseline": "distinct-term-overlap@12",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_model_revision": "bc57282bc374d33e0d6c4de27f12dc1c2a87f37a",
+    "first_run_burns_suite": true,
+    "ground_truth_rule": "Expected files are the non-test, non-documentation source files changed by the merged upstream fix that exist at the pinned revision. A file changed by 2 lines or fewer is dropped when the same fix has a file changed by 3 or more lines; otherwise all qualifying files are kept.",
+    "disclosure": "All six repositories are new to ACCO's checked-in semantic/external holdout evidence. Queries and repository revisions were frozen in commit 90bd16be19f85c6234c3a020d2c805db7722d208 before changed-file ground truth was collected and before ACCO retrieval was run on this cohort. Sixteen tasks use issue wording as the query source. Two Requests tasks use merged pull-request problem statements because no separate issue was selected; those two are less independent from implementation knowledge and should be disclosed separately if their results materially drive the headline. Identifier leakage is checked by the same case-insensitive substring validator used by prior semantic holdouts."
+  },
+  "repositories": {
+    "httpx": {
+      "repository": "encode/httpx",
+      "path": "semantic-holdout-16/httpx",
+      "revision": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254"
+    },
+    "requests": {
+      "repository": "psf/requests",
+      "path": "semantic-holdout-16/requests",
+      "revision": "611c6162cbc4ac2020a2f91c7cfa4f3abf9bbb60"
+    },
+    "serde_json": {
+      "repository": "serde-rs/json",
+      "path": "semantic-holdout-16/serde_json",
+      "revision": "afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e"
+    },
+    "jackson": {
+      "repository": "FasterXML/jackson-databind",
+      "path": "semantic-holdout-16/jackson",
+      "revision": "1da96ddfc6342b2b6fe2842977d51de66e255364"
+    },
+    "pydantic": {
+      "repository": "pydantic/pydantic",
+      "path": "semantic-holdout-16/pydantic",
+      "revision": "a9a0e1d1f7805a1b7cc5b5d42e862594a570cf74"
+    },
+    "trio": {
+      "repository": "python-trio/trio",
+      "path": "semantic-holdout-16/trio",
+      "revision": "0480602b48eda20f10283e7ac04ed01848d7acff"
+    }
+  },
+  "tasks": [
+    {
+      "id": "httpx-head-empty-zstd",
+      "repository": "httpx",
+      "source_issue": {
+        "number": 3411,
+        "url": "https://github.com/encode/httpx/issues/3411"
+      },
+      "query": "A HEAD response that advertises Zstandard content encoding but carries no body should complete normally instead of failing while the decoder is finalized because no compressed bytes reached end-of-frame.",
+      "files": [
+        "httpx/_decoders.py"
+      ],
+      "forbidden_identifiers": [
+        "_decoders.py",
+        "_decoders",
+        "ZStandardDecoder"
+      ],
+      "ground_truth_source": [
+        "https://github.com/encode/httpx/pull/3412"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "httpx-client-cert-no-verify",
+      "repository": "httpx",
+      "source_issue": {
+        "number": 3441,
+        "url": "https://github.com/encode/httpx/issues/3441"
+      },
+      "query": "A request using a client-side TLS certificate should still negotiate successfully when server certificate verification is explicitly disabled, rather than failing with a certificate-required read error.",
+      "files": [
+        "httpx/_config.py"
+      ],
+      "forbidden_identifiers": [
+        "_config.py",
+        "_config",
+        "create_ssl_context"
+      ],
+      "ground_truth_source": [
+        "https://github.com/encode/httpx/pull/3442"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "httpx-explicit-multipart-boundary",
+      "repository": "httpx",
+      "source_issue": {
+        "number": 2235,
+        "url": "https://github.com/encode/httpx/issues/2235"
+      },
+      "query": "When a caller supplies an explicit multipart boundary in the content-type header, the encoded multipart body should use that exact boundary instead of generating a different delimiter.",
+      "files": [
+        "httpx/_models.py",
+        "httpx/_multipart.py"
+      ],
+      "forbidden_identifiers": [
+        "_models.py",
+        "_models",
+        "_multipart.py",
+        "_multipart",
+        "MultipartStream"
+      ],
+      "ground_truth_source": [
+        "https://github.com/encode/httpx/pull/2278"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "requests-redirect-stream-wrapper",
+      "repository": "requests",
+      "source_issue": {
+        "number": 7432,
+        "url": "https://github.com/psf/requests/issues/7432"
+      },
+      "query": "A file-like upload wrapper that exposes iteration dynamically should still be recognized as a rewindable stream so a 307 or 308 redirect can resend the body instead of sending an already-consumed empty upload.",
+      "files": [
+        "src/requests/models.py"
+      ],
+      "forbidden_identifiers": [
+        "models.py",
+        "models",
+        "PreparedRequest",
+        "prepare_body"
+      ],
+      "ground_truth_source": [
+        "https://github.com/psf/requests/pull/7433"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "requests-netrc-userinfo-host",
+      "repository": "requests",
+      "source_issue": {
+        "number": 6963,
+        "url": "https://github.com/psf/requests/pull/6963"
+      },
+      "query": "Credential lookup from a netrc file must use the actual URL hostname even when the URL contains user information, so credentials for an unintended host are never attached because of manual authority parsing.",
+      "files": [
+        "src/requests/utils.py"
+      ],
+      "forbidden_identifiers": [
+        "utils.py",
+        "utils",
+        "get_netrc_auth"
+      ],
+      "ground_truth_source": [
+        "https://github.com/psf/requests/pull/6963"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "requests-header-mapping-typing",
+      "repository": "requests",
+      "source_issue": {
+        "number": 7431,
+        "url": "https://github.com/psf/requests/pull/7431"
+      },
+      "query": "Ordinary dictionaries of string HTTP headers should remain accepted by the public request APIs under inline typing, without forcing callers to widen them to a mutable mapping that also permits byte values.",
+      "files": [
+        "src/requests/_types.py",
+        "src/requests/models.py"
+      ],
+      "forbidden_identifiers": [
+        "_types.py",
+        "_types",
+        "models.py",
+        "models",
+        "HTTPHeaderDict"
+      ],
+      "ground_truth_source": [
+        "https://github.com/psf/requests/pull/7431"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "serde-enum-object-string-key",
+      "repository": "serde_json",
+      "source_issue": {
+        "number": 979,
+        "url": "https://github.com/serde-rs/json/issues/979"
+      },
+      "query": "Deserializing an enum from JSON object form must reject malformed object members whose key is not a JSON string instead of accepting a boolean-like key as the variant name.",
+      "files": [
+        "src/de.rs"
+      ],
+      "forbidden_identifiers": [
+        "de.rs",
+        "MapKey",
+        "VariantAccess"
+      ],
+      "ground_truth_source": [
+        "https://github.com/serde-rs/json/pull/1324"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "serde-bool-map-key",
+      "repository": "serde_json",
+      "source_issue": {
+        "number": 1054,
+        "url": "https://github.com/serde-rs/json/issues/1054"
+      },
+      "query": "JSON object keys containing the strings true or false should deserialize into boolean map keys consistently with the existing coercion of stringified integer keys.",
+      "files": [
+        "src/de.rs",
+        "src/ser.rs",
+        "src/value/de.rs",
+        "src/value/ser.rs"
+      ],
+      "forbidden_identifiers": [
+        "de.rs",
+        "ser.rs",
+        "MapKey",
+        "MapKeySerializer",
+        "MapKeyDeserializer"
+      ],
+      "ground_truth_source": [
+        "https://github.com/serde-rs/json/pull/1055"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "serde-feature-check-static-analysis",
+      "repository": "serde_json",
+      "source_issue": {
+        "number": 1123,
+        "url": "https://github.com/serde-rs/json/issues/1123"
+      },
+      "query": "The compile-time check for an invalid feature combination should report a normal compiler error without keeping intentionally unparsable Rust source in the crate, because that source breaks static-analysis tools.",
+      "files": [
+        "src/lib.rs"
+      ],
+      "forbidden_identifiers": [
+        "lib.rs",
+        "compile_error"
+      ],
+      "ground_truth_source": [
+        "https://github.com/serde-rs/json/pull/1124"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "jackson-decimal-biginteger-scale",
+      "repository": "jackson",
+      "source_issue": {
+        "number": 6214,
+        "url": "https://github.com/FasterXML/jackson-databind/issues/6214"
+      },
+      "query": "Converting a decimal tree value with an enormous exponent into an integer must enforce the configured scale safety guard before performing the expensive conversion, preventing a tiny input from causing extreme CPU or memory use.",
+      "files": [
+        "src/main/java/tools/jackson/databind/JsonNode.java",
+        "src/main/java/tools/jackson/databind/node/DecimalNode.java",
+        "src/main/java/tools/jackson/databind/node/NumericFPNode.java",
+        "src/main/java/tools/jackson/databind/node/POJONode.java"
+      ],
+      "forbidden_identifiers": [
+        "JsonNode.java",
+        "JsonNode",
+        "DecimalNode.java",
+        "DecimalNode",
+        "NumericFPNode.java",
+        "NumericFPNode",
+        "POJONode.java",
+        "POJONode"
+      ],
+      "ground_truth_source": [
+        "https://github.com/FasterXML/jackson-databind/pull/6215"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "jackson-throwable-explicit-view",
+      "repository": "jackson",
+      "source_issue": {
+        "number": 6190,
+        "url": "https://github.com/FasterXML/jackson-databind/issues/6190"
+      },
+      "query": "When a standard exception property is explicitly annotated for a serialization view, deserialization should honor that explicit view restriction instead of always exempting the property from view filtering.",
+      "files": [
+        "src/main/java/tools/jackson/databind/deser/BeanDeserializerFactory.java",
+        "src/main/java/tools/jackson/databind/deser/jdk/ThrowableDeserializer.java",
+        "src/main/java/tools/jackson/databind/util/SimpleBeanPropertyDefinition.java"
+      ],
+      "forbidden_identifiers": [
+        "BeanDeserializerFactory.java",
+        "BeanDeserializerFactory",
+        "ThrowableDeserializer.java",
+        "ThrowableDeserializer",
+        "SimpleBeanPropertyDefinition.java",
+        "SimpleBeanPropertyDefinition"
+      ],
+      "ground_truth_source": [
+        "https://github.com/FasterXML/jackson-databind/pull/6192"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "jackson-throwable-naming-strategy",
+      "repository": "jackson",
+      "source_issue": {
+        "number": 6188,
+        "url": "https://github.com/FasterXML/jackson-databind/issues/6188"
+      },
+      "query": "Standard exception properties with multi-word names should deserialize correctly under snake-case or kebab-case property naming, rather than being matched only against hard-coded camel-case names.",
+      "files": [
+        "src/main/java/tools/jackson/databind/deser/jdk/ThrowableDeserializer.java"
+      ],
+      "forbidden_identifiers": [
+        "ThrowableDeserializer.java",
+        "ThrowableDeserializer"
+      ],
+      "ground_truth_source": [
+        "https://github.com/FasterXML/jackson-databind/pull/6189"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "pydantic-schema-stack-cleanup",
+      "repository": "pydantic",
+      "source_issue": {
+        "number": 13857,
+        "url": "https://github.com/pydantic/pydantic/issues/13857"
+      },
+      "query": "If schema generation fails inside a nested attempt and the caller catches that error to fall back, temporary field-name and model-type context must always be removed so later fields do not resolve against stale schema state.",
+      "files": [
+        "pydantic/_internal/_generate_schema.py"
+      ],
+      "forbidden_identifiers": [
+        "_generate_schema.py",
+        "_generate_schema",
+        "_FieldNameStack",
+        "_ModelTypeStack"
+      ],
+      "ground_truth_source": [
+        "https://github.com/pydantic/pydantic/pull/13859"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "pydantic-model-config-no-mutation",
+      "repository": "pydantic",
+      "source_issue": {
+        "number": 13786,
+        "url": "https://github.com/pydantic/pydantic/issues/13786"
+      },
+      "query": "Building a model should not mutate the class's user-provided configuration dictionary by inserting derived validation settings that were not present in the original configuration.",
+      "files": [
+        "pydantic/_internal/_config.py",
+        "pydantic/_internal/_signature.py",
+        "pydantic/config.py",
+        "pydantic/deprecated/decorator.py"
+      ],
+      "forbidden_identifiers": [
+        "_config.py",
+        "_config",
+        "_signature.py",
+        "_signature",
+        "config.py",
+        "ConfigWrapper",
+        "decorator.py"
+      ],
+      "ground_truth_source": [
+        "https://github.com/pydantic/pydantic/pull/13825"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "pydantic-rootmodel-core-metadata",
+      "repository": "pydantic",
+      "source_issue": {
+        "number": 13123,
+        "url": "https://github.com/pydantic/pydantic/issues/13123"
+      },
+      "query": "Specialized root models should preserve the core schema metadata attached to their wrapped type instead of dropping that metadata while constructing the model schema.",
+      "files": [
+        "pydantic/_internal/_generate_schema.py",
+        "pydantic/json_schema.py"
+      ],
+      "forbidden_identifiers": [
+        "_generate_schema.py",
+        "_generate_schema",
+        "json_schema.py",
+        "json_schema",
+        "RootModel"
+      ],
+      "ground_truth_source": [
+        "https://github.com/pydantic/pydantic/pull/13129"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "trio-android-event-wakeup",
+      "repository": "trio",
+      "source_issue": {
+        "number": 3493,
+        "url": "https://github.com/python-trio/trio/issues/3493"
+      },
+      "query": "On older Android versions, the runtime should avoid relying on an operating-system wakeup primitive that Python exposes even though the platform does not actually support it, so the event loop can start successfully.",
+      "files": [
+        "src/trio/socket.py"
+      ],
+      "forbidden_identifiers": [
+        "socket.py",
+        "socket",
+        "SocketType"
+      ],
+      "ground_truth_source": [
+        "https://github.com/python-trio/trio/pull/3504"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "trio-worker-context-leak",
+      "repository": "trio",
+      "source_issue": {
+        "number": 3472,
+        "url": "https://github.com/python-trio/trio/issues/3472"
+      },
+      "query": "Reusable worker threads must not retain the context variables of the task that originally spawned them on newer free-threaded Python builds; each submitted job should receive only its intended context.",
+      "files": [
+        "src/trio/_core/_thread_cache.py"
+      ],
+      "forbidden_identifiers": [
+        "_thread_cache.py",
+        "_thread_cache",
+        "ThreadCache"
+      ],
+      "ground_truth_source": [
+        "https://github.com/python-trio/trio/pull/3473"
+      ],
+      "eligible": true
+    },
+    {
+      "id": "trio-start-exception-context",
+      "repository": "trio",
+      "source_issue": {
+        "number": 3261,
+        "url": "https://github.com/python-trio/trio/issues/3261"
+      },
+      "query": "When a child task fails before signaling that startup completed, re-raising that failure from the parent startup call should preserve the original exception cause and context instead of discarding them while unwrapping an internal exception group.",
+      "files": [
+        "src/trio/_core/_run.py"
+      ],
+      "forbidden_identifiers": [
+        "_run.py",
+        "_run",
+        "Nursery",
+        "raise_saving_context"
+      ],
+      "ground_truth_source": [
+        "https://github.com/python-trio/trio/pull/3394"
+      ],
+      "eligible": true
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+name: Semantic Retrieval Holdout 16
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type RUN_SEMANTIC_HOLDOUT_16 to burn the frozen fresh suite"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-holdout:
+    if: ${{ inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_16' }}
+    name: Frozen semantic holdout 16 / ${{ matrix.alias }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - alias: httpx
+            url: https://github.com/encode/httpx.git
+            revision: b5addb64f0161ff6bfe94c124ef76f6a1fba5254
+          - alias: requests
+            url: https://github.com/psf/requests.git
+            revision: 611c6162cbc4ac2020a2f91c7cfa4f3abf9bbb60
+          - alias: serde_json
+            url: https://github.com/serde-rs/json.git
+            revision: afdf6fc67247dd7fa4fcde1381e6ecc6bcc7a30e
+          - alias: jackson
+            url: https://github.com/FasterXML/jackson-databind.git
+            revision: 1da96ddfc6342b2b6fe2842977d51de66e255364
+          - alias: pydantic
+            url: https://github.com/pydantic/pydantic.git
+            revision: a9a0e1d1f7805a1b7cc5b5d42e862594a570cf74
+          - alias: trio
+            url: https://github.com/python-trio/trio.git
+            revision: 0480602b48eda20f10283e7ac04ed01848d7acff
+    env:
+      ACCO_STATE_DIR: /tmp/acco-semantic-state-16-${{ matrix.alias }}
+      ACCO_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/acco-huggingface-16
+
+    steps:
+      - name: Require explicit burn confirmation
+        run: |
+          if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_16" ]; then
+            echo "Refusing to burn semantic holdout 16 without exact confirmation." >&2
+            exit 2
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO with exact-scan embeddings
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+
+      - name: Require exact cosine evidence backend
+        run: |
+          python -m pip uninstall -y hnswlib || true
+          python - <<'PY'
+          from acco.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None, "semantic evidence must not use ANN"
+          PY
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-16.frozen.json \
+            --validate-only
+
+      - name: Clone pinned frozen repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="benchmarks/semantic-holdout-16/${{ matrix.alias }}"
+          mkdir -p "$(dirname "$path")"
+          git init -q "$path"
+          git -C "$path" remote add origin "${{ matrix.url }}"
+          git -C "$path" fetch -q --depth 1 origin "${{ matrix.revision }}"
+          git -C "$path" checkout -q --detach "${{ matrix.revision }}"
+
+      - name: Download the pinned local embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+
+          model = SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["ACCO_SEMANTIC_MODEL_REVISION"],
+          )
+          print(model)
+          PY
+
+      - name: Run frozen repository shard
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-16.frozen.json \
+            --repository "${{ matrix.alias }}" \
+            --progress \
+            --output "benchmarks/semantic-holdout-16.${{ matrix.alias }}.result.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-16-${{ matrix.alias }}
+          path: benchmarks/semantic-holdout-16.${{ matrix.alias }}.result.json
+          retention-days: 90
+          if-no-files-found: error
+
+  merge-semantic-holdout:
+    name: Merge frozen semantic holdout 16
+    needs: semantic-holdout
+    if: ${{ always() && needs.semantic-holdout.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO
+        run: python -m pip install -e .
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-16.frozen.json \
+            --validate-only
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: semantic-holdout-16-*
+          path: partial-results
+          merge-multiple: true
+
+      - name: Merge repository shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find partial-results -type f -name '*.json' | sort)
+          if [ "${#files[@]}" -ne 6 ]; then
+            echo "Expected 6 repository result shards, found ${#files[@]}." >&2
+            exit 2
+          fi
+          args=()
+          for file in "${files[@]}"; do
+            args+=(--merge-input "$file")
+          done
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-16.frozen.json \
+            "${args[@]}" \
+            --output benchmarks/semantic-holdout-16.result.json
+
+      - name: Publish literal first-run summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("benchmarks/semantic-holdout-16.result.json").read_text()
+          )
+          summary = result["summary"]
+          print("# Semantic holdout 16 — first run")
+          print()
+          print(f"- eligible tasks: {summary['task_count']}")
+          print(f"- lexical file recall: {summary['lexical_file_recall']:.2%}")
+          print(f"- hybrid semantic file recall: {summary['semantic_file_recall']:.2%}")
+          print(
+              "- trivial lexical file recall: "
+              f"{summary['trivial_lexical_file_recall']:.2%}"
+          )
+          print(
+              "- semantic recall delta vs ACCO lexical: "
+              f"{summary['semantic_file_recall_delta']:+.2%}"
+          )
+          print(
+              "- semantic recovered/regressed tasks: "
+              f"{summary['semantic_recovered_tasks']}/"
+              f"{summary['semantic_regressed_tasks']}"
+          )
+          print(f"- lexical mean reduction: {summary['lexical_mean_token_reduction']:.2%}")
+          print(f"- semantic mean reduction: {summary['semantic_mean_token_reduction']:.2%}")
+          print()
+          print(
+              "This first completed run permanently burns holdout 16. "
+              "No API-cost or task-success claim is implied."
+          )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-16-first-run
+          path: benchmarks/semantic-holdout-16.result.json
+          retention-days: 90
+          if-no-files-found: error
