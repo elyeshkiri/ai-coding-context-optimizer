@@ -10,6 +10,8 @@ from pathlib import Path
 from .estimate import estimate_tokens
 from .state import load, update
 
+_PREFIX_ELEMENT_LIMIT = 512
+
 
 @dataclass(frozen=True)
 class PrefixPlan:
@@ -21,6 +23,8 @@ class PrefixPlan:
     components: tuple[str, ...]
     previous_fingerprint: str | None
     reused: bool
+    reuse_mode: str = "miss"
+    element_count: int = 0
 
     def to_dict(self) -> dict:
         """Return JSON-safe prefix metadata."""
@@ -31,6 +35,8 @@ class PrefixPlan:
             "components": list(self.components),
             "previous_fingerprint": self.previous_fingerprint,
             "reused": self.reused,
+            "reuse_mode": self.reuse_mode,
+            "element_count": self.element_count,
         }
 
 
@@ -63,6 +69,44 @@ def _stable_payload(body: dict) -> tuple[dict, tuple[str, ...]]:
     return stable, tuple(components)
 
 
+def _element_digest(value: object) -> str:
+    """Hash one stable prefix element without persisting request content."""
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()[:24]
+
+
+def stable_prefix_element_hashes(body: dict) -> tuple[str, ...]:
+    """Return bounded content-free hashes for append-only prefix detection."""
+    hashes: list[str] = []
+    for key in ("system", "instructions", "tools", "tool_choice"):
+        if key in body:
+            hashes.append(f"{key}:{_element_digest(body[key])}")
+
+    messages = body.get("messages")
+    if isinstance(messages, list) and messages:
+        prefix = list(messages)
+        if isinstance(prefix[-1], dict) and prefix[-1].get("role") == "user":
+            prefix = prefix[:-1]
+        hashes.extend(
+            f"message:{_element_digest(item)}" for item in prefix
+        )
+
+    input_items = body.get("input")
+    if isinstance(input_items, list) and input_items:
+        prefix = list(input_items)
+        if isinstance(prefix[-1], dict) and prefix[-1].get("role") == "user":
+            prefix = prefix[:-1]
+        hashes.extend(
+            f"input:{_element_digest(item)}" for item in prefix
+        )
+    return tuple(hashes)
+
+
 def stable_prefix_fingerprint(body: dict) -> tuple[str, int, int, tuple[str, ...]]:
     """Hash a canonical representation of the stable request prefix."""
     stable, components = _stable_payload(body)
@@ -86,21 +130,55 @@ def observe_prefix(root: Path, provider: str, body: dict) -> PrefixPlan:
         if isinstance(previous, dict) and previous.get("fingerprint")
         else None
     )
-    reused = previous_fingerprint == fingerprint
+    element_hashes = stable_prefix_element_hashes(body)
+    previous_hashes = (
+        tuple(str(item) for item in previous.get("element_hashes", []))
+        if isinstance(previous, dict)
+        and isinstance(previous.get("element_hashes"), list)
+        else ()
+    )
+    previous_count = (
+        int(previous.get("element_count", 0) or 0)
+        if isinstance(previous, dict)
+        else 0
+    )
+    exact = previous_fingerprint == fingerprint and previous_fingerprint is not None
+    extended = (
+        not exact
+        and previous_count > 0
+        and previous_count == len(previous_hashes)
+        and len(element_hashes) >= previous_count
+        and tuple(element_hashes[:previous_count]) == previous_hashes
+    )
+    reused = exact or extended
+    reuse_mode = "exact" if exact else "extended" if extended else "miss"
 
     def mutate(data: dict) -> None:
         cache = data.setdefault("prefix_cache", {})
         current = cache.get(key)
         if not isinstance(current, dict):
-            current = {"hits": 0, "misses": 0}
+            current = {
+                "hits": 0,
+                "misses": 0,
+                "exact_hits": 0,
+                "extension_hits": 0,
+            }
         if previous_fingerprint is not None:
             bucket = "hits" if reused else "misses"
             current[bucket] = int(current.get(bucket, 0) or 0) + 1
+            if exact:
+                current["exact_hits"] = int(current.get("exact_hits", 0) or 0) + 1
+            elif extended:
+                current["extension_hits"] = int(
+                    current.get("extension_hits", 0) or 0
+                ) + 1
         current.update(
             fingerprint=fingerprint,
             stable_tokens=tokens,
             stable_bytes=size,
             components=list(components),
+            element_count=len(element_hashes),
+            element_hashes=list(element_hashes[:_PREFIX_ELEMENT_LIMIT]),
         )
         cache[key] = current
 
@@ -112,6 +190,8 @@ def observe_prefix(root: Path, provider: str, body: dict) -> PrefixPlan:
         components=components,
         previous_fingerprint=previous_fingerprint,
         reused=reused,
+        reuse_mode=reuse_mode,
+        element_count=len(element_hashes),
     )
 
 
@@ -130,6 +210,8 @@ def prefix_status(root: Path) -> dict:
         providers[str(provider)] = {
             "hits": hits,
             "misses": misses,
+            "exact_hits": int(value.get("exact_hits", 0) or 0),
+            "extension_hits": int(value.get("extension_hits", 0) or 0),
             "reuse_rate": hits / attempts if attempts else None,
             "stable_tokens": int(value.get("stable_tokens", 0) or 0),
             "stable_bytes": int(value.get("stable_bytes", 0) or 0),
