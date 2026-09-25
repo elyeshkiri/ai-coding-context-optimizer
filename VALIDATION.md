@@ -410,6 +410,21 @@ and uses **5995.5 tokens on average**, versus **5993.7 tokens** before the
 change. Five tasks improve and none regress. This nearly realizes the existing
 83.80% rank@12 recall without increasing the configured token budget.
 
+
+PR #122 independently developed a stricter rank-preserving allocator on the
+same burned diagnosis. After resolving its overlap with #123 against current
+`main`, the #122 policy reserves the packer's existing **300-token compact
+exact-source minimum** for every leading candidate that the hard budget can
+support, while retaining extra allowance for structural authority, explicit
+priority-file behavior, and the one-hop authoritative-provider reserve.
+
+Its burned #16 development replay reaches **83.80% lexical pack recall**,
+matching ACCO lexical rank@12, and renders **12.0 files on average** while
+remaining below the same 6,000-token hard cap. This is stronger development
+coverage than the earlier #123 candidate's 82.41% / 11.56-file result, but it is
+still burned-suite evidence only and does not replace #16's canonical fresh
+62.96% lexical-pack headline.
+
 These figures are **not fresh generalization evidence**. They justify the
 mechanism and regression tests; a separately frozen holdout #17 is required
 before claiming that the allocation change generalizes.

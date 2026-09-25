@@ -18,11 +18,11 @@ from .retrieval_cache import cache_key as retrieval_cache_key
 from .retrieval_cache import load as load_retrieval_cache
 from .retrieval_cache import store as store_retrieval_cache
 from .working_set import save_working_set
-from .packing.budget_allocation import (
-    coverage_target as _coverage_target,
-    ranked_candidate_budget as _ranked_candidate_budget,
-)
 from .packing.contracts import ContextPack as ContextPack, RankedFile as RankedFile
+from .packing.budget_allocation import (
+    candidate_section_budget,
+    coverage_target,
+)
 from .packing.ranking import (
     _AUTHORITY_CALLABLE_KINDS as _AUTHORITY_CALLABLE_KINDS,
     _FileRankingScope as _FileRankingScope,
@@ -310,27 +310,7 @@ def build_context_pack(
     )
     priority_seen = 0
 
-    usable_tokens = max(0, max_tokens - used)
-    coverage_target = (
-        0
-        if priority_files
-        else _coverage_target(
-            usable_tokens,
-            max_files=max_files,
-            candidate_count=len(candidates),
-        )
-    )
-
-    # Reserve a bounded slot for the highest-ranked exact one-hop value
-    # provider among the candidates. This prevents a huge consumer outline
-    # from monopolizing the whole context budget before its provider is
-    # considered, without imposing global fair-sharing on ordinary files. Scan
-    # every candidate, not just the leading few: a "graph:semantic-ref@1" tag
-    # is only ever attached to the small, already-bounded set of files
-    # rank_files() actually found via a real one-hop reference (see
-    # closure.authoritative_providers), never a large fraction of the repo,
-    # so the scan stays cheap regardless of where such a file ranks by raw
-    # lexical score -- which, being a tiny provider file, is often low.
+    # Preserve extra room for the strongest exact one-hop value provider.
     authoritative_rel = next(
         (
             item.rel
@@ -342,38 +322,57 @@ def build_context_pack(
     authoritative_reserve = (
         min(900, max(240, max_tokens // 8)) if authoritative_rel else 0
     )
+    authoritative_index = next(
+        (
+            idx
+            for idx, candidate in enumerate(candidates)
+            if candidate.rel == authoritative_rel
+        ),
+        None,
+    )
+    coverage_slots = coverage_target(
+        available_tokens=max(0, max_tokens - used),
+        max_files=max_files,
+        candidate_count=len(candidates),
+        priority_mode=bool(priority_files),
+    )
 
     for idx, item in enumerate(candidates):
         if len(selected) >= max_files:
             break
-        remaining = max_tokens - used
-        if remaining <= 20:
+        total_remaining = max_tokens - used
+        if total_remaining <= 20:
             break
-        if priority_files and item.rel in priority_files:
+        is_priority = bool(priority_files and item.rel in priority_files)
+        if is_priority:
             priority_seen += 1
-            slots_left = priority_total - priority_seen + 1
-            if slots_left > 1:
-                remaining = min(remaining, max(remaining // slots_left, 200))
-        elif len(selected) + 1 < max_files and idx + 1 < len(candidates):
-            has_authority = any(
-                reason.startswith("structural-symbol:") for reason in item.reasons
-            )
-            remaining = _ranked_candidate_budget(
-                remaining,
-                selected_count=len(selected),
-                coverage_target_count=coverage_target,
-                has_authority=has_authority,
-            )
-
-        section_budget = remaining
-        if (
+        priority_slots_left = (
+            priority_total - priority_seen + 1 if is_priority else 0
+        )
+        has_authority = any(
+            reason.startswith("structural-symbol:") for reason in item.reasons
+        )
+        authoritative_pending = bool(
             authoritative_rel
             and authoritative_rel not in selected
             and item.rel != authoritative_rel
-        ):
-            section_budget = max(0, remaining - authoritative_reserve)
-            if section_budget <= 20:
-                continue
+        )
+        section_budget = candidate_section_budget(
+            total_remaining=total_remaining,
+            candidate_index=idx,
+            selected_count=len(selected),
+            max_files=max_files,
+            candidate_count=len(candidates),
+            is_priority=is_priority,
+            priority_slots_left=priority_slots_left,
+            has_authority=has_authority,
+            coverage_slots=coverage_slots,
+            authoritative_pending=authoritative_pending,
+            authoritative_index=authoritative_index,
+            authoritative_reserve=authoritative_reserve,
+        )
+        if section_budget <= 20:
+            continue
 
         if not item.text:
             item.text = _read_source(item.path) or ""
