@@ -523,6 +523,30 @@ def test_semantic_gate_blocks_equal_direct_identity_leapfrog():
     )
 
 
+def test_semantic_gate_does_not_rank_path_plus_symbol_above_symbol_identity():
+    """Direct identity is one tier; embeddings cannot reinterpret its subtypes."""
+    expected = _gate_fixture(
+        "src/websocket_impl.py",
+        24.0,
+        12,
+        ["term-hits:12", "symbols:6"],
+    )
+    distractor = _gate_fixture(
+        "src/proxy_headers.py",
+        15.0,
+        8,
+        ["term-hits:8", "path:2", "symbols:4"],
+    )
+
+    _run_gate([expected, distractor], {"src/proxy_headers.py": 50.0})
+
+    assert distractor.score < expected.score
+    assert any(
+        reason.startswith("semantic-confidence-gate:")
+        for reason in distractor.reasons
+    )
+
+
 def test_semantic_gate_treats_discounted_structural_signal_as_weak():
     """Parent-mismatch structural credit must not outrank graph-corroborated source."""
     expected = _gate_fixture(
