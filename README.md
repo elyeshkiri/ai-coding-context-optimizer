@@ -328,7 +328,9 @@ or stronger pre-semantic predecessor. Pure topical candidates can still reorder
 freely. This specifically keeps source-quality and exact structural evidence
 from being undone by a later embedding boost without introducing
 repository-specific rules or a similarity threshold. Ranking explanations
-record any clamp as `semantic-confidence-gate:...`.
+record any clamp as `semantic-confidence-gate:...`. Within a retained file,
+parser-backed exact symbol windows are also rendered before semantic ranges, so
+a tight per-file budget clips embedding evidence before structural source.
 
 ## Persistent retrieval cache and optional Rust fastpath
 
