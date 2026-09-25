@@ -472,7 +472,12 @@ def _run_gate(items, semantic_scores):
 
 def test_semantic_gate_blocks_leapfrog_over_stronger_lexical_evidence():
     """Weak semantic evidence must not displace a stronger lexical predecessor."""
-    strong = _gate_fixture("src/strong.py", 20.0, 4)
+    strong = _gate_fixture(
+        "src/strong.py",
+        20.0,
+        4,
+        ["term-hits:4", "graph:imports@1"],
+    )
     weak = _gate_fixture("src/weak.py", 5.0, 1)
 
     _run_gate([strong, weak], {"src/weak.py": 40.0})
