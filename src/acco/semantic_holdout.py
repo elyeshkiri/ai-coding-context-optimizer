@@ -483,6 +483,7 @@ def evaluate_semantic_holdout(
         "excluded_tasks": [
             {
                 "id": task.get("id"),
+                "repository": task.get("repository"),
                 "reason": task.get("exclusion_reason"),
             }
             for task in payload["tasks"]
@@ -526,6 +527,12 @@ def merge_semantic_holdout_results(
         if isinstance(task, dict)
     }
 
+    repository_by_task_id = {
+        task.get("id"): task.get("repository")
+        for task in payload.get("tasks", [])
+        if isinstance(task, dict)
+    }
+
     tasks_by_id: dict[object, dict[str, Any]] = {}
     excluded_by_id: dict[object, dict[str, Any]] = {}
     seen_repositories: set[str] = set()
@@ -541,13 +548,23 @@ def merge_semantic_holdout_results(
         repositories = part.get("repositories", {})
         if not isinstance(repositories, dict):
             raise ValueError("semantic holdout partial repositories must be an object")
-        overlap = seen_repositories & set(repositories)
+        part_repositories = {str(alias) for alias in repositories}
+        for collection in ("tasks", "excluded_tasks"):
+            for item in part.get(collection, []):
+                if not isinstance(item, dict):
+                    continue
+                alias = item.get("repository")
+                if not isinstance(alias, str) or not alias:
+                    alias = repository_by_task_id.get(item.get("id"))
+                if isinstance(alias, str) and alias:
+                    part_repositories.add(alias)
+        overlap = seen_repositories & part_repositories
         if overlap:
             raise ValueError(
                 "semantic holdout repository appears in multiple partials: "
                 + ", ".join(sorted(overlap))
             )
-        seen_repositories.update(str(alias) for alias in repositories)
+        seen_repositories.update(part_repositories)
 
         for item in part.get("tasks", []):
             task_id = item.get("id")
