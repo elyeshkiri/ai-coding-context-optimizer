@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import subprocess
 
-from acco.pack import build_context_pack, rank_files
+from acco.pack import build_context_pack
 from acco.repo_index import build_index
 from acco.semantic_holdout import validate_semantic_holdout
 
@@ -83,26 +83,8 @@ def _task_diagnostic(repo_root: Path, index, task: dict, payload: dict) -> dict:
     }
     lexical_pack = build_context_pack(repo_root, query, embeddings=False, **common)
     semantic_pack = build_context_pack(repo_root, query, embeddings=True, **common)
-    lexical_ranked = rank_files(
-        repo_root,
-        query,
-        changed_boost=False,
-        feedback_boost=False,
-        index=index,
-        embeddings=False,
-        trace_scores=True,
-    )
-    semantic_ranked = rank_files(
-        repo_root,
-        query,
-        changed_boost=False,
-        feedback_boost=False,
-        index=index,
-        embeddings=True,
-        trace_scores=True,
-    )
-    lexical = _by_rel(lexical_ranked)
-    semantic = _by_rel(semantic_ranked)
+    lexical = _by_rel(lexical_pack.ranked)
+    semantic = _by_rel(semantic_pack.ranked)
     lexical_selected = set(lexical_pack.selected_files)
     semantic_selected = set(semantic_pack.selected_files)
     expected = {
