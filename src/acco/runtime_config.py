@@ -81,6 +81,10 @@ class RuntimeSettings:
     mcp_adaptive_max_tools: int = 12
     mcp_compress_schemas: bool = False
     prefix_tracking: bool = True
+    provider_history_dedup: bool = True
+    provider_model_routing_mode: str = "off"
+    provider_model_routing_calibration_file: str = DEFAULT_ROUTING_CALIBRATION_FILE
+    provider_model_routing_min_savings: float = 0.05
 
 
 def find_project_config(start: Path | None = None) -> Path | None:
@@ -361,6 +365,23 @@ def _load_file(start: Path | None = None) -> RuntimeSettings:
         prefix_tracking=_bool(
             provider.get("prefix_tracking"),
             True,
+        ),
+        provider_history_dedup=_bool(
+            provider.get("history_dedup"),
+            True,
+        ),
+        provider_model_routing_mode=_choice(
+            provider.get("model_routing"),
+            "off",
+            ("off", "observe", "calibrated"),
+        ),
+        provider_model_routing_calibration_file=_string(
+            provider.get("routing_calibration_file"),
+            DEFAULT_ROUTING_CALIBRATION_FILE,
+        ),
+        provider_model_routing_min_savings=_fraction(
+            provider.get("routing_min_savings"),
+            0.05,
         ),
     )
 
@@ -672,5 +693,24 @@ def settings_for(start: Path | None = None) -> RuntimeSettings:
         prefix_tracking=_env_bool(
             "ACCO_PREFIX_TRACKING",
             base.prefix_tracking,
+        ),
+        provider_history_dedup=_env_bool(
+            "ACCO_PROVIDER_HISTORY_DEDUP",
+            base.provider_history_dedup,
+        ),
+        provider_model_routing_mode=_env_choice(
+            "ACCO_PROVIDER_MODEL_ROUTING",
+            base.provider_model_routing_mode,
+            ("off", "observe", "calibrated"),
+        ),
+        provider_model_routing_calibration_file=_env_string(
+            "ACCO_PROVIDER_ROUTING_CALIBRATION_FILE",
+            base.provider_model_routing_calibration_file,
+        ),
+        provider_model_routing_min_savings=_env_float(
+            "ACCO_PROVIDER_ROUTING_MIN_SAVINGS",
+            base.provider_model_routing_min_savings,
+            minimum=0.0,
+            maximum=1.0,
         ),
     )
