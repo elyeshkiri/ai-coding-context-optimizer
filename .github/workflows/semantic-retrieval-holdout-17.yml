@@ -1,0 +1,246 @@
+name: Semantic Retrieval Holdout 17
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type RUN_SEMANTIC_HOLDOUT_17. The first successful run burns this fresh suite; reruns are development evidence only."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-holdout:
+    if: ${{ inputs.confirmation == 'RUN_SEMANTIC_HOLDOUT_17' }}
+    name: Frozen semantic holdout 17 / ${{ matrix.alias }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - alias: pytest
+            url: https://github.com/pytest-dev/pytest.git
+            revision: 8721173580390a9d297e5af06cac3f0b6841f425
+          - alias: black
+            url: https://github.com/psf/black.git
+            revision: 8d5a2d9f49378d7abe2eb632df1601818de8c24e
+          - alias: starlette
+            url: https://github.com/Kludex/starlette.git
+            revision: fada3631d80274e0f1d552490a83ca877d58ed04
+          - alias: attrs
+            url: https://github.com/python-attrs/attrs.git
+            revision: 8f767776326faaed11e6c2974798787f6e19b343
+          - alias: resty
+            url: https://github.com/go-resty/resty.git
+            revision: 3da7d0987ff4ba931fe55ce8a7f71cb4193fd971
+          - alias: anyhow
+            url: https://github.com/dtolnay/anyhow.git
+            revision: c63b279f3f4af2b02ca6267d9eb47d6d10497f69
+    env:
+      ACCO_STATE_DIR: /tmp/acco-semantic-state-17-${{ matrix.alias }}
+      ACCO_SEMANTIC_MODEL_REVISION: bc57282bc374d33e0d6c4de27f12dc1c2a87f37a
+      HF_HOME: /tmp/acco-huggingface-17
+
+    steps:
+      - name: Require explicit burn confirmation
+        run: |
+          if [ "${{ inputs.confirmation }}" != "RUN_SEMANTIC_HOLDOUT_17" ]; then
+            echo "Refusing to run semantic holdout 17 without exact confirmation." >&2
+            exit 2
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO with exact-scan embeddings
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,embeddings]'
+
+      - name: Require exact cosine evidence backend
+        run: |
+          python -m pip uninstall -y hnswlib || true
+          python - <<'PY'
+          from acco.semantic_retrieval import _hnswlib
+          assert _hnswlib() is None, "semantic evidence must not use ANN"
+          PY
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-17.frozen.json \
+            --validate-only
+
+      - name: Clone pinned frozen repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="benchmarks/semantic-holdout-17/${{ matrix.alias }}"
+          mkdir -p "$(dirname "$path")"
+          git init -q "$path"
+          git -C "$path" remote add origin "${{ matrix.url }}"
+          git -C "$path" fetch -q --depth 1 origin "${{ matrix.revision }}"
+          git -C "$path" checkout -q --detach "${{ matrix.revision }}"
+
+      - name: Download the pinned local embedding model
+        run: |
+          python - <<'PY'
+          import os
+          from sentence_transformers import SentenceTransformer
+
+          model = SentenceTransformer(
+              "all-MiniLM-L6-v2",
+              revision=os.environ["ACCO_SEMANTIC_MODEL_REVISION"],
+          )
+          print(model)
+          PY
+
+      - name: Run frozen repository shard
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-17.frozen.json \
+            --repository "${{ matrix.alias }}" \
+            --progress \
+            --output "benchmarks/semantic-holdout-17.${{ matrix.alias }}.result.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-17-${{ matrix.alias }}
+          path: benchmarks/semantic-holdout-17.${{ matrix.alias }}.result.json
+          retention-days: 90
+          if-no-files-found: error
+
+  merge-semantic-holdout:
+    name: Merge frozen semantic holdout 17
+    needs: semantic-holdout
+    if: ${{ always() && needs.semantic-holdout.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ACCO
+        run: python -m pip install -e .
+
+      - name: Validate immutable query and ground-truth seals
+        run: |
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-17.frozen.json \
+            --validate-only
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: semantic-holdout-17-*
+          path: partial-results
+          merge-multiple: true
+
+      - name: Merge repository shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find partial-results -type f -name '*.json' | sort)
+          if [ "${#files[@]}" -ne 6 ]; then
+            echo "Expected 6 repository result shards, found ${#files[@]}." >&2
+            exit 2
+          fi
+          args=()
+          for file in "${files[@]}"; do
+            args+=(--merge-input "$file")
+          done
+          python scripts/run_semantic_holdout.py \
+            benchmarks/semantic-holdout-17.frozen.json \
+            "${args[@]}" \
+            --output benchmarks/semantic-holdout-17.result.json
+
+      - name: Publish literal result summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("benchmarks/semantic-holdout-17.result.json").read_text()
+          )
+          summary = result["summary"]
+          print("# Semantic holdout 17 — frozen result")
+          print()
+          print(f"- eligible tasks: {summary['task_count']}")
+          print(
+              "- ACCO lexical rank@12 recall: "
+              f"{summary['lexical_rank_file_recall']:.2%}"
+          )
+          print(
+              "- ACCO lexical packed recall: "
+              f"{summary['lexical_file_recall']:.2%}"
+          )
+          print(
+              "- lexical rank→pack recall loss: "
+              f"{summary['lexical_rank_to_pack_recall_loss']:.2%}"
+          )
+          print(
+              "- lexical mean packed files: "
+              f"{summary['lexical_mean_selected_files']:.2f}"
+          )
+          print(
+              "- semantic rank@12 recall: "
+              f"{summary['semantic_rank_file_recall']:.2%}"
+          )
+          print(
+              "- semantic packed recall: "
+              f"{summary['semantic_file_recall']:.2%}"
+          )
+          print(
+              "- semantic rank→pack recall loss: "
+              f"{summary['semantic_rank_to_pack_recall_loss']:.2%}"
+          )
+          print(
+              "- semantic mean packed files: "
+              f"{summary['semantic_mean_selected_files']:.2f}"
+          )
+          print(
+              "- trivial lexical recall: "
+              f"{summary['trivial_lexical_file_recall']:.2%}"
+          )
+          print(
+              "- semantic packed-recall delta vs ACCO lexical: "
+              f"{summary['semantic_file_recall_delta']:+.2%}"
+          )
+          print(
+              "- semantic improved/worsened tasks: "
+              f"{summary['semantic_improved_tasks']}/"
+              f"{summary['semantic_worsened_tasks']}"
+          )
+          print(
+              "- semantic full-recovery/full-regression tasks: "
+              f"{summary['semantic_recovered_tasks']}/"
+              f"{summary['semantic_regressed_tasks']}"
+          )
+          print(
+              "- lexical mean reduction: "
+              f"{summary['lexical_mean_token_reduction']:.2%}"
+          )
+          print(
+              "- semantic mean reduction: "
+              f"{summary['semantic_mean_token_reduction']:.2%}"
+          )
+          print()
+          print(result["claim_boundary"])
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semantic-holdout-17-result
+          path: benchmarks/semantic-holdout-17.result.json
+          retention-days: 90
+          if-no-files-found: error

@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 
 from acco.semantic_holdout import (
+    _arm_result,
     _trivial_lexical_files,
     _validate_leakage,
     evaluate_semantic_holdout,
@@ -26,6 +27,8 @@ MANIFEST_15 = ROOT / "benchmarks" / "semantic-holdout-15.frozen.json"
 QUERY_FREEZE_15 = ROOT / "benchmarks" / "semantic-holdout-15.query-freeze.json"
 MANIFEST_16 = ROOT / "benchmarks" / "semantic-holdout-16.frozen.json"
 QUERY_FREEZE_16 = ROOT / "benchmarks" / "semantic-holdout-16.query-freeze.json"
+MANIFEST_17 = ROOT / "benchmarks" / "semantic-holdout-17.frozen.json"
+QUERY_FREEZE_17 = ROOT / "benchmarks" / "semantic-holdout-17.query-freeze.json"
 
 
 class _FakeEncoder:
@@ -127,6 +130,26 @@ def test_semantic_holdout_16_is_frozen_before_first_evaluation():
     assert result["excluded_tasks"] == 0
 
 
+def test_semantic_holdout_17_is_frozen_before_first_evaluation():
+    """Holdout 17 must preserve its pre-ground-truth query and cohort seals."""
+    payload = json.loads(MANIFEST_17.read_text(encoding="utf-8"))
+    freeze = json.loads(QUERY_FREEZE_17.read_text(encoding="utf-8"))
+
+    result = validate_semantic_holdout(payload, MANIFEST_17)
+
+    assert result["query_freeze_sha256"] == (
+        "661361e6c55a24dbd6128898dcf92867ac644d4629a764a2493d20bed6736d95"
+    )
+    assert result["ground_truth_sha256"] == (
+        "fe479ff78a43c14de108262242706fedf1324194d8be31be0f78827f2ab849a0"
+    )
+    assert query_freeze_hash(freeze) == result["query_freeze_sha256"]
+    assert semantic_ground_truth_hash(payload) == result["ground_truth_sha256"]
+    assert result["task_count"] == 18
+    assert result["eligible_tasks"] == 18
+    assert result["excluded_tasks"] == 0
+
+
 def test_literal_answer_identity_leak_is_detected():
     """Declared answer identities must not occur literally in eligible queries."""
     task = {
@@ -135,6 +158,24 @@ def test_literal_answer_identity_leak_is_detected():
     }
 
     assert _validate_leakage(task) == ["ExactTargetMember"]
+
+
+def test_arm_result_separates_rank_recall_from_packed_recall():
+    """Ranking quality and bounded-pack realization must be independently visible."""
+    result = _arm_result(
+        {"a.py", "b.py"},
+        ["a.py"],
+        ranked_files=["a.py", "b.py", "c.py"],
+        tokens=100,
+        source_tokens=1000,
+    )
+
+    assert result["rank_file_recall"] == 1.0
+    assert result["file_recall"] == 0.5
+    assert result["rank_to_pack_recall_loss"] == 0.5
+    assert result["rank_file_count"] == 3
+    assert result["selected_file_count"] == 1
+    assert result["token_reduction"] == 0.9
 
 
 def test_trivial_baseline_is_distinct_term_overlap_only(tmp_path):
@@ -254,8 +295,12 @@ def test_three_arm_evaluator_can_recover_semantic_only_target(
     assert task["lexical"]["file_recall"] == 0.0
     assert task["trivial_lexical"]["file_recall"] == 0.0
     assert task["semantic"]["file_recall"] == 1.0
+    assert task["semantic"]["rank_file_recall"] == 1.0
     assert task["semantic_recovered"] is True
     assert result["summary"]["semantic_recovered_tasks"] == 1
+    assert result["summary"]["semantic_improved_tasks"] == 1
+    assert result["summary"]["semantic_worsened_tasks"] == 0
+    assert result["summary"]["semantic_rank_file_recall"] == 1.0
 
 
 
