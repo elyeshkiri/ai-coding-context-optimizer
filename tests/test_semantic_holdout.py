@@ -22,6 +22,8 @@ MANIFEST = ROOT / "benchmarks" / "semantic-holdout-13.frozen.json"
 QUERY_FREEZE = ROOT / "benchmarks" / "semantic-holdout-13.query-freeze.json"
 MANIFEST_14 = ROOT / "benchmarks" / "semantic-holdout-14.frozen.json"
 QUERY_FREEZE_14 = ROOT / "benchmarks" / "semantic-holdout-14.query-freeze.json"
+MANIFEST_15 = ROOT / "benchmarks" / "semantic-holdout-15.frozen.json"
+QUERY_FREEZE_15 = ROOT / "benchmarks" / "semantic-holdout-15.query-freeze.json"
 
 
 class _FakeEncoder:
@@ -81,6 +83,26 @@ def test_semantic_holdout_14_is_hash_frozen_before_first_evaluation():
     assert result["task_count"] == 24
     assert result["eligible_tasks"] == 20
     assert result["excluded_tasks"] == 4
+
+
+def test_semantic_holdout_15_is_hash_frozen_and_cohort_locked():
+    """Holdout 15 must preserve its query freeze, ground truth, and exclusions."""
+    payload = json.loads(MANIFEST_15.read_text(encoding="utf-8"))
+    freeze = json.loads(QUERY_FREEZE_15.read_text(encoding="utf-8"))
+
+    result = validate_semantic_holdout(payload, MANIFEST_15)
+
+    assert result["query_freeze_sha256"] == (
+        "2767d3cb3f9c6cc4f606f5a1a1f01bba2421b0bd076729a97a0501b4be736ae4"
+    )
+    assert result["ground_truth_sha256"] == (
+        "54df820439ab107e22ce5375b7ce5d4f170e93f15180633ea86c1808abeb2b1f"
+    )
+    assert query_freeze_hash(freeze) == result["query_freeze_sha256"]
+    assert semantic_ground_truth_hash(payload) == result["ground_truth_sha256"]
+    assert result["task_count"] == 24
+    assert result["eligible_tasks"] == 13
+    assert result["excluded_tasks"] == 11
 
 
 def test_literal_answer_identity_leak_is_detected():
@@ -219,7 +241,7 @@ def test_repository_shards_merge_to_original_evaluation(tmp_path, monkeypatch):
     """Repository sharding must preserve the original frozen evaluation result."""
     repositories = {}
     tasks = []
-    for alias in ("alpha", "beta"):
+    for alias in ("alpha", "beta", "gamma"):
         repo = tmp_path / alias
         repo.mkdir()
         (repo / "a_noise.py").write_text(
@@ -278,7 +300,12 @@ def test_repository_shards_merge_to_original_evaluation(tmp_path, monkeypatch):
                     "z_target.py",
                     "stale_session_artifact",
                 ],
-                "eligible": True,
+                "eligible": task["repository"] != "gamma",
+                "exclusion_reason": (
+                    "fixture exclusion"
+                    if task["repository"] == "gamma"
+                    else None
+                ),
             }
             for task in tasks
         ],
@@ -320,7 +347,18 @@ def test_repository_shards_merge_to_original_evaluation(tmp_path, monkeypatch):
         manifest_path,
         repositories={"beta"},
     )
-    merged = merge_semantic_holdout_results([beta, alpha], manifest_path)
+    gamma = evaluate_semantic_holdout(
+        tmp_path,
+        manifest_path,
+        repositories={"gamma"},
+    )
+    assert gamma["tasks"] == []
+    assert gamma["repositories"] == {}
+    assert gamma["excluded_tasks"][0]["repository"] == "gamma"
+    merged = merge_semantic_holdout_results(
+        [beta, gamma, alpha],
+        manifest_path,
+    )
 
     assert merged["suite"] == "semantic-holdout-99"
     assert merged["tasks"] == full["tasks"]
