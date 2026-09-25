@@ -389,6 +389,33 @@ headline. Any fix motivated by #16 needs a newly frozen suite before ACCO can
 claim fresh generalization.
 
 
+A post-hoc **development-only rank-vs-pack decomposition** then separated file
+ordering from the hard 6,000-token assembly budget. The original ACCO pack
+rendered only **5.61 files on average**, while the trivial comparator always
+received up to 12 file identities without a token-budgeted rendering step.
+Against the same top-12 breadth, ACCO lexical/structural ranking reached
+**83.80% file recall**, versus **71.76%** for trivial distinct-term lexical.
+At the same per-task file count actually rendered by ACCO, the trivial baseline
+reached only **43.98%**, versus ACCO's **62.96%**. On all 18 tasks the original
+pack selected exactly the first N ranked ACCO files until the token budget was
+exhausted, so the apparent trivial advantage was primarily a rank-to-pack
+coverage effect, not evidence that the trivial ordering was globally better.
+
+Four of the five tasks where trivial@12 beat the original ACCO pack were
+budget-only misses: their expected files were already inside ACCO's top 12.
+The remaining case, Jackson explicit-view deserialization, contains a genuine
+ranking gap: one expected file ranked 23rd and another 41st.
+
+The general correction developed from that diagnosis leaves ranking weights
+unchanged and reserves the packer's existing 300-token compact exact-source
+minimum for as many top-ranked candidates as the hard budget can support.
+On burned #16 this **coverage-aware packing** candidate raised lexical pack
+recall from **62.96% to 83.80%**, exactly matching ACCO rank@12, while all
+18 packs stayed below 6,000 tokens. Average rendered-file coverage increased
+from **5.61 to 12.0**. This rerun is development evidence only and does not
+replace the canonical fresh #16 headline.
+
+
 Release CI is anchored to Linux across Python 3.10, 3.12, and 3.13 and requires:
 
 - the complete pytest suite on every supported Python version;
