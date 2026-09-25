@@ -181,3 +181,5 @@ jobs:
           path: semantic-holdout-*.development.json
           retention-days: 30
           if-no-files-found: error
+
+# Candidate run: monotonic pre-semantic confidence gate.
