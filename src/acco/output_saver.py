@@ -166,7 +166,8 @@ def build_output_policy(
     }[normalized]
     task_rule = _TASK_RULES.get(task_normalized)
     instructions = "\n".join([
-        f"OUTPUT BUDGET: target <= {budget} tokens.",
+        f"OUTPUT BUDGET: target <= {budget} tokens for the final written response; "
+        "this limits prose only, never tool use, investigation, or verification.",
         f"OUTPUT TASK: {task_normalized}.",
         detail,
         *([task_rule] if task_rule else []),
@@ -183,7 +184,11 @@ def build_output_policy(
         "Only include a next action when unresolved work actually requires one.",
         "Explicit user output contracts, required code/diffs, diagnostics, safety information, and material caveats override the token target.",
         "When evidence is incomplete, state the uncertainty briefly instead of manufacturing a confident explanation.",
-        "Stop once the acceptance criteria are satisfied.",
+        # A passing reproduction is not acceptance: agents that stopped there
+        # shipped fixes that regressed existing tests.
+        "Before finishing a code change, run the project's existing tests for the code you touched "
+        "and fix any regressions; a passing reproduction alone is not sufficient.",
+        "Stop once the acceptance criteria are satisfied and the relevant tests pass.",
     ])
     return OutputPolicy(normalized, budget, instructions, task_normalized)
 

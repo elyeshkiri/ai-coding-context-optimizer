@@ -12,7 +12,21 @@ def test_output_policy_has_mode_budget_and_stop_rules():
     assert policy.max_tokens == 300
     assert "target <= 300 tokens" in policy.instructions
     assert "Do not restate the task" in policy.instructions
-    assert "Stop once the acceptance criteria are satisfied" in policy.instructions
+    assert (
+        "Stop once the acceptance criteria are satisfied and the relevant tests pass"
+        in policy.instructions
+    )
+
+
+def test_output_policy_never_budgets_away_verification():
+    policy = build_output_policy("normal", task="coding")
+    assert "limits prose only, never tool use, investigation, or verification" in (
+        policy.instructions
+    )
+    assert "run the project's existing tests for the code you touched" in (
+        policy.instructions
+    )
+    assert "a passing reproduction alone is not sufficient" in policy.instructions
 
 
 def test_output_policy_accepts_explicit_budget():
