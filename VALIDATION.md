@@ -1,4 +1,4 @@
-# Validation for 1.16.0
+# Validation for 1.17.0
 
 ## 1.16 custom-agent, provider-boundary, and browser-context mechanics
 

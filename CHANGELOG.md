@@ -1,5 +1,31 @@
 # Unreleased
 
+# 1.17.0 - 2026-09-25
+
+- **Made bounded context packing coverage-aware.** ACCO now reserves compact
+  source evidence across leading ranked files before spending the remaining
+  budget on depth, preventing a strong retrieval ranking from being silently
+  collapsed into too few packed files under a fixed context cap.
+- **Separated ranking quality from pack realization in semantic holdouts.**
+  Frozen retrieval evaluation now records rank-level file recall, packed file
+  recall, selected-file counts, and rank-to-pack recall loss so allocation
+  failures cannot be misdiagnosed as ranking failures.
+- **Validated the allocator on untouched semantic holdout #17.** Across 18
+  eligible issue-derived tasks from pytest, Black, Starlette, attrs, Resty, and
+  anyhow, ACCO lexical/structural rank@12 reached **91.67%** file recall versus
+  **80.56%** for the trivial distinct-term lexical baseline. The 6,000-token
+  bounded pack also reached **91.67%**, selecting 12.0 files per task on
+  average with **0.00 percentage points** of rank-to-pack recall loss.
+- **Kept semantic evidence conservative.** Gated hybrid semantic retrieval also
+  reached **91.67%** on holdout #17 with 0 improved tasks, 0 worsened tasks,
+  0 strict recoveries, and 0 strict regressions versus ACCO lexical/structural.
+  Semantic retrieval therefore remains optional augmentation; this release
+  does not claim an independent recall gain from embeddings.
+- **Preserved evidence boundaries.** Holdout #16 remains burned diagnostic
+  evidence and #17 is now burned after its canonical first run. The new
+  measurements validate retrieval and bounded packing only; they do not create
+  a production-dollar or end-to-end cost-per-success claim.
+
 # 1.16.0 - 2026-09-24
 
 - **Added `acco trial` and `acco learn`.** `trial` runs a local,
