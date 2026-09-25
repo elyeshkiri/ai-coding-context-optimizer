@@ -14,6 +14,7 @@ from urllib.parse import urljoin, urlparse, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .provider_boundary import SUPPORTED_PROVIDERS
+from .provider_cost import PROVIDER_MODEL_ROUTING_MODES
 from .provider_transform import ProviderTransformResult, transform_provider_request
 from .provider_usage import ProviderUsageObserver
 
@@ -41,11 +42,15 @@ class ProviderProxyConfig:
     port: int = 8765
     compress_schemas: bool = True
     compress_tool_results: bool = True
+    deduplicate_history: bool = True
     tool_result_min_tokens: int = 800
     timeout_seconds: float = 120.0
     allow_non_loopback: bool = False
     prefix_tracking: bool = True
     usage_telemetry: bool = True
+    model_routing_mode: str = "off"
+    model_routing_calibration_file: str = ".acco.routing-calibration.json"
+    model_routing_min_savings: float = 0.05
 
     def validate(self) -> ProviderProxyConfig:
         """Reject unsafe binding/upstream combinations before serving."""
@@ -80,6 +85,13 @@ class ProviderProxyConfig:
                 raise ValueError("plain HTTP upstream is allowed only for localhost")
         if self.timeout_seconds <= 0:
             raise ValueError("proxy timeout_seconds must be positive")
+        if self.model_routing_mode.strip().lower() not in PROVIDER_MODEL_ROUTING_MODES:
+            raise ValueError(
+                "provider model routing mode must be one of: "
+                + ", ".join(PROVIDER_MODEL_ROUTING_MODES)
+            )
+        if not 0 <= float(self.model_routing_min_savings) <= 1:
+            raise ValueError("provider model routing min savings must be between 0 and 1")
         return self
 
 
@@ -129,8 +141,12 @@ def transform_request_bytes(
         request_path=request_path,
         compress_schemas=config.compress_schemas,
         compress_tool_results=config.compress_tool_results,
+        deduplicate_history=config.deduplicate_history,
         tool_result_min_tokens=config.tool_result_min_tokens,
         prefix_tracking=config.prefix_tracking,
+        model_routing_mode=config.model_routing_mode,
+        model_routing_calibration_file=config.model_routing_calibration_file,
+        model_routing_min_savings=config.model_routing_min_savings,
     )
     encoded = (
         json.dumps(
@@ -288,11 +304,19 @@ def _handler_factory(
 
             meta = transformed.metadata
             if meta.get("changed"):
+                routing = meta.get("model_routing") or {}
+                route_text = (
+                    f"; model={routing.get('from_model')}->{routing.get('to_model')}"
+                    if routing.get("applied")
+                    else ""
+                )
                 print(
                     "acco proxy transform: "
                     f"{meta.get('original_tokens', 0)} -> "
                     f"{meta.get('output_tokens', 0)} estimated tokens; "
-                    f"recoveries={len(meta.get('recovery_handles', []))}",
+                    f"dedup={meta.get('deduplicated_segments', 0)}; "
+                    f"recoveries={len(meta.get('recovery_handles', []))}"
+                    f"{route_text}",
                     file=sys.stderr,
                 )
 
