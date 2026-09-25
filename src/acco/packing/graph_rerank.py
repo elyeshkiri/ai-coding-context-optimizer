@@ -12,7 +12,10 @@ from ..retrieval_vnext import hybrid_file_boost
 from ..semantic_retrieval import SemanticVectorIndex
 from ..skeleton import file_priority
 from .contracts import RankedFile, RankingScoreEvent
-from .file_scoring import _FileRankingScope
+from .file_scoring import (
+    _FileRankingScope,
+    _MIN_UNDISCOUNTED_STRUCTURAL_AUTHORITY,
+)
 from .ranking_stages import RankingStageContext
 
 
@@ -423,6 +426,19 @@ def _reason_count(reasons: list[str], prefix: str) -> int:
 _PROSE_SUFFIXES = frozenset({".md", ".markdown", ".rst", ".txt"})
 
 
+def _structural_authority_value(reasons: list[str]) -> float:
+    """Return the strongest parser-backed structural authority score."""
+    best = 0.0
+    for reason in reasons:
+        if not reason.startswith("structural-symbol:"):
+            continue
+        try:
+            best = max(best, float(reason.split(":", 1)[1]))
+        except ValueError:
+            continue
+    return best
+
+
 def _lexical_confidence_key(
     item: RankedFile,
 ) -> tuple[int, int, int, int, int, int]:
@@ -436,7 +452,8 @@ def _lexical_confidence_key(
     identity, graph corroboration, and any lexical overlap at all.
     """
     authoritative = int(
-        any(reason.startswith("structural-symbol:") for reason in item.reasons)
+        _structural_authority_value(item.reasons)
+        >= _MIN_UNDISCOUNTED_STRUCTURAL_AUTHORITY
         or any(reason.startswith("graph:semantic-ref@1") for reason in item.reasons)
     )
     implementation_source = int(
@@ -452,9 +469,9 @@ def _lexical_confidence_key(
     return (
         authoritative,
         implementation_source,
+        graph_corroboration,
         path_identity,
         symbol_identity,
-        graph_corroboration,
         lexical_overlap,
     )
 
@@ -463,18 +480,18 @@ def _direct_confidence(
     value: tuple[int, int, int, int, int, int],
 ) -> bool:
     """Return whether a confidence key contains direct non-topical evidence."""
-    authority, _source, path, symbol, graph, _lexical = value
-    return bool(authority or path or symbol or graph)
+    authority, _source, graph, path, symbol, _lexical = value
+    return bool(authority or graph or path or symbol)
 
 
 def _confidence_label(
     value: tuple[int, int, int, int, int, int],
 ) -> str:
     """Render compact content-free confidence evidence."""
-    authority, source, path, symbol, graph, lexical = value
+    authority, source, graph, path, symbol, lexical = value
     return (
-        f"authority={authority},source={source},path={path},"
-        f"symbol={symbol},graph={graph},lexical={lexical}"
+        f"authority={authority},source={source},graph={graph},path={path},"
+        f"symbol={symbol},lexical={lexical}"
     )
 
 
