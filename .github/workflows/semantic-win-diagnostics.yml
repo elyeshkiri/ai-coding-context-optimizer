@@ -80,4 +80,4 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-# Diagnostic-only workflow; results are burned-suite development evidence.
+# Diagnostic-only workflow; results are burned-suite development evidence.\n# Triggered to inspect current-baseline rescue mechanics.
