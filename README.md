@@ -317,8 +317,8 @@ scan instead of changing retrieval semantics.
 
 Semantic retrieval is a discovery layer, not the authority layer. ACCO snapshots
 pre-semantic evidence before embeddings run: undiscounted parser/provider
-authority, implementation-vs-low-value source class, graph corroboration, path
-identity, symbol identity, and lexical presence. Raw semantic boosts remain
+authority, implementation-vs-low-value source class, graph corroboration,
+direct path-or-symbol identity, and lexical presence. Raw semantic boosts remain
 independent of lexical rank so genuinely weak-overlap candidates can still be
 found.
 
