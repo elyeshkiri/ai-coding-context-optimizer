@@ -310,16 +310,7 @@ def build_context_pack(
     )
     priority_seen = 0
 
-    # Reserve a bounded slot for the highest-ranked exact one-hop value
-    # provider among the candidates. This prevents a huge consumer outline
-    # from monopolizing the whole context budget before its provider is
-    # considered, without imposing global fair-sharing on ordinary files. Scan
-    # every candidate, not just the leading few: a "graph:semantic-ref@1" tag
-    # is only ever attached to the small, already-bounded set of files
-    # rank_files() actually found via a real one-hop reference (see
-    # closure.authoritative_providers), never a large fraction of the repo,
-    # so the scan stays cheap regardless of where such a file ranks by raw
-    # lexical score -- which, being a tiny provider file, is often low.
+    # Preserve extra room for the strongest exact one-hop value provider.
     authoritative_rel = next(
         (
             item.rel
