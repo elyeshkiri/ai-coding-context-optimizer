@@ -1,5 +1,7 @@
 # Unreleased
 
+# 1.19.0 - 2026-09-26
+
 - **Added first-class Windows runtime support.** Native Windows CI now runs the
   complete Python test suite plus retrieval and product-UX smoke checks on
   `windows-latest`, so Windows behavior is a release gate rather than an
