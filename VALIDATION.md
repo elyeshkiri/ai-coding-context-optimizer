@@ -1,4 +1,24 @@
-# Validation for 1.17.0
+# Validation for 1.18.0
+
+## 1.18 onboarding and distribution mechanics
+
+Version 1.18 makes the existing optimizer substantially easier to install and
+operate without changing ACCO's evidence standards. Mechanical validation
+covers the project-aware bare `acco` home screen, persistent
+`uvx acco bootstrap`, one-command setup/index/readiness, managed Claude Lean
+installation with user-modification preservation, automatic host selection for
+`acco start`, the simplified status/demo/savings surfaces, and explicit
+package-manager upgrades.
+
+Release validation additionally smoke-tests tagged single-file executables on
+Linux x86_64, macOS arm64, and Windows x86_64. Each release binary must run
+`acco --help` and a provider-free repository `acco demo` before upload, and
+is published with a SHA-256 sidecar. The release-scoped Homebrew formula is
+rendered only after the Linux/macOS checksums exist.
+
+These checks establish onboarding, packaging, ownership, and local-measurement
+correctness. They do **not** turn local token-reduction estimates into API
+billing savings or create a new universal cost-per-success claim.
 
 ## 1.16 custom-agent, provider-boundary, and browser-context mechanics
 
