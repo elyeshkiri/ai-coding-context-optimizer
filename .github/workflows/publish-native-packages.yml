@@ -99,4 +99,5 @@ jobs:
           Expand-Archive package\winget-manifests.zip package\winget -Force
 
           winget install --id Microsoft.WingetCreate --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
-          wingetcreate submit package\winget --token $env:WINGET_TOKEN
+          $wingetCreate = (Get-Command wingetcreate -ErrorAction Stop).Source
+          & $wingetCreate submit package\winget --token $env:WINGET_TOKEN
