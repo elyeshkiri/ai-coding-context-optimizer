@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -10,6 +9,7 @@ from pathlib import Path
 import tempfile
 import time
 
+from ..file_lock import locked_file
 from ..state import state_dir
 
 SCHEMA = 1
@@ -35,38 +35,6 @@ def snapshot_path(root: Path) -> Path:
 def events_path(root: Path) -> Path:
     """Return the append-only efficiency-event path for one project."""
     return directory() / f"{_project_id(root)}.jsonl"
-
-
-@contextmanager
-def _locked(path: Path):
-    """Hold an exclusive cross-platform lock for one state path."""
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd = os.open(str(path) + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
-    with os.fdopen(fd, "a+b") as handle:
-        if os.name == "nt":
-            import msvcrt
-
-            handle.seek(0)
-            handle.write(b"0")
-            handle.flush()
-            handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            if os.name == "nt":
-                import msvcrt
-
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def _atomic_write(path: Path, payload: dict) -> None:
@@ -111,7 +79,7 @@ def load_snapshot(root: Path) -> dict:
 def update_snapshot(root: Path, mutate) -> dict:
     """Mutate one project snapshot under a lock and return the saved value."""
     path = snapshot_path(root)
-    with _locked(path):
+    with locked_file(Path(str(path) + ".lock")):
         payload = load_snapshot(root)
         mutate(payload)
         payload["schema"] = SCHEMA
@@ -128,7 +96,7 @@ def append_event(root: Path, event: dict) -> None:
         "recorded_at": int(time.time()),
         **event,
     }
-    with _locked(path):
+    with locked_file(Path(str(path) + ".lock")):
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         existed = path.exists()
         with path.open("a", encoding="utf-8") as handle:
