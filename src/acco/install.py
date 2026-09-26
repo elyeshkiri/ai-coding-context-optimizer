@@ -14,6 +14,7 @@ PROMPT_MATCHER = "*"
 HOOK_MATCHERS = {
     "PreToolUse": PRE_MATCHER,
     "PostToolUse": POST_MATCHER,
+    "PreCompact": "",
     "SessionStart": SESSION_MATCHER,
     "UserPromptSubmit": "",
     "Stop": "",
