@@ -26,6 +26,11 @@ Argparse usage errors also exit `2`.
   "config": "path to .acco.toml",
   "requested_hosts": ["claude", "cursor"],
   "configured_hosts": ["claude", "cursor"],
+  "lean_skill": "/project/.claude/skills/acco-lean/SKILL.md",
+  "profile": "safe",
+  "ready": true,
+  "index": {"files": 123, "index_version": 13},
+  "health": {"ready": true},
   "detected": [
     {
       "name": "claude",
@@ -38,6 +43,9 @@ Argparse usage errors also exit `2`.
   ]
 }
 ```
+
+Normal setup JSON includes the integrated readiness/index result. `--no-index`
+sets `index` to null; `--no-lean` leaves `lean_skill` null.
 
 ## `doctor --json`
 
