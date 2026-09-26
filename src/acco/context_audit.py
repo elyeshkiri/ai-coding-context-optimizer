@@ -24,6 +24,7 @@ OVERSIZED_LINES = 220
 
 
 def _digest(text: str) -> str:
+    """Return a whitespace-stable digest for exact instruction duplication."""
     normalized = "\n".join(
         line.rstrip() for line in text.splitlines() if line.strip()
     )
