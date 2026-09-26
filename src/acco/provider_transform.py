@@ -11,7 +11,7 @@ from typing import Any
 from .context_router import route_context
 from .efficiency.store import append_event
 from .estimate import estimate_tokens
-from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
+from .prefix_cache import (\n    PrefixPlan,\n    observe_prefix,\n    reusable_history_counts,\n    stable_prefix_fingerprint,\n)
 from .provider_cost import (
     PROVIDER_MODEL_ROUTING_MODES,
     apply_calibrated_provider_route,
@@ -159,16 +159,13 @@ def _transform_messages(
     query: str,
     recovery: RecoveryStore,
     min_tokens: int,
-    handles: list[str],
-) -> int:
-    """Transform only explicit historical tool outputs in message APIs."""
+    handles: list[str],\n    start_index: int = 0,\n) -> int:\n    """Transform only explicit tool outputs at or beyond the live frontier."""
     messages = transformed.get("messages")
     if not isinstance(messages, list):
         return 0
     changed = 0
     new_messages = []
-    for message in messages:
-        if not isinstance(message, dict):
+    for index, message in enumerate(messages):\n        if index < start_index:\n            new_messages.append(message)\n            continue\n        if not isinstance(message, dict):
             new_messages.append(message)
             continue
         updated = dict(message)
@@ -203,17 +200,13 @@ def _transform_openai_input(
     query: str,
     recovery: RecoveryStore,
     min_tokens: int,
-    handles: list[str],
-) -> int:
-    """Transform OpenAI Responses historical function/tool outputs only."""
+    handles: list[str],\n    start_index: int = 0,\n) -> int:\n    """Transform OpenAI Responses tool outputs at or beyond the live frontier."""
     input_items = transformed.get("input")
     if not isinstance(input_items, list):
         return 0
     changed = 0
     new_input = []
-    for item in input_items:
-        if (
-            isinstance(item, dict)
+    for index, item in enumerate(input_items):\n        if index < start_index:\n            new_input.append(item)\n            continue\n        if (\n            isinstance(item, dict)
             and item.get("type") in {"function_call_output", "tool_result"}
             and isinstance(item.get("output"), str)
         ):
@@ -287,8 +280,7 @@ def transform_provider_request(
     prefix_tracking: bool = True,
     model_routing_mode: str = "off",
     model_routing_calibration_file: str = ".acco.routing-calibration.json",
-    model_routing_min_savings: float = 0.05,
-) -> ProviderTransformResult:
+    model_routing_min_savings: float = 0.05,\n    live_zone: bool = True,\n) -> ProviderTransformResult:
     """Optimize historical provider context while leaving current task/source intact."""
     if not isinstance(body, dict):
         raise ValueError("provider request body must be a JSON object")
@@ -307,6 +299,13 @@ def transform_provider_request(
         "applied": False,
     }
 
+    protected_messages = 0
+    protected_input = 0
+    if live_zone and prefix_tracking:
+        protected_messages, protected_input = reusable_history_counts(
+            root, profile.provider, body
+        )
+
     normalized_routing_mode = str(model_routing_mode or "off").strip().lower()
     if normalized_routing_mode not in PROVIDER_MODEL_ROUTING_MODES:
         raise ValueError(
@@ -322,8 +321,7 @@ def transform_provider_request(
             profile,
             recovery=recovery,
             min_tokens=tool_result_min_tokens,
-            enabled=deduplicate_history,
-        )
+            enabled=deduplicate_history and not (protected_messages or protected_input),\n        )
         if history.segments:
             handles.extend(history.recovery_handles)
             deduplicated_segments = history.segments
@@ -346,16 +344,12 @@ def transform_provider_request(
                 query=query,
                 recovery=recovery,
                 min_tokens=tool_result_min_tokens,
-                handles=handles,
-            )
-            transformed_segments += _transform_openai_input(
+                handles=handles,\n                start_index=protected_messages,\n            )\n            transformed_segments += _transform_openai_input(
                 transformed,
                 query=query,
                 recovery=recovery,
                 min_tokens=tool_result_min_tokens,
-                handles=handles,
-            )
-            if profile.provider == "gemini":
+                handles=handles,\n                start_index=protected_input,\n            )\n            if profile.provider == "gemini":
                 transformed_segments += _transform_gemini(
                     transformed,
                     query=query,
