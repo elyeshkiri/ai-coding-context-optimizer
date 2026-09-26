@@ -107,6 +107,35 @@ def stable_prefix_element_hashes(body: dict) -> tuple[str, ...]:
     return tuple(hashes)
 
 
+def reusable_history_counts(root: Path, provider: str, body: dict) -> tuple[int, int]:
+    """Return message/input elements already present in the prior stable prefix.
+
+    The state contains hashes only. A count is returned only for the exact
+    leading sequence previously observed, so callers can leave that cache-hot
+    history byte-identical and optimize only the live frontier.
+    """
+    key = provider.strip().lower() or "generic"
+    previous = load(root).get("prefix_cache", {}).get(key)
+    if not isinstance(previous, dict):
+        return 0, 0
+    previous_hashes = previous.get("element_hashes")
+    if not isinstance(previous_hashes, list):
+        return 0, 0
+    current = stable_prefix_element_hashes(body)
+    matched = 0
+    for old, new in zip(previous_hashes, current):
+        if str(old) != new:
+            break
+        matched += 1
+    if matched == 0:
+        return 0, 0
+    prefix = tuple(str(item) for item in previous_hashes[:matched])
+    return (
+        sum(item.startswith("message:") for item in prefix),
+        sum(item.startswith("input:") for item in prefix),
+    )
+
+
 def stable_prefix_fingerprint(body: dict) -> tuple[str, int, int, tuple[str, ...]]:
     """Hash a canonical representation of the stable request prefix."""
     stable, components = _stable_payload(body)
