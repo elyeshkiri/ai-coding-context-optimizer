@@ -425,7 +425,6 @@ def test_standalone_download_verifies_and_smoke_tests(
     digest = product.hashlib.sha256(downloaded).hexdigest()
     calls = []
     monkeypatch.setattr(product.tempfile, "mkdtemp", lambda prefix: str(update_dir))
-    monkeypatch.setattr(product.os, "name", "posix", raising=False)
 
     def fake_download(url, destination):
         calls.append(url)
