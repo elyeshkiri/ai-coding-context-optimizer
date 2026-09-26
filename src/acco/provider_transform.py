@@ -165,18 +165,14 @@ def _transform_messages(
     recovery: RecoveryStore,
     min_tokens: int,
     handles: list[str],
-    start_index: int = 0,
 ) -> int:
-    """Transform only explicit tool outputs at or beyond the live frontier."""
+    """Transform explicit historical tool outputs deterministically."""
     messages = transformed.get("messages")
     if not isinstance(messages, list):
         return 0
     changed = 0
     new_messages = []
-    for index, message in enumerate(messages):
-        if index < start_index:
-            new_messages.append(message)
-            continue
+    for message in messages:
         if not isinstance(message, dict):
             new_messages.append(message)
             continue
@@ -213,18 +209,14 @@ def _transform_openai_input(
     recovery: RecoveryStore,
     min_tokens: int,
     handles: list[str],
-    start_index: int = 0,
 ) -> int:
-    """Transform OpenAI Responses tool outputs at or beyond the live frontier."""
+    """Transform OpenAI Responses historical tool outputs deterministically."""
     input_items = transformed.get("input")
     if not isinstance(input_items, list):
         return 0
     changed = 0
     new_input = []
-    for index, item in enumerate(input_items):
-        if index < start_index:
-            new_input.append(item)
-            continue
+    for item in input_items:
         if (
             isinstance(item, dict)
             and item.get("type") in {"function_call_output", "tool_result"}
@@ -361,14 +353,13 @@ def transform_provider_request(
                 schema_handle = schema.recovery_handle
 
         if compress_tool_results:
-            query = latest_user_text(transformed, profile)
+            query = "" if live_zone else latest_user_text(transformed, profile)
             transformed_segments += _transform_messages(
                 transformed,
                 query=query,
                 recovery=recovery,
                 min_tokens=tool_result_min_tokens,
                 handles=handles,
-                start_index=protected_messages,
             )
             transformed_segments += _transform_openai_input(
                 transformed,
@@ -376,7 +367,6 @@ def transform_provider_request(
                 recovery=recovery,
                 min_tokens=tool_result_min_tokens,
                 handles=handles,
-                start_index=protected_input,
             )
             if profile.provider == "gemini":
                 transformed_segments += _transform_gemini(
@@ -436,7 +426,12 @@ def transform_provider_request(
 
     prefix_provider = profile.provider
     if prefix_tracking:
-        prefix = observe_prefix(root, prefix_provider, transformed)
+        prefix = observe_prefix(
+            root,
+            prefix_provider,
+            transformed,
+            source_body=body,
+        )
     else:
         fingerprint, tokens, size, components = stable_prefix_fingerprint(
             transformed
