@@ -13,11 +13,19 @@ acco update [--apply] [--json]
 - `--apply` — execute the detected upgrade command.
 - `--json` — emit package-manager, command, apply state, and return code.
 
-ACCO prefers `uv tool upgrade acco` when `uv` is available, then
-`pipx upgrade acco`, and otherwise falls back to the current Python
-interpreter's `pip install --upgrade acco`.
+ACCO preserves the installation owner:
 
-No package-manager mutation occurs unless `--apply` is explicit.
+- `uv` installations use `uv tool upgrade acco`;
+- `pipx` installations use `pipx upgrade acco`;
+- ordinary Python installs fall back to the current interpreter's
+  `pip install --upgrade acco`;
+- Homebrew-managed frozen binaries use `brew upgrade acco`;
+- WinGet-managed frozen binaries use
+  `winget upgrade --id ElyesHkiri.ACCO --exact`;
+- raw standalone Linux/macOS/Windows binaries use ACCO's checksum-verified
+  native updater for the current OS and architecture.
+
+No package-manager or standalone mutation occurs unless `--apply` is explicit.
 
 ## Exit codes
 
@@ -26,8 +34,9 @@ manager's exit code.
 
 ## Output contract
 
-JSON fields are `schema`, `manager`, `command`, `applied`, and
-`returncode`. The command does not edit project configuration; rerun
+JSON fields are `schema`, `manager`, `command`, `applied`,
+`returncode`, and `standalone_state`. The command does not edit project
+configuration; rerun
 `acco setup` after an upgrade to repair/migrate integrations idempotently.
 
 ## Authoritative runtime help
