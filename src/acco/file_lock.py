@@ -25,11 +25,11 @@ def locked_file(path: Path, *, timeout: float = 30.0):
                 try:
                     msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
                     break
-                except OSError:
+                except OSError as exc:
                     if time.monotonic() >= deadline:
                         raise TimeoutError(
                             f"timed out acquiring ACCO state lock: {path}"
-                        )
+                        ) from exc
                     time.sleep(0.02)
             try:
                 yield
