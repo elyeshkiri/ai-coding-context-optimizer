@@ -649,7 +649,7 @@ def _download_verified_standalone(
         actual = hashlib.sha256(replacement.read_bytes()).hexdigest().lower()
         if expected != actual:
             raise ValueError("standalone ACCO update checksum verification failed")
-        if os.name != "nt":
+        if not asset.endswith(".exe"):
             replacement.chmod(0o755)
         smoke = subprocess.run(
             [str(replacement), "--help"],
