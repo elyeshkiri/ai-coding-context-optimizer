@@ -1,6 +1,7 @@
 """Session-scoped JSON ledger with locked transactions and atomic writes."""
 from __future__ import annotations
 import hashlib
+from contextlib import contextmanager
 import json
 import os
 import tempfile
@@ -54,6 +55,13 @@ def load(root: Path | None = None, session_id: str | None = None) -> dict:
         data.setdefault(key, default)
     return data
 
+@contextmanager
+def _locked(path: Path):
+    """Compatibility lock seam used by state and validated config writes."""
+    with locked_file(Path(str(path) + ".lock")):
+        yield
+
+
 def _write(data: dict, path: Path) -> Path:
     """Write the requested value."""
     data = dict(data, schema=SCHEMA, updated=int(time.time()))
@@ -70,13 +78,13 @@ def _write(data: dict, path: Path) -> Path:
 def save(data: dict, root: Path | None = None, session_id: str | None = None) -> Path:
     """Save the requested value."""
     path = state_path(root, session_id)
-    with locked_file(Path(str(path) + ".lock")):
+    with _locked(path):
         return _write(data, path)
 
 def update(root: Path | None, mutate, session_id: str | None = None) -> Path:
     """Update the requested value."""
     path = state_path(root, session_id)
-    with locked_file(Path(str(path) + ".lock")):
+    with _locked(path):
         data = load(root, session_id)
         mutate(data)
         return _write(data, path)
