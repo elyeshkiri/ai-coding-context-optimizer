@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -49,7 +50,9 @@ def projects_dir() -> Path:
 def project_slug(path: Path) -> str:
     """Claude Code's directory name for a project: its absolute path with every
     non-alphanumeric character (``/``, ``_``, ``.``, ...) replaced by ``-``."""
-    return re.sub(r"[^A-Za-z0-9]", "-", str(Path(path).resolve()))
+    raw = os.fspath(path)
+    resolved = raw if raw.startswith("/") else str(Path(path).resolve())
+    return re.sub(r"[^A-Za-z0-9]", "-", resolved)
 
 
 def transcript_paths(root: Path | None = None, all_projects: bool = False) -> list[Path]:
