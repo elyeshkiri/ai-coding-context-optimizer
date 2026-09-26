@@ -167,8 +167,7 @@ def bootstrap_main(argv: list[str]) -> int:
     completed = subprocess.run(
         install_command,
         check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     if completed.returncode != 0:
