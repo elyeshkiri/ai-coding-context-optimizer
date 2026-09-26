@@ -24,6 +24,16 @@ from .command_handlers.efficiency import (
     dashboard_main,
     learn_main,
 )
+from .command_handlers.everyday import (
+    claude_main,
+    codex_main,
+    context_audit_main,
+    gemini_main,
+    guardian_main,
+    lean_skill_main,
+    statusline_main,
+    wrap_main,
+)
 from .command_handlers.evaluation import (
     agent_evaluate_main,
     blind_grade_main,
@@ -161,6 +171,14 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("browser-context", browser_context_main),
         CommandSpec("cache-economics", cache_economics_main),
         CommandSpec("continuity", continuity_main),
+        CommandSpec("guardian", guardian_main),
+        CommandSpec("wrap", wrap_main),
+        CommandSpec("claude", claude_main),
+        CommandSpec("codex", codex_main),
+        CommandSpec("gemini", gemini_main),
+        CommandSpec("lean-skill", lean_skill_main),
+        CommandSpec("context-audit", context_audit_main),
+        CommandSpec("statusline", statusline_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),
         CommandSpec("uninstall", uninstall_main),
