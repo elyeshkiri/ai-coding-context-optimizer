@@ -62,6 +62,47 @@ jobs:
       - run: python -m pytest -q
       - run: acco evaluate benchmarks/context-quality.json --path . --max-tokens 6000
 
+  standalone-smoke:
+    name: Standalone binary smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Linux standalone executable
+        run: |
+          python -m pip install --upgrade pip pyinstaller
+          python -m pip install .
+          pyinstaller \
+            --clean \
+            --onefile \
+            --name acco \
+            --collect-submodules acco \
+            --collect-all tree_sitter \
+            --collect-all tree_sitter_javascript \
+            --collect-all tree_sitter_typescript \
+            --collect-all tree_sitter_go \
+            --collect-all tree_sitter_rust \
+            --collect-all tree_sitter_java \
+            --collect-all tree_sitter_c_sharp \
+            packaging/standalone_entry.py
+      - name: Exercise standalone CLI and provider-free demo
+        run: |
+          ./dist/acco --help
+          ./dist/acco demo . \
+            --query "provider wrapper launch" \
+            --max-tokens 1000 \
+            --json > standalone-smoke.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("standalone-smoke.json").read_text())
+          assert data["provider_request_made"] is False
+          assert data["context_pack_tokens"] > 0
+          PY
+
   typescript-sdk:
     name: TypeScript SDK
     runs-on: ubuntu-latest
