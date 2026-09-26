@@ -103,6 +103,36 @@ jobs:
           assert data["context_pack_tokens"] > 0
           PY
 
+  windows-core:
+    name: Windows core
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ACCO and development dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run full Python suite on native Windows
+        shell: pwsh
+        run: python -m pytest -q
+      - name: Enforce Windows retrieval quality
+        shell: pwsh
+        run: acco evaluate benchmarks/context-quality.json --path . --max-tokens 6000
+      - name: Exercise Windows product UX
+        shell: pwsh
+        run: |
+          acco demo . --query "provider wrapper launch" --max-tokens 1000 --json | Out-File -Encoding utf8 windows-demo.json
+          $demo = Get-Content windows-demo.json -Raw | ConvertFrom-Json
+          if ($demo.provider_request_made -ne $false) { throw "demo unexpectedly called a provider" }
+          if ($demo.context_pack_tokens -le 0) { throw "demo returned an empty context pack" }
+          $completion = acco completion powershell
+          [void][scriptblock]::Create(($completion -join [Environment]::NewLine))
+          [void][scriptblock]::Create((Get-Content scripts/install-standalone.ps1 -Raw))
+
   typescript-sdk:
     name: TypeScript SDK
     runs-on: ubuntu-latest
