@@ -1,5 +1,33 @@
 # Unreleased
 
+# 1.18.0 - 2026-09-26
+
+- **Made ACCO install-and-forget for ordinary users.** The recommended
+  non-Claude path is now `uv tool install acco` followed by one
+  `acco setup`; `uvx acco bootstrap` provides a one-command persistent
+  bootstrap. Setup now
+  detects/configures hosts, writes the explicit safe profile, installs managed
+  Claude Lean without overwriting user-modified skill content, warms the
+  structural repository index, runs readiness checks, and finishes with
+  `READY` when healthy.
+- **Added a beginner product shell without removing the expert CLI.** Bare
+  `acco` is now a project-aware home screen, `acco start` detects/remembers
+  the coding agent and launches it, and `acco advanced` keeps the complete
+  existing command surface discoverable separately.
+- **Added simple everyday health and proof surfaces.** `acco status` now shows
+  integration/index health plus bounded local efficiency telemetry while
+  `--ledger` preserves the previous low-level state view. `acco demo` gives
+  a provider-free repository-context demonstration and `acco savings`
+  summarizes operational reductions without turning estimates into bill
+  claims.
+- **Added package-manager-aware upgrades.** `acco update` reports the safest
+  detected `uv`, `pipx`, or pip upgrade command and mutates the environment
+  only with explicit `--apply`.
+- **Prepared standalone distribution.** Tagged releases build smoke-tested
+  macOS, Linux, and Windows single-file executables with SHA-256 sidecars so
+  users can install ACCO without managing Python. The Python/PyPI path remains
+  the reference distribution and `uv` remains the recommended install.
+
 - **Added a first-class Compaction Guardian.** Claude Code now registers a
   `PreCompact` hook that captures bounded structured task state before host
   compaction. Resume/compact starts can restore that checkpoint even when the

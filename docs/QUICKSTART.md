@@ -1,29 +1,32 @@
 # Quickstart
 
-This guide gets **ACCO — AI Coding Context Optimizer** from installation to a verified local integration in
-about five minutes.
+This guide gets **ACCO — AI Coding Context Optimizer** from installation to a verified local integration in about one minute for an ordinary project.
 
 ## 1. Install
 
-ACCO supports Python 3.10+.
+ACCO supports Python 3.10+. The preferred isolated CLI install is:
 
 ```bash
-python -m pip install --upgrade acco
+uv tool install acco
 ```
 
-The PyPI distribution is `acco`; the executable remains
-`acco`.
-
-Verify the executable and discover the complete command surface:
+For a one-command persistent bootstrap:
 
 ```bash
-acco --help
-acco commands
+cd /path/to/project
+uvx acco bootstrap
 ```
 
-`--help` includes both registry-backed and legacy-compatible commands; you no
-longer need README knowledge to discover `setup`, `doctor`, `pack`, or
-`uninstall`.
+The temporary `uvx` process first installs ACCO persistently through
+`uv tool`, then runs setup. It does not leave host integrations pointing at an
+ephemeral environment.
+
+Alternatives are `pipx install acco` and
+`python -m pip install --upgrade acco`.
+
+The PyPI distribution and executable are both `acco`. Running `acco` with
+no arguments shows the project-aware home screen instead of the full expert
+command catalog.
 
 ## 2. Configure a project
 
@@ -34,7 +37,10 @@ cd /path/to/project
 acco setup
 ```
 
-Setup auto-detects supported hosts and configures only ACCO-owned entries.
+Setup auto-detects supported hosts, configures only ACCO-owned entries,
+installs the safe local defaults, installs managed Claude Lean when applicable,
+warms the structural index, and verifies readiness. A healthy run ends with
+`ACCO SETUP — READY`.
 
 Explicit host selection is also available:
 
@@ -51,28 +57,34 @@ Setup is idempotent. `--host all` means all detected supported hosts, not every
 product ACCO knows about. Re-running setup after an upgrade is the
 supported repair/migration path.
 
-## 3. Verify the installation
+## 3. Start coding
 
 ```bash
-acco doctor .
+acco start
 ```
 
-A healthy report should show:
+With one detected coding agent ACCO launches it directly. With several, ACCO
+uses a remembered choice or asks once. Claude, Codex, and Gemini are launched
+through ACCO's ephemeral provider wrapper; other supported agents use their
+managed integrations.
 
-- the `acco` executable;
-- a project `.acco.toml`;
-- at least one configured supported host;
-- a healthy repository index;
-- Claude transcript evidence when Claude Code has already been used.
-
-For automation:
+Check the simple product health view at any time:
 
 ```bash
-acco doctor . --json
-acco doctor . --require-ready
+acco status
 ```
 
-## 4. Try retrieval directly
+`acco doctor` remains the deeper troubleshooting command.
+
+## 4. See ACCO work without spending provider tokens
+
+```bash
+acco demo
+```
+
+The demo builds a real bounded repository pack but makes no provider request.
+
+## 5. Try retrieval directly
 
 Inspect ranked context without involving an agent:
 
@@ -92,7 +104,7 @@ Explain a surprising rank:
 acco ranking-explain . --query "refresh session token"
 ```
 
-## 5. Measure your existing context
+## 6. Measure your existing context
 
 ```bash
 acco audit .
@@ -103,13 +115,16 @@ acco sessions .
 Code transcripts and reports recorded API token fields plus estimated tool-result
 sizes. These are measurements, not universal savings claims.
 
-## 6. Optional project configuration
+## 7. Optional project configuration
 
 Setup creates a project-owned `.acco.toml`. A small excerpt of the
 current defaults is:
 
 ```toml
 version = 1
+
+[profile]
+mode = "safe"
 
 [hooks]
 guard = true
@@ -122,6 +137,8 @@ compress_schemas = false
 
 [provider]
 prefix_tracking = true
+history_dedup = true
+model_routing = "off"
 ```
 
 The generated file contains additional output, routing, efficiency, ingress,
@@ -130,14 +147,23 @@ project-owned config on upgrade; missing keys use runtime defaults until you add
 them. Environment variables take precedence. See
 [Configuration](CONFIGURATION.md) for the complete file and migration rules.
 
-## 7. Recover or remove
+## 8. Upgrade, repair, or remove
 
-Repair after changing host configuration:
+Inspect the preferred package-manager upgrade:
 
 ```bash
-acco setup .
-acco doctor .
+acco update
+acco update --apply
 ```
+
+Repair after changing host configuration or upgrading:
+
+```bash
+acco setup
+```
+
+Setup is idempotent and includes its own readiness check. Use `acco doctor`
+only when you want deeper troubleshooting detail.
 
 Remove ACCO-owned host entries:
 

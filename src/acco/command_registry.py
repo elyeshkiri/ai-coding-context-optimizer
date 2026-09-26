@@ -92,6 +92,15 @@ from .command_handlers.patch import pack_diff_main, review_main
 from .command_handlers.pricing import pricing_main
 from .command_handlers.sdk import sdk_serve_main
 from .pack_cli import main as pack_main
+from .command_handlers.product import (
+    advanced_main,
+    bootstrap_main,
+    demo_main,
+    savings_main,
+    start_main,
+    status_main,
+    update_main,
+)
 
 CommandHandler = Callable[[list[str]], int]
 
@@ -179,6 +188,13 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("lean-skill", lean_skill_main),
         CommandSpec("context-audit", context_audit_main),
         CommandSpec("statusline", statusline_main),
+        CommandSpec("bootstrap", bootstrap_main),
+        CommandSpec("start", start_main),
+        CommandSpec("status", status_main),
+        CommandSpec("demo", demo_main),
+        CommandSpec("savings", savings_main),
+        CommandSpec("update", update_main),
+        CommandSpec("advanced", advanced_main),
         CommandSpec("setup", setup_main),
         CommandSpec("doctor", doctor_main),
         CommandSpec("uninstall", uninstall_main),

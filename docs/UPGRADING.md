@@ -16,11 +16,16 @@ Canonical identifiers are now:
 - source package: `src/acco`
 - optional Rust package/module: `acco-fast` / `_acco_fast`
 
-Install or upgrade with:
+Inspect or apply the recommended upgrade for the way ACCO is installed:
 
 ```bash
-python -m pip install --upgrade acco
+acco update
+acco update --apply
 ```
+
+ACCO prefers `uv tool upgrade acco`, then `pipx upgrade acco`, and falls
+back to `python -m pip install --upgrade acco`. No mutation happens unless
+`--apply` is explicit.
 
 The GitHub repository remains `elyeshkiri/ai-coding-context-optimizer`.
 Checked-in benchmark identifiers use the canonical ACCO namespace.
@@ -38,7 +43,8 @@ acco setup .
 acco doctor .
 ```
 
-to refresh ACCO-owned entries after upgrading.
+to refresh ACCO-owned entries after upgrading. Setup now performs its own
+index warm-up and readiness check, so a separate `acco doctor` is optional.
 
 New host-specific behavior:
 

@@ -22,6 +22,7 @@ PUBLIC_DOCS = (
     ROOT / "CONTRIBUTING.md",
     ROOT / "SECURITY.md",
     ROOT / "docs" / "README.md",
+    ROOT / "docs" / "INSTALL.md",
     ROOT / "docs" / "QUICKSTART.md",
     ROOT / "docs" / "CLI_REFERENCE.md",
     ROOT / "docs" / "JSON_OUTPUTS.md",
@@ -119,6 +120,7 @@ def test_docs_index_links_every_task_guide():
     """The docs hub should expose each task-oriented guide directly."""
     index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
     for name in (
+        "INSTALL.md",
         "QUICKSTART.md",
         "CLI_REFERENCE.md",
         "CONFIGURATION.md",

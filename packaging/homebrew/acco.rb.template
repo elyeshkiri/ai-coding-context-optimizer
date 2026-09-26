@@ -1,0 +1,31 @@
+class Acco < Formula
+  desc "AI Coding Context Optimizer"
+  homepage "https://github.com/elyeshkiri/ai-coding-context-optimizer"
+  version "__VERSION__"
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/elyeshkiri/ai-coding-context-optimizer/releases/download/v__VERSION__/acco-macos-arm64"
+      sha256 "__MACOS_ARM64_SHA256__"
+    else
+      odie "ACCO standalone Homebrew formula currently publishes macOS arm64 only"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.intel?
+      url "https://github.com/elyeshkiri/ai-coding-context-optimizer/releases/download/v__VERSION__/acco-linux-x86_64"
+      sha256 "__LINUX_X86_64_SHA256__"
+    else
+      odie "ACCO standalone Homebrew formula currently publishes Linux x86_64 only"
+    end
+  end
+
+  def install
+    bin.install Dir["acco-*"].first => "acco"
+  end
+
+  test do
+    assert_match "ACCO commands", shell_output("#{bin}/acco --help")
+  end
+end

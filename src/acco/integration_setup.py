@@ -15,6 +15,11 @@ from .config import update_json
 from .install import HOOK_COMMAND, HOOK_MATCHERS, install as install_claude_hooks
 from .install import settings_path as claude_settings_path
 from .install import uninstall as uninstall_claude_hooks
+from .lean_skill import (
+    SKILL_TEXT as LEAN_SKILL_TEXT,
+    install_lean_skill,
+    skill_path as lean_skill_path,
+)
 from .host_configs import (
     RunCommand,
     antigravity_configured,
@@ -78,6 +83,9 @@ CODEX_END = "# <<< acco managed <<<"
 
 DEFAULT_CONFIG = """version = 1
 
+[profile]
+mode = "safe"
+
 [hooks]
 guard = true
 read_max_lines = 220
@@ -132,6 +140,10 @@ compress_schemas = false
 
 [provider]
 prefix_tracking = true
+history_dedup = true
+model_routing = "off"
+routing_calibration_file = ".acco.routing-calibration.json"
+routing_min_savings = 0.05
 
 [tool_proxy]
 enabled = false
@@ -301,6 +313,38 @@ def _uninstall_codex(path: Path) -> None:
     if cleaned == existing:
         return
     _atomic_write(path, cleaned)
+
+
+def _ensure_managed_lean_skill(root: Path) -> str | None:
+    """Install ACCO Lean for Claude without overwriting user-modified content."""
+    path = lean_skill_path(root, "claude")
+    if path.exists():
+        try:
+            if path.read_text(encoding="utf-8") != LEAN_SKILL_TEXT:
+                return None
+        except OSError:
+            return None
+    installed = install_lean_skill(root, host="claude")
+    return str(installed[0]) if installed else None
+
+
+def _remove_managed_lean_skill(root: Path) -> None:
+    """Remove the ACCO Lean skill only while it still matches our template."""
+    path = lean_skill_path(root, "claude")
+    if not path.exists():
+        return
+    try:
+        current = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    if current != LEAN_SKILL_TEXT:
+        return
+    path.unlink()
+    for directory in (path.parent, path.parent.parent):
+        try:
+            directory.rmdir()
+        except OSError:
+            break
 
 
 def _remove_managed_claude_skill(root: Path) -> None:
@@ -510,6 +554,7 @@ def setup_integrations(
     home: Path | None = None,
     which: Callable[[str], str | None] = shutil.which,
     runner: RunCommand = run_command,
+    install_lean: bool = True,
 ) -> dict:
     """Configure detected or explicitly requested hosts idempotently."""
     root = root.resolve()
@@ -567,10 +612,13 @@ def setup_integrations(
         )
 
     changed: list[str] = []
+    lean_skill = None
     config_path = write_default_config(root)
     if "claude" in requested:
         install_claude_hooks(root, templates=True)
         update_json(claude_mcp_path(root), _merge_mcp(root))
+        if install_lean:
+            lean_skill = _ensure_managed_lean_skill(root)
         changed.append("claude")
     if "cursor" in requested:
         update_json(cursor_mcp_path(root), _merge_mcp(root))
@@ -608,6 +656,8 @@ def setup_integrations(
         "config": str(config_path),
         "requested_hosts": list(requested),
         "configured_hosts": changed,
+        "lean_skill": lean_skill,
+        "profile": "safe",
         "detected": [asdict(item) for item in detect_hosts(root, home=home, which=which)],
     }
 
@@ -665,6 +715,7 @@ def uninstall_integrations(
     if "claude" in requested:
         uninstall_claude_hooks(root)
         _remove_managed_claude_skill(root)
+        _remove_managed_lean_skill(root)
         path = claude_mcp_path(root)
         if path.exists():
             update_json(path, _remove_mcp)
@@ -741,7 +792,7 @@ def doctor_report(
     executable = which("acco")
     ready_hosts = [item.name for item in hosts if item.configured]
     detected_hosts = [item.name for item in hosts if item.detected]
-    ready = bool(executable and ready_hosts and not config_error and not index_error)
+    ready = bool(ready_hosts and not config_error and not index_error)
     return {
         "ready": ready,
         "version": _version(),

@@ -386,6 +386,25 @@ def test_completion_lists_new_integration_commands(capsys):
 
 
 
+def test_setup_preserves_user_modified_lean_skill(tmp_path):
+    """Setup must not overwrite an existing user-owned Lean skill body."""
+    root = tmp_path / "repo"
+    home = tmp_path / "home"
+    lean = root / ".claude" / "skills" / "acco-lean" / "SKILL.md"
+    lean.parent.mkdir(parents=True)
+    lean.write_text("my custom lean rules\n", encoding="utf-8")
+
+    result = setup_integrations(
+        root,
+        ("claude",),
+        home=home,
+        which=_which({"claude"}),
+    )
+
+    assert result["lean_skill"] is None
+    assert lean.read_text(encoding="utf-8") == "my custom lean rules\n"
+
+
 def test_uninstall_preserves_modified_claude_skill(tmp_path):
     """Uninstall must not delete a user-modified skill file."""
     root = tmp_path / "repo"

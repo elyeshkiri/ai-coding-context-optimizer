@@ -1,4 +1,4 @@
-# ACCO — AI Coding Context Optimizer 1.17.0
+# ACCO — AI Coding Context Optimizer 1.18.0
 
 **ACCO (AI Coding Context Optimizer)** is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -6,7 +6,36 @@ The project is deliberately conservative: **smaller context is useful only when 
 
 ## Install
 
-For Claude Code only, the repository now exposes a marketplace:
+### Fast path
+
+For any supported coding agent, install ACCO as an isolated CLI and let one
+command detect, configure, index, and verify the current project:
+
+```bash
+uv tool install acco
+cd /path/to/project
+acco setup
+acco start
+```
+
+For a genuine one-command bootstrap from a machine that already has `uv`:
+
+```bash
+cd /path/to/project
+uvx acco bootstrap
+```
+
+`bootstrap` first installs ACCO persistently with `uv tool` (or `pipx`),
+then performs the normal safe project setup, so host integrations never depend
+on an ephemeral `uvx` environment.
+
+Running bare `acco` shows a project-aware home screen; `acco status` shows
+health/savings evidence; `acco advanced` keeps the full expert command surface
+available without crowding onboarding.
+
+### Claude Code marketplace
+
+The repository also exposes a Claude-only marketplace:
 
 ```text
 /plugin marketplace add elyeshkiri/ai-coding-context-optimizer
@@ -19,19 +48,17 @@ Code versions can use the pip + setup path below. The generated plugin calls
 `python -m acco.entry`, so it does not depend on the `acco`
 console script being on `PATH`.
 
-For Claude, Codex, Cursor, OpenCode, OpenClaw, Hermes, Copilot, Antigravity, or explicit project-managed installation:
+For environments without `uv`, `pipx install acco` is the next preferred
+isolated install, with `python -m pip install --upgrade acco` retained as the
+compatibility path. Tagged releases also publish smoke-tested standalone
+executables plus SHA-256 sidecars and a release-scoped Homebrew formula; see
+[Installation options](docs/INSTALL.md).
 
-```bash
-pip install acco
-cd /path/to/project
-acco setup
-acco doctor
-```
-
-`setup` auto-detects supported coding-agent hosts, writes only ACCO-owned
-integration entries, creates a project `.acco.toml`, and is
-safe to rerun after upgrades as a repair/migration step. Configure hosts
-explicitly when needed:
+`setup` now auto-detects supported coding-agent hosts, writes only ACCO-owned
+integration entries, installs the safe local profile, adds Claude Lean when it
+can do so without overwriting user content, warms the structural repository
+index, and runs its own readiness check. It is safe to rerun after upgrades as
+a repair/migration step. Configure hosts explicitly when needed:
 
 ```bash
 acco setup . --host claude --host cursor
@@ -47,9 +74,23 @@ acco uninstall . --host all
 acco uninstall . --host all --remove-config
 ```
 
-Discover commands without opening the README and enable shell completion:
+The ordinary product flow is intentionally small:
 
 ```bash
+acco
+acco bootstrap
+acco setup
+acco start
+acco status
+acco demo
+acco savings
+acco update
+```
+
+Discover the complete expert surface and enable shell completion with:
+
+```bash
+acco advanced
 acco commands
 acco completion bash
 acco completion zsh
@@ -71,7 +112,8 @@ Anthropic.
 
 Start with the task-oriented docs instead of searching this README:
 
-- [5-minute quickstart](docs/QUICKSTART.md)
+- [Installation options](docs/INSTALL.md)
+- [1-minute quickstart](docs/QUICKSTART.md)
 - [Worked end-to-end example](docs/WORKED_EXAMPLE.md)
 - [CLI reference](docs/CLI_REFERENCE.md)
 - [Machine-readable CLI contracts](docs/JSON_OUTPUTS.md)

@@ -4,7 +4,8 @@ Use this page as the documentation map for the current ACCO release.
 
 ## Start here
 
-- [Quickstart](QUICKSTART.md) — install, configure, verify, and run the first useful commands.
+- [Installation](INSTALL.md) — uv/uvx, pipx, pip, Claude marketplace, standalone binaries, and Homebrew.
+- [Quickstart](QUICKSTART.md) — install, set up, start coding, and inspect health.
 - [CLI reference](CLI_REFERENCE.md) — complete command index with per-command references.
 - [Machine-readable CLI contracts](JSON_OUTPUTS.md) — stable JSON fields and exit/gating behavior.
 - [Middleware SDKs](SDK.md) — embed ACCO in custom Python and TypeScript agents.
@@ -31,11 +32,13 @@ Use this page as the documentation map for the current ACCO release.
 ## Recommended user journey
 
 ```text
-pip install acco
+uv tool install acco
         ↓
 acco setup
         ↓
-acco doctor
+acco start
+        ↓
+acco status / demo
         ↓
 acco browse / pack / MCP
         ↓

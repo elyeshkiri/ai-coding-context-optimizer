@@ -10,6 +10,7 @@ import sys
 
 from .cli import LEGACY_COMMANDS, main as legacy_main
 from .command_registry import DEFAULT_COMMAND_REGISTRY
+from .product_ux import home_main
 
 
 def _print_help() -> None:
@@ -33,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     if args in (["--help"], ["-h"]):
         _print_help()
         return 0
+    if not args:
+        return home_main([])
     return DEFAULT_COMMAND_REGISTRY.dispatch(args, legacy_main)
 
 

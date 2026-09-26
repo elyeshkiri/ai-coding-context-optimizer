@@ -1,14 +1,18 @@
 # Agent integrations
 
 Install ACCO in the environment that launches the coding agent, then let
-the setup command detect and configure supported hosts:
+one setup command detect, configure, index, and verify supported hosts:
 
 ```bash
-pip install acco
+uv tool install acco
 cd /absolute/path/to/project
 acco setup
-acco doctor
+acco start
 ```
+
+`pipx install acco` and `python -m pip install --upgrade acco` remain
+supported alternatives. Setup is the normal repair command too; `doctor` is
+reserved for deeper troubleshooting.
 
 ## Claude Code marketplace install
 
@@ -49,7 +53,9 @@ Supported automatic setup now covers:
 | **Google Antigravity** | workspace `.agents/mcp_config.json` using `mcpServers` |
 
 Only ACCO-owned entries are changed. Setup is idempotent, so rerunning it
-after upgrades repairs/migrates managed entries without duplicating them.
+after upgrades repairs/migrates managed entries without duplicating them. For
+Claude it also installs the managed ACCO Lean skill when that path is absent or
+still ACCO-owned; a user-modified skill is preserved.
 `acco uninstall` reverses those entries while preserving unrelated host
 configuration.
 

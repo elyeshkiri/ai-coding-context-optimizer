@@ -1,0 +1,137 @@
+name: Standalone binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: acco-standalone-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            asset: acco-linux-x86_64
+            binary: dist/acco
+          - os: macos-14
+            asset: acco-macos-arm64
+            binary: dist/acco
+          - os: windows-latest
+            asset: acco-windows-x86_64.exe
+            binary: dist/acco.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build standalone executable
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip pyinstaller
+          python -m pip install .
+          pyinstaller             --clean             --onefile             --name acco             --collect-all acco             --collect-all tree_sitter             --collect-all tree_sitter_javascript             --collect-all tree_sitter_typescript             --collect-all tree_sitter_go             --collect-all tree_sitter_rust             --collect-all tree_sitter_java             --collect-all tree_sitter_c_sharp             packaging/standalone_entry.py
+
+      - name: Smoke test binary
+        shell: bash
+        run: |
+          "${{ matrix.binary }}" --help
+          "${{ matrix.binary }}" demo . --query "provider wrapper launch" --max-tokens 1000 --json > standalone-smoke.json
+          python - <<'PY'
+          import json
+          with open("standalone-smoke.json", encoding="utf-8") as fh:
+              data = json.load(fh)
+          assert data["provider_request_made"] is False
+          assert data["context_pack_tokens"] > 0
+          PY
+
+      - name: Name asset and checksum
+        shell: bash
+        run: |
+          cp "${{ matrix.binary }}" "${{ matrix.asset }}"
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          path = Path("${{ matrix.asset }}")
+          digest = hashlib.sha256(path.read_bytes()).hexdigest()
+          Path(str(path) + ".sha256").write_text(
+              f"{digest}  {path.name}\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Wait for GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for attempt in {1..30}; do
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              exit 0
+            fi
+            echo "Waiting for release $TAG ($attempt/30)..."
+            sleep 10
+          done
+          echo "::error::GitHub release $TAG was not created in time."
+          exit 1
+
+      - name: Upload standalone asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "$TAG"             "${{ matrix.asset }}"             "${{ matrix.asset }}.sha256"             --clobber
+
+
+  formula:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download release checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p release-checksums
+          gh release download "$TAG"             --pattern "acco-linux-x86_64.sha256"             --pattern "acco-macos-arm64.sha256"             --dir release-checksums
+
+      - name: Render Homebrew formula
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          version = os.environ["TAG"].removeprefix("v")
+          linux = Path("release-checksums/acco-linux-x86_64.sha256").read_text().split()[0]
+          macos = Path("release-checksums/acco-macos-arm64.sha256").read_text().split()[0]
+          text = Path("packaging/homebrew/acco.rb.template").read_text(encoding="utf-8")
+          text = (
+              text.replace("__VERSION__", version)
+              .replace("__LINUX_X86_64_SHA256__", linux)
+              .replace("__MACOS_ARM64_SHA256__", macos)
+          )
+          Path("acco.rb").write_text(text, encoding="utf-8")
+          PY
+
+      - name: Upload Homebrew formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release upload "$TAG" acco.rb --clobber

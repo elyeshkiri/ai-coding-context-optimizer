@@ -16,11 +16,21 @@ output contracts.
 
 For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.md).
 
+## Everyday product flow
+
+- [`bootstrap`](commands/bootstrap.md) — persistently install ACCO, then run safe setup in one command.
+- [`setup`](commands/setup.md) — one-command detect/configure/index/verify onboarding.
+- [`start`](commands/start.md) — launch the detected/preferred coding agent with ACCO.
+- [`status`](commands/status.md) — simple project health and local efficiency evidence.
+- [`demo`](commands/demo.md) — provider-free repository context demonstration.
+- [`savings`](commands/savings.md) — summarize locally observed context reductions.
+- [`update`](commands/update.md) — inspect/apply the recommended package-manager upgrade.
+- [`advanced`](commands/advanced.md) — list the full expert command surface.
+- [`uninstall`](commands/uninstall.md) — remove only ACCO-owned entries.
+
 ## Setup and host lifecycle
 
-- [`setup`](commands/setup.md) — auto-detect/configure Claude Code, Cursor, and Codex.
-- [`doctor`](commands/doctor.md) — consolidated CLI/config/host/index health.
-- [`uninstall`](commands/uninstall.md) — remove only ACCO-owned entries.
+- [`doctor`](commands/doctor.md) — deeper CLI/config/host/index troubleshooting health.
 - [`completion`](commands/completion.md) — generate Bash/Zsh/Fish completion.
 - [`commands`](commands/commands.md) — list registry-backed commands.
 - [`host-check`](commands/host-check.md) — deeper Claude transport/live-host validation.
