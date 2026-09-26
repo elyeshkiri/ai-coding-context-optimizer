@@ -120,7 +120,7 @@ def test_setup_all_hosts_is_idempotent_and_preserves_unrelated_config(tmp_path):
         for entry in entries
         for hook in entry.get("hooks", [])
     ]
-    assert commands.count("acco hook") == 6
+    assert commands.count("acco hook") == 7
     assert set(settings["hooks"]) >= {
         "UserPromptSubmit",
         "Stop",
