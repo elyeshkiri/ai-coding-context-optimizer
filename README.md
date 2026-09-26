@@ -18,11 +18,16 @@ acco setup
 acco start
 ```
 
-For a one-off installation/setup without keeping ACCO globally installed first:
+For a genuine one-command bootstrap from a machine that already has `uv`:
 
 ```bash
-uvx acco setup
+cd /path/to/project
+uvx acco bootstrap
 ```
+
+`bootstrap` first installs ACCO persistently with `uv tool` (or `pipx`),
+then performs the normal safe project setup, so host integrations never depend
+on an ephemeral `uvx` environment.
 
 Running bare `acco` shows a project-aware home screen; `acco status` shows
 health/savings evidence; `acco advanced` keeps the full expert command surface
@@ -73,6 +78,7 @@ The ordinary product flow is intentionally small:
 
 ```bash
 acco
+acco bootstrap
 acco setup
 acco start
 acco status
