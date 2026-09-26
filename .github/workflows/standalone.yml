@@ -40,7 +40,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip pyinstaller
           python -m pip install .
-          pyinstaller             --clean             --onefile             --name acco             --collect-submodules acco             --collect-all tree_sitter             --collect-all tree_sitter_javascript             --collect-all tree_sitter_typescript             --collect-all tree_sitter_go             --collect-all tree_sitter_rust             --collect-all tree_sitter_java             --collect-all tree_sitter_c_sharp             packaging/standalone_entry.py
+          pyinstaller             --clean             --onefile             --name acco             --collect-all acco             --collect-all tree_sitter             --collect-all tree_sitter_javascript             --collect-all tree_sitter_typescript             --collect-all tree_sitter_go             --collect-all tree_sitter_rust             --collect-all tree_sitter_java             --collect-all tree_sitter_c_sharp             packaging/standalone_entry.py
 
       - name: Smoke test binary
         shell: bash
