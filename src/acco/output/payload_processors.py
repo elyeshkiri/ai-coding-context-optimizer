@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 
+from ..browser_context import compress_browser_payload, detect_browser_payload_kind
 from .text import ensure_newline, preprocess
 
 _LOG_LINE = re.compile(
@@ -26,6 +27,37 @@ class _PayloadOnly:
     def matches(self, command: str) -> bool:
         del command
         return False
+
+
+class BrowserPagePayloadProcessor(_PayloadOnly):
+    """Focus HTML/AX page dumps even when the producing command is unknown."""
+
+    name = "payload-page"
+    priority = 805
+    handles_failure = True
+
+    def matches_payload(self, text: str) -> bool:
+        if len(text) < 2000:
+            return False
+        return detect_browser_payload_kind(text) in {"html", "ax"}
+
+    def compress(
+        self,
+        command: str,
+        text: str,
+        *,
+        failed: bool,
+        max_lines: int,
+        keep_tail: int,
+    ) -> str:
+        del command, failed, keep_tail
+        result = compress_browser_payload(
+            text,
+            max_lines=max(20, max_lines),
+            recovery=None,
+            format_hint="auto",
+        )
+        return result.text if result.changed else text
 
 
 class JsonPayloadProcessor(_PayloadOnly):
@@ -218,6 +250,7 @@ class TablePayloadProcessor(_PayloadOnly):
 def payload_processors() -> list:
     """Return fresh payload-aware processors."""
     return [
+        BrowserPagePayloadProcessor(),
         JsonPayloadProcessor(),
         DiffPayloadProcessor(),
         LogPayloadProcessor(),
