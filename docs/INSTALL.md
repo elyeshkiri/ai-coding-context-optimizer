@@ -22,7 +22,7 @@ uvx acco bootstrap
 ```
 
 Bootstrap first creates a persistent isolated ACCO installation with
-`uv tool install --upgrade acco` (or `pipx` when available), then runs the
+`uv tool install acco` (or `pipx` when available), then runs the
 normal project setup. This avoids creating host integrations that depend on the
 temporary `uvx` environment.
 
