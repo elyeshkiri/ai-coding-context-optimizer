@@ -178,9 +178,11 @@ jobs:
           security import "$p12" -k "$keychain" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security list-keychains -d user -s "$keychain"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain"
-          echo "ACCO_MAC_SIGNING_READY=true" >> "$GITHUB_ENV"
-          echo "ACCO_MAC_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
-          echo "ACCO_MAC_SIGNING_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+          {
+            echo "ACCO_MAC_SIGNING_READY=true"
+            echo "ACCO_MAC_KEYCHAIN=$keychain"
+            echo "ACCO_MAC_SIGNING_IDENTITY=$SIGNING_IDENTITY"
+          } >> "$GITHUB_ENV"
 
       - name: Build standalone executable
         shell: bash
