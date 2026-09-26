@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 
@@ -63,6 +65,22 @@ class BrowserPagePayloadProcessor(_PayloadOnly):
         return result.text if result.changed else text
 
 
+def _json_anomaly(value) -> bool:
+    """Return whether one JSON record contains likely diagnostic/anomaly evidence."""
+    if not isinstance(value, dict):
+        return False
+    for key, item in value.items():
+        lowered = str(key).lower()
+        if any(token in lowered for token in ("error", "exception", "warning", "failure", "failed")):
+            if item not in (None, False, "", [], {}):
+                return True
+        if lowered in {"status", "state", "level", "severity"}:
+            text = str(item).lower()
+            if text in {"error", "failed", "failure", "fatal", "critical", "warning", "warn"}:
+                return True
+    return False
+
+
 class JsonPayloadProcessor(_PayloadOnly):
     """Compact very large JSON arrays while preserving object/scalar fields."""
 
@@ -87,11 +105,25 @@ class JsonPayloadProcessor(_PayloadOnly):
         if isinstance(value, list):
             if len(value) <= 12:
                 return [self._compact(item, depth + 1) for item in value]
-            return [
-                *[self._compact(item, depth + 1) for item in value[:6]],
-                {"_acco_omitted_items": len(value) - 10},
-                *[self._compact(item, depth + 1) for item in value[-4:]],
-            ]
+            edge_indexes = set(range(min(5, len(value))))
+            edge_indexes.update(range(max(0, len(value) - 4), len(value)))
+            anomaly_indexes = {
+                index for index, item in enumerate(value)
+                if _json_anomaly(item)
+            }
+            keep_indexes = sorted(edge_indexes | anomaly_indexes)
+            out = []
+            previous = -1
+            for index in keep_indexes:
+                gap = index - previous - 1
+                if gap:
+                    out.append({"_acco_omitted_items": gap})
+                out.append(self._compact(value[index], depth + 1))
+                previous = index
+            trailing = len(value) - previous - 1
+            if trailing:
+                out.append({"_acco_omitted_items": trailing})
+            return out
         if isinstance(value, dict):
             return {
                 str(key): self._compact(item, depth + 1)
@@ -117,6 +149,65 @@ class JsonPayloadProcessor(_PayloadOnly):
             separators=(",", ":"),
         )
         return ensure_newline(candidate) if len(candidate) < len(text) else text
+
+
+class CsvPayloadProcessor(_PayloadOnly):
+    """Bound large CSV/TSV payloads while preserving schema, edges, and anomalies."""
+
+    name = "payload-delimited"
+    priority = 815
+
+    def _parse(self, text: str):
+        """Parse a likely delimited table conservatively."""
+        sample = text[:8192]
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=",\t;")
+            rows = list(csv.reader(io.StringIO(text), dialect))
+        except (csv.Error, UnicodeError):
+            return None, None
+        if len(rows) < 40 or not rows or len(rows[0]) < 2:
+            return None, None
+        width = len(rows[0])
+        if sum(len(row) == width for row in rows[:100]) < min(30, len(rows[:100]) * 0.8):
+            return None, None
+        return dialect, rows
+
+    def matches_payload(self, text: str) -> bool:
+        """Return whether text is a substantial CSV/TSV-style table."""
+        dialect, rows = self._parse(text)
+        return dialect is not None and rows is not None
+
+    def compress(self, command: str, text: str, *, failed: bool, max_lines: int, keep_tail: int) -> str:
+        """Keep header, bounded edges, and rows containing diagnostic terms."""
+        del command, failed
+        dialect, rows = self._parse(text)
+        if dialect is None or rows is None:
+            return text
+        budget = max(12, min(max_lines, 50))
+        header = rows[0]
+        body = rows[1:]
+        important = [
+            row for row in body
+            if _IMPORTANT_LOG.search(" ".join(row))
+        ]
+        head = body[: max(4, budget // 3)]
+        tail = body[-max(3, min(keep_tail, budget // 3)):]
+        selected = []
+        for row in [*head, *important, *tail]:
+            if row not in selected:
+                selected.append(row)
+            if len(selected) >= budget - 2:
+                break
+        if len(selected) >= len(body):
+            return text
+        out = io.StringIO()
+        writer = csv.writer(out, dialect=dialect, lineterminator="\n")
+        writer.writerow(header)
+        writer.writerows(selected[: max(1, len(selected) // 2)])
+        writer.writerow([f"... {len(body) - len(selected)} row(s) omitted; exact original recoverable ..."])
+        writer.writerows(selected[max(1, len(selected) // 2):])
+        candidate = out.getvalue()
+        return candidate if len(candidate) < len(text) else text
 
 
 class DiffPayloadProcessor(_PayloadOnly):
@@ -265,6 +356,7 @@ def payload_processors() -> list:
     return [
         BrowserPagePayloadProcessor(),
         JsonPayloadProcessor(),
+        CsvPayloadProcessor(),
         DiffPayloadProcessor(),
         LogPayloadProcessor(),
         TablePayloadProcessor(),

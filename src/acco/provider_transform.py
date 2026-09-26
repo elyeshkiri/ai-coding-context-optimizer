@@ -11,7 +11,12 @@ from typing import Any
 from .context_router import route_context
 from .efficiency.store import append_event
 from .estimate import estimate_tokens
-from .prefix_cache import PrefixPlan, observe_prefix, stable_prefix_fingerprint
+from .prefix_cache import (
+    PrefixPlan,
+    observe_prefix,
+    reusable_history_counts,
+    stable_prefix_fingerprint,
+)
 from .provider_cost import (
     PROVIDER_MODEL_ROUTING_MODES,
     apply_calibrated_provider_route,
@@ -161,7 +166,7 @@ def _transform_messages(
     min_tokens: int,
     handles: list[str],
 ) -> int:
-    """Transform only explicit historical tool outputs in message APIs."""
+    """Transform explicit historical tool outputs deterministically."""
     messages = transformed.get("messages")
     if not isinstance(messages, list):
         return 0
@@ -205,7 +210,7 @@ def _transform_openai_input(
     min_tokens: int,
     handles: list[str],
 ) -> int:
-    """Transform OpenAI Responses historical function/tool outputs only."""
+    """Transform OpenAI Responses historical tool outputs deterministically."""
     input_items = transformed.get("input")
     if not isinstance(input_items, list):
         return 0
@@ -288,6 +293,7 @@ def transform_provider_request(
     model_routing_mode: str = "off",
     model_routing_calibration_file: str = ".acco.routing-calibration.json",
     model_routing_min_savings: float = 0.05,
+    live_zone: bool = True,
 ) -> ProviderTransformResult:
     """Optimize historical provider context while leaving current task/source intact."""
     if not isinstance(body, dict):
@@ -307,6 +313,13 @@ def transform_provider_request(
         "applied": False,
     }
 
+    protected_messages = 0
+    protected_input = 0
+    if live_zone and prefix_tracking:
+        protected_messages, protected_input = reusable_history_counts(
+            root, profile.provider, body
+        )
+
     normalized_routing_mode = str(model_routing_mode or "off").strip().lower()
     if normalized_routing_mode not in PROVIDER_MODEL_ROUTING_MODES:
         raise ValueError(
@@ -322,7 +335,7 @@ def transform_provider_request(
             profile,
             recovery=recovery,
             min_tokens=tool_result_min_tokens,
-            enabled=deduplicate_history,
+            enabled=deduplicate_history and not (protected_messages or protected_input),
         )
         if history.segments:
             handles.extend(history.recovery_handles)
@@ -340,7 +353,7 @@ def transform_provider_request(
                 schema_handle = schema.recovery_handle
 
         if compress_tool_results:
-            query = latest_user_text(transformed, profile)
+            query = "" if live_zone else latest_user_text(transformed, profile)
             transformed_segments += _transform_messages(
                 transformed,
                 query=query,
@@ -413,7 +426,12 @@ def transform_provider_request(
 
     prefix_provider = profile.provider
     if prefix_tracking:
-        prefix = observe_prefix(root, prefix_provider, transformed)
+        prefix = observe_prefix(
+            root,
+            prefix_provider,
+            transformed,
+            source_body=body,
+        )
     else:
         fingerprint, tokens, size, components = stable_prefix_fingerprint(
             transformed

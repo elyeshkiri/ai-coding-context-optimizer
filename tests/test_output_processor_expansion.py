@@ -45,11 +45,11 @@ def test_specialized_processor_routing(command, expected):
     assert info["processor"] == expected
 
 
-def test_default_registry_contains_exactly_45_unique_processors():
-    """The expanded built-in inventory should contain forty-five unique processors."""
+def test_default_registry_contains_exactly_46_unique_processors():
+    """The expanded built-in inventory should contain forty-six unique processors."""
     names = [processor.name for processor in DEFAULT_REGISTRY.processors]
-    assert len(names) == 45
-    assert len(set(names)) == 45
+    assert len(names) == 46
+    assert len(set(names)) == 46
     assert names[-1] == "generic"
 
 
