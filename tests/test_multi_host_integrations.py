@@ -191,7 +191,7 @@ def test_extended_hosts_setup_detect_and_uninstall_preserve_unrelated_config(tmp
     assert hermes_text.count(HERMES_START) == 1
     assert hermes_text.count(HERMES_END) == 1
     assert "  docs:" in hermes_text
-    assert str(root.resolve()) in hermes_text
+    assert json.dumps(str(root.resolve())) in hermes_text
 
     openclaw_data = json.loads(openclaw.read_text(encoding="utf-8"))
     assert set(openclaw_data["mcp"]["servers"]) == {"docs", "acco"}
