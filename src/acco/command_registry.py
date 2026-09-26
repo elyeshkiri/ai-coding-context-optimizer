@@ -92,7 +92,7 @@ from .command_handlers.patch import pack_diff_main, review_main
 from .command_handlers.pricing import pricing_main
 from .command_handlers.sdk import sdk_serve_main
 from .pack_cli import main as pack_main
-from .product_ux import (
+from .command_handlers.product import (
     advanced_main,
     bootstrap_main,
     demo_main,
