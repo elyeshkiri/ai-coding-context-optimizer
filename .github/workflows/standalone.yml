@@ -8,10 +8,12 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 # The release workflow creates tags using GITHUB_TOKEN. GitHub intentionally
 # does not recursively trigger another workflow from that tag push, so this
-# workflow follows main instead and builds from the immutable release tag.
+# workflow follows main and builds from the immutable release tag.
 concurrency:
   group: acco-standalone-release
   cancel-in-progress: false
@@ -78,7 +80,7 @@ jobs:
 
           assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"
           complete=true
-          for required in             acco-linux-x86_64             acco-linux-x86_64.sha256             acco-macos-arm64             acco-macos-arm64.sha256             acco-windows-x86_64.exe             acco-windows-x86_64.exe.sha256             acco.rb
+          for required in             acco-linux-x86_64             acco-linux-x86_64.sha256             acco-linux-arm64             acco-linux-arm64.sha256             acco-macos-arm64             acco-macos-arm64.sha256             acco-macos-x86_64             acco-macos-x86_64.sha256             acco-windows-x86_64.exe             acco-windows-x86_64.exe.sha256             acco-windows-arm64.exe             acco-windows-arm64.exe.sha256             acco.rb             winget-manifests.zip
           do
             if ! printf '%s\n' "$assets" | grep -Fxq "$required"; then
               complete=false
@@ -87,7 +89,7 @@ jobs:
 
           if [ "$complete" = true ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Standalone assets already complete for $tag; no-op."
+            echo "Standalone/native package assets already complete for $tag; no-op."
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
             echo "Building standalone assets from immutable $tag at $source_sha."
@@ -101,13 +103,34 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
+            python_arch: x64
+            platform: linux
             asset: acco-linux-x86_64
             binary: dist/acco
+          - os: ubuntu-24.04-arm
+            python_arch: arm64
+            platform: linux
+            asset: acco-linux-arm64
+            binary: dist/acco
           - os: macos-14
+            python_arch: arm64
+            platform: macos
             asset: acco-macos-arm64
             binary: dist/acco
+          - os: macos-15-intel
+            python_arch: x64
+            platform: macos
+            asset: acco-macos-x86_64
+            binary: dist/acco
           - os: windows-latest
+            python_arch: x64
+            platform: windows
             asset: acco-windows-x86_64.exe
+            binary: dist/acco.exe
+          - os: windows-11-arm
+            python_arch: arm64
+            platform: windows
+            asset: acco-windows-arm64.exe
             binary: dist/acco.exe
     runs-on: ${{ matrix.os }}
     steps:
@@ -118,13 +141,111 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          architecture: ${{ matrix.python_arch }}
+
+      - name: Prepare macOS signing identity
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -z "$CERTIFICATE_BASE64" ] || [ -z "$CERTIFICATE_PASSWORD" ] || [ -z "$SIGNING_IDENTITY" ]; then
+            echo "::notice::Apple signing secrets are not configured; producing checksum/provenance-verified unsigned macOS binary."
+            echo "ACCO_MAC_SIGNING_READY=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/acco-signing.keychain-db"
+          p12="$RUNNER_TEMP/acco-signing.p12"
+          password="$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(24))
+          PY
+          )"
+          printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$p12" -k "$keychain" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security list-keychains -d user -s "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain"
+          echo "ACCO_MAC_SIGNING_READY=true" >> "$GITHUB_ENV"
+          echo "ACCO_MAC_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+          echo "ACCO_MAC_SIGNING_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
 
       - name: Build standalone executable
         shell: bash
         run: |
           python -m pip install --upgrade pip pyinstaller
           python -m pip install .
-          pyinstaller             --clean             --onefile             --name acco             --collect-all acco             --collect-all tree_sitter             --collect-all tree_sitter_javascript             --collect-all tree_sitter_typescript             --collect-all tree_sitter_go             --collect-all tree_sitter_rust             --collect-all tree_sitter_java             --collect-all tree_sitter_c_sharp             packaging/standalone_entry.py
+          extra=()
+          if [ "${ACCO_MAC_SIGNING_READY:-false}" = "true" ]; then
+            extra+=(--codesign-identity "$ACCO_MAC_SIGNING_IDENTITY")
+          fi
+          pyinstaller             --clean             --onefile             --name acco             --collect-all acco             --collect-all tree_sitter             --collect-all tree_sitter_javascript             --collect-all tree_sitter_typescript             --collect-all tree_sitter_go             --collect-all tree_sitter_rust             --collect-all tree_sitter_java             --collect-all tree_sitter_c_sharp             "${extra[@]}"             packaging/standalone_entry.py
+
+      - name: Authenticode-sign Windows executable
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+          BINARY: ${{ matrix.binary }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PFX_BASE64) -or [string]::IsNullOrWhiteSpace($env:PFX_PASSWORD)) {
+            Write-Host "::notice::Windows signing secrets are not configured; producing checksum/provenance-verified unsigned executable."
+            exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "acco-signing.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_BASE64))
+          $secure = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $secure
+          try {
+            $signature = Set-AuthenticodeSignature -FilePath $env:BINARY -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com"
+            if ($signature.Status -ne "Valid") {
+              throw "Authenticode signing failed: $($signature.Status) $($signature.StatusMessage)"
+            }
+            $verify = Get-AuthenticodeSignature -FilePath $env:BINARY
+            if ($verify.Status -ne "Valid") {
+              throw "Authenticode verification failed: $($verify.Status)"
+            }
+          } finally {
+            if ($cert) {
+              Remove-Item -LiteralPath ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
+            }
+            Remove-Item -LiteralPath $pfx -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Notarize signed macOS executable
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          BINARY: ${{ matrix.binary }}
+        run: |
+          if [ "${ACCO_MAC_SIGNING_READY:-false}" != "true" ]; then
+            exit 0
+          fi
+          codesign --verify --deep --strict --verbose=2 "$BINARY"
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_TEAM_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "::notice::Apple notarization credentials are not configured; binary is signed but not notarized."
+            exit 0
+          fi
+          archive="$RUNNER_TEMP/acco-notarize.zip"
+          ditto -c -k --keepParent "$BINARY" "$archive"
+          xcrun notarytool submit "$archive"             --apple-id "$APPLE_ID"             --team-id "$APPLE_TEAM_ID"             --password "$APPLE_APP_SPECIFIC_PASSWORD"             --wait
+          spctl --assess --type execute --verbose=4 "$BINARY"
+
+      - name: Cleanup macOS signing keychain
+        if: always() && matrix.platform == 'macos'
+        shell: bash
+        run: |
+          if [ -n "${ACCO_MAC_KEYCHAIN:-}" ] && [ -f "$ACCO_MAC_KEYCHAIN" ]; then
+            security delete-keychain "$ACCO_MAC_KEYCHAIN" || true
+          fi
 
       - name: Smoke test binary
         shell: bash
@@ -154,6 +275,11 @@ jobs:
           )
           PY
 
+      - name: Attest standalone build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ matrix.asset }}
+
       - name: Upload standalone asset
         shell: bash
         env:
@@ -179,7 +305,7 @@ jobs:
           TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           mkdir -p release-checksums
-          gh release download "$TAG"             --pattern "acco-linux-x86_64.sha256"             --pattern "acco-macos-arm64.sha256"             --dir release-checksums
+          gh release download "$TAG"             --pattern "acco-linux-x86_64.sha256"             --pattern "acco-linux-arm64.sha256"             --pattern "acco-macos-arm64.sha256"             --pattern "acco-macos-x86_64.sha256"             --dir release-checksums
 
       - name: Render Homebrew formula
         shell: bash
@@ -191,19 +317,25 @@ jobs:
           import os
 
           version = os.environ["VERSION"]
-          linux = Path(
-              "release-checksums/acco-linux-x86_64.sha256"
-          ).read_text().split()[0]
-          macos = Path(
-              "release-checksums/acco-macos-arm64.sha256"
-          ).read_text().split()[0]
+          checksums = {}
+          for name in (
+              "acco-linux-x86_64",
+              "acco-linux-arm64",
+              "acco-macos-arm64",
+              "acco-macos-x86_64",
+          ):
+              checksums[name] = Path(
+                  f"release-checksums/{name}.sha256"
+              ).read_text().split()[0]
           text = Path(
               "packaging/homebrew/acco.rb.template"
           ).read_text(encoding="utf-8")
           text = (
               text.replace("__VERSION__", version)
-              .replace("__LINUX_X86_64_SHA256__", linux)
-              .replace("__MACOS_ARM64_SHA256__", macos)
+              .replace("__LINUX_X86_64_SHA256__", checksums["acco-linux-x86_64"])
+              .replace("__LINUX_ARM64_SHA256__", checksums["acco-linux-arm64"])
+              .replace("__MACOS_ARM64_SHA256__", checksums["acco-macos-arm64"])
+              .replace("__MACOS_X86_64_SHA256__", checksums["acco-macos-x86_64"])
           )
           Path("acco.rb").write_text(text, encoding="utf-8")
           PY
@@ -213,3 +345,64 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release upload "$TAG" acco.rb --clobber
+
+  winget:
+    needs:
+      - prepare
+      - build
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+
+      - name: Download Windows checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          mkdir -p release-checksums
+          gh release download "$TAG"             --pattern "acco-windows-x86_64.exe.sha256"             --pattern "acco-windows-arm64.exe.sha256"             --dir release-checksums
+
+      - name: Render WinGet manifests
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import zipfile
+
+          version = os.environ["VERSION"]
+          replacements = {
+              "__VERSION__": version,
+              "__WINDOWS_X86_64_SHA256__": Path(
+                  "release-checksums/acco-windows-x86_64.exe.sha256"
+              ).read_text().split()[0].upper(),
+              "__WINDOWS_ARM64_SHA256__": Path(
+                  "release-checksums/acco-windows-arm64.exe.sha256"
+              ).read_text().split()[0].upper(),
+          }
+          output = Path("winget") / "ElyesHkiri" / "ACCO" / version
+          output.mkdir(parents=True)
+          for template in Path("packaging/winget").glob("*.template"):
+              text = template.read_text(encoding="utf-8")
+              for old, new in replacements.items():
+                  text = text.replace(old, new)
+              target = output / template.name.removesuffix(".template")
+              target.write_text(text, encoding="utf-8")
+          with zipfile.ZipFile(
+              "winget-manifests.zip",
+              "w",
+              compression=zipfile.ZIP_DEFLATED,
+          ) as archive:
+              for path in sorted(output.glob("*.yaml")):
+                  archive.write(path, arcname=path.name)
+          PY
+
+      - name: Upload WinGet manifest bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release upload "$TAG" winget-manifests.zip --clobber
