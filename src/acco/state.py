@@ -10,9 +10,19 @@ from pathlib import Path
 
 SCHEMA = 3
 
+def _default_state_dir() -> Path:
+    """Return the platform-native private ACCO state directory."""
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+        if local:
+            return Path(local) / "ACCO"
+    return Path.home() / ".claude" / "acco"
+
+
 def state_dir() -> Path:
-    """Handle state dir."""
-    return Path(os.environ.get("ACCO_STATE_DIR", str(Path.home() / ".claude" / "acco")))
+    """Return ACCO state storage, honoring the explicit environment override."""
+    override = os.environ.get("ACCO_STATE_DIR")
+    return Path(override).expanduser() if override else _default_state_dir()
 
 def state_path(root: Path | None = None, session_id: str | None = None) -> Path:
     """Handle state path."""
