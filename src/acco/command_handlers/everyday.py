@@ -11,7 +11,7 @@ from ..context_audit import context_audit_report
 from ..efficiency.guardian import guardian_report
 from ..lean_skill import SKILL_TEXT, install_lean_skill
 from ..live_status import live_status, render_status
-from ..wrapper import PRESETS, build_wrap_plan, run_wrap
+from ..wrapper import build_wrap_plan, run_wrap
 
 
 def guardian_main(argv: list[str]) -> int:
