@@ -59,7 +59,8 @@ class WrapPlan:
 
     @property
     def local_base_url(self) -> str:
-        return f"http://{self.bind}:{self.port}"
+        base = f"http://{self.bind}:{self.port}"
+        return base + "/v1" if self.provider == "openai" else base
 
     def to_dict(self) -> dict:
         return {
