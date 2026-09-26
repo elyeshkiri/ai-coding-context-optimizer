@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import uuid
 
+from . import docker_platform
+
 PROTOCOL_VERSION = 1
 _PHASE1_PREFIX = """You are in phase 1 of a frozen coding-agent benchmark.
 Investigate the task thoroughly. Inspect relevant files and run diagnostics/tests
@@ -42,14 +44,12 @@ def _base_docker(
     image: str,
 ) -> list[str]:
     """Build the common isolated Docker command prefix."""
-    uid = os.getuid()
-    gid = os.getgid()
+    user_args, sandboxed_root = docker_platform.docker_user_args()
     command = [
         "docker",
         "run",
         "--rm",
-        "--user",
-        f"{uid}:{gid}",
+        *user_args,
         "--workdir",
         "/workspace",
         "-e",
@@ -59,6 +59,8 @@ def _base_docker(
         "-v",
         f"{home.resolve()}:/tmp/.claude",
     ]
+    if sandboxed_root:
+        command.extend(["-e", "IS_SANDBOX=1"])
     if state_dir is not None:
         state_dir.mkdir(parents=True, exist_ok=True)
         command.extend(
