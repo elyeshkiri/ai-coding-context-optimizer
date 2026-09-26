@@ -12,15 +12,19 @@ acco start
 `uv` keeps ACCO isolated from project virtual environments and gives
 `acco update` a clean upgrade path.
 
-## One-off bootstrap
+## One-command bootstrap
 
-Use `uvx` when you want to configure a project before deciding whether to
-keep a global ACCO command:
+Use `uvx` to run ACCO's bootstrap entry once:
 
 ```bash
 cd /path/to/project
-uvx acco setup
+uvx acco bootstrap
 ```
+
+Bootstrap first creates a persistent isolated ACCO installation with
+`uv tool install --upgrade acco` (or `pipx` when available), then runs the
+normal project setup. This avoids creating host integrations that depend on the
+temporary `uvx` environment.
 
 ## pipx
 
