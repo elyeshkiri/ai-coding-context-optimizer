@@ -1,5 +1,23 @@
 # Unreleased
 
+- **Added first-class Windows runtime support.** Native Windows CI now runs the
+  complete Python test suite plus retrieval and product-UX smoke checks on
+  `windows-latest`, so Windows behavior is a release gate rather than an
+  untested standalone artifact.
+- **Made the standalone Windows installer zero-friction.** The verified
+  PowerShell installer smoke-tests `acco.exe`, installs under
+  `%LOCALAPPDATA%\ACCO\bin`, and adds that directory to the user's PATH
+  idempotently.
+- **Added native PowerShell completion and Windows state storage.**
+  `acco completion powershell` emits a native argument completer, while
+  private runtime state defaults to `%LOCALAPPDATA%\ACCO` with APPDATA and
+  `ACCO_STATE_DIR` fallbacks.
+- **Fixed provider wrapping from frozen executables.** Standalone `acco.exe`
+  now re-enters itself as `acco.exe provider-proxy ...` instead of incorrectly
+  treating the frozen executable as a Python interpreter. This makes
+  `acco start` / `acco wrap` viable for Claude, Codex, and Gemini from the
+  no-Python Windows installation.
+
 # 1.18.0 - 2026-09-26
 
 - **Made ACCO install-and-forget for ordinary users.** The recommended
