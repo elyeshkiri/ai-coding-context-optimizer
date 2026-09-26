@@ -4,7 +4,8 @@ Use this page as the documentation map for the current ACCO release.
 
 ## Start here
 
-- [Installation](INSTALL.md) — uv/uvx, pipx, pip, Claude marketplace, standalone binaries, and Homebrew.
+- [Installation](INSTALL.md) — uv/uvx, pipx, pip, Claude marketplace, six native binaries, Homebrew, and WinGet.
+- [Native release signing](RELEASE_SIGNING.md) — Authenticode, Apple notarization, provenance, and package publication.
 - [Quickstart](QUICKSTART.md) — install, set up, start coding, and inspect health.
 - [CLI reference](CLI_REFERENCE.md) — complete command index with per-command references.
 - [Machine-readable CLI contracts](JSON_OUTPUTS.md) — stable JSON fields and exit/gating behavior.

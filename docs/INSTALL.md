@@ -57,15 +57,22 @@ the ingress skill, and ACCO Lean.
 
 ## Standalone release binaries
 
-Tagged releases publish smoke-tested single-file executables:
+Tagged releases publish smoke-tested single-file executables for both major
+64-bit architectures:
 
 - `acco-linux-x86_64`
+- `acco-linux-arm64`
 - `acco-macos-arm64`
+- `acco-macos-x86_64`
 - `acco-windows-x86_64.exe`
+- `acco-windows-arm64.exe`
 
-Each binary has a matching SHA-256 sidecar. These binaries are built from the
-release tag and run `acco --help` plus a provider-free `acco demo` smoke test
-before upload.
+Each binary has a matching SHA-256 sidecar and GitHub build-provenance
+attestation. The six targets are built natively from the immutable release tag
+and run `acco --help` plus a provider-free `acco demo` smoke test before
+upload. Windows Authenticode and macOS Developer ID/notarization are applied
+automatically when the corresponding repository signing credentials are
+configured.
 
 Linux/macOS users can use the repository installer after a release containing
 standalone assets:
@@ -79,8 +86,8 @@ permit piped shell installers.
 
 ### Windows
 
-Windows x86_64 has a native standalone installation that does not require
-Python:
+Windows x86_64 and ARM64 have native standalone installations that do not
+require Python:
 
 ```powershell
 irm https://raw.githubusercontent.com/elyeshkiri/ai-coding-context-optimizer/main/scripts/install-standalone.ps1 | iex
@@ -88,7 +95,7 @@ irm https://raw.githubusercontent.com/elyeshkiri/ai-coding-context-optimizer/mai
 
 The PowerShell installer:
 
-- downloads the release `acco-windows-x86_64.exe`;
+- detects x86_64 versus ARM64 and downloads the matching Windows asset;
 - verifies its SHA-256 sidecar before installation;
 - installs it under `%LOCALAPPDATA%\ACCO\bin` by default;
 - smoke-tests `acco.exe --help`;
@@ -116,19 +123,39 @@ Native Windows state is stored under `%LOCALAPPDATA%\ACCO` (falling back to
 Linux/macOS installers and the Windows installer all verify the downloaded
 SHA-256 checksum before installation.
 
-## Homebrew without a tap
+## Homebrew
 
-Tagged releases also publish an `acco.rb` formula generated from the verified
-standalone checksums. Install the latest release formula directly:
+Tagged releases publish an `acco.rb` formula generated from the verified
+Linux/macOS x86_64 and ARM64 checksums. The release formula works directly:
 
 ```bash
 brew install --formula \
   https://github.com/elyeshkiri/ai-coding-context-optimizer/releases/latest/download/acco.rb
 ```
 
-A short `brew install acco` requires acceptance into Homebrew core or a
-separate tap repository; ACCO does not pretend that namespace exists when it
-does not.
+The repository also contains a secret-gated publisher that can create/update
+`elyeshkiri/homebrew-acco`. Once that external tap has actually been
+published, the normal flow is:
+
+```bash
+brew tap elyeshkiri/acco
+brew install acco
+```
+
+## WinGet
+
+Each release also includes `winget-manifests.zip` containing schema 1.12
+multi-file manifests for x64 and ARM64 portable executables. ACCO includes an
+optional publisher workflow that can submit those manifests with
+`wingetcreate` when `WINGET_TOKEN` is configured. Microsoft still controls
+acceptance into the public WinGet community repository; only after that
+upstream PR is accepted should users expect:
+
+```powershell
+winget install --id ElyesHkiri.ACCO
+```
+
+See [Native release signing and package publication](RELEASE_SIGNING.md).
 
 ## Upgrade and repair
 
@@ -145,10 +172,15 @@ acco update --apply
 acco setup
 ```
 
-For the standalone Windows executable, `acco update --apply` downloads the
-latest Windows asset and SHA-256 sidecar, verifies the checksum, smoke-tests the
-new executable, then schedules replacement of the running `acco.exe` after
-the current process exits. It does not fall back to `acco.exe -m pip`.
+For raw standalone installs on Linux, macOS, or Windows,
+`acco update --apply` detects the current OS/architecture, downloads the
+matching release asset and SHA-256 sidecar, verifies integrity, and smoke-tests
+the replacement. Linux/macOS replace atomically; Windows schedules replacement
+after the current `acco.exe` exits.
+
+When the frozen executable belongs to Homebrew or WinGet, ACCO deliberately
+delegates the upgrade back to that package manager instead of overwriting
+managed files.
 
 `setup` is idempotent and doubles as the integration repair/migration command.
 It also refreshes the structural index and verifies readiness.

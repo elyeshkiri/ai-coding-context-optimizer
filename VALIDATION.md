@@ -1,4 +1,25 @@
-# Validation for 1.19.1
+# Validation for 1.20.0
+
+## 1.20 native distribution and trust surface
+
+Version 1.20 expands ACCO's installation/release contract rather than its
+retrieval algorithms. Validation now requires native standalone builds and
+provider-free smoke tests on six hosted-runner targets: Linux x86_64/ARM64,
+macOS ARM64/Intel, and Windows x86_64/ARM64. Product tests also require
+deterministic platform-to-asset mapping, checksum rejection, Linux/macOS atomic
+replacement, Windows post-exit replacement, and package-manager ownership
+preservation for Homebrew/WinGet.
+
+Release engineering additionally renders Homebrew and WinGet metadata from the
+published asset hashes and supports optional Authenticode and Apple Developer
+ID/notary flows when publisher credentials exist. SHA-256 sidecars and GitHub
+build-provenance attestations remain independent integrity evidence. External
+Homebrew-tap and WinGet-community publication is explicitly token/upstream
+gated and is not counted as complete merely because manifests are generated.
+
+These checks establish native installation, update, packaging, and release
+integrity mechanics. They do not create a new token-savings, API-cost, or
+task-success claim.
 
 ## 1.19.1 Windows standalone lifecycle
 

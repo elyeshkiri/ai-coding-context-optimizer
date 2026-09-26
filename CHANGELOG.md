@@ -1,5 +1,31 @@
 # Unreleased
 
+# 1.20.0 - 2026-09-26
+
+- **Completed cross-platform standalone lifecycle support.** Frozen ACCO
+  binaries now detect Linux, macOS, and Windows plus x86_64/ARM64 at runtime,
+  download the matching release asset, verify its SHA-256 sidecar, smoke-test
+  the replacement, and update safely. Windows still defers replacement until
+  process exit; Linux/macOS replace atomically in place.
+- **Preserved native package-manager ownership.** Frozen binaries installed by
+  Homebrew or WinGet route `acco update` back through `brew upgrade acco` or
+  `winget upgrade --id ElyesHkiri.ACCO` instead of mutating package-managed
+  files directly.
+- **Expanded standalone releases to six native targets.** Release and PR smoke
+  matrices now cover Linux x86_64/ARM64, macOS ARM64/Intel, and Windows
+  x86_64/ARM64 using native GitHub-hosted runners.
+- **Added native signing/notarization hooks and build provenance.** Windows
+  Authenticode and macOS Developer ID/notary steps activate when their
+  repository secrets are configured. Every standalone release remains
+  SHA-256-verified and gets GitHub build-provenance attestation independently
+  of OS signing.
+- **Prepared package-manager-native distribution.** Releases now generate an
+  architecture-complete Homebrew formula and WinGet 1.12 multi-file manifests
+  from the actual release checksums. A secret-gated publisher workflow can
+  create/update `elyeshkiri/homebrew-acco` and submit WinGet manifests;
+  absent publisher credentials, those external steps visibly no-op rather than
+  claiming publication.
+
 # 1.19.1 - 2026-09-26
 
 - **Completed the Windows standalone lifecycle.** Frozen `acco.exe` now uses

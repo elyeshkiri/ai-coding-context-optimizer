@@ -1,4 +1,4 @@
-# ACCO — AI Coding Context Optimizer 1.19.1
+# ACCO — AI Coding Context Optimizer 1.20.0
 
 **ACCO (AI Coding Context Optimizer)** is a local context-optimization layer for AI coding agents. It reduces unnecessary source, tool-output, and always-on context while preserving exact code where the model needs it.
 
@@ -50,8 +50,10 @@ console script being on `PATH`.
 
 For environments without `uv`, `pipx install acco` is the next preferred
 isolated install, with `python -m pip install --upgrade acco` retained as the
-compatibility path. Tagged releases also publish smoke-tested standalone
-executables plus SHA-256 sidecars and a release-scoped Homebrew formula; see
+compatibility path. Tagged releases also publish smoke-tested standalone executables for x86_64
+and ARM64 on Linux, macOS, and Windows, with SHA-256 sidecars, GitHub build
+provenance, release-scoped Homebrew/WinGet metadata, and optional native
+code-signing/notarization when publisher credentials are configured; see
 [Installation options](docs/INSTALL.md).
 
 `setup` now auto-detects supported coding-agent hosts, writes only ACCO-owned
@@ -114,6 +116,7 @@ Anthropic.
 Start with the task-oriented docs instead of searching this README:
 
 - [Installation options](docs/INSTALL.md)
+- [Native release signing and package publication](docs/RELEASE_SIGNING.md)
 - [1-minute quickstart](docs/QUICKSTART.md)
 - [Worked end-to-end example](docs/WORKED_EXAMPLE.md)
 - [CLI reference](docs/CLI_REFERENCE.md)

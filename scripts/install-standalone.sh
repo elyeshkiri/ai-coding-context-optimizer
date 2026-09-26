@@ -23,15 +23,6 @@ case "$(uname -m)" in
     ;;
 esac
 
-if [ "$os" = "linux" ] && [ "$arch" != "x86_64" ]; then
-  echo "Linux $arch standalone binary is not published yet. Use 'uv tool install acco'." >&2
-  exit 2
-fi
-if [ "$os" = "macos" ] && [ "$arch" != "arm64" ]; then
-  echo "macOS $arch standalone binary is not published yet. Use 'uv tool install acco'." >&2
-  exit 2
-fi
-
 asset="acco-$os-$arch"
 if [ "$VERSION" = "latest" ]; then
   base="https://github.com/$REPO/releases/latest/download"

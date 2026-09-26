@@ -12,8 +12,12 @@ if (-not [Environment]::Is64BitOperatingSystem) {
     throw "ACCO standalone Windows builds currently require 64-bit Windows."
 }
 $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
-if ($architecture -ne "X64") {
-    throw "ACCO standalone Windows currently publishes x86_64 only; detected $architecture. Use 'uv tool install acco' for this machine."
+$assetArch = switch ($architecture) {
+    "X64" { "x86_64" }
+    "Arm64" { "arm64" }
+    default {
+        throw "Unsupported Windows architecture $architecture. Use 'uv tool install acco' for this machine."
+    }
 }
 
 $base = if ($version -eq "latest") {
@@ -21,7 +25,7 @@ $base = if ($version -eq "latest") {
 } else {
     "https://github.com/$repo/releases/download/$version"
 }
-$asset = "acco-windows-x86_64.exe"
+$asset = "acco-windows-$assetArch.exe"
 
 $temp = Join-Path ([System.IO.Path]::GetTempPath()) ("acco-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Force -Path $temp | Out-Null
