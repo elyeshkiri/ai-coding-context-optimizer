@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 from pathlib import Path
 import shutil
 import subprocess
@@ -548,15 +549,49 @@ STANDALONE_RELEASE_BASE = (
 )
 
 
-def _is_frozen_windows() -> bool:
-    """Return whether ACCO is the standalone Windows executable."""
-    return bool(getattr(sys, "frozen", False) and os.name == "nt")
+def _is_frozen() -> bool:
+    """Return whether ACCO is running from a frozen standalone executable."""
+    return bool(getattr(sys, "frozen", False))
+
+
+def _normalized_arch(machine: str | None = None) -> str:
+    """Normalize common host architecture labels to ACCO release suffixes."""
+    value = (machine or platform.machine()).strip().lower()
+    aliases = {
+        "x86_64": "x86_64",
+        "amd64": "x86_64",
+        "arm64": "arm64",
+        "aarch64": "arm64",
+    }
+    try:
+        return aliases[value]
+    except KeyError as exc:
+        raise ValueError(
+            f"unsupported standalone architecture: {value or 'unknown'}"
+        ) from exc
+
+
+def _standalone_asset(
+    *,
+    system_name: str | None = None,
+    machine: str | None = None,
+) -> str:
+    """Return the current host's standalone release asset name."""
+    system = (system_name or platform.system()).strip().lower()
+    arch = _normalized_arch(machine)
+    if system == "windows":
+        return f"acco-windows-{arch}.exe"
+    if system == "darwin":
+        return f"acco-macos-{arch}"
+    if system == "linux":
+        return f"acco-linux-{arch}"
+    raise ValueError(f"unsupported standalone operating system: {system or 'unknown'}")
 
 
 def _upgrade_command() -> tuple[str, list[str]]:
     """Choose the least surprising available package-manager upgrade command."""
-    if _is_frozen_windows():
-        return "standalone-windows", [sys.executable, "update", "--apply"]
+    if _is_frozen():
+        return "standalone", [sys.executable, "update", "--apply"]
     if shutil.which("uv"):
         return "uv", ["uv", "tool", "upgrade", "acco"]
     if shutil.which("pipx"):
@@ -569,17 +604,16 @@ def _powershell_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def _apply_windows_standalone_update() -> int:
-    """Download, verify, smoke-test, then replace acco.exe after this process exits."""
-    shell = shutil.which("pwsh") or shutil.which("powershell")
-    if not shell:
-        raise ValueError("PowerShell is required to update standalone ACCO on Windows")
-
-    asset = "acco-windows-x86_64.exe"
+def _download_verified_standalone(
+    *,
+    asset: str | None = None,
+) -> tuple[Path, Path]:
+    """Download, checksum-verify, and smoke-test the host standalone binary."""
+    asset = asset or _standalone_asset()
     temporary_dir = Path(tempfile.mkdtemp(prefix="acco-update-"))
-    replacement = temporary_dir / "acco.exe"
+    replacement_name = "acco.exe" if asset.endswith(".exe") else "acco"
+    replacement = temporary_dir / replacement_name
     checksum = temporary_dir / f"{asset}.sha256"
-    target = Path(sys.executable).resolve()
     try:
         urlretrieve(f"{STANDALONE_RELEASE_BASE}/{asset}", replacement)
         urlretrieve(f"{STANDALONE_RELEASE_BASE}/{asset}.sha256", checksum)
@@ -587,7 +621,8 @@ def _apply_windows_standalone_update() -> int:
         actual = hashlib.sha256(replacement.read_bytes()).hexdigest().lower()
         if expected != actual:
             raise ValueError("standalone ACCO update checksum verification failed")
-
+        if os.name != "nt":
+            replacement.chmod(0o755)
         smoke = subprocess.run(
             [str(replacement), "--help"],
             stdout=subprocess.DEVNULL,
@@ -596,27 +631,61 @@ def _apply_windows_standalone_update() -> int:
         )
         if smoke.returncode != 0:
             raise ValueError("downloaded standalone ACCO failed its smoke test")
+        return temporary_dir, replacement
+    except Exception:
+        shutil.rmtree(temporary_dir, ignore_errors=True)
+        raise
 
-        script = (
-            "$ErrorActionPreference='Stop';"
-            f"Wait-Process -Id {os.getpid()} -ErrorAction SilentlyContinue;"
-            f"Copy-Item -Force -LiteralPath {_powershell_literal(str(replacement))} "
-            f"-Destination {_powershell_literal(str(target))};"
-            f"Remove-Item -Recurse -Force -LiteralPath "
-            f"{_powershell_literal(str(temporary_dir))} -ErrorAction SilentlyContinue"
-        )
-        creationflags = (
-            getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-            | getattr(subprocess, "DETACHED_PROCESS", 0)
-        )
-        subprocess.Popen(
-            [shell, "-NoProfile", "-NonInteractive", "-Command", script],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            creationflags=creationflags,
-        )
-        return 0
+
+def _schedule_windows_standalone_replace(
+    *,
+    temporary_dir: Path,
+    replacement: Path,
+    target: Path,
+) -> None:
+    """Replace a running Windows executable after the current process exits."""
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if not shell:
+        raise ValueError("PowerShell is required to update standalone ACCO on Windows")
+    script = (
+        "$ErrorActionPreference='Stop';"
+        f"Wait-Process -Id {os.getpid()} -ErrorAction SilentlyContinue;"
+        f"Copy-Item -Force -LiteralPath {_powershell_literal(str(replacement))} "
+        f"-Destination {_powershell_literal(str(target))};"
+        f"Remove-Item -Recurse -Force -LiteralPath "
+        f"{_powershell_literal(str(temporary_dir))} -ErrorAction SilentlyContinue"
+    )
+    creationflags = (
+        getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        | getattr(subprocess, "DETACHED_PROCESS", 0)
+    )
+    subprocess.Popen(
+        [shell, "-NoProfile", "-NonInteractive", "-Command", script],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=creationflags,
+    )
+
+
+def _apply_standalone_update() -> str:
+    """Verify and install the matching standalone update for this platform."""
+    asset = _standalone_asset()
+    temporary_dir, replacement = _download_verified_standalone(asset=asset)
+    target = Path(sys.executable).resolve()
+    try:
+        if platform.system().lower() == "windows":
+            _schedule_windows_standalone_replace(
+                temporary_dir=temporary_dir,
+                replacement=replacement,
+                target=target,
+            )
+            return "scheduled"
+        mode = target.stat().st_mode
+        replacement.chmod(mode)
+        os.replace(replacement, target)
+        shutil.rmtree(temporary_dir, ignore_errors=True)
+        return "completed"
     except Exception:
         shutil.rmtree(temporary_dir, ignore_errors=True)
         raise
@@ -635,11 +704,13 @@ def update_main(argv: list[str]) -> int:
         "command": command,
         "applied": False,
         "returncode": None,
+        "standalone_state": None,
     }
     if args.apply:
         try:
-            if manager == "standalone-windows":
-                returncode = _apply_windows_standalone_update()
+            if manager == "standalone":
+                payload["standalone_state"] = _apply_standalone_update()
+                returncode = 0
             else:
                 completed = subprocess.run(command, check=False)
                 returncode = int(completed.returncode)
@@ -651,8 +722,11 @@ def update_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(payload, indent=2))
     elif args.apply:
-        if manager == "standalone-windows" and payload["returncode"] == 0:
-            print("ACCO standalone update verified and scheduled for process exit")
+        if manager == "standalone" and payload["returncode"] == 0:
+            if payload["standalone_state"] == "scheduled":
+                print("ACCO standalone update verified and scheduled for process exit")
+            else:
+                print("ACCO standalone update verified and installed")
         else:
             print(
                 "ACCO update "
