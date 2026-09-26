@@ -231,6 +231,44 @@ def test_frozen_update_uses_standalone_strategy(monkeypatch, capsys):
     assert "-m" not in payload["command"]
 
 
+def test_frozen_homebrew_update_preserves_package_manager(monkeypatch, capsys):
+    """Homebrew-managed frozen binaries should upgrade through Homebrew."""
+    monkeypatch.setattr(product, "_is_frozen", lambda: True)
+    monkeypatch.setattr(
+        product,
+        "_frozen_package_manager",
+        lambda target=None: "homebrew",
+    )
+
+    assert product.update_main(["--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["manager"] == "homebrew"
+    assert payload["command"] == ["brew", "upgrade", "acco"]
+
+
+def test_frozen_winget_update_preserves_package_manager(monkeypatch, capsys):
+    """WinGet-managed frozen binaries should upgrade through WinGet."""
+    monkeypatch.setattr(product, "_is_frozen", lambda: True)
+    monkeypatch.setattr(
+        product,
+        "_frozen_package_manager",
+        lambda target=None: "winget",
+    )
+
+    assert product.update_main(["--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["manager"] == "winget"
+    assert payload["command"][:5] == [
+        "winget",
+        "upgrade",
+        "--id",
+        "ElyesHkiri.ACCO",
+        "--exact",
+    ]
+
+
 def test_standalone_asset_maps_all_supported_platform_architectures():
     """Every published platform/architecture pair should resolve deterministically."""
     assert product._standalone_asset(
