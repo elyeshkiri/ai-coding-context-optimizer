@@ -95,6 +95,7 @@ acco commands
 acco completion bash
 acco completion zsh
 acco completion fish
+acco completion powershell
 ```
 
 The distribution, command, and Python import now use the ACCO identity:
