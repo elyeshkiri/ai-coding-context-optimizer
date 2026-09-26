@@ -15,7 +15,7 @@
   The policy explicitly scopes brevity to final prose and forbids skipping
   investigation or verification to save tokens.
 - **Added payload-aware fallback compression.** Unknown commands can now route
-  large JSON, unified diffs, leveled logs, and Markdown tables to content-type
+  large browser HTML/AX dumps, JSON, unified diffs, leveled logs, and Markdown tables to content-type
   processors after command-specific processors decline them. Diff compression
   preserves every changed line; hook/provider recovery remains authoritative
   for lossy reductions.
