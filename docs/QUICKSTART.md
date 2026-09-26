@@ -10,11 +10,16 @@ ACCO supports Python 3.10+. The preferred isolated CLI install is:
 uv tool install acco
 ```
 
-For one-off use:
+For a one-command persistent bootstrap:
 
 ```bash
-uvx acco setup
+cd /path/to/project
+uvx acco bootstrap
 ```
+
+The temporary `uvx` process first installs ACCO persistently through
+`uv tool`, then runs setup. It does not leave host integrations pointing at an
+ephemeral environment.
 
 Alternatives are `pipx install acco` and
 `python -m pip install --upgrade acco`.
