@@ -588,9 +588,37 @@ def _standalone_asset(
     raise ValueError(f"unsupported standalone operating system: {system or 'unknown'}")
 
 
+def _frozen_package_manager(target: Path | None = None) -> str | None:
+    """Detect package-manager ownership for a frozen executable path."""
+    target = (target or Path(sys.executable)).resolve()
+    normalized = target.as_posix().lower()
+    if "/cellar/acco/" in normalized and shutil.which("brew"):
+        return "homebrew"
+    if (
+        "/microsoft/winget/packages/" in normalized
+        or "\\microsoft\\winget\\packages\\" in str(target).lower()
+    ) and shutil.which("winget"):
+        return "winget"
+    return None
+
+
 def _upgrade_command() -> tuple[str, list[str]]:
     """Choose the least surprising available package-manager upgrade command."""
     if _is_frozen():
+        frozen_manager = _frozen_package_manager()
+        if frozen_manager == "homebrew":
+            return "homebrew", ["brew", "upgrade", "acco"]
+        if frozen_manager == "winget":
+            return "winget", [
+                "winget",
+                "upgrade",
+                "--id",
+                "ElyesHkiri.ACCO",
+                "--exact",
+                "--accept-source-agreements",
+                "--accept-package-agreements",
+                "--disable-interactivity",
+            ]
         return "standalone", [sys.executable, "update", "--apply"]
     if shutil.which("uv"):
         return "uv", ["uv", "tool", "upgrade", "acco"]
