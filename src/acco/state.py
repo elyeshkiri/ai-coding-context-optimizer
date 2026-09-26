@@ -1,18 +1,37 @@
 """Session-scoped JSON ledger with locked transactions and atomic writes."""
 from __future__ import annotations
 import hashlib
+from contextlib import contextmanager
 import json
 import os
 import tempfile
 import time
-from contextlib import contextmanager
 from pathlib import Path
+
+from .file_lock import locked_file
 
 SCHEMA = 3
 
+def _default_state_dir(
+    *,
+    platform_name: str | None = None,
+    environ: dict[str, str] | None = None,
+    home: Path | None = None,
+) -> Path:
+    """Return the platform-native private ACCO state directory."""
+    platform_name = platform_name or os.name
+    environment = os.environ if environ is None else environ
+    if platform_name == "nt":
+        local = environment.get("LOCALAPPDATA") or environment.get("APPDATA")
+        if local:
+            return Path(local) / "ACCO"
+    return (home or Path.home()) / ".claude" / "acco"
+
+
 def state_dir() -> Path:
-    """Handle state dir."""
-    return Path(os.environ.get("ACCO_STATE_DIR", str(Path.home() / ".claude" / "acco")))
+    """Return ACCO state storage, honoring the explicit environment override."""
+    override = os.environ.get("ACCO_STATE_DIR")
+    return Path(override).expanduser() if override else _default_state_dir()
 
 def state_path(root: Path | None = None, session_id: str | None = None) -> Path:
     """Handle state path."""
@@ -38,24 +57,10 @@ def load(root: Path | None = None, session_id: str | None = None) -> dict:
 
 @contextmanager
 def _locked(path: Path):
-    """Handle locked."""
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd = os.open(str(path) + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
-    with os.fdopen(fd, "a+b") as handle:
-        if os.name == "nt":
-            import msvcrt
-            handle.seek(0); handle.write(b"0"); handle.flush(); handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(handle, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            if os.name == "nt":
-                handle.seek(0); msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(handle, fcntl.LOCK_UN)
+    """Compatibility lock seam used by state and validated config writes."""
+    with locked_file(Path(str(path) + ".lock")):
+        yield
+
 
 def _write(data: dict, path: Path) -> Path:
     """Write the requested value."""

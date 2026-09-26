@@ -77,13 +77,44 @@ curl -fsSL https://raw.githubusercontent.com/elyeshkiri/ai-coding-context-optimi
 This path is optional. Review the script first if your environment does not
 permit piped shell installers.
 
-Windows PowerShell:
+### Windows
+
+Windows x86_64 has a native standalone installation that does not require
+Python:
 
 ```powershell
 irm https://raw.githubusercontent.com/elyeshkiri/ai-coding-context-optimizer/main/scripts/install-standalone.ps1 | iex
 ```
 
-Both installers verify the downloaded SHA-256 checksum before installation.
+The PowerShell installer:
+
+- downloads the release `acco-windows-x86_64.exe`;
+- verifies its SHA-256 sidecar before installation;
+- installs it under `%LOCALAPPDATA%\ACCO\bin` by default;
+- smoke-tests `acco.exe --help`;
+- adds the install directory to the user's `PATH` idempotently.
+
+Open a new PowerShell terminal after the first install, then:
+
+```powershell
+cd C:\path\to\project
+acco setup
+acco start
+```
+
+PowerShell completion is available with:
+
+```powershell
+acco completion powershell | Out-String | Invoke-Expression
+```
+
+For persistent completion, add the generated script to `$PROFILE`.
+
+Native Windows state is stored under `%LOCALAPPDATA%\ACCO` (falling back to
+`%APPDATA%\ACCO`). `ACCO_STATE_DIR` still overrides the location.
+
+Linux/macOS installers and the Windows installer all verify the downloaded
+SHA-256 checksum before installation.
 
 ## Homebrew without a tap
 

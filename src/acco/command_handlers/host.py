@@ -285,7 +285,7 @@ def uninstall_main(argv: list[str]) -> int:
 def completion_main(argv: list[str]) -> int:
     """Generate lightweight shell completion for top-level commands."""
     parser = argparse.ArgumentParser(prog="acco completion")
-    parser.add_argument("shell", choices=["bash", "zsh", "fish"])
+    parser.add_argument("shell", choices=["bash", "zsh", "fish", "powershell"])
     args = parser.parse_args(argv)
 
     from ..command_registry import DEFAULT_COMMAND_REGISTRY
@@ -301,9 +301,25 @@ def completion_main(argv: list[str]) -> int:
         )
     elif args.shell == "zsh":
         print(f"#compdef acco\n_arguments \'1:command:({names})\'")
-    else:
+    elif args.shell == "fish":
         for name in DEFAULT_COMMAND_REGISTRY.names():
             print(f"complete -c acco -n \'__fish_use_subcommand\' -a \'{name}\'")
+    else:
+        quoted = ", ".join(
+            repr(name)
+            for name in DEFAULT_COMMAND_REGISTRY.names()
+        )
+        print(
+            "Register-ArgumentCompleter -Native -CommandName acco -ScriptBlock {\n"
+            "  param($wordToComplete, $commandAst, $cursorPosition)\n"
+            f"  $commands = @({quoted})\n"
+            "  $commands | Where-Object { $_ -like \"$wordToComplete*\" } | "
+            "ForEach-Object {\n"
+            "    [System.Management.Automation.CompletionResult]::new("
+            "$_, $_, 'ParameterValue', $_)\n"
+            "  }\n"
+            "}"
+        )
     return 0
 
 

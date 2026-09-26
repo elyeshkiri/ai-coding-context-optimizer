@@ -28,12 +28,8 @@ def test_session_runner_forwards_all_efficiency_switches(tmp_path, monkeypatch):
     }.items():
         monkeypatch.setenv(name, value)
     monkeypatch.setattr(
-        "acco.session_holdout_docker.os.getuid",
-        lambda: 123,
-    )
-    monkeypatch.setattr(
-        "acco.session_holdout_docker.os.getgid",
-        lambda: 456,
+        "acco.session_holdout_docker.docker_platform.docker_user_args",
+        lambda: (["--user", "123:456"], False),
     )
 
     command = _base_docker(

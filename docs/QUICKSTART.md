@@ -24,6 +24,13 @@ ephemeral environment.
 Alternatives are `pipx install acco` and
 `python -m pip install --upgrade acco`.
 
+On Windows x86_64, the standalone PowerShell installer requires no Python and
+adds ACCO to the user PATH:
+
+```powershell
+irm https://raw.githubusercontent.com/elyeshkiri/ai-coding-context-optimizer/main/scripts/install-standalone.ps1 | iex
+```
+
 The PyPI distribution and executable are both `acco`. Running `acco` with
 no arguments shows the project-aware home screen instead of the full expert
 command catalog.
