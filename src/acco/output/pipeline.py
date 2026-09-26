@@ -41,7 +41,11 @@ class OutputPipeline:
         if not text:
             return OutputResult(text, "none", False, False)
         failed = detect_failure(text, exit_code)
-        processor = self.registry.select(command, failed=failed)
+        processor = self.registry.select(
+            command,
+            failed=failed,
+            text=text,
+        )
         candidate = processor.compress(
             command,
             text,
@@ -81,7 +85,11 @@ class OutputPipeline:
     ) -> dict:
         """Explain which processor would handle a command and why."""
         failed = detect_failure(sample, exit_code)
-        processor = self.registry.select(command, failed=failed)
+        processor = self.registry.select(
+            command,
+            failed=failed,
+            text=sample,
+        )
         skipped = [
             item.name
             for item in self.registry.processors
