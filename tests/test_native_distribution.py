@@ -94,6 +94,6 @@ def test_native_package_publisher_is_secret_gated():
     assert "HOMEBREW_TAP_TOKEN" in workflow
     assert "WINGET_TOKEN" in workflow
     assert "gh repo create elyeshkiri/homebrew-acco" in workflow
-    assert "wingetcreate submit" in workflow
+    assert "$wingetCreate submit" in workflow
     assert "skipping external Homebrew tap publication" in workflow
     assert "skipping external WinGet submission" in workflow
