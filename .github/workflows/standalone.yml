@@ -2,18 +2,100 @@ name: Standalone binaries
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+# The release workflow creates tags using GITHUB_TOKEN. GitHub intentionally
+# does not recursively trigger another workflow from that tag push, so this
+# workflow follows main instead and builds from the immutable release tag.
 concurrency:
-  group: acco-standalone-${{ github.ref_name }}
+  group: acco-standalone-release
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      publish: ${{ steps.release.outputs.publish }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve immutable release source
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(python - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as fh:
+              print(tomllib.load(fh)["project"]["version"])
+          PY
+          )"
+          tag="v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+          source_sha=""
+          for attempt in {1..30}; do
+            git fetch --quiet --tags origin
+            if source_sha="$(git rev-parse "$tag^{commit}" 2>/dev/null)"; then
+              break
+            fi
+            echo "Waiting for immutable release tag $tag ($attempt/30)..."
+            sleep 5
+          done
+          if [ -z "$source_sha" ]; then
+            echo "::error::Release tag $tag was not created."
+            exit 1
+          fi
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+          for attempt in {1..30}; do
+            if gh release view "$tag" >/dev/null 2>&1; then
+              break
+            fi
+            echo "Waiting for GitHub release $tag ($attempt/30)..."
+            sleep 5
+          done
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::GitHub release $tag was not created."
+            exit 1
+          fi
+
+          assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+          complete=true
+          for required in             acco-linux-x86_64             acco-linux-x86_64.sha256             acco-macos-arm64             acco-macos-arm64.sha256             acco-windows-x86_64.exe             acco-windows-x86_64.exe.sha256             acco.rb
+          do
+            if ! printf '%s\n' "$assets" | grep -Fxq "$required"; then
+              complete=false
+            fi
+          done
+
+          if [ "$complete" = true ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Standalone assets already complete for $tag; no-op."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Building standalone assets from immutable $tag at $source_sha."
+          fi
+
   build:
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -30,6 +112,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
 
       - uses: actions/setup-python@v5
         with:
@@ -46,7 +130,7 @@ jobs:
         shell: bash
         run: |
           "${{ matrix.binary }}" --help
-          "${{ matrix.binary }}" demo . --query "provider wrapper launch" --max-tokens 1000 --json > standalone-smoke.json
+          "${{ matrix.binary }}" demo .             --query "provider wrapper launch"             --max-tokens 1000             --json > standalone-smoke.json
           python - <<'PY'
           import json
           with open("standalone-smoke.json", encoding="utf-8") as fh:
@@ -70,41 +154,29 @@ jobs:
           )
           PY
 
-      - name: Wait for GitHub release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          for attempt in {1..30}; do
-            if gh release view "$TAG" >/dev/null 2>&1; then
-              exit 0
-            fi
-            echo "Waiting for release $TAG ($attempt/30)..."
-            sleep 10
-          done
-          echo "::error::GitHub release $TAG was not created in time."
-          exit 1
-
       - name: Upload standalone asset
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           gh release upload "$TAG"             "${{ matrix.asset }}"             "${{ matrix.asset }}.sha256"             --clobber
 
-
   formula:
-    needs: build
+    needs:
+      - prepare
+      - build
+    if: needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
 
       - name: Download release checksums
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           mkdir -p release-checksums
           gh release download "$TAG"             --pattern "acco-linux-x86_64.sha256"             --pattern "acco-macos-arm64.sha256"             --dir release-checksums
@@ -112,16 +184,22 @@ jobs:
       - name: Render Homebrew formula
         shell: bash
         env:
-          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           python - <<'PY'
           from pathlib import Path
           import os
 
-          version = os.environ["TAG"].removeprefix("v")
-          linux = Path("release-checksums/acco-linux-x86_64.sha256").read_text().split()[0]
-          macos = Path("release-checksums/acco-macos-arm64.sha256").read_text().split()[0]
-          text = Path("packaging/homebrew/acco.rb.template").read_text(encoding="utf-8")
+          version = os.environ["VERSION"]
+          linux = Path(
+              "release-checksums/acco-linux-x86_64.sha256"
+          ).read_text().split()[0]
+          macos = Path(
+              "release-checksums/acco-macos-arm64.sha256"
+          ).read_text().split()[0]
+          text = Path(
+              "packaging/homebrew/acco.rb.template"
+          ).read_text(encoding="utf-8")
           text = (
               text.replace("__VERSION__", version)
               .replace("__LINUX_X86_64_SHA256__", linux)
@@ -133,5 +211,5 @@ jobs:
       - name: Upload Homebrew formula
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release upload "$TAG" acco.rb --clobber
