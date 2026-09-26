@@ -95,7 +95,7 @@ def test_portable_lean_skill_is_safe_and_installable(tmp_path: Path):
 
 def test_payload_json_is_selected_for_unknown_command():
     payload = "[\n" + ",\n".join(
-        '{"id": %d, "value": "same"}' % index for index in range(100)
+        f'{{"id": {index}, "value": "same"}}' for index in range(100)
     ) + "\n]\n"
     result = OutputPipeline().process(payload, command="custom-tool dump")
     assert result.processor == "payload-json"
