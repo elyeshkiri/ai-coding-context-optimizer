@@ -472,6 +472,20 @@ def continuity_context(
     """Render a compact structured checkpoint for resume or compaction."""
     if not enabled or source not in {"resume", "compact"}:
         return None
+
+    # Prefer an explicit pre-compaction guardian snapshot when available. It is
+    # captured before the host rewrites conversation state and therefore gives
+    # a new/resumed host session a stable cold-resume packet.
+    from .guardian import guardian_context
+
+    guarded = guardian_context(
+        root,
+        session_id=session_id,
+        source=source,
+        enabled=enabled,
+    )
+    if guarded:
+        return guarded
     snapshot = load_snapshot(root)
     sessions = snapshot.get("sessions")
     if not isinstance(sessions, dict) or not sessions:
