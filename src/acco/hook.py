@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .delta_context import apply_delta
 from .efficiency import (
+    capture_guardian,
     continuity_context,
     deduplicate_output,
     observe_prompt,
@@ -116,6 +117,7 @@ def _services() -> HookServices:
         telemetry_finish=finish_output_turn,
         efficiency_session_start=start_session,
         continuity_context=continuity_context,
+        guardian_checkpoint=capture_guardian,
         efficiency_prompt=observe_prompt,
         deduplicate_output=deduplicate_output,
         observe_tool=observe_tool,
