@@ -93,3 +93,45 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           gh release upload "$TAG"             "${{ matrix.asset }}"             "${{ matrix.asset }}.sha256"             --clobber
+
+
+  formula:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download release checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p release-checksums
+          gh release download "$TAG"             --pattern "acco-linux-x86_64.sha256"             --pattern "acco-macos-arm64.sha256"             --dir release-checksums
+
+      - name: Render Homebrew formula
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          version = os.environ["TAG"].removeprefix("v")
+          linux = Path("release-checksums/acco-linux-x86_64.sha256").read_text().split()[0]
+          macos = Path("release-checksums/acco-macos-arm64.sha256").read_text().split()[0]
+          text = Path("packaging/homebrew/acco.rb.template").read_text(encoding="utf-8")
+          text = (
+              text.replace("__VERSION__", version)
+              .replace("__LINUX_X86_64_SHA256__", linux)
+              .replace("__MACOS_ARM64_SHA256__", macos)
+          )
+          Path("acco.rb").write_text(text, encoding="utf-8")
+          PY
+
+      - name: Upload Homebrew formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release upload "$TAG" acco.rb --clobber
