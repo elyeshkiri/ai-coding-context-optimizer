@@ -196,7 +196,7 @@ def test_bootstrap_persists_cli_before_running_setup(
     )
 
     assert product.bootstrap_main([str(tmp_path), "--host", "cursor"]) == 0
-    assert calls == [["uv", "tool", "install", "--upgrade", "acco"]]
+    assert calls == [["uv", "tool", "install", "acco"]]
     assert received == [str(tmp_path), "--host", "cursor"]
     assert "persistent install ready via uv" in capsys.readouterr().out
 
