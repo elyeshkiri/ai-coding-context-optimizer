@@ -589,6 +589,7 @@ def advanced_main(argv: list[str]) -> int:
     from .command_registry import DEFAULT_COMMAND_REGISTRY
 
     beginner = {
+        "bootstrap",
         "setup",
         "start",
         "status",
