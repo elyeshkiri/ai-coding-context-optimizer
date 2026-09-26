@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import sys
 
+from . import docker_platform
+
 
 def run(*, model: str, image: str, prompt: str) -> str:
     """Run one isolated Claude grading request and return its text result."""
@@ -19,8 +21,7 @@ def run(*, model: str, image: str, prompt: str) -> str:
     if not os.environ.get("ANTHROPIC_WORKSPACE_ID"):
         raise ValueError("ANTHROPIC_WORKSPACE_ID is required for Claude grading")
 
-    uid = os.getuid()
-    gid = os.getgid()
+    user_args, _sandboxed_root = docker_platform.docker_user_args()
     child_env = os.environ.copy()
     child_env["ANTHROPIC_CUSTOM_HEADERS"] = (
         "anthropic-workspace-id: " + os.environ["ANTHROPIC_WORKSPACE_ID"]
@@ -29,8 +30,7 @@ def run(*, model: str, image: str, prompt: str) -> str:
         "docker",
         "run",
         "--rm",
-        "--user",
-        f"{uid}:{gid}",
+        *user_args,
         "--workdir",
         "/tmp",
         "-e",
