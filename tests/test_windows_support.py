@@ -9,32 +9,32 @@ import acco.state as state
 import acco.wrapper as wrapper
 
 
-def test_windows_state_dir_uses_localappdata(monkeypatch, tmp_path: Path):
+def test_windows_state_dir_uses_localappdata(tmp_path: Path):
     """Windows state should live under LOCALAPPDATA instead of a Claude folder."""
-    monkeypatch.delenv("ACCO_STATE_DIR", raising=False)
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
-    monkeypatch.delenv("APPDATA", raising=False)
-    monkeypatch.setattr(state.os, "name", "nt", raising=False)
+    result = state._default_state_dir(
+        platform_name="nt",
+        environ={"LOCALAPPDATA": str(tmp_path / "Local")},
+        home=tmp_path / "home",
+    )
 
-    assert state.state_dir() == tmp_path / "Local" / "ACCO"
+    assert result == tmp_path / "Local" / "ACCO"
 
 
-def test_windows_state_dir_falls_back_to_appdata(monkeypatch, tmp_path: Path):
+def test_windows_state_dir_falls_back_to_appdata(tmp_path: Path):
     """APPDATA remains a safe fallback when LOCALAPPDATA is unavailable."""
-    monkeypatch.delenv("ACCO_STATE_DIR", raising=False)
-    monkeypatch.delenv("LOCALAPPDATA", raising=False)
-    monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
-    monkeypatch.setattr(state.os, "name", "nt", raising=False)
+    result = state._default_state_dir(
+        platform_name="nt",
+        environ={"APPDATA": str(tmp_path / "Roaming")},
+        home=tmp_path / "home",
+    )
 
-    assert state.state_dir() == tmp_path / "Roaming" / "ACCO"
+    assert result == tmp_path / "Roaming" / "ACCO"
 
 
-def test_explicit_state_dir_still_wins_on_windows(monkeypatch, tmp_path: Path):
+def test_explicit_state_dir_still_wins(monkeypatch, tmp_path: Path):
     """Existing ACCO_STATE_DIR deployments must keep their explicit location."""
     override = tmp_path / "custom-state"
     monkeypatch.setenv("ACCO_STATE_DIR", str(override))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
-    monkeypatch.setattr(state.os, "name", "nt", raising=False)
 
     assert state.state_dir() == override
 
