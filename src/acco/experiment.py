@@ -506,10 +506,10 @@ def _expand_command(
     """Expand command."""
     values = {
         "task_image": task_image,
-        "worktree": str(worktree),
-        "transcript": str(transcript),
+        "worktree": worktree.as_posix(),
+        "transcript": transcript.as_posix(),
         "prompt": prompt,
-        "prompt_file": str(prompt_file),
+        "prompt_file": prompt_file.as_posix(),
         "model": model,
         "condition": condition,
     }
