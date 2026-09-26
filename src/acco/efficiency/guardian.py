@@ -103,11 +103,20 @@ def guardian_context(
     enabled: bool = True,
 ) -> str | None:
     """Render a cold-resume orientation packet from the latest checkpoint."""
-    del session_id
     if not enabled or source not in {"resume", "compact"}:
         return None
-    checkpoint = load_snapshot(root).get("guardian")
+    snapshot = load_snapshot(root)
+    checkpoint = snapshot.get("guardian")
     if not isinstance(checkpoint, dict) or not checkpoint:
+        return None
+
+    # Do not let an old compaction snapshot outrank fresher structured work.
+    # A checkpoint captured immediately before compaction is at least as new as
+    # the session it represents; after new work occurs, normal continuity wins.
+    _key, latest = _latest_session(snapshot, session_id)
+    captured_at = int(checkpoint.get("captured_at") or 0)
+    latest_activity = int(latest.get("last_activity") or 0) if latest else 0
+    if latest_activity > captured_at:
         return None
 
     files = [
