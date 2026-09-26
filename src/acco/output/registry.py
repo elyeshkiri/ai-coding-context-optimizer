@@ -18,13 +18,36 @@ class ProcessorRegistry:
         if not any(item.name == "generic" for item in self.processors):
             raise ValueError("output processor registry requires a generic fallback")
 
-    def select(self, command: str, *, failed: bool) -> OutputProcessor:
-        """Return the first eligible processor for ``command``."""
+    def select(
+        self,
+        command: str,
+        *,
+        failed: bool,
+        text: str = "",
+    ) -> OutputProcessor:
+        """Return the best command- or payload-aware processor."""
+        generic: OutputProcessor | None = None
         for processor in self.processors:
+            if processor.name == "generic":
+                generic = processor
+                continue
             if failed and not processor.handles_failure:
                 continue
             if processor.matches(command):
                 return processor
+
+        if text:
+            for processor in self.processors:
+                if processor.name == "generic":
+                    continue
+                if failed and not processor.handles_failure:
+                    continue
+                matcher = getattr(processor, "matches_payload", None)
+                if callable(matcher) and matcher(text):
+                    return processor
+
+        if generic is not None:
+            return generic
         raise RuntimeError("no output processor matched")
 
 

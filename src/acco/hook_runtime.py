@@ -31,6 +31,7 @@ TelemetryStartService = Callable[..., None]
 TelemetryFinishService = Callable[..., dict | None]
 EfficiencySessionStartService = Callable[..., None]
 ContinuityContextService = Callable[..., str | None]
+GuardianCheckpointService = Callable[..., object | None]
 EfficiencyPromptService = Callable[..., None]
 DeduplicateOutputService = Callable[..., str | None]
 ObserveToolService = Callable[..., str | None]
@@ -51,6 +52,12 @@ def _noop_recovery(*args, **kwargs) -> str | None:
 
 def _noop_context(*args, **kwargs) -> str | None:
     """Return no optional hook context."""
+    del args, kwargs
+    return None
+
+
+def _noop_guardian(*args, **kwargs) -> object | None:
+    """Ignore a pre-compaction checkpoint event."""
     del args, kwargs
     return None
 
@@ -168,6 +175,7 @@ class HookServices:
     telemetry_finish: TelemetryFinishService
     efficiency_session_start: EfficiencySessionStartService = _noop_session_start
     continuity_context: ContinuityContextService = _noop_context
+    guardian_checkpoint: GuardianCheckpointService = _noop_guardian
     efficiency_prompt: EfficiencyPromptService = _noop_prompt
     deduplicate_output: DeduplicateOutputService = _noop_dedup
     observe_tool: ObserveToolService = _noop_observe
@@ -380,6 +388,26 @@ class HookRuntime:
         if behavior_note:
             specific["additionalContext"] = behavior_note
         return 0, {"hookSpecificOutput": specific}
+
+    def run_pre_compact(self, payload: dict) -> HookResponse:
+        """Capture bounded structured state before the host compacts context."""
+
+        root = self.cwd(payload)
+        trigger = str(
+            payload.get("trigger")
+            or payload.get("source")
+            or "compact"
+        ).lower()
+        self.services.guardian_checkpoint(
+            root,
+            session_id=payload.get("session_id"),
+            source=f"precompact:{trigger}",
+            enabled=(
+                self.config.efficiency_enabled
+                and self.config.continuity_enabled
+            ),
+        )
+        return 0, None
 
     def run_session_start(self, payload: dict) -> HookResponse:
         """Reset transient state and restore compact structured continuity."""
@@ -648,6 +676,8 @@ class HookRuntime:
             return 0, None
 
         event = payload.get("hook_event_name") or payload.get("hookEventName") or ""
+        if event == "PreCompact":
+            return self.run_pre_compact(payload)
         if event == "SessionStart":
             return self.run_session_start(payload)
         if event == "UserPromptSubmit":

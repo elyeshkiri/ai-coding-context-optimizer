@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+
+from .lean_skill import SKILL_TEXT
 import shutil
 import tempfile
 
@@ -55,6 +57,17 @@ _HOOKS = {
                         "timeout": 10,
                     }
                 ],
+            }
+        ],
+        "PreCompact": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python -m acco.entry hook",
+                        "timeout": 10,
+                    }
+                ]
             }
         ],
         "SessionStart": [
@@ -170,6 +183,9 @@ def render_plugin() -> Path:
         skill = temporary / "skills" / "ingress" / "SKILL.md"
         skill.parent.mkdir(parents=True, exist_ok=True)
         skill.write_text(_INGRESS_SKILL, encoding="utf-8")
+        lean_skill = temporary / "skills" / "acco-lean" / "SKILL.md"
+        lean_skill.parent.mkdir(parents=True, exist_ok=True)
+        lean_skill.write_text(SKILL_TEXT, encoding="utf-8")
         (temporary / ".acco-plugin.json").write_text(
             json.dumps(
                 {

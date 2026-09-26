@@ -8,6 +8,7 @@ Use this page as the documentation map for the current ACCO release.
 - [CLI reference](CLI_REFERENCE.md) — complete command index with per-command references.
 - [Machine-readable CLI contracts](JSON_OUTPUTS.md) — stable JSON fields and exit/gating behavior.
 - [Middleware SDKs](SDK.md) — embed ACCO in custom Python and TypeScript agents.
+- [Everyday efficiency](EVERYDAY_EFFICIENCY.md) — compaction guardian, wrapper, Lean skill, payload compression, context audit, and live status.
 - [Worked end-to-end example](WORKED_EXAMPLE.md) — one real bug from setup through measured paired runs.
 - [Configuration](CONFIGURATION.md) — project TOML, environment overrides, and host-managed files.
 - [Troubleshooting](TROUBLESHOOTING.md) — setup, MCP, hooks, indexing, output recovery, and benchmark failures.
@@ -40,7 +41,7 @@ acco browse / pack / MCP
         ↓
 acco sessions / audit
         ↓
-optional: optimize / provider-proxy / browser-context
+optional: wrap / optimize / provider-proxy / browser-context
         ↓
 benchmark only when success is independently verifiable
 ```

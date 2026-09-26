@@ -27,12 +27,16 @@ def test_rendered_plugin_contains_owned_hooks_mcp_and_ingress_skill(
     hooks = json.loads((path / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     mcp = json.loads((path / ".mcp.json").read_text(encoding="utf-8"))
     skill = (path / "skills" / "ingress" / "SKILL.md").read_text(encoding="utf-8")
+    lean = (path / "skills" / "acco-lean" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
 
     assert manifest["name"] == "acco"
     assert manifest["version"] == __version__
     assert set(hooks["hooks"]) == {
         "PreToolUse",
         "PostToolUse",
+        "PreCompact",
         "SessionStart",
         "UserPromptSubmit",
         "Stop",
@@ -49,6 +53,7 @@ def test_rendered_plugin_contains_owned_hooks_mcp_and_ingress_skill(
     assert mcp["acco"]["args"][:3] == ["-m", "acco.entry", "serve"]
     assert "ingress-show" in skill
     assert "Never infer or fabricate omitted content" in skill
+    assert "Never skip investigation or verification" in lean
     assert plugin_status()["rendered"] is True
 
 

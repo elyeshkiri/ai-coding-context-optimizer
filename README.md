@@ -76,6 +76,7 @@ Start with the task-oriented docs instead of searching this README:
 - [CLI reference](docs/CLI_REFERENCE.md)
 - [Machine-readable CLI contracts](docs/JSON_OUTPUTS.md)
 - [Middleware SDKs for custom agents](docs/SDK.md)
+- [Everyday efficiency surfaces](docs/EVERYDAY_EFFICIENCY.md)
 - [Configuration reference](docs/CONFIGURATION.md)
 - [Coding-agent integrations](INTEGRATIONS.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
@@ -87,6 +88,29 @@ Start with the task-oriented docs instead of searching this README:
 - [Contributing](CONTRIBUTING.md)
 
 The complete documentation map is [docs/README.md](docs/README.md).
+
+## Everyday efficiency surfaces
+
+ACCO now exposes six low-friction surfaces around the retrieval core:
+
+```bash
+acco guardian .
+acco wrap claude
+acco lean-skill . --install --host all
+acco context-audit .
+acco statusline .
+```
+
+Claude integrations capture a bounded structured checkpoint before compaction,
+`wrap` can launch Claude/Codex/Gemini through the loopback provider boundary,
+the portable Lean skill constrains final prose without reducing verification,
+unknown tool outputs can fall back to payload-aware JSON/diff/log/table
+processors, the context auditor covers cross-host instruction bloat, and the
+status line surfaces local efficiency signals continuously. See
+[Everyday efficiency surfaces](docs/EVERYDAY_EFFICIENCY.md).
+
+These mechanisms remain independently measurable. Operational token estimates
+are not presented as a universal API-cost or cost-per-success claim.
 
 ## Embed ACCO in custom agents
 

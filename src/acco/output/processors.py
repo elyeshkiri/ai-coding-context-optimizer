@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from .payload_processors import payload_processors
 from .specialized_processors import extended_processors
 from .text import ensure_newline, filter_text, preprocess
 
@@ -672,6 +673,7 @@ def default_processors() -> list:
         BuildProcessor(),
         PackageInstallProcessor(),
         ContainerLogProcessor(),
+        *payload_processors(),
         GenericProcessor(),
         *extended_processors(),
     ]
