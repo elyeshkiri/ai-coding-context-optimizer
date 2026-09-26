@@ -210,8 +210,9 @@ def start_main(argv: list[str]) -> int:
     parser.add_argument("--no-index", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("agent_args", nargs=argparse.REMAINDER)
-    args = parser.parse_args(argv)
+    args, trailing = parser.parse_known_args(argv)
+    if trailing and trailing[0] == "--":
+        trailing = trailing[1:]
     root = Path(args.path).resolve()
     try:
         candidates = _start_candidates(root)
@@ -222,9 +223,6 @@ def start_main(argv: list[str]) -> int:
         if not args.no_index:
             index_status = RepositoryContextService(root).status()
 
-        trailing = list(args.agent_args)
-        if trailing and trailing[0] == "--":
-            trailing = trailing[1:]
         candidate = next(item for item in candidates if item["name"] == agent)
         launch = {
             "agent": agent,
