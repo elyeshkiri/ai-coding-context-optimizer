@@ -23,8 +23,6 @@ task-success claim.
 
 ## 1.19.1 Windows standalone lifecycle
 
-## 1.19.1 Windows standalone lifecycle
-
 Version 1.19.1 is a patch release over the first-class Windows support in 1.19.0. It adds checksum-verified standalone self-update behavior: the frozen Windows executable downloads the latest Windows asset and SHA-256 sidecar, verifies integrity, smoke-tests the replacement, and schedules the executable swap after the running ACCO process exits. The update path is covered by focused unit tests plus the same native Windows CI, standalone-binary smoke, and cross-platform regression matrix used for 1.19.0.
 
 ## 1.19 native Windows support
