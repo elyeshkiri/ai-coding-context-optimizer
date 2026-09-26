@@ -10,13 +10,20 @@ from pathlib import Path
 
 SCHEMA = 3
 
-def _default_state_dir() -> Path:
+def _default_state_dir(
+    *,
+    platform_name: str | None = None,
+    environ: dict[str, str] | None = None,
+    home: Path | None = None,
+) -> Path:
     """Return the platform-native private ACCO state directory."""
-    if os.name == "nt":
-        local = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+    platform_name = platform_name or os.name
+    environment = os.environ if environ is None else environ
+    if platform_name == "nt":
+        local = environment.get("LOCALAPPDATA") or environment.get("APPDATA")
         if local:
             return Path(local) / "ACCO"
-    return Path.home() / ".claude" / "acco"
+    return (home or Path.home()) / ".claude" / "acco"
 
 
 def state_dir() -> Path:
