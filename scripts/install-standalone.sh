@@ -50,13 +50,16 @@ curl -fL "$base/$asset" -o "$tmp/acco"
 curl -fL "$base/$asset.sha256" -o "$tmp/acco.sha256"
 
 expected="$(awk '{print $1}' "$tmp/acco.sha256")"
-actual="$(python3 - "$tmp/acco" <<'PY'
-import hashlib
-import pathlib
-import sys
-print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
-PY
-)"
+if command -v sha256sum >/dev/null 2>&1; then
+  actual="$(sha256sum "$tmp/acco" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+  actual="$(shasum -a 256 "$tmp/acco" | awk '{print $1}')"
+elif command -v openssl >/dev/null 2>&1; then
+  actual="$(openssl dgst -sha256 "$tmp/acco" | awk '{print $NF}')"
+else
+  echo "No SHA-256 tool found; use 'uv tool install acco' instead." >&2
+  exit 2
+fi
 if [ "$expected" != "$actual" ]; then
   echo "Checksum verification failed." >&2
   exit 1
