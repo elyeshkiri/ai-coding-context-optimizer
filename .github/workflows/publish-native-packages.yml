@@ -1,0 +1,102 @@
+name: Publish native packages
+
+on:
+  workflow_run:
+    workflows:
+      - Standalone binaries
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example v1.20.0. Defaults to latest.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acco-native-package-publish
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          if [ -n "$REQUESTED_TAG" ]; then
+            tag="$REQUESTED_TAG"
+          else
+            tag="$(gh api repos/${{ github.repository }}/releases/latest --jq .tag_name)"
+          fi
+          gh api "repos/${{ github.repository }}/releases/tags/$tag" >/dev/null
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  homebrew:
+    needs: resolve
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          RELEASE_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "::notice::HOMEBREW_TAP_TOKEN is not configured; skipping external Homebrew tap publication."
+            exit 0
+          fi
+
+          mkdir -p package
+          GH_TOKEN="$RELEASE_TOKEN" gh release download "$TAG" --repo "${{ github.repository }}" --pattern "acco.rb" --dir package
+
+          export GH_TOKEN="$TAP_TOKEN"
+          if ! gh repo view elyeshkiri/homebrew-acco >/dev/null 2>&1; then
+            gh repo create elyeshkiri/homebrew-acco --public --description "Homebrew tap for ACCO — AI Coding Context Optimizer"
+          fi
+
+          git clone "https://x-access-token:$TAP_TOKEN@github.com/elyeshkiri/homebrew-acco.git" tap
+          git -C tap config user.name "acco-release-bot"
+          git -C tap config user.email "actions@users.noreply.github.com"
+          mkdir -p tap/Formula
+          cp package/acco.rb tap/Formula/acco.rb
+          git -C tap add Formula/acco.rb
+          if git -C tap diff --cached --quiet; then
+            echo "Homebrew formula already current for $TAG."
+            exit 0
+          fi
+          git -C tap commit -m "Update ACCO to $TAG"
+          git -C tap push origin HEAD:main
+
+  winget:
+    needs: resolve
+    runs-on: windows-latest
+    steps:
+      - name: Submit WinGet manifests
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          RELEASE_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINGET_TOKEN)) {
+            Write-Host "::notice::WINGET_TOKEN is not configured; skipping external WinGet submission."
+            exit 0
+          }
+
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          $env:GH_TOKEN = $env:RELEASE_TOKEN
+          gh release download $env:TAG --repo "${{ github.repository }}" --pattern "winget-manifests.zip" --dir package
+          Expand-Archive package\winget-manifests.zip package\winget -Force
+
+          winget install --id Microsoft.WingetCreate --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+          wingetcreate submit package\winget --token $env:WINGET_TOKEN
