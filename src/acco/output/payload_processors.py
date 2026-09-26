@@ -25,6 +25,7 @@ class _PayloadOnly:
     handles_failure = False
 
     def matches(self, command: str) -> bool:
+        """Decline command-name matching so payload routing can decide."""
         del command
         return False
 
@@ -37,6 +38,7 @@ class BrowserPagePayloadProcessor(_PayloadOnly):
     handles_failure = True
 
     def matches_payload(self, text: str) -> bool:
+        """Return whether text looks like a substantial HTML or AX page dump."""
         if len(text) < 2000:
             return False
         return detect_browser_payload_kind(text) in {"html", "ax"}
@@ -50,6 +52,7 @@ class BrowserPagePayloadProcessor(_PayloadOnly):
         max_lines: int,
         keep_tail: int,
     ) -> str:
+        """Focus structural/actionable page evidence under the line budget."""
         del command, failed, keep_tail
         result = compress_browser_payload(
             text,
@@ -67,6 +70,7 @@ class JsonPayloadProcessor(_PayloadOnly):
     priority = 810
 
     def matches_payload(self, text: str) -> bool:
+        """Return whether text is a large valid JSON payload."""
         stripped = text.lstrip()
         if not stripped.startswith(("{", "[")):
             return False
@@ -77,6 +81,7 @@ class JsonPayloadProcessor(_PayloadOnly):
         return len(text.splitlines()) > 20 or len(text) > 5000
 
     def _compact(self, value, depth: int = 0):
+        """Recursively bound large arrays while preserving JSON structure."""
         if depth >= 5:
             return value
         if isinstance(value, list):
@@ -103,6 +108,7 @@ class JsonPayloadProcessor(_PayloadOnly):
         max_lines: int,
         keep_tail: int,
     ) -> str:
+        """Serialize a bounded structural JSON representation."""
         del command, failed, max_lines, keep_tail
         value = json.loads(text)
         candidate = json.dumps(
@@ -120,6 +126,7 @@ class DiffPayloadProcessor(_PayloadOnly):
     priority = 820
 
     def matches_payload(self, text: str) -> bool:
+        """Return whether text is a substantial unified Git diff."""
         lines = text.splitlines()
         return (
             len(lines) > 30
@@ -136,11 +143,13 @@ class DiffPayloadProcessor(_PayloadOnly):
         max_lines: int,
         keep_tail: int,
     ) -> str:
+        """Keep diff structure and every changed line while dropping context."""
         del command, failed, max_lines, keep_tail
         out: list[str] = []
         omitted = 0
 
         def flush() -> None:
+            """Emit one marker for the accumulated unchanged context."""
             nonlocal omitted
             if omitted:
                 out.append(f" ... {omitted} unchanged diff context line(s) omitted ...")
@@ -171,6 +180,7 @@ class LogPayloadProcessor(_PayloadOnly):
     handles_failure = True
 
     def matches_payload(self, text: str) -> bool:
+        """Return whether text resembles a large leveled log stream."""
         lines = text.splitlines()
         if len(lines) < 80:
             return False
@@ -187,6 +197,7 @@ class LogPayloadProcessor(_PayloadOnly):
         max_lines: int,
         keep_tail: int,
     ) -> str:
+        """Keep diagnostics plus bounded head and tail log evidence."""
         del command, failed
         lines = preprocess(text).splitlines()
         important = [
@@ -216,6 +227,7 @@ class TablePayloadProcessor(_PayloadOnly):
     priority = 840
 
     def matches_payload(self, text: str) -> bool:
+        """Return whether text is predominantly a large Markdown table."""
         lines = text.splitlines()
         if len(lines) < 40:
             return False
@@ -231,6 +243,7 @@ class TablePayloadProcessor(_PayloadOnly):
         max_lines: int,
         keep_tail: int,
     ) -> str:
+        """Keep table headers and bounded leading/trailing rows."""
         del command, failed
         lines = text.splitlines()
         budget = max(12, min(max_lines, 40))
