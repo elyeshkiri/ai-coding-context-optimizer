@@ -118,7 +118,9 @@ def reusable_history_counts(root: Path, provider: str, body: dict) -> tuple[int,
     previous = load(root).get("prefix_cache", {}).get(key)
     if not isinstance(previous, dict):
         return 0, 0
-    previous_hashes = previous.get("element_hashes")
+    previous_hashes = previous.get("source_element_hashes")
+    if not isinstance(previous_hashes, list):
+        previous_hashes = previous.get("element_hashes")
     if not isinstance(previous_hashes, list):
         return 0, 0
     current = stable_prefix_element_hashes(body)
@@ -149,8 +151,14 @@ def stable_prefix_fingerprint(body: dict) -> tuple[str, int, int, tuple[str, ...
     return digest, estimate_tokens(encoded.decode(errors="replace")), len(encoded), components
 
 
-def observe_prefix(root: Path, provider: str, body: dict) -> PrefixPlan:
-    """Record whether the transformed stable prefix matched the previous request."""
+def observe_prefix(
+    root: Path,
+    provider: str,
+    body: dict,
+    *,
+    source_body: dict | None = None,
+) -> PrefixPlan:
+    """Record provider-visible prefix reuse plus the source-prefix fingerprint."""
     fingerprint, tokens, size, components = stable_prefix_fingerprint(body)
     key = provider.strip().lower() or "generic"
     previous = load(root).get("prefix_cache", {}).get(key)
@@ -160,6 +168,9 @@ def observe_prefix(root: Path, provider: str, body: dict) -> PrefixPlan:
         else None
     )
     element_hashes = stable_prefix_element_hashes(body)
+    source_element_hashes = stable_prefix_element_hashes(
+        source_body if isinstance(source_body, dict) else body
+    )
     previous_hashes = (
         tuple(str(item) for item in previous.get("element_hashes", []))
         if isinstance(previous, dict)
@@ -208,6 +219,9 @@ def observe_prefix(root: Path, provider: str, body: dict) -> PrefixPlan:
             components=list(components),
             element_count=len(element_hashes),
             element_hashes=list(element_hashes[:_PREFIX_ELEMENT_LIMIT]),
+            source_element_hashes=list(
+                source_element_hashes[:_PREFIX_ELEMENT_LIMIT]
+            ),
         )
         cache[key] = current
 
