@@ -131,21 +131,15 @@ def _wait_for_proxy(bind: str, port: int, timeout: float = 5.0) -> None:
     raise RuntimeError("ACCO provider proxy did not become ready")
 
 
-def run_wrap(
-    root: Path,
-    plan: WrapPlan,
-    *,
-    model_routing: str = "off",
-) -> int:
-    """Launch an ephemeral ACCO provider proxy and then the selected agent."""
-    executable = shutil.which(plan.executable)
-    if executable is None:
-        raise FileNotFoundError(f"agent executable not found: {plan.executable}")
-
-    proxy_argv = [
-        sys.executable,
-        "-m",
-        "acco.entry",
+def _provider_proxy_argv(root: Path, plan: WrapPlan, model_routing: str) -> list[str]:
+    """Build the provider-proxy command for Python and frozen executables."""
+    entry = (
+        [sys.executable]
+        if getattr(sys, "frozen", False)
+        else [sys.executable, "-m", "acco.entry"]
+    )
+    return [
+        *entry,
         "provider-proxy",
         str(root.resolve()),
         "--upstream",
@@ -159,6 +153,20 @@ def run_wrap(
         "--model-routing",
         model_routing,
     ]
+
+
+def run_wrap(
+    root: Path,
+    plan: WrapPlan,
+    *,
+    model_routing: str = "off",
+) -> int:
+    """Launch an ephemeral ACCO provider proxy and then the selected agent."""
+    executable = shutil.which(plan.executable)
+    if executable is None:
+        raise FileNotFoundError(f"agent executable not found: {plan.executable}")
+
+    proxy_argv = _provider_proxy_argv(root, plan, model_routing)
     proxy = subprocess.Popen(proxy_argv)
     try:
         _wait_for_proxy(plan.bind, plan.port)
