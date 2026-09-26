@@ -163,7 +163,15 @@ jobs:
           print(secrets.token_urlsafe(24))
           PY
           )"
-          printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$p12"
+          P12_PATH="$p12" python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          Path(os.environ["P12_PATH"]).write_bytes(
+              base64.b64decode(os.environ["CERTIFICATE_BASE64"])
+          )
+          PY
           security create-keychain -p "$password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
           security unlock-keychain -p "$password" "$keychain"
