@@ -5,8 +5,9 @@ import json
 import os
 import tempfile
 import time
-from contextlib import contextmanager
 from pathlib import Path
+
+from .file_lock import locked_file
 
 SCHEMA = 3
 
@@ -53,27 +54,6 @@ def load(root: Path | None = None, session_id: str | None = None) -> dict:
         data.setdefault(key, default)
     return data
 
-@contextmanager
-def _locked(path: Path):
-    """Handle locked."""
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd = os.open(str(path) + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
-    with os.fdopen(fd, "a+b") as handle:
-        if os.name == "nt":
-            import msvcrt
-            handle.seek(0); handle.write(b"0"); handle.flush(); handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(handle, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            if os.name == "nt":
-                handle.seek(0); msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(handle, fcntl.LOCK_UN)
-
 def _write(data: dict, path: Path) -> Path:
     """Write the requested value."""
     data = dict(data, schema=SCHEMA, updated=int(time.time()))
@@ -90,13 +70,13 @@ def _write(data: dict, path: Path) -> Path:
 def save(data: dict, root: Path | None = None, session_id: str | None = None) -> Path:
     """Save the requested value."""
     path = state_path(root, session_id)
-    with _locked(path):
+    with locked_file(Path(str(path) + ".lock")):
         return _write(data, path)
 
 def update(root: Path | None, mutate, session_id: str | None = None) -> Path:
     """Update the requested value."""
     path = state_path(root, session_id)
-    with _locked(path):
+    with locked_file(Path(str(path) + ".lock")):
         data = load(root, session_id)
         mutate(data)
         return _write(data, path)
