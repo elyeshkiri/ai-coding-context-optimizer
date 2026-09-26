@@ -59,10 +59,12 @@ class WrapPlan:
 
     @property
     def local_base_url(self) -> str:
+        """Return the provider-compatible local proxy base URL."""
         base = f"http://{self.bind}:{self.port}"
         return base + "/v1" if self.provider == "openai" else base
 
     def to_dict(self) -> dict:
+        """Return a JSON-safe description of the launch plan."""
         return {
             "agent": self.agent,
             "executable": self.executable,
