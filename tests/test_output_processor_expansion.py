@@ -49,7 +49,7 @@ def test_default_registry_contains_exactly_44_unique_processors():
     """The expanded built-in inventory should contain forty-four unique processors."""
     names = [processor.name for processor in DEFAULT_REGISTRY.processors]
     assert len(names) == 44
-    assert len(set(names)) == 40
+    assert len(set(names)) == 44
     assert names[-1] == "generic"
 
 
