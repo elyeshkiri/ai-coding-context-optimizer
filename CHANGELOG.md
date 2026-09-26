@@ -1,8 +1,11 @@
 # Unreleased
 
+# 1.18.0 - 2026-09-26
+
 - **Made ACCO install-and-forget for ordinary users.** The recommended
   non-Claude path is now `uv tool install acco` followed by one
-  `acco setup`; `uvx acco setup` supports one-off bootstrap. Setup now
+  `acco setup`; `uvx acco bootstrap` provides a one-command persistent
+  bootstrap. Setup now
   detects/configures hosts, writes the explicit safe profile, installs managed
   Claude Lean without overwriting user-modified skill content, warms the
   structural repository index, runs readiness checks, and finishes with
