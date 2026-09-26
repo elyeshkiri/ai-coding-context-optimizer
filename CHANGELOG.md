@@ -1,5 +1,31 @@
 # Unreleased
 
+- **Added a first-class Compaction Guardian.** Claude Code now registers a
+  `PreCompact` hook that captures bounded structured task state before host
+  compaction. Resume/compact starts can restore that checkpoint even when the
+  host session id changes; raw prompts, assistant prose, and raw tool output
+  are not persisted by the guardian.
+- **Added low-friction `acco wrap` provider launching.** Claude, Codex, and
+  Gemini presets start an ephemeral loopback ACCO provider proxy, set only the
+  provider's base-URL environment variable for the child, and tear the proxy
+  down on exit. Model routing remains off unless explicitly enabled. The
+  `acco claude`, `acco codex`, and `acco gemini` aliases use the same path.
+- **Added the portable ACCO Lean skill.** `acco lean-skill` can print or install
+  a terse-output policy for Claude or the portable `.agents/skills` layout.
+  The policy explicitly scopes brevity to final prose and forbids skipping
+  investigation or verification to save tokens.
+- **Added payload-aware fallback compression.** Unknown commands can now route
+  large JSON, unified diffs, leveled logs, and Markdown tables to content-type
+  processors after command-specific processors decline them. Diff compression
+  preserves every changed line; hook/provider recovery remains authoritative
+  for lossy reductions.
+- **Added cross-host context auditing and a live status line.**
+  `acco context-audit` covers Claude context plus AGENTS.md, GEMINI.md,
+  Copilot instructions, Cursor rules, portable skills, duplicate instruction
+  bodies, oversized files, and optional MCP schema measurement.
+  `acco statusline` exposes compact savings/waste/prefix/working-set signals
+  from local operational telemetry.
+
 - **Added everyday provider cost controls without weakening task quality.**
   The opt-in provider proxy can now suppress repeated byte-identical historical
   tool results with exact local recovery and can observe model-routing
