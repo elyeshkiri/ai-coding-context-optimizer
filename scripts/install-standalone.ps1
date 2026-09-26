@@ -8,6 +8,14 @@ $installDir = if ($env:ACCO_INSTALL_DIR) {
     Join-Path $env:LOCALAPPDATA "ACCO\bin"
 }
 
+if (-not [Environment]::Is64BitOperatingSystem) {
+    throw "ACCO standalone Windows builds currently require 64-bit Windows."
+}
+$architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+if ($architecture -ne "X64") {
+    throw "ACCO standalone Windows currently publishes x86_64 only; detected $architecture. Use 'uv tool install acco' for this machine."
+}
+
 $base = if ($version -eq "latest") {
     "https://github.com/$repo/releases/latest/download"
 } else {
@@ -30,9 +38,49 @@ try {
     }
 
     New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-    Copy-Item -Force $binary (Join-Path $installDir "acco.exe")
-    Write-Host "Installed ACCO to $installDir\acco.exe"
-    Write-Host "Add $installDir to PATH if it is not already present."
+    $target = Join-Path $installDir "acco.exe"
+    Copy-Item -Force $binary $target
+
+    & $target --help | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Installed ACCO executable failed its smoke test."
+    }
+
+    $normalizedInstall = [IO.Path]::GetFullPath($installDir).TrimEnd('\')
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $userEntries = @()
+    if ($userPath) {
+        $userEntries = $userPath -split ';' | Where-Object { $_ }
+    }
+    $alreadyOnUserPath = $false
+    foreach ($entry in $userEntries) {
+        try {
+            if ([IO.Path]::GetFullPath($entry).TrimEnd('\') -ieq $normalizedInstall) {
+                $alreadyOnUserPath = $true
+                break
+            }
+        } catch {
+            if ($entry.TrimEnd('\') -ieq $normalizedInstall) {
+                $alreadyOnUserPath = $true
+                break
+            }
+        }
+    }
+    if (-not $alreadyOnUserPath) {
+        $newUserPath = if ($userPath) { "$userPath;$installDir" } else { $installDir }
+        [Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+    }
+
+    $currentEntries = $env:Path -split ';'
+    if (-not ($currentEntries | Where-Object { $_.TrimEnd('\') -ieq $normalizedInstall })) {
+        $env:Path = "$installDir;$env:Path"
+    }
+
+    Write-Host "Installed ACCO to $target"
+    if (-not $alreadyOnUserPath) {
+        Write-Host "Added $installDir to your user PATH."
+        Write-Host "New terminals will pick up the PATH change automatically."
+    }
     Write-Host "Next: cd <project>; acco setup"
 } finally {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $temp
