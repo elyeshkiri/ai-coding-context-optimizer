@@ -15,6 +15,7 @@ from ..wrapper import build_wrap_plan, run_wrap
 
 
 def guardian_main(argv: list[str]) -> int:
+    """Inspect the latest pre-compaction guardian checkpoint."""
     parser = argparse.ArgumentParser(prog="acco guardian")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--json", action="store_true")
@@ -36,6 +37,7 @@ def guardian_main(argv: list[str]) -> int:
 
 
 def wrap_main(argv: list[str]) -> int:
+    """Launch one coding agent through an ephemeral ACCO provider proxy."""
     parser = argparse.ArgumentParser(prog="acco wrap")
     parser.add_argument("agent")
     parser.add_argument("agent_args", nargs=argparse.REMAINDER)
@@ -90,22 +92,27 @@ def wrap_main(argv: list[str]) -> int:
 
 
 def _preset_alias(agent: str, argv: list[str]) -> int:
+    """Dispatch a short agent alias through the common wrapper handler."""
     return wrap_main([agent, "--", *argv])
 
 
 def claude_main(argv: list[str]) -> int:
+    """Launch Claude Code through the ACCO provider wrapper."""
     return _preset_alias("claude", argv)
 
 
 def codex_main(argv: list[str]) -> int:
+    """Launch Codex through the ACCO provider wrapper."""
     return _preset_alias("codex", argv)
 
 
 def gemini_main(argv: list[str]) -> int:
+    """Launch Gemini CLI through the ACCO provider wrapper."""
     return _preset_alias("gemini", argv)
 
 
 def lean_skill_main(argv: list[str]) -> int:
+    """Print or install ACCO's portable terse-output skill."""
     parser = argparse.ArgumentParser(prog="acco lean-skill")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument(
@@ -139,6 +146,7 @@ def lean_skill_main(argv: list[str]) -> int:
 
 
 def context_audit_main(argv: list[str]) -> int:
+    """Audit cross-host always-on and on-demand context configuration."""
     parser = argparse.ArgumentParser(prog="acco context-audit")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--project-only", action="store_true")
@@ -172,6 +180,7 @@ def context_audit_main(argv: list[str]) -> int:
 
 
 def statusline_main(argv: list[str]) -> int:
+    """Render one compact local efficiency status line."""
     parser = argparse.ArgumentParser(prog="acco statusline")
     parser.add_argument("path", nargs="?", default=".")
     parser.add_argument("--days", type=int, default=1)
