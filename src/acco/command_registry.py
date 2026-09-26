@@ -94,6 +94,7 @@ from .command_handlers.sdk import sdk_serve_main
 from .pack_cli import main as pack_main
 from .product_ux import (
     advanced_main,
+    bootstrap_main,
     demo_main,
     savings_main,
     start_main,
@@ -187,6 +188,7 @@ DEFAULT_COMMAND_REGISTRY = CommandRegistry(
         CommandSpec("lean-skill", lean_skill_main),
         CommandSpec("context-audit", context_audit_main),
         CommandSpec("statusline", statusline_main),
+        CommandSpec("bootstrap", bootstrap_main),
         CommandSpec("start", start_main),
         CommandSpec("status", status_main),
         CommandSpec("demo", demo_main),
