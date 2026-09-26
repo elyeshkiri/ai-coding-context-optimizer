@@ -45,7 +45,9 @@ console script being on `PATH`.
 
 For environments without `uv`, `pipx install acco` is the next preferred
 isolated install, with `python -m pip install --upgrade acco` retained as the
-compatibility path.
+compatibility path. Tagged releases also publish smoke-tested standalone
+executables plus SHA-256 sidecars and a release-scoped Homebrew formula; see
+[Installation options](docs/INSTALL.md).
 
 `setup` now auto-detects supported coding-agent hosts, writes only ACCO-owned
 integration entries, installs the safe local profile, adds Claude Lean when it
@@ -104,7 +106,8 @@ Anthropic.
 
 Start with the task-oriented docs instead of searching this README:
 
-- [5-minute quickstart](docs/QUICKSTART.md)
+- [Installation options](docs/INSTALL.md)
+- [1-minute quickstart](docs/QUICKSTART.md)
 - [Worked end-to-end example](docs/WORKED_EXAMPLE.md)
 - [CLI reference](docs/CLI_REFERENCE.md)
 - [Machine-readable CLI contracts](docs/JSON_OUTPUTS.md)
