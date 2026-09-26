@@ -77,7 +77,7 @@ def _path_from_input(root: Path, tool_input: dict) -> str | None:
     if not path.is_absolute():
         path = root / path
     try:
-        return str(path.resolve().relative_to(root.resolve()))
+        return path.resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
         return str(path.resolve())
 
