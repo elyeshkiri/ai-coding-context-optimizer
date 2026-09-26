@@ -23,6 +23,7 @@ PUBLIC_DOCS = (
     ROOT / "SECURITY.md",
     ROOT / "docs" / "README.md",
     ROOT / "docs" / "INSTALL.md",
+    ROOT / "docs" / "RELEASE_SIGNING.md",
     ROOT / "docs" / "QUICKSTART.md",
     ROOT / "docs" / "CLI_REFERENCE.md",
     ROOT / "docs" / "JSON_OUTPUTS.md",
