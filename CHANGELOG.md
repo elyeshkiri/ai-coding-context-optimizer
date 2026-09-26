@@ -1,5 +1,7 @@
 # Unreleased
 
+# 1.19.1 - 2026-09-26
+
 - **Completed the Windows standalone lifecycle.** Frozen `acco.exe` now uses
   a checksum-verified self-update path instead of incorrectly trying to invoke
   itself as a Python interpreter. The updater downloads the latest Windows
