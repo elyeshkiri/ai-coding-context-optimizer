@@ -1,5 +1,21 @@
 # Upgrading and migration
 
+## 1.20 native package ownership and standalone updates
+
+Version 1.20 makes `acco update` installation-aware across all supported native
+distributions:
+
+- `uv`, `pipx`, and pip installations keep using their Python package manager;
+- Homebrew-managed frozen binaries delegate to `brew upgrade acco`;
+- WinGet-managed frozen binaries delegate to
+  `winget upgrade --id ElyesHkiri.ACCO --exact`;
+- raw Linux/macOS/Windows standalone binaries detect x86_64 versus ARM64,
+  download the matching release asset and checksum, smoke-test it, and replace
+  safely.
+
+This avoids silently mutating package-manager-owned files while still giving
+raw standalone installs an in-product update path.
+
 ACCO treats setup as an idempotent repair/migration operation.
 
 ## 1.15 ACCO package identity
