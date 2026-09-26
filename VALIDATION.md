@@ -1,4 +1,32 @@
-# Validation for 1.18.0
+# Validation for 1.19.0
+
+## 1.19 native Windows support
+
+Version 1.19 promotes Windows from a packaged artifact to a release-gated runtime
+platform. CI now runs the complete Python suite on GitHub's native
+`windows-latest` runner, then executes the same retrieval-quality evaluation
+used by the Linux matrix plus provider-free product-UX checks.
+
+The Windows gate specifically covers:
+
+- project setup/runtime imports and all ordinary Python tests on Windows;
+- multi-process state updates through Windows advisory locking;
+- repository-relative continuity paths normalized independently of `\\` vs
+  `/` host separators;
+- Docker benchmark/grader helpers without POSIX-only `getuid/getgid`
+  assumptions;
+- large-source Bash/`cat` guarding when file arguments contain Windows paths;
+- PowerShell completion syntax and the PowerShell standalone installer syntax;
+- provider-free `acco demo` and the standard context-quality retrieval suite.
+
+Standalone `acco.exe` provider wrapping is also covered mechanically: frozen
+executables re-enter themselves as `acco.exe provider-proxy ...` rather than
+attempting Python's `-m acco.entry` invocation. The Windows installer verifies
+the release checksum, smoke-tests the installed executable, and manages the
+user PATH idempotently.
+
+These checks establish platform/runtime compatibility. They do not create a new
+token-savings, API-cost, or task-success claim.
 
 ## 1.18 onboarding and distribution mechanics
 
