@@ -76,7 +76,7 @@ unified diffs, leveled logs, and large Markdown tables.
 
 The transforms are conservative:
 
-- JSON keeps object/scalar structure and bounds large arrays.
+- Browser/page payloads reuse ACCO's structural/actionable browser focusing.\n- JSON keeps object/scalar structure and bounds large arrays.
 - Diff compression removes unchanged context but preserves every changed line.
 - Generic logs keep diagnostics plus bounded head/tail context.
 - Tables keep the header and both edges.
