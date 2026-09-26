@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 from acco.output import OutputPipeline
-from acco.prefix_cache import observe_prefix
 from acco.provider_transform import transform_provider_request
 
 
@@ -39,7 +38,7 @@ def test_delimited_payload_routes_without_command_specific_knowledge():
 
 
 def test_live_zone_leaves_cache_hot_openai_history_byte_identical(tmp_path, monkeypatch):
-    """Previously observed OpenAI input history must not be rewritten on the next turn."""
+    """Repeated raw history must reproduce the exact provider-visible prefix."""
     monkeypatch.setenv("ACCO_STATE_DIR", str(tmp_path / "state"))
     root = tmp_path / "repo"
     root.mkdir()
@@ -51,7 +50,20 @@ def test_live_zone_leaves_cache_hot_openai_history_byte_identical(tmp_path, monk
             {"role": "user", "content": "first task"},
         ],
     }
-    observe_prefix(root, "openai", first)
+
+    first_result = transform_provider_request(
+        root,
+        "openai",
+        first,
+        request_path="/v1/responses",
+        compress_schemas=False,
+        deduplicate_history=False,
+        tool_result_min_tokens=100,
+        prefix_tracking=True,
+        live_zone=True,
+    )
+    first_visible_output = first_result.body["input"][0]["output"]
+    assert first_visible_output != old_output
 
     new_output = "\n".join(f"new {i} {'y' * 80}" for i in range(180))
     second = {
@@ -64,18 +76,20 @@ def test_live_zone_leaves_cache_hot_openai_history_byte_identical(tmp_path, monk
         ],
     }
 
-    result = transform_provider_request(
+    second_result = transform_provider_request(
         root,
         "openai",
         second,
         request_path="/v1/responses",
         compress_schemas=False,
-        deduplicate_history=False,
+        deduplicate_history=True,
         tool_result_min_tokens=100,
         prefix_tracking=True,
         live_zone=True,
     )
 
-    assert result.body["input"][0]["output"] == old_output
-    assert result.body["input"][2]["output"] != new_output
-    assert result.transformed_segments == 1
+    assert second_result.body["input"][0]["output"] == first_visible_output
+    assert second_result.body["input"][2]["output"] != new_output
+    assert second_result.deduplicated_segments == 0
+    assert second_result.prefix.reused is True
+
