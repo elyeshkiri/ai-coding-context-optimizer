@@ -162,6 +162,45 @@ def test_start_remembers_explicit_preference(tmp_path: Path, monkeypatch):
     assert product._select_agent(tmp_path, candidates, None) == "codex"
 
 
+def test_bootstrap_persists_cli_before_running_setup(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+):
+    """uvx bootstrap should install persistently before configuring the project."""
+    calls: list[list[str]] = []
+
+    class Completed:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    monkeypatch.setattr(
+        product.shutil,
+        "which",
+        lambda name: "/usr/bin/uv" if name == "uv" else None,
+    )
+    monkeypatch.setattr(
+        product.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(list(command)) or Completed(),
+    )
+
+    import acco.command_handlers.host as host_handlers
+
+    received: list[str] = []
+    monkeypatch.setattr(
+        host_handlers,
+        "setup_main",
+        lambda argv: received.extend(argv) or 0,
+    )
+
+    assert product.bootstrap_main([str(tmp_path), "--host", "cursor"]) == 0
+    assert calls == [["uv", "tool", "install", "--upgrade", "acco"]]
+    assert received == [str(tmp_path), "--host", "cursor"]
+    assert "persistent install ready via uv" in capsys.readouterr().out
+
+
 def test_update_is_inspectable_and_does_not_mutate_by_default(
     monkeypatch,
     capsys,
