@@ -141,6 +141,57 @@ def render_home(report: dict) -> str:
     return "\n".join(lines)
 
 
+def bootstrap_main(argv: list[str]) -> int:
+    """Persistently install ACCO, then configure and verify the current project."""
+    parser = argparse.ArgumentParser(prog="acco bootstrap")
+    parser.add_argument("path", nargs="?", default=".")
+    parser.add_argument("--host", action="append")
+    parser.add_argument("--no-index", action="store_true")
+    parser.add_argument("--no-lean", action="store_true")
+    args = parser.parse_args(argv)
+
+    if shutil.which("uv"):
+        manager = "uv"
+        install_command = ["uv", "tool", "install", "--upgrade", "acco"]
+    elif shutil.which("pipx"):
+        manager = "pipx"
+        install_command = ["pipx", "install", "--force", "acco"]
+    else:
+        print(
+            "bootstrap requires uv or pipx for a persistent isolated install; "
+            "install one of them or use 'python -m pip install --upgrade acco'",
+            file=sys.stderr,
+        )
+        return 2
+
+    completed = subprocess.run(
+        install_command,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        if completed.stdout:
+            print(completed.stdout, file=sys.stderr, end="")
+        if completed.stderr:
+            print(completed.stderr, file=sys.stderr, end="")
+        return int(completed.returncode)
+
+    from .command_handlers.host import setup_main
+
+    setup_args = [args.path]
+    for host in args.host or []:
+        setup_args.extend(["--host", host])
+    if args.no_index:
+        setup_args.append("--no-index")
+    if args.no_lean:
+        setup_args.append("--no-lean")
+
+    print(f"ACCO persistent install ready via {manager}.")
+    return setup_main(setup_args)
+
+
 def home_main(argv: list[str]) -> int:
     """Show the project-aware ACCO home screen."""
     parser = argparse.ArgumentParser(prog="acco")
