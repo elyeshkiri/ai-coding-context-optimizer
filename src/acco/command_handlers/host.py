@@ -158,13 +158,34 @@ def setup_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="acco setup")
     parser.add_argument("path", nargs="?", default=".")
     _hosts_argument(parser)
+    parser.add_argument(
+        "--no-index",
+        action="store_true",
+        help="skip the initial structural index warm-up",
+    )
+    parser.add_argument(
+        "--no-lean",
+        action="store_true",
+        help="do not install ACCO's managed Lean skill for Claude",
+    )
+    parser.add_argument(
+        "--require-ready",
+        action="store_true",
+        help="return nonzero unless setup finishes in a ready state",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
+        root = Path(args.path)
         result = setup_integrations(
-            Path(args.path),
+            root,
             tuple(args.host) if args.host else None,
+            install_lean=not args.no_lean,
         )
+        health = doctor_report(root, index=not args.no_index)
+        result["ready"] = health["ready"]
+        result["health"] = health
+        result["index"] = health["index"]
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
@@ -172,16 +193,25 @@ def setup_main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(result, indent=2))
         return 0
-    print("ACCO SETUP")
+    print("ACCO SETUP — " + ("READY" if result["ready"] else "NEEDS ATTENTION"))
     print(f"project: {result['root']}")
+    print(f"profile: {result.get('profile', 'safe')}")
     print(f"config:  {result['config']}")
     if result["configured_hosts"]:
         print("configured: " + ", ".join(result["configured_hosts"]))
     else:
         print("configured: none (no supported host detected)")
         print("hint: rerun with --host " + "|".join([*HOSTS, "all"]))
-    print("next: acco doctor " + result["root"])
-    return 0
+    if result.get("lean_skill"):
+        print("lean:    enabled")
+    index = result.get("index") or {}
+    if index:
+        print(f"index:   {index.get('files', 0)} files ready")
+    if result["ready"]:
+        print("start:   acco start")
+    else:
+        print("repair:  acco doctor " + result["root"])
+    return 1 if args.require_ready and not result["ready"] else 0
 
 
 def doctor_main(argv: list[str]) -> int:
