@@ -15,8 +15,10 @@ def test_isolated_runner_uses_host_uid_and_extracts_transcript(
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "ws_test")
     monkeypatch.setattr("acco.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
-    monkeypatch.setattr("acco.claude_docker.os.getuid", lambda: 1234)
-    monkeypatch.setattr("acco.claude_docker.os.getgid", lambda: 5678)
+    monkeypatch.setattr(
+        "acco.claude_docker.docker_platform.docker_user_args",
+        lambda: (["--user", "1234:5678"], False),
+    )
 
     seen = {}
 
@@ -374,8 +376,10 @@ def test_isolated_runner_marks_root_container_as_sandbox(tmp_path, monkeypatch):
 
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "oauth-token")
     monkeypatch.setattr("acco.claude_docker.shutil.which", lambda _name: "/usr/bin/docker")
-    monkeypatch.setattr("acco.claude_docker.os.getuid", lambda: 0)
-    monkeypatch.setattr("acco.claude_docker.os.getgid", lambda: 0)
+    monkeypatch.setattr(
+        "acco.claude_docker.docker_platform.docker_user_args",
+        lambda: (["--user", "0:0"], True),
+    )
 
     seen = {}
 
