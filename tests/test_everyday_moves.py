@@ -103,6 +103,18 @@ def test_payload_json_is_selected_for_unknown_command():
     assert "_acco_omitted_items" in result.text
 
 
+def test_payload_page_is_selected_for_unknown_browser_dump():
+    text = (
+        "<html><body><main><h1>Settings</h1>"
+        + "".join(f"<div>noise {index}</div>" for index in range(300))
+        + "<button aria-label='Save'>Save</button></main></body></html>"
+    )
+    result = OutputPipeline().process(text, command="custom-browser-dump")
+    assert result.processor == "payload-page"
+    assert result.compressed is True
+    assert "Save" in result.text
+
+
 def test_payload_diff_preserves_every_changed_line():
     context = "\n".join(f" context {index}" for index in range(50))
     text = (
