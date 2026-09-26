@@ -9,6 +9,8 @@ import os
 import shutil
 import subprocess
 import tarfile
+
+from . import docker_platform
 from pathlib import Path
 
 AUTH_MODES = ("api", "subscription")
@@ -217,8 +219,7 @@ def run(
         image = task_agent_image(image, task_image)
         repo_mount = TASK_REPO
 
-    uid = os.getuid()
-    gid = os.getgid()
+    user_args, sandboxed_root = docker_platform.docker_user_args()
     child_env = os.environ.copy()
     if auth == "api":
         child_env["ANTHROPIC_CUSTOM_HEADERS"] = (
@@ -226,13 +227,13 @@ def run(
         )
     command = [
         "docker", "run", "--rm",
-        "--user", f"{uid}:{gid}",
+        *user_args,
         "--workdir", repo_mount,
         "-e", "HOME=/tmp",
         "-v", f"{worktree.resolve()}:{repo_mount}",
         "-v", f"{claude_home.resolve()}:/tmp/.claude",
     ]
-    if uid == 0:
+    if sandboxed_root:
         # Claude Code refuses --dangerously-skip-permissions as root unless it
         # is told it is sandboxed, which this throwaway container is.
         command.extend(["-e", "IS_SANDBOX=1"])
