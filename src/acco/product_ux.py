@@ -152,7 +152,7 @@ def bootstrap_main(argv: list[str]) -> int:
 
     if shutil.which("uv"):
         manager = "uv"
-        install_command = ["uv", "tool", "install", "--upgrade", "acco"]
+        install_command = ["uv", "tool", "install", "acco"]
     elif shutil.which("pipx"):
         manager = "pipx"
         install_command = ["pipx", "install", "--force", "acco"]
