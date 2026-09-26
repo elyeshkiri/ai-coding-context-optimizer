@@ -78,7 +78,7 @@ jobs:
             --clean \
             --onefile \
             --name acco \
-            --collect-submodules acco \
+            --collect-all acco \
             --collect-all tree_sitter \
             --collect-all tree_sitter_javascript \
             --collect-all tree_sitter_typescript \
