@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
+import os
 import re
 import shlex
 from pathlib import Path
@@ -325,7 +326,7 @@ def _deny(reason: str) -> dict:
 
 
 _CAT_FLAGS = re.compile(r"^-[nbsAETv]+$")
-_SHELL_SYNTAX = set("|&;<>()`$*?[]{}\\")
+_SHELL_SYNTAX = set("|&;<>()`$*?[]{}")
 MAX_BLOCKED_FILES = 3
 
 
@@ -335,9 +336,22 @@ def _cat_paths(command: str) -> list[str] | None:
     if not re.match(r"cat(\s|$)", cmd):
         return None
     try:
-        lexer = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+        lexer = shlex.shlex(
+            cmd,
+            posix=os.name != "nt",
+            punctuation_chars=True,
+        )
         lexer.whitespace_split = True
         tokens = list(lexer)
+        if os.name == "nt":
+            tokens = [
+                token[1:-1]
+                if len(token) >= 2
+                and token[0] == token[-1]
+                and token[0] in {"\"", "'"}
+                else token
+                for token in tokens
+            ]
     except ValueError:
         return None
     paths: list[str] = []
