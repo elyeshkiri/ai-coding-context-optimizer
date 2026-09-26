@@ -192,7 +192,7 @@ def setup_main(argv: list[str]) -> int:
 
     if args.json:
         print(json.dumps(result, indent=2))
-        return 0
+        return 1 if args.require_ready and not result["ready"] else 0
     print("ACCO SETUP — " + ("READY" if result["ready"] else "NEEDS ATTENTION"))
     print(f"project: {result['root']}")
     print(f"profile: {result.get('profile', 'safe')}")
