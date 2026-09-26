@@ -18,6 +18,7 @@ For machine-readable fields, see [Machine-readable CLI contracts](JSON_OUTPUTS.m
 
 ## Everyday product flow
 
+- [`bootstrap`](commands/bootstrap.md) — persistently install ACCO, then run safe setup in one command.
 - [`setup`](commands/setup.md) — one-command detect/configure/index/verify onboarding.
 - [`start`](commands/start.md) — launch the detected/preferred coding agent with ACCO.
 - [`status`](commands/status.md) — simple project health and local efficiency evidence.
