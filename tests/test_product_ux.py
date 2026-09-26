@@ -218,6 +218,129 @@ def test_update_is_inspectable_and_does_not_mutate_by_default(
     assert payload["applied"] is False
 
 
+def test_frozen_windows_update_uses_standalone_strategy(monkeypatch, capsys):
+    """Frozen Windows builds must never try to execute acco.exe as Python."""
+    monkeypatch.setattr(product, "_is_frozen_windows", lambda: True)
+    monkeypatch.setattr(product.sys, "executable", r"C:\\Tools\\acco.exe")
+
+    assert product.update_main(["--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["manager"] == "standalone-windows"
+    assert payload["command"] == [r"C:\\Tools\\acco.exe", "update", "--apply"]
+    assert "-m" not in payload["command"]
+
+
+def test_frozen_windows_update_apply_uses_verified_self_update(
+    monkeypatch,
+    capsys,
+):
+    """Applying a frozen Windows update should use the standalone updater."""
+    monkeypatch.setattr(product, "_is_frozen_windows", lambda: True)
+    called = []
+    monkeypatch.setattr(
+        product,
+        "_apply_windows_standalone_update",
+        lambda: called.append(True) or 0,
+    )
+
+    assert product.update_main(["--apply"]) == 0
+
+    assert called == [True]
+    assert "scheduled for process exit" in capsys.readouterr().out
+
+
+def test_windows_standalone_updater_verifies_and_schedules_replacement(
+    tmp_path,
+    monkeypatch,
+):
+    """The updater must verify SHA-256 and only then schedule post-exit replacement."""
+    target = tmp_path / "installed" / "acco.exe"
+    target.parent.mkdir()
+    target.write_bytes(b"old")
+    downloaded = b"new-verified-binary"
+    digest = product.hashlib.sha256(downloaded).hexdigest()
+    calls = []
+    popen_calls = []
+
+    monkeypatch.setattr(product.sys, "executable", str(target))
+    monkeypatch.setattr(product.shutil, "which", lambda name: "pwsh" if name == "pwsh" else None)
+    monkeypatch.setattr(product.tempfile, "mkdtemp", lambda prefix: str(tmp_path / "update"))
+    (tmp_path / "update").mkdir()
+
+    def fake_download(url, destination):
+        calls.append(url)
+        destination = Path(destination)
+        if url.endswith(".sha256"):
+            destination.write_text(f"{digest}  acco-windows-x86_64.exe\n", encoding="utf-8")
+        else:
+            destination.write_bytes(downloaded)
+
+    class Smoke:
+        returncode = 0
+
+    monkeypatch.setattr(product, "urlretrieve", fake_download)
+    monkeypatch.setattr(product.subprocess, "run", lambda *args, **kwargs: Smoke())
+    monkeypatch.setattr(
+        product.subprocess,
+        "Popen",
+        lambda command, **kwargs: popen_calls.append((command, kwargs)),
+    )
+
+    assert product._apply_windows_standalone_update() == 0
+
+    assert len(calls) == 2
+    assert calls[0].endswith("/acco-windows-x86_64.exe")
+    assert calls[1].endswith("/acco-windows-x86_64.exe.sha256")
+    assert len(popen_calls) == 1
+    command, kwargs = popen_calls[0]
+    assert command[:3] == ["pwsh", "-NoProfile", "-NonInteractive"]
+    script = command[-1]
+    assert "Wait-Process -Id" in script
+    assert "Copy-Item -Force" in script
+    assert str(target) in script
+    assert kwargs["creationflags"] >= 0
+
+
+def test_windows_standalone_updater_rejects_bad_checksum(
+    tmp_path,
+    monkeypatch,
+):
+    """A mismatched release checksum must abort before replacement is scheduled."""
+    target = tmp_path / "acco.exe"
+    target.write_bytes(b"old")
+    update_dir = tmp_path / "update"
+    update_dir.mkdir()
+    popen_calls = []
+
+    monkeypatch.setattr(product.sys, "executable", str(target))
+    monkeypatch.setattr(product.shutil, "which", lambda name: "pwsh" if name == "pwsh" else None)
+    monkeypatch.setattr(product.tempfile, "mkdtemp", lambda prefix: str(update_dir))
+
+    def fake_download(url, destination):
+        destination = Path(destination)
+        if url.endswith(".sha256"):
+            destination.write_text("0" * 64 + "  acco-windows-x86_64.exe\n", encoding="utf-8")
+        else:
+            destination.write_bytes(b"tampered")
+
+    monkeypatch.setattr(product, "urlretrieve", fake_download)
+    monkeypatch.setattr(
+        product.subprocess,
+        "Popen",
+        lambda *args, **kwargs: popen_calls.append((args, kwargs)),
+    )
+
+    try:
+        product._apply_windows_standalone_update()
+    except ValueError as exc:
+        assert "checksum verification failed" in str(exc)
+    else:
+        raise AssertionError("expected checksum rejection")
+
+    assert popen_calls == []
+
+
 def test_advanced_surface_keeps_power_commands_discoverable(capsys):
     """Simplifying onboarding must not hide the existing expert API."""
     assert main(["advanced"]) == 0

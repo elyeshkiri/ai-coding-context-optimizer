@@ -145,6 +145,11 @@ acco update --apply
 acco setup
 ```
 
+For the standalone Windows executable, `acco update --apply` downloads the
+latest Windows asset and SHA-256 sidecar, verifies the checksum, smoke-tests the
+new executable, then schedules replacement of the running `acco.exe` after
+the current process exits. It does not fall back to `acco.exe -m pip`.
+
 `setup` is idempotent and doubles as the integration repair/migration command.
 It also refreshes the structural index and verifies readiness.
 

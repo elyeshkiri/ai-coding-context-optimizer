@@ -1,5 +1,11 @@
 # Unreleased
 
+- **Completed the Windows standalone lifecycle.** Frozen `acco.exe` now uses
+  a checksum-verified self-update path instead of incorrectly trying to invoke
+  itself as a Python interpreter. The updater downloads the latest Windows
+  asset and SHA-256 sidecar, smoke-tests the replacement, and schedules the
+  executable swap after the current ACCO process exits.
+
 # 1.19.0 - 2026-09-26
 
 - **Added first-class Windows runtime support.** Native Windows CI now runs the
