@@ -218,80 +218,94 @@ def test_update_is_inspectable_and_does_not_mutate_by_default(
     assert payload["applied"] is False
 
 
-def test_frozen_windows_update_uses_standalone_strategy(monkeypatch, capsys):
-    """Frozen Windows builds must never try to execute acco.exe as Python."""
-    monkeypatch.setattr(product, "_is_frozen_windows", lambda: True)
-    monkeypatch.setattr(product.sys, "executable", r"C:\\Tools\\acco.exe")
+def test_frozen_update_uses_standalone_strategy(monkeypatch, capsys):
+    """Frozen builds must never try to execute the ACCO binary as Python."""
+    monkeypatch.setattr(product, "_is_frozen", lambda: True)
+    monkeypatch.setattr(product.sys, "executable", "/opt/acco")
 
     assert product.update_main(["--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
 
-    assert payload["manager"] == "standalone-windows"
-    assert payload["command"] == [r"C:\\Tools\\acco.exe", "update", "--apply"]
+    assert payload["manager"] == "standalone"
+    assert payload["command"] == ["/opt/acco", "update", "--apply"]
     assert "-m" not in payload["command"]
 
 
-def test_frozen_windows_update_apply_uses_verified_self_update(
-    monkeypatch,
-    capsys,
-):
-    """Applying a frozen Windows update should use the standalone updater."""
-    monkeypatch.setattr(product, "_is_frozen_windows", lambda: True)
+def test_standalone_asset_maps_all_supported_platform_architectures():
+    """Every published platform/architecture pair should resolve deterministically."""
+    assert product._standalone_asset(
+        system_name="Linux",
+        machine="x86_64",
+    ) == "acco-linux-x86_64"
+    assert product._standalone_asset(
+        system_name="Linux",
+        machine="aarch64",
+    ) == "acco-linux-arm64"
+    assert product._standalone_asset(
+        system_name="Darwin",
+        machine="arm64",
+    ) == "acco-macos-arm64"
+    assert product._standalone_asset(
+        system_name="Darwin",
+        machine="x86_64",
+    ) == "acco-macos-x86_64"
+    assert product._standalone_asset(
+        system_name="Windows",
+        machine="AMD64",
+    ) == "acco-windows-x86_64.exe"
+    assert product._standalone_asset(
+        system_name="Windows",
+        machine="ARM64",
+    ) == "acco-windows-arm64.exe"
+
+
+def test_frozen_update_apply_uses_generic_verified_updater(monkeypatch, capsys):
+    """Applying any frozen build update should use the standalone updater."""
+    monkeypatch.setattr(product, "_is_frozen", lambda: True)
     called = []
     monkeypatch.setattr(
         product,
-        "_apply_windows_standalone_update",
-        lambda: called.append(True) or 0,
+        "_apply_standalone_update",
+        lambda: called.append(True) or "completed",
     )
 
     assert product.update_main(["--apply"]) == 0
 
     assert called == [True]
-    assert "scheduled for process exit" in capsys.readouterr().out
+    assert "verified and installed" in capsys.readouterr().out
 
 
-def test_windows_standalone_updater_verifies_and_schedules_replacement(
+def test_windows_standalone_update_schedules_post_exit_replacement(
     tmp_path,
     monkeypatch,
 ):
-    """The updater must verify SHA-256 and only then schedule post-exit replacement."""
+    """Windows must defer replacement until the running executable exits."""
     target = tmp_path / "installed" / "acco.exe"
     target.parent.mkdir()
     target.write_bytes(b"old")
-    downloaded = b"new-verified-binary"
-    digest = product.hashlib.sha256(downloaded).hexdigest()
-    calls = []
+    update_dir = tmp_path / "update"
+    update_dir.mkdir()
+    replacement = update_dir / "acco.exe"
+    replacement.write_bytes(b"new")
     popen_calls = []
 
     monkeypatch.setattr(product.sys, "executable", str(target))
+    monkeypatch.setattr(product.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(product, "_standalone_asset", lambda: "acco-windows-x86_64.exe")
+    monkeypatch.setattr(
+        product,
+        "_download_verified_standalone",
+        lambda **kwargs: (update_dir, replacement),
+    )
     monkeypatch.setattr(product.shutil, "which", lambda name: "pwsh" if name == "pwsh" else None)
-    monkeypatch.setattr(product.tempfile, "mkdtemp", lambda prefix: str(tmp_path / "update"))
-    (tmp_path / "update").mkdir()
-
-    def fake_download(url, destination):
-        calls.append(url)
-        destination = Path(destination)
-        if url.endswith(".sha256"):
-            destination.write_text(f"{digest}  acco-windows-x86_64.exe\n", encoding="utf-8")
-        else:
-            destination.write_bytes(downloaded)
-
-    class Smoke:
-        returncode = 0
-
-    monkeypatch.setattr(product, "urlretrieve", fake_download)
-    monkeypatch.setattr(product.subprocess, "run", lambda *args, **kwargs: Smoke())
     monkeypatch.setattr(
         product.subprocess,
         "Popen",
         lambda command, **kwargs: popen_calls.append((command, kwargs)),
     )
 
-    assert product._apply_windows_standalone_update() == 0
+    assert product._apply_standalone_update() == "scheduled"
 
-    assert len(calls) == 2
-    assert calls[0].endswith("/acco-windows-x86_64.exe")
-    assert calls[1].endswith("/acco-windows-x86_64.exe.sha256")
     assert len(popen_calls) == 1
     command, kwargs = popen_calls[0]
     assert command[:3] == ["pwsh", "-NoProfile", "-NonInteractive"]
@@ -302,43 +316,103 @@ def test_windows_standalone_updater_verifies_and_schedules_replacement(
     assert kwargs["creationflags"] >= 0
 
 
-def test_windows_standalone_updater_rejects_bad_checksum(
+def test_posix_standalone_update_replaces_running_binary(
     tmp_path,
     monkeypatch,
 ):
-    """A mismatched release checksum must abort before replacement is scheduled."""
-    target = tmp_path / "acco.exe"
+    """Linux/macOS should atomically replace the standalone binary in place."""
+    target = tmp_path / "installed" / "acco"
+    target.parent.mkdir()
     target.write_bytes(b"old")
+    target.chmod(0o755)
     update_dir = tmp_path / "update"
     update_dir.mkdir()
-    popen_calls = []
+    replacement = update_dir / "acco"
+    replacement.write_bytes(b"new")
+    replacement.chmod(0o755)
 
     monkeypatch.setattr(product.sys, "executable", str(target))
-    monkeypatch.setattr(product.shutil, "which", lambda name: "pwsh" if name == "pwsh" else None)
+    monkeypatch.setattr(product.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(product, "_standalone_asset", lambda: "acco-linux-x86_64")
+    monkeypatch.setattr(
+        product,
+        "_download_verified_standalone",
+        lambda **kwargs: (update_dir, replacement),
+    )
+
+    assert product._apply_standalone_update() == "completed"
+    assert target.read_bytes() == b"new"
+    assert not update_dir.exists()
+
+
+def test_standalone_download_rejects_bad_checksum(
+    tmp_path,
+    monkeypatch,
+):
+    """A mismatched release checksum must abort before replacement is possible."""
+    update_dir = tmp_path / "update"
+    update_dir.mkdir()
     monkeypatch.setattr(product.tempfile, "mkdtemp", lambda prefix: str(update_dir))
 
     def fake_download(url, destination):
         destination = Path(destination)
         if url.endswith(".sha256"):
-            destination.write_text("0" * 64 + "  acco-windows-x86_64.exe\n", encoding="utf-8")
+            destination.write_text(
+                "0" * 64 + "  acco-linux-x86_64\n",
+                encoding="utf-8",
+            )
         else:
             destination.write_bytes(b"tampered")
 
     monkeypatch.setattr(product, "urlretrieve", fake_download)
-    monkeypatch.setattr(
-        product.subprocess,
-        "Popen",
-        lambda *args, **kwargs: popen_calls.append((args, kwargs)),
-    )
 
     try:
-        product._apply_windows_standalone_update()
+        product._download_verified_standalone(asset="acco-linux-x86_64")
     except ValueError as exc:
         assert "checksum verification failed" in str(exc)
     else:
         raise AssertionError("expected checksum rejection")
 
-    assert popen_calls == []
+    assert not update_dir.exists()
+
+
+def test_standalone_download_verifies_and_smoke_tests(
+    tmp_path,
+    monkeypatch,
+):
+    """Verified downloads should be smoke-tested before an update is accepted."""
+    update_dir = tmp_path / "update"
+    update_dir.mkdir()
+    downloaded = b"new-verified-binary"
+    digest = product.hashlib.sha256(downloaded).hexdigest()
+    calls = []
+    monkeypatch.setattr(product.tempfile, "mkdtemp", lambda prefix: str(update_dir))
+    monkeypatch.setattr(product.os, "name", "posix", raising=False)
+
+    def fake_download(url, destination):
+        calls.append(url)
+        destination = Path(destination)
+        if url.endswith(".sha256"):
+            destination.write_text(
+                f"{digest}  acco-linux-arm64\n",
+                encoding="utf-8",
+            )
+        else:
+            destination.write_bytes(downloaded)
+
+    class Smoke:
+        returncode = 0
+
+    monkeypatch.setattr(product, "urlretrieve", fake_download)
+    monkeypatch.setattr(product.subprocess, "run", lambda *args, **kwargs: Smoke())
+
+    directory, replacement = product._download_verified_standalone(
+        asset="acco-linux-arm64"
+    )
+
+    assert directory == update_dir
+    assert replacement.read_bytes() == downloaded
+    assert len(calls) == 2
 
 
 def test_advanced_surface_keeps_power_commands_discoverable(capsys):
